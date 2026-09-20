@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: yugi
+      POSTGRES_PASSWORD: yugi
+      POSTGRES_DB: yugi_h5
+    ports:
+      - '5433:5432'
+    volumes:
+      - yugi-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U yugi -d yugi_h5']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Not wired into apps/api yet — reserved for the M7 realtime module
+  # (Socket.io adapter, rate limiting). Safe to leave running unused.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6380:6379'
+
+volumes:
+  yugi-postgres-data:

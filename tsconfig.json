@@ -1,0 +1,7 @@
+{
+  "extends": "./packages/config/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false
+  },
+  "exclude": ["node_modules", "**/dist", "**/build"]
+}

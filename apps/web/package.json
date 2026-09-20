@@ -1,0 +1,26 @@
+{
+  "name": "@yugi/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@yugi/shared": "workspace:*",
+    "phaser": "^3.87.0",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@yugi/config": "workspace:*",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^7.0.0",
+    "vitest": "^3.0.0"
+  }
+}
