@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountKind {
+  GUEST
+  ACCOUNT
+}
+
+model User {
+  id           String      @id @default(uuid())
+  kind         AccountKind @default(GUEST)
+  email        String?     @unique
+  passwordHash String?
+  displayName  String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  refreshTokens RefreshToken[]
+  collection    CardCollection[]
+  decks         Deck[]
+  matchesAsP1   DuelMatch[]      @relation("DuelMatchPlayer1")
+  matchesAsP2   DuelMatch[]      @relation("DuelMatchPlayer2")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/** How many copies of a given card definition (id lives in @yugi/shared, not in the DB) the user owns. */
+model CardCollection {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  definitionId String
+  quantity     Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, definitionId])
+  @@map("card_collections")
+}
+
+model Deck {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  cards     DeckCard[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@map("decks")
+}
+
+model DeckCard {
+  id           String @id @default(uuid())
+  deckId       String
+  deck         Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  definitionId String
+  quantity     Int    @default(1)
+
+  @@unique([deckId, definitionId])
+  @@map("deck_cards")
+}
+
+enum DuelResult {
+  PLAYER1_WIN
+  PLAYER2_WIN
+  DRAW
+  ABORTED
+}
+
+/** Replayable record: seed + action log let the engine reconstruct the whole duel. See docs/design/engine.md. */
+model DuelMatch {
+  id           String     @id @default(uuid())
+  seed         String
+  player1Id    String
+  player1      User       @relation("DuelMatchPlayer1", fields: [player1Id], references: [id])
+  player2Id    String?
+  player2      User?      @relation("DuelMatchPlayer2", fields: [player2Id], references: [id])
+  isAiOpponent Boolean    @default(false)
+  actionLog    Json
+  result       DuelResult?
+  startedAt    DateTime   @default(now())
+  endedAt      DateTime?
+
+  @@index([player1Id])
+  @@index([player2Id])
+  @@map("duel_matches")
+}
