@@ -219,3 +219,17 @@ pip-selfcheck.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/react,virtualenv,node,visualstudiocode
+
+# assets (art bản quyền/bên thứ ba ở ngoài git; xem docs/plan/card-art-pipeline.md)
+assets/generated/
+assets/card-art/*
+assets/card-art-src/*
+!assets/card-art/.gitkeep
+!assets/card-art-src/.gitkeep
+
+# reference capture (tư liệu Yugi H5 gốc, chỉ dùng cá nhân)
+docs/reference/*/*
+!docs/reference/*/.gitkeep
+!docs/reference/notes/*.md
+docs/reference/frames/*
+!docs/reference/frames/.gitkeep

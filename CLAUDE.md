@@ -72,8 +72,29 @@ docker compose up -d                      # Postgres (5433) + Redis (6380, chưa
    luật mới.
 6. Báo cáo cuối task: đã làm gì, file đổi, cách verify, việc tiếp theo đề xuất.
 
-Slash commands hỗ trợ quy trình này: `/task-start`, `/task-done`, `/new-card`,
-`/new-effect-type`, `/new-action`, `/review`, `/write-prompt` (xem `.claude/commands/`).
+7. **Kết thúc mỗi task bằng Review Packet** cho người duyệt (`/review-packet`) + cập nhật
+   `docs/plan/parity-board.md` (AI chỉ tới 🟨 "nháp"; chỉ người dùng chuyển ✅).
+
+Slash commands hỗ trợ quy trình này: `/task-start`, `/task-done`, `/next-task`, `/new-card`,
+`/new-effect-type`, `/new-action`, `/review`, `/review-packet`, `/fidelity-check`, `/asset-request`,
+`/write-prompt` (xem `.claude/commands/`).
+
+## Kế hoạch tổng thể & vai trò
+
+Người dùng **không code**: chỉ cung cấp tư liệu (`docs/reference/`), asset (`assets/`), duyệt và trả lời câu hỏi. AI viết mọi
+code/test/tooling/docs. Nguồn task: [`docs/plan/MASTER-PLAN.md`](./docs/plan/MASTER-PLAN.md) (Phase P0–P9, dùng `/next-task`).
+Tài liệu: `docs/plan/{fidelity-spec,rules-coverage,card-and-effect-plan,card-art-pipeline,ui-plan,animation-plan,backend-plan,
+testing-strategy,dev-tools-and-review,human-tasks,parity-board}.md`.
+
+**Nhãn độ tin cậy** trong mọi tài liệu/quyết định về hành vi Yugi H5 gốc: `[REF]` (có tư liệu trong `docs/reference/`), `[RULE]`
+(luật YGO chuẩn), `[DECISION]` (chủ dự án đã chốt, chưa có [REF]: không hỏi lại, đổi bằng config khi có tư liệu), `[GUESS]` (đoán). Không bao giờ trình bày `[GUESS]` như sự thật; `[GUESS]` phải nằm trong danh sách G# của
+`fidelity-spec.md`. Task Engine xong → cập nhật `docs/reference/notes/RULES-REVIEW-SHEET.md`. Người dùng báo "đã nộp" tư liệu →
+`/ingest-reference` (thiếu ffmpeg thì báo, không tự cài; không bịa chi tiết ngoài tư liệu).
+
+**Khi cần asset/tư liệu**: tạo yêu cầu trong `docs/plan/human-tasks.md` hoặc `docs/assets/ASSET_REQUESTS.md` (`/asset-request`) và
+dùng placeholder — KHÔNG tự bịa/tải asset. Không thêm `sharp`/Spine/lib hash mật khẩu khi chưa hỏi người dùng.
+
+**Dev tool** (Sandbox, Replay, Animation Preview) đi qua dev-endpoint ở `apps/api` (tắt ở production); `apps/web` vẫn không import engine.
 
 ## TUYỆT ĐỐI KHÔNG
 

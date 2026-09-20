@@ -14,7 +14,9 @@ Trước khi báo task đã xong:
    nhiên) → thêm 1 mục vào `docs/ai/DECISIONS.md` (ngày, quyết định, lý do, hệ quả).
 5. Nếu đổi contract (Action/Event/EffectDefinition/API endpoint) → cập nhật
    `docs/design/*.md` tương ứng.
-6. Nếu phát sinh luật mới cho 1 package cụ thể → cập nhật `CLAUDE.md` của package đó (hoặc
+6. Nếu task thuộc Engine: cập nhật `docs/reference/notes/RULES-REVIEW-SHEET.md` (thêm dòng luật, đổi tên test thật) và
+   `docs/plan/parity-board.md`; kết thúc bằng `/review-packet`.
+7. Nếu phát sinh luật mới cho 1 package cụ thể → cập nhật `CLAUDE.md` của package đó (hoặc
    root `CLAUDE.md` nếu là luật chung).
-7. Báo cáo cuối: đã làm gì, file nào đổi, cách verify (lệnh đã chạy + kết quả), việc tiếp
+8. Báo cáo cuối: đã làm gì, file nào đổi, cách verify (lệnh đã chạy + kết quả), việc tiếp
    theo đề xuất (nếu có).

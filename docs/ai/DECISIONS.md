@@ -73,3 +73,44 @@ không phải 5432 mặc định.
 `zustand/vanilla`, truy cập qua `.getState()`/`.setState()`/`.subscribe()`.
 **Hệ quả**: không dùng được `useStore()` hook pattern — mọi Phaser Scene đọc state qua
 `viewStore.getState()` trực tiếp (đã áp dụng trong `boot-scene.ts`/`menu-scene.ts`).
+
+## 2026-09-20 — Tái cấu trúc M0–M8 thành Phase P0–P9
+
+Đưa vertical slice (solo vs AI dummy, chơi được end-to-end) lên sớm ở P2 trước effect system; tách asset pipeline (P5) và
+animation/audio (P6) thành phase riêng; AI rule-based (P8) sau effect. **Hệ quả**: `MASTER-PLAN.md` là nguồn task; ROADMAP dùng P-số.
+
+## 2026-09-20 — Phạm vi luật v1 và `RulesetConfig`
+
+IN: Normal/Tribute/Set/Flip/Special, Fusion (Ritual bỏ khỏi v1, xem ADR G1–G12); Spell/Trap đủ loại (Counter, Field làm ở P4). OUT: Synchro/Xyz/Pendulum/Link, ban-list.
+Luật cổ điển (early Master Rule) là mặc định qua `RulesetConfig` nằm trong `state.ruleset` (để replay tái lập). **Hệ quả**: thêm Zod
+schema ở `packages/shared`; các hành vi chưa xác nhận Yugi H5 (chain prompt, timer, starting LP) là config `[GUESS]`.
+
+## 2026-09-20 — Nhãn độ tin cậy [REF]/[RULE]/[GUESS]
+
+Không có bản gốc để đối chiếu, nên mọi hành vi ghi nhãn; `[GUESS]` không được trình bày như sự thật và phải vào danh sách xác nhận
+(`docs/plan/fidelity-spec.md`). Mục tiêu "giống 100%" thay bằng 5 tầng đo được. **Hệ quả**: parity-board do người dùng duyệt.
+
+## 2026-09-20 — Tool dev đi qua API (dev-only), web không import engine
+
+Duel Sandbox, Replay Viewer, Animation Preview cần chạy engine; giữ nguyên nguyên tắc `apps/web` không import `applyAction` bằng cách dùng
+dev-endpoint ở `apps/api` (tắt ở production). **Hệ quả**: `StateView` bổ sung `legalActions`/`legalTargets` để FE không suy luận luật.
+
+## 2026-09-20 — Asset pipeline: art vuông 512×512, khung vẽ bằng code, asset pack ngoài git
+
+Card frame/chữ/sao/ATK-DEF vẽ bằng code; art là 1 ảnh vuông `<cardId>.webp` thả vào `assets/card-art-src/`, thiếu art → placeholder.
+`assets/card-art*` và `docs/reference` (media) ignore khỏi git (tránh ảnh bản quyền lên repo public). **Hệ quả**: thêm `sharp` (dev-only) khi làm
+task 5.3 — **cần hỏi người dùng trước**; Spine không dùng mặc định (dependency lớn).
+
+## 2026-09-20 — i18n VI+EN từ đầu
+
+Chuỗi UI ở locale files (`apps/web/src/i18n/`), text card ở data (`{vi, en}`). Bootstrap ở task 2.10. **Hệ quả**: không hardcode chuỗi trong scene.
+
+## 2026-09-20 — Nhãn [DECISION] và chốt G1–G12
+
+Thêm nhãn `[DECISION]`: chủ dự án đã chốt thiết kế, chưa có `[REF]`; khác `[GUESS]` ở chỗ không hỏi lại, đổi bằng config khi có tư liệu.
+Chốt: G1 `[RULE]` lượt 1 không draw/attack (`firstTurnDraw/Attack`); G2 tribute qua highlight + Xác nhận/Hủy; G3 chạm quái mở menu, chỉ action
+hợp lệ theo server; G4 attack bằng kéo hoặc menu rồi chạm target; G5 hỏi "Kích hoạt?" + auto-pass (`chainPrompt`); G6 không Damage Step chi tiết,
+Quick chỉ trước khi tính damage, state chừa chỗ mở rộng; G7 solo không timer, PvP 60s/lượt, hết giờ tự EndPhase, AFK nhiều lần thì thua;
+G8 Fusion ở P4, **bỏ Ritual khỏi v1**, chừa `extraDeck`; G11 có surrender + log trận; G12 deck 40–60/≤3, chưa gacha/pack. G9/G10 vẫn `[GUESS]`;
+LP 8000 giữ `[RULE]/[GUESS]`. Chi tiết: `docs/reference/notes/rules.md`. **Hệ quả**: thêm `chainPrompt`, `turnTimerSec`, `afkLossThreshold`,
+`allowSurrender` vào `RulesetConfig`; thêm `Surrender` vào engine (task 1.8); bỏ task 4.6 Ritual; bảng duyệt luật `RULES-REVIEW-SHEET.md`.

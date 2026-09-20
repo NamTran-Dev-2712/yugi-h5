@@ -1,64 +1,48 @@
 # Roadmap
 
-Trạng thái tick nhanh: xem `docs/ai/PROGRESS.md`. File này chỉ định nghĩa tiêu chí "done".
+Trạng thái tick nhanh: `docs/ai/PROGRESS.md`. Kế hoạch chi tiết + task con: `docs/plan/MASTER-PLAN.md`.
+File này chỉ định nghĩa tiêu chí "done" mức phase. (M0–M8 cũ đã được tái cấu trúc thành P0–P9 — xem ADR 2026-09-20.)
 
-## M0 — Setup monorepo + tooling ✅
+## P0 — Setup monorepo + tooling ✅ (= M0)
 
-**Done khi**: `pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build` xanh
-toàn workspace; `docker compose up -d` chạy Postgres+Redis; `pnpm dev` chạy đồng thời web+api;
-`/health` trả `{status:"ok", database:"ok"}` với DB thật; `.claude/` + `docs/ai/` +
-`docs/design/` tồn tại đầy đủ.
+**Done khi**: `pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build` xanh toàn workspace; `docker compose up -d`
+chạy Postgres+Redis; `pnpm dev` chạy web+api; `/health` trả `{status:"ok", database:"ok"}`.
 
-## M1 — Engine core
+## P1 — Engine core (vanilla) (≈ M1)
 
-**Done khi**: `packages/game-engine` implement đủ: Draw, Standby, Main1/2, Battle, End phase
-transition; `NormalSummon`/`SetMonster` với tribute rule đúng theo level; `ChangePosition`;
-`DeclareAttack` + damage calculation (ATK vs ATK, ATK vs DEF, face-down flip); win condition
-(LP <= 0, deck-out). Mỗi rule có test Vitest cho case hợp lệ + case invalid. Không có effect
-system (chỉ vanilla monster, không kích hoạt effect).
+**Done khi**: `RulesetConfig` (early Master Rule mặc định); Draw/Standby/Main1/Battle/Main2/End; `NormalSummon`/`SetMonster` + tribute; `ChangePosition`;
+`DeclareAttack` + damage calc + flip; win/lose; hand limit. Test valid+invalid mỗi rule; golden replay + fuzz cơ bản xanh. Chưa effect.
 
-## M2 — Effect system + chain
+## P2 — Vertical slice: solo vs AI dummy
 
-**Done khi**: `EffectDefinition` DSL (trigger/condition/cost/target/operation) implement
-được cả 4 loại (Trigger/Continuous/Ignition/Quick) + `scriptId` fallback; Chain stack hoạt
-động đúng (LIFO resolve, Spell Speed 1/2/3 rule); 10 card placeholder (Monster + Spell + Trap)
-dùng DSL, có test cho từng lá. Xem `docs/design/effect-dsl.md`.
+**Done khi**: `POST /duels/solo` + `/actions`, StateView ẩn thông tin, AI dummy, guest token tối thiểu; FE Duel scene kéo thả Summon/Set/Attack/End,
+LP + phase bar + log panel; Duel Sandbox (scenario JSON); i18n bootstrap. Chơi hết 1 ván qua `pnpm dev`; integration test xanh.
 
-## M3 — API + DB + Auth + Duel session (solo vs AI dummy)
+## P3 — Effect system + Chain (≈ M2)
 
-**Done khi**: Guest login + Account register/login/refresh hoạt động qua REST; `DuelService`
-wrap `applyAction` chạy solo vs 1 "AI" trả action ngẫu nhiên hợp lệ (chưa cần AI thật);
-`DuelMatch` (seed + action log) lưu DB đúng; StateView ẩn thông tin đối thủ đúng. Có test
-integration (Vitest + DB test) cho ít nhất luồng "tạo duel → draw → normal summon → end phase".
+**Done khi**: `EffectDefinition` (Zod) Trigger/Continuous/Ignition/Quick + `scriptId`; chain LIFO + Spell Speed; Set/Activate Spell/Trap;
+10 card mẫu có test từng lá; FE Chain UI + prompt target. Xem `docs/design/effect-dsl.md`.
 
-## M4 — FE Duel scene
+## P4 — Card batches + luật mở rộng
 
-**Done khi**: Board 5x2 render CardSprite thật (không còn placeholder rectangle); kéo bài từ
-Hand vào Monster/Spell-Trap Zone gửi Action lên server; kéo monster sang bên đối thủ để tấn
-công; toàn bộ animation chạy từ `GameEvent` nhận về (không có logic "optimistic update" tự
-suy luận trước khi server xác nhận, trừ khi có ADR ghi rõ lý do).
+**Done khi**: Batch 1–3 (CSV → validate); Special Summon, Equip, Field, Counter Trap, Fusion (Ritual ngoài v1); test tự động mỗi lá.
 
-## M5 — AI rule-based
+## P5 — Asset pipeline + Card Gallery
 
-**Done khi**: `AIPlayer` interface tách riêng khỏi `DuelService`; implementation rule-based
-đưa ra quyết định hợp lý cho summon/tribute/attack/basic effect activation (không cần tối ưu,
-chỉ cần hợp luật + không tự sát vô lý). Test: chơi được 1 ván đầy đủ solo vs AI không crash.
+**Done khi**: thả ảnh vào `assets/card-art-src/` → Gallery hiện đúng; `assets:validate/optimize/manifest` chạy; Duel/Hand dùng art thật, thiếu → placeholder.
 
-## M6 — Deck Builder + Collection
+## P6 — Animation + Audio (tier 1)
 
-**Done khi**: CRUD Deck/DeckCard qua API, validate đúng luật (40-60 lá, tối đa 3 bản/lá);
-CardCollection cho biết user sở hữu bao nhiêu bản mỗi definitionId; FE có màn hình deck
-builder cơ bản (list card, thêm/bớt, validate ngay trên UI trước khi save).
+**Done khi**: `EventAnimationQueue` + animator cho mọi GameEvent chính; VFX lib; audio manager; Animation Preview + Replay Viewer; skip/speed; FPS đạt ngân sách.
 
-## M7 — PvP real-time (private, bạn bè)
+## P7 — Auth + Deck Builder + Collection (≈ M6)
 
-**Done khi**: `RealtimeModule` (Socket.io) xử lý duel room thật (không còn skeleton); 2
-client kết nối, action của người này tạo event cho người kia qua socket, đồng bộ đúng version
-number, xử lý reconnect cơ bản. Redis wire vào làm Socket.io adapter nếu chạy nhiều instance
-(không bắt buộc cho 1 instance).
+**Done khi**: guest → account giữ dữ liệu; Deck CRUD validate 40–60/≤3; Collection; Deck Builder UI; chọn deck trước duel; Match Result.
 
-## M8 — Polish
+## P8 — AI rule-based (≈ M5)
 
-**Done khi**: hiệu ứng/âm thanh cho các action chính (summon, attack, damage, chain) có ít
-nhất 1 phiên bản; UX tổng thể chơi được mượt mà không cần đọc code để hiểu đang chờ gì
-(loading state, turn indicator, prompt UI rõ ràng cho PendingPrompt).
+**Done khi**: `AIPlayer` Easy/Normal hợp luật, dùng effect cơ bản; AI-vs-AI 100 ván seed cố định không crash/kẹt.
+
+## P9 — PvP private + PvE nhẹ + Polish (≈ M7 + M8)
+
+**Done khi**: room private, Socket.io, version sync + resync + reconnect, timeout/AFK; PvE chuỗi đối thủ AI; Settings + i18n hoàn thiện; polish tier 2 chọn lọc.

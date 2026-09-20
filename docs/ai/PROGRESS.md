@@ -2,7 +2,7 @@
 
 Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` root).
 
-## Milestone hiện tại: M0 — Setup nền móng (DONE), chuẩn bị M1
+## Phase hiện tại: P0 (= M0) DONE — Planning xong, chờ duyệt, chuẩn bị P1
 
 ### Đã xong (M0)
 
@@ -25,28 +25,28 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
 
 ### Đang làm / Bị chặn
 
-- Không có gì đang làm dở. Không bị chặn.
+- **Planning (2026-09-20)**: bộ kế hoạch tổng thể xong trong `docs/plan/*` (11 file + `parity-board.md`), chờ người dùng duyệt.
+  Chưa bắt đầu P1. Không bị chặn.
 
 ### Bàn giao cho task tiếp theo
 
-- **Task đề xuất đầu tiên của M1**: implement `NormalSummon` + `SetMonster` trong
-  `packages/game-engine` (validate tribute theo level 1-4/5-6/7+, cập nhật zone, phát event),
-  kèm test cho case hợp lệ + invalid. Xem `docs/design/engine.md` phần Action list.
-- Port Postgres/Redis đã đổi so với mặc định — nhớ dùng `apps/api/.env.example` làm chuẩn,
-  không hardcode 5432/6379 ở chỗ khác.
-- `apps/api` build dùng `tsc` trực tiếp (không dùng `nest build`/`nest start --watch` — xem
-  `docs/ai/DECISIONS.md` mục Nest CLI build).
+- **Task đầu tiên (P1, task 1.1)**: `RulesetConfig` (Zod trong `packages/shared`) + `state.ruleset`, truyền qua `StartDuel`, kèm test. Chạy `/next-task` để chọn theo MASTER-PLAN.
+- G1–G8/G11/G12 đã chốt (xem `docs/reference/notes/rules.md`); G9/G10 vẫn `[GUESS]` chờ tư liệu.
+- Port Postgres/Redis đã đổi (5433/6380) — dùng `apps/api/.env.example` làm chuẩn.
+- `apps/api` build bằng `tsc` trực tiếp (xem `docs/ai/DECISIONS.md`).
+- Mỗi task kết thúc bằng Review Packet (`/review-packet`) và cập nhật `docs/plan/parity-board.md`.
 
-## Checklist milestone (M0-M8)
+## Checklist phase (P0–P9) — chi tiết task: `docs/plan/MASTER-PLAN.md`
 
-- [x] M0 — Setup monorepo + tooling, lint/typecheck/test/build/dev xanh
-- [ ] M1 — Engine core (state, phases, draw, summon/tribute, battle, win condition) + test
-- [ ] M2 — Effect system + chain + 10 card mẫu placeholder
-- [ ] M3 — API + DB + auth guest/account + duel session REST/WS solo với AI dummy
-- [ ] M4 — FE Duel scene: kéo thả summon/attack, event animation queue
-- [ ] M5 — AI rule-based
-- [ ] M6 — Deck Builder + collection
-- [ ] M7 — PvP real-time private
-- [ ] M8 — Polish hiệu ứng/âm thanh/UX
+- [x] P0 — Setup monorepo + tooling (= M0)
+- [ ] P1 — Engine core vanilla + RulesetConfig + golden replay/fuzz
+- [ ] P2 — Vertical slice: solo vs AI dummy (API + FE Duel + Sandbox)
+- [ ] P3 — Effect system + Chain + 10 card mẫu
+- [ ] P4 — Card batches + Special/Equip/Field/Counter/Fusion
+- [ ] P5 — Asset pipeline + Card Gallery
+- [ ] P6 — Animation + Audio tier 1 + Animation Preview + Replay Viewer
+- [ ] P7 — Auth + Deck Builder + Collection
+- [ ] P8 — AI rule-based
+- [ ] P9 — PvP private + PvE nhẹ + Polish
 
-Tiêu chí done chi tiết từng milestone: xem `docs/ai/ROADMAP.md`.
+Tiêu chí done từng phase: `docs/ai/ROADMAP.md`.
