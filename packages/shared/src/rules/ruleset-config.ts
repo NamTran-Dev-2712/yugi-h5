@@ -29,6 +29,10 @@ export const RulesetConfigSchema = z
     afkLossThreshold: z.number().int().min(1).default(3),
     /** G11 [DECISION]. */
     allowSurrender: z.boolean().default(true),
+    /** C11 [DECISION]: a Trap must be Set face-down before it can be activated. */
+    allowTrapActivationFromHand: z.boolean().default(false),
+    /** C11 [RULE]: a Trap cannot be activated on the turn it was Set. */
+    trapSetTurnDelay: z.boolean().default(true),
   })
   .refine((r) => r.deckMin <= r.deckMax, {
     message: 'deckMin must be <= deckMax',

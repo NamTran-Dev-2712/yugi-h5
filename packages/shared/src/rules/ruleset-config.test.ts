@@ -30,6 +30,21 @@ describe('RulesetConfig', () => {
     expect(ruleset.handLimit).toBe(DEFAULT_RULESET.handLimit);
   });
 
+  it('C11 defaults: trap cannot be activated from hand and must wait a turn after Set', () => {
+    expect(DEFAULT_RULESET.allowTrapActivationFromHand).toBe(false);
+    expect(DEFAULT_RULESET.trapSetTurnDelay).toBe(true);
+  });
+
+  it('C11 keys can be overridden', () => {
+    const ruleset = resolveRuleset({
+      allowTrapActivationFromHand: true,
+      trapSetTurnDelay: false,
+    });
+
+    expect(ruleset.allowTrapActivationFromHand).toBe(true);
+    expect(ruleset.trapSetTurnDelay).toBe(false);
+  });
+
   it('rejects invalid values', () => {
     expect(RulesetConfigSchema.safeParse({ startingLP: 0 }).success).toBe(false);
     expect(RulesetConfigSchema.safeParse({ chainPrompt: 'sometimes' }).success).toBe(false);
