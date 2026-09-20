@@ -22,6 +22,7 @@ Mọi thứ khác trong package không phải contract ổn định — import q
 interface GameState {
   matchId: string;
   rng: RngState;                        // seeded, xem rng/seeded-rng.ts
+  ruleset: RulesetConfig;               // resolved lúc StartDuel (packages/shared), replay tái lập
   turnCount: number;
   turnPlayerIndex: 0 | 1;
   phase: Phase;                         // Draw|Standby|Main1|Battle|Main2|End
@@ -53,7 +54,7 @@ tạo object mới (spread), không mutate.
 
 ## Action list
 
-Đã có (M0): `StartDuel`, `Draw`.
+Đã có: `StartDuel` (payload nhận `ruleset?: Partial<RulesetConfig>`, ghi đè lên mặc định early Master Rule), `Draw`.
 
 Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định rời rạc của người chơi/AI):
 

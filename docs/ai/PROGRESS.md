@@ -30,7 +30,8 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
 
 ### Bàn giao cho task tiếp theo
 
-- **Task đầu tiên (P1, task 1.1)**: `RulesetConfig` (Zod trong `packages/shared`) + `state.ruleset`, truyền qua `StartDuel`, kèm test. Chạy `/next-task` để chọn theo MASTER-PLAN.
+- **Task 1.1 ✅ (chờ duyệt)**: `RulesetConfig` (Zod, `packages/shared/src/rules/ruleset-config.ts`) + `state.ruleset`, `StartDuel` nhận `ruleset?`. Chỉ lưu config, chưa có hành vi.
+- **Task tiếp theo: 1.2** — `EndPhase` + phase transition + đổi lượt + luật lượt 1 (`firstTurnDraw/Attack`, đọc từ `state.ruleset`). Chạy `/next-task` để chọn theo MASTER-PLAN.
 - G1–G8/G11/G12 đã chốt (xem `docs/reference/notes/rules.md`); G9/G10 vẫn `[GUESS]` chờ tư liệu.
 - Port Postgres/Redis đã đổi (5433/6380) — dùng `apps/api/.env.example` làm chuẩn.
 - `apps/api` build bằng `tsc` trực tiếp (xem `docs/ai/DECISIONS.md`).

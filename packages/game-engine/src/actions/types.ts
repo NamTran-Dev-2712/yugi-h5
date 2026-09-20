@@ -1,3 +1,5 @@
+import type { RulesetConfig } from '@yugi/shared';
+
 export interface StartDuelAction {
   readonly type: 'StartDuel';
   readonly payload: {
@@ -6,6 +8,8 @@ export interface StartDuelAction {
     readonly playerIds: readonly [string, string];
     /** Card definition ids in deck order (pre-shuffle), one list per player. */
     readonly deckLists: readonly [readonly string[], readonly string[]];
+    /** Overrides applied on top of the default (early Master Rule) ruleset. */
+    readonly ruleset?: Partial<RulesetConfig>;
   };
 }
 

@@ -1,3 +1,4 @@
+import type { RulesetConfig } from '@yugi/shared';
 import type { RngState } from '../rng/seeded-rng.js';
 
 export type Phase = 'Draw' | 'Standby' | 'Main1' | 'Battle' | 'Main2' | 'End';
@@ -68,6 +69,8 @@ export interface PendingPrompt {
 export interface GameState {
   readonly matchId: string;
   readonly rng: RngState;
+  /** Resolved at StartDuel; rules read this, never module constants, so replays reproduce. */
+  readonly ruleset: RulesetConfig;
   readonly turnCount: number;
   readonly turnPlayerIndex: 0 | 1;
   readonly phase: Phase;

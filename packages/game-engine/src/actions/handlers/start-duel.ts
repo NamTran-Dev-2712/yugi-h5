@@ -1,10 +1,8 @@
+import { resolveRuleset } from '@yugi/shared';
 import { createRng, shuffle } from '../../rng/seeded-rng.js';
 import type { CardInstance, GameState, PlayerState } from '../../state/types.js';
 import type { GameEvent } from '../../events/types.js';
 import type { StartDuelAction } from '../types.js';
-
-const OPENING_HAND_SIZE = 5;
-const STARTING_LIFE_POINTS = 8000;
 
 function buildDeck(playerIndex: 0 | 1, definitionIds: readonly string[]): CardInstance[] {
   return definitionIds.map((definitionId, i) => ({
@@ -25,6 +23,7 @@ function emptyBoard(): PlayerState['board'] {
 
 export function applyStartDuel(action: StartDuelAction): { state: GameState; events: GameEvent[] } {
   const { matchId, seed, playerIds, deckLists } = action.payload;
+  const ruleset = resolveRuleset(action.payload.ruleset);
 
   let rng = createRng(seed);
   const players: PlayerState[] = [];
@@ -35,8 +34,8 @@ export function applyStartDuel(action: StartDuelAction): { state: GameState; eve
     const [shuffledDeck, nextRng] = shuffle(rng, rawDeck);
     rng = nextRng;
 
-    const hand = shuffledDeck.slice(0, OPENING_HAND_SIZE);
-    const deck = shuffledDeck.slice(OPENING_HAND_SIZE);
+    const hand = shuffledDeck.slice(0, ruleset.openingHandSize);
+    const deck = shuffledDeck.slice(ruleset.openingHandSize);
 
     for (const card of hand) {
       events.push({
@@ -49,7 +48,7 @@ export function applyStartDuel(action: StartDuelAction): { state: GameState; eve
 
     players.push({
       playerId: playerIds[playerIndex],
-      lifePoints: STARTING_LIFE_POINTS,
+      lifePoints: ruleset.startingLP,
       board: emptyBoard(),
       hand,
       deck,
@@ -66,6 +65,7 @@ export function applyStartDuel(action: StartDuelAction): { state: GameState; eve
   const state: GameState = {
     matchId,
     rng,
+    ruleset,
     turnCount: 1,
     turnPlayerIndex,
     phase: 'Draw',

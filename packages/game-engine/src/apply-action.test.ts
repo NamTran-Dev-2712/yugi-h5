@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from './apply-action.js';
+import { DEFAULT_RULESET } from '@yugi/shared';
 import type { StartDuelAction, DrawAction } from './actions/types.js';
 
 function deckOf(prefix: string, size: number): string[] {
   return Array.from({ length: size }, (_, i) => `${prefix}-${i}`);
 }
 
-function startDuelAction(seed: string): StartDuelAction {
+function startDuelAction(
+  seed: string,
+  ruleset?: StartDuelAction['payload']['ruleset'],
+): StartDuelAction {
   return {
     type: 'StartDuel',
     payload: {
@@ -14,6 +18,7 @@ function startDuelAction(seed: string): StartDuelAction {
       seed,
       playerIds: ['alice', 'bob'],
       deckLists: [deckOf('A', 40), deckOf('B', 40)],
+      ...(ruleset ? { ruleset } : {}),
     },
   };
 }
@@ -50,6 +55,35 @@ describe('applyAction / StartDuel', () => {
     expect(run1.state.players[0].hand.map((c) => c.definitionId)).not.toEqual(
       run2.state.players[0].hand.map((c) => c.definitionId),
     );
+  });
+});
+
+describe('applyAction / StartDuel ruleset', () => {
+  it('stores the resolved default ruleset in state', () => {
+    const { state } = applyAction(null, startDuelAction('seed-rules'));
+
+    expect(state.ruleset).toEqual(DEFAULT_RULESET);
+  });
+
+  it('applies ruleset overrides passed to StartDuel', () => {
+    const { state } = applyAction(
+      null,
+      startDuelAction('seed-rules', { startingLP: 4000, openingHandSize: 6 }),
+    );
+
+    expect(state.players[0].lifePoints).toBe(4000);
+    expect(state.players[1].lifePoints).toBe(4000);
+    expect(state.players[0].hand).toHaveLength(6);
+    expect(state.players[0].deck).toHaveLength(34);
+    expect(state.ruleset.handLimit).toBe(DEFAULT_RULESET.handLimit);
+  });
+
+  it('keeps state JSON-serializable and reproducible for the same seed and ruleset', () => {
+    const run1 = applyAction(null, startDuelAction('seed-json', { startingLP: 5000 }));
+    const run2 = applyAction(null, startDuelAction('seed-json', { startingLP: 5000 }));
+
+    expect(JSON.parse(JSON.stringify(run1.state))).toEqual(run1.state);
+    expect(run1.state).toEqual(run2.state);
   });
 });
 
