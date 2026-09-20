@@ -114,3 +114,8 @@ Quick chỉ trước khi tính damage, state chừa chỗ mở rộng; G7 solo k
 G8 Fusion ở P4, **bỏ Ritual khỏi v1**, chừa `extraDeck`; G11 có surrender + log trận; G12 deck 40–60/≤3, chưa gacha/pack. G9/G10 vẫn `[GUESS]`;
 LP 8000 giữ `[RULE]/[GUESS]`. Chi tiết: `docs/reference/notes/rules.md`. **Hệ quả**: thêm `chainPrompt`, `turnTimerSec`, `afkLossThreshold`,
 `allowSurrender` vào `RulesetConfig`; thêm `Surrender` vào engine (task 1.8); bỏ task 4.6 Ritual; bảng duyệt luật `RULES-REVIEW-SHEET.md`.
+
+## 2026-09-20 — C11: Trap phải Set mới kích hoạt được
+
+`[DECISION]` (chủ dự án): Trap **không** kích hoạt từ tay; phải Set úp trên sân. Trap vừa Set ở lượt nào thì lượt đó chưa được kích hoạt `[RULE]`. Bài Phép thường vẫn kích hoạt từ tay ở Main Phase `[RULE]`. Quan sát video #2 15:17 ("Chuẩn Bị Dung Hợp" dùng từ tay, thấy 1 lần) chỉ vào backlog, không đổi quyết định.
+**Hệ quả:** `RulesetConfig` cần thêm 2 khóa cho hai luật này (mặc định: cấm kích hoạt Trap từ tay; trễ 1 lượt sau khi Set). Tên khóa đề xuất `allowTrapFromHand` (false) và `trapSetDelayTurns` (1) — **chưa làm** (việc này là code shared/engine, thuộc task riêng, chưa nằm trong phạm vi ingest). Nên làm cùng Task 1.2 hoặc ngay sau đó, sau khi chủ dự án chốt tên khóa.
