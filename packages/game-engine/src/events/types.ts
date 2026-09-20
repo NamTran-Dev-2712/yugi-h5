@@ -31,10 +31,32 @@ export interface TurnChangedEvent {
   readonly turnPlayerIndex: 0 | 1;
 }
 
+export interface NormalSummonedEvent {
+  readonly type: 'NormalSummoned';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
+/** Deliberately carries no `definitionId`: the card is face-down, so the event must not leak it. */
+export interface MonsterSetEvent {
+  readonly type: 'MonsterSet';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly zoneIndex: number;
+}
+
 /**
- * Skeleton union — grows through M1/M2 with CardSummoned, AttackDeclared,
+ * Skeleton union — grows through M1/M2 with AttackDeclared,
  * DamageDealt, PositionChanged, ChainLinkAdded, etc. FE animates purely from
  * this stream; it never re-derives game logic client-side.
  */
 export type GameEvent =
-  DuelStartedEvent | CardDrawnEvent | DeckOutEvent | PhaseChangedEvent | TurnChangedEvent;
+  | DuelStartedEvent
+  | CardDrawnEvent
+  | DeckOutEvent
+  | PhaseChangedEvent
+  | TurnChangedEvent
+  | NormalSummonedEvent
+  | MonsterSetEvent;

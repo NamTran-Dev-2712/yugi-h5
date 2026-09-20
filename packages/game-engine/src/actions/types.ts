@@ -1,4 +1,4 @@
-import type { RulesetConfig } from '@yugi/shared';
+import type { CardDefinition, RulesetConfig } from '@yugi/shared';
 
 export interface StartDuelAction {
   readonly type: 'StartDuel';
@@ -31,14 +31,37 @@ export interface EndPhaseAction {
   };
 }
 
+interface MonsterFromHandPayload {
+  readonly playerIndex: 0 | 1;
+  /** `CardInstance.instanceId` of a card in the caller's hand. */
+  readonly cardInstanceId: string;
+  /** Target monster zone, 0-4 (matches the drag-and-drop slot). */
+  readonly zoneIndex: number;
+}
+
+/** Face-up Attack Position Normal Summon of a Level 1-4 monster (no Tribute). Uses the turn's Normal Summon. */
+export interface NormalSummonAction {
+  readonly type: 'NormalSummon';
+  readonly payload: MonsterFromHandPayload;
+}
+
+/** Face-down Defense Position Set of a Level 1-4 monster. Uses the turn's Normal Summon. */
+export interface SetMonsterAction {
+  readonly type: 'SetMonster';
+  readonly payload: MonsterFromHandPayload;
+}
+
 /**
- * Skeleton union — grows through M1/M2 with NormalSummon, SetMonster,
- * ChangePosition, DeclareAttack, ActivateEffect, PassPriority, etc.
+ * Skeleton union — grows through M1/M2 with ChangePosition, DeclareAttack,
+ * ActivateEffect, PassPriority, etc.
  * See docs/design/engine.md for the full target list.
  */
-export type Action = StartDuelAction | DrawAction | EndPhaseAction;
+export type Action =
+  StartDuelAction | DrawAction | EndPhaseAction | NormalSummonAction | SetMonsterAction;
 
 export interface ActionContext {
   /** Reserved for cross-cutting concerns injected by the caller (e.g. logging hooks). Never a source of nondeterminism. */
   readonly now?: never;
+  /** Resolves card content (level, kind...) from packages/shared data; the engine never hardcodes cards. Required by actions that read card data. */
+  readonly cardDefinitions?: (definitionId: string) => CardDefinition | undefined;
 }

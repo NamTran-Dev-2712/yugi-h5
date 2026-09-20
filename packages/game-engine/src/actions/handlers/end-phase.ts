@@ -1,5 +1,6 @@
 import type { GameEvent } from '../../events/types.js';
-import type { GameState, Phase, PlayerState } from '../../state/types.js';
+import type { GameState, Phase } from '../../state/types.js';
+import { resetTurnFlags } from '../../state/turn-flags.js';
 import type { EndPhaseAction } from '../types.js';
 import { applyDraw } from './draw.js';
 
@@ -30,17 +31,12 @@ export function applyEndPhase(
   if (phase === 'End') {
     const nextTurnPlayer: 0 | 1 = turnPlayerIndex === 0 ? 1 : 0;
     const turnCount = state.turnCount + 1;
-    const resetPlayer = (p: PlayerState): PlayerState => ({
-      ...p,
-      hasNormalSummonedThisTurn: false,
-    });
     return {
       state: {
-        ...state,
+        ...resetTurnFlags(state),
         turnCount,
         turnPlayerIndex: nextTurnPlayer,
         phase: 'Draw',
-        players: [resetPlayer(state.players[0]), resetPlayer(state.players[1])],
         version: state.version + 1,
       },
       events: [

@@ -1,5 +1,6 @@
 import { applyDraw } from './actions/handlers/draw.js';
 import { applyEndPhase } from './actions/handlers/end-phase.js';
+import { applyNormalSummon, applySetMonster } from './actions/handlers/summon.js';
 import { applyStartDuel } from './actions/handlers/start-duel.js';
 import type { Action, ActionContext } from './actions/types.js';
 import type { GameEvent } from './events/types.js';
@@ -19,7 +20,7 @@ export interface ApplyActionResult {
 export function applyAction(
   state: GameState | null,
   action: Action,
-  _ctx: ActionContext = {},
+  ctx: ActionContext = {},
 ): ApplyActionResult {
   if (action.type === 'StartDuel') {
     return applyStartDuel(action);
@@ -36,6 +37,10 @@ export function applyAction(
       return applyDraw(state, action);
     case 'EndPhase':
       return applyEndPhase(state, action);
+    case 'NormalSummon':
+      return applyNormalSummon(state, action, ctx);
+    case 'SetMonster':
+      return applySetMonster(state, action, ctx);
     default: {
       const exhaustiveCheck: never = action;
       throw new Error(`Unhandled action type: ${JSON.stringify(exhaustiveCheck)}`);
