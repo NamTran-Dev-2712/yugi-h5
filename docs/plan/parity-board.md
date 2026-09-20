@@ -8,7 +8,7 @@ Trạng thái: ⬜ chưa làm · 🟨 có bản nháp · ✅ đã duyệt bởi 
 | Mục                                    | Nhãn                                     | Trạng thái | Ghi chú                                   |
 | -------------------------------------- | ---------------------------------------- | ---------- | ----------------------------------------- |
 | Draw + phase flow                      | [RULE]; lượt 1 không rút [REF] (4/4 ván) | 🟨         | video #2; không thấy thanh phase          |
-| Normal Summon / Set                    | [RULE]                                   | ⬜         |                                           |
+| Normal Summon / Set                    | [RULE]                                   | 🟨         |                                           |
 | Tribute Summon                         | [RULE]                                   | ⬜         |                                           |
 | Position / Flip                        | [RULE]                                   | ⬜         |                                           |
 | Attack / damage                        | [RULE]                                   | ⬜         |                                           |

@@ -58,12 +58,14 @@ tạo object mới (spread), không mutate.
 
 `EndPhase`: Draw→Standby→Main1→Battle→Main2→End, rời End thì `turnCount+1`, đổi `turnPlayerIndex`, về Draw, reset `hasNormalSummonedThisTurn`. **Draw của lượt thực hiện khi rời Draw phase** (bỏ qua ở lượt 1 nếu `!ruleset.firstTurnDraw`); deck rỗng → `DeckOut`, phase không tiến. Chuỗi phase không bị cắt ở lượt 1; cấm attack lượt 1 (`firstTurnAttack`) thuộc `DeclareAttack` (task 1.6).
 
+`NormalSummon` / `SetMonster` (task 1.3): payload `{ playerIndex, cardInstanceId, zoneIndex }` (`cardInstanceId` = lá trong tay, `zoneIndex` 0–4 khớp ô kéo thả). Summon → ngửa, `position: 'Attack'`; Set → úp, `position: 'DefenseDown'`. Cả hai tiêu tốn quyền Normal Summon (`hasNormalSummonedThisTurn`). Chỉ Main1/Main2; chỉ quái level 1–4 (level ≥ 5 bị từ chối, Tribute ở task 1.4). Reject bằng `throw Error` (winner, prompt, không phải turn player, sai phase, đã dùng quyền, `zoneIndex` sai, lá không ở tay, không phải Monster, level ≥ 5, ô đã có quái). Cờ theo lượt reset tập trung ở `resetTurnFlags` (`state/turn-flags.ts`).
+
+**`ActionContext.cardDefinitions?: (definitionId) => CardDefinition | undefined`** — caller (apps/api) truyền resolver tra `packages/shared`; engine không hardcode lá bài. Action đọc dữ liệu lá (NormalSummon/SetMonster) throw nếu thiếu resolver/định nghĩa.
+
 Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định rời rạc của người chơi/AI):
 
 | Action                 | Milestone                                               | Ghi chú                                                          |
 | ---------------------- | ------------------------------------------------------- | ---------------------------------------------------------------- |
-| `NormalSummon`         | M1                                                      | Kèm `tributeInstanceIds` nếu level 5+                            |
-| `SetMonster`           | M1                                                      | Face-down defense                                                |
 | `ChangePosition`       | M1                                                      | Chỉ 1 lần/turn/monster, không đổi lượt vừa summon (trừ effect)   |
 | `DeclareAttack`        | M1                                                      | `attackerInstanceId`, `targetInstanceId?` (null = direct attack) |
 | `ActivateEffect`       | M2                                                      | Kèm `cardInstanceId`, `targetInstanceIds?`, `costPayload?`       |
@@ -81,9 +83,9 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 
 ## Event list
 
-Đã có: `DuelStarted`, `CardDrawn`, `DeckOut`, `PhaseChanged {from,to,turnPlayerIndex}`, `TurnChanged {turnCount,turnPlayerIndex}`.
+Đã có: `DuelStarted`, `CardDrawn`, `DeckOut`, `PhaseChanged {from,to,turnPlayerIndex}`, `TurnChanged {turnCount,turnPlayerIndex}`, `NormalSummoned {playerIndex,instanceId,definitionId,zoneIndex}`, `MonsterSet {playerIndex,instanceId,zoneIndex}` (không có `definitionId`: lá úp, tránh lộ khi lọc event cho đối thủ). Level ≥ 5 thêm `tributeInstanceIds` ở 1.4.
 
-Sẽ thêm dần: `CardSummoned`, `CardSet`, `PositionChanged`, `AttackDeclared`, `DamageDealt`,
+Sẽ thêm dần: `PositionChanged`, `AttackDeclared`, `DamageDealt`,
 `MonsterDestroyed`, `ChainLinkAdded`, `ChainResolved`,
 `EffectActivated`, `DuelEnded`.
 

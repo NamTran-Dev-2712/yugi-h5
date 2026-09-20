@@ -139,3 +139,13 @@ Chủ dự án chốt sau khi ingest 2 video (bản web Yugi H5 quay 2023 là [R
 ## 2026-09-21 — Draw của lượt thực hiện khi rời Draw phase (task 1.2)
 
 `StartDuel` giữ nguyên (phase `Draw`, chưa rút); `EndPhase` từ `Draw` rút 1 lá (bỏ qua lượt 1 nếu `!firstTurnDraw`, `[RULE]`/`[REF]`). Một đường code cho lượt 1 và các lượt sau, không phải đổi `StartDuel`. Chuỗi phase không rút gọn ở lượt 1; cấm attack lượt 1 để `DeclareAttack` (1.6) đọc `firstTurnAttack`. Reject = `throw Error` (mã lỗi chuẩn hoá ở tầng API sau). **Hệ quả:** UI 1 nút hex (C4) phải gọi `EndPhase` nhiều lần hoặc server auto-advance — quyết ở P2.
+
+## 2026-09-21 — NormalSummon/SetMonster: zoneIndex, Set tiêu tốn quyền, Level ≥ 5 chặn tạm, tra card qua ctx (task 1.3)
+
+- **`zoneIndex` (0–4) nằm trong payload**: khớp thao tác kéo thả vào ô; engine không tự chọn ô. Repo chưa có convention riêng nên theo `playerIndex` + tham số như `Draw`/`EndPhase`.
+- **Set tiêu tốn quyền Normal Summon** `[RULE]` (Summon và Set dùng chung 1 quyền/lượt).
+- **Level ≥ 5 bị từ chối cả Summon lẫn Set** với thông báo rõ; Tribute Summon/Set là task 1.4 (không làm sớm).
+- **`ActionContext.cardDefinitions`** (resolver do caller truyền): giữ engine data-driven, không import dữ liệu lá cụ thể; test tự dựng lá level 1/4/5/6/7. `apps/api` sẽ truyền resolver ở P2.
+- **`MonsterSet` không có `definitionId`**: lá úp, tránh lộ khi sau này lọc event theo góc nhìn từng người chơi. `NormalSummoned` có `definitionId` (lá ngửa).
+- **`resetTurnFlags`** gom mọi reset cờ theo lượt, gọi khi rời End Phase.
+  **Hệ quả:** `apps/api` bắt buộc truyền `cardDefinitions` khi gọi `applyAction` cho action đọc dữ liệu lá.
