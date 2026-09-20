@@ -54,7 +54,9 @@ tạo object mới (spread), không mutate.
 
 ## Action list
 
-Đã có: `StartDuel` (payload nhận `ruleset?: Partial<RulesetConfig>`, ghi đè lên mặc định early Master Rule), `Draw`.
+Đã có: `StartDuel` (payload nhận `ruleset?: Partial<RulesetConfig>`, ghi đè lên mặc định early Master Rule), `Draw`, `EndPhase` (`payload.playerIndex` phải là turn player; reject khi đã có winner / có `pendingPrompt`).
+
+`EndPhase`: Draw→Standby→Main1→Battle→Main2→End, rời End thì `turnCount+1`, đổi `turnPlayerIndex`, về Draw, reset `hasNormalSummonedThisTurn`. **Draw của lượt thực hiện khi rời Draw phase** (bỏ qua ở lượt 1 nếu `!ruleset.firstTurnDraw`); deck rỗng → `DeckOut`, phase không tiến. Chuỗi phase không bị cắt ở lượt 1; cấm attack lượt 1 (`firstTurnAttack`) thuộc `DeclareAttack` (task 1.6).
 
 Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định rời rạc của người chơi/AI):
 
@@ -67,7 +69,6 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 | `ActivateEffect`       | M2                                                      | Kèm `cardInstanceId`, `targetInstanceIds?`, `costPayload?`       |
 | `ResolvePendingPrompt` | M1 (cho tribute selection) / M2 (target/chain response) | Trả lời `PendingPrompt` hiện tại                                 |
 | `PassPriority`         | M2                                                      | Dùng trong chain window                                          |
-| `EndPhase`             | M1                                                      | Chuyển sang phase kế tiếp                                        |
 
 ### Kích hoạt Trap/Spell — hợp đồng C11 (implement ở P3, task 3.4)
 
@@ -80,10 +81,10 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 
 ## Event list
 
-Đã có (M0): `DuelStarted`, `CardDrawn`, `DeckOut`.
+Đã có: `DuelStarted`, `CardDrawn`, `DeckOut`, `PhaseChanged {from,to,turnPlayerIndex}`, `TurnChanged {turnCount,turnPlayerIndex}`.
 
 Sẽ thêm dần: `CardSummoned`, `CardSet`, `PositionChanged`, `AttackDeclared`, `DamageDealt`,
-`MonsterDestroyed`, `PhaseChanged`, `TurnChanged`, `ChainLinkAdded`, `ChainResolved`,
+`MonsterDestroyed`, `ChainLinkAdded`, `ChainResolved`,
 `EffectActivated`, `DuelEnded`.
 
 Event là **fact đã xảy ra**, không phải instruction cho FE — FE tự quyết định animate thế nào

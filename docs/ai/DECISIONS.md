@@ -135,3 +135,7 @@ Chủ dự án chốt sau khi ingest 2 video (bản web Yugi H5 quay 2023 là [R
 - Backlog (chỉ ghi): điều kiện "thắng trong 20 lượt" (PvE), bong bóng "Đang suy nghĩ N" (timer), Link monster. Ngoài phạm vi: gacha/shop/guild/sự kiện/skill hệ thống riêng.
 
 **Hệ quả:** task 1.1b (shared `extraMonsterZones`, `extraDeckSize` 20; engine `StartDuel` LP từng bên). Task 1.2 hết bị chặn.
+
+## 2026-09-21 — Draw của lượt thực hiện khi rời Draw phase (task 1.2)
+
+`StartDuel` giữ nguyên (phase `Draw`, chưa rút); `EndPhase` từ `Draw` rút 1 lá (bỏ qua lượt 1 nếu `!firstTurnDraw`, `[RULE]`/`[REF]`). Một đường code cho lượt 1 và các lượt sau, không phải đổi `StartDuel`. Chuỗi phase không rút gọn ở lượt 1; cấm attack lượt 1 để `DeclareAttack` (1.6) đọc `firstTurnAttack`. Reject = `throw Error` (mã lỗi chuẩn hoá ở tầng API sau). **Hệ quả:** UI 1 nút hex (C4) phải gọi `EndPhase` nhiều lần hoặc server auto-advance — quyết ở P2.

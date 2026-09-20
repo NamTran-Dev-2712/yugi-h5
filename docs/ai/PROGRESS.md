@@ -33,7 +33,7 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
 
 - **C11 đã chốt (2026-09-20)**: `[DECISION]` Trap phải Set mới kích hoạt, không từ tay; `[RULE]` Trap vừa Set chưa kích hoạt trong lượt đó; `[RULE]` Spell thường kích hoạt từ tay ở Main Phase. Đã thêm `allowTrapActivationFromHand` (false) + `trapSetTurnDelay` (true) vào `RulesetConfig` (shared, có test); hành vi engine ở task 3.4 (test `it.todo` ở `packages/game-engine/src/rules/trap-activation.test.ts`). Quan sát 15:17 → backlog `rules-observed.md`.
 - **Task P1 còn lại** (nguồn: `docs/plan/MASTER-PLAN.md`; đọc `RULES-REVIEW-SHEET.md` + `rules-coverage.md` theo nhãn):
-  1. **1.2** `EndPhase` + phase + đổi lượt + lượt 1 — G1: lượt 1 người đi trước không draw `[REF, 4/4 ván]`, không attack `[RULE, chưa thấy]`; người đi sau có rút ở lượt đầu của mình. Đọc từ `state.ruleset` (`firstTurnDraw/Attack`).
+  1. **1.2** ✅ xong (2026-09-21, chờ duyệt) — `EndPhase`, `PhaseChanged`/`TurnChanged`; draw khi rời Draw phase (ADR 2026-09-21). `firstTurnAttack` chưa được dùng: `DeclareAttack` (1.6) phải đọc nó.
   2. **1.3** `NormalSummon`/`SetMonster` lv 1–4 — `[RULE]`, 1 lần/lượt.
   3. **1.4** Tribute + `PendingPrompt` SelectTribute — `[RULE]` lv5–6:1, lv7+:2; G2 `[DECISION]` Xác nhận/Hủy; C9 (overlay) còn mở.
   4. **1.5** `ChangePosition` — `[RULE]` không đổi khi vừa summon/set hoặc đã tấn công.
@@ -42,8 +42,8 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
   7. **1.8** Win/lose + `Surrender` + hand limit 6 — `[RULE]`; G11 `[DECISION]`.
   8. **1.9** Golden replay + fuzz harness — không có luật riêng.
 
-- Tư liệu còn thiếu (Set / đổi thế / Lật, màn thắng-thua, ảnh tab Dung Hợp) **không chặn** 1.2 — xem `parity-board.md`, `human-tasks.md`.
-- **Task tiếp theo: 1.2** — `EndPhase` + phase transition + đổi lượt + luật lượt 1 (`firstTurnDraw/Attack`, đọc từ `state.ruleset`).
+- Tư liệu còn thiếu (Set / đổi thế / Lật, màn thắng-thua, ảnh tab Dung Hợp) **không chặn** 1.3 — xem `parity-board.md`, `human-tasks.md`.
+- **Task tiếp theo: 1.3** — `NormalSummon`/`SetMonster` lv 1–4 (dùng `hasNormalSummonedThisTurn`, đã reset ở `EndPhase`).
 - Đã chốt sau duyệt 1.1: `openingHandSize = 5` (**[REF]**, video #2 4/4 ván), `afkLossThreshold = 3`, `extraDeckSize = 20` (**[REF thấp, 1 nguồn]**, C3), `startingLP = 8000` (**[DECISION]**, C2/C10), `extraMonsterZones = 0` (C1).
 - G1–G8/G11/G12 đã chốt (xem `docs/reference/notes/rules.md`); G9/G10 vẫn `[GUESS]` chờ tư liệu.
 - Port Postgres/Redis đã đổi (5433/6380) — dùng `apps/api/.env.example` làm chuẩn.
