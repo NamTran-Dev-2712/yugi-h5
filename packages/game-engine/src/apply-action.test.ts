@@ -10,6 +10,7 @@ function deckOf(prefix: string, size: number): string[] {
 function startDuelAction(
   seed: string,
   ruleset?: StartDuelAction['payload']['ruleset'],
+  startingLP?: StartDuelAction['payload']['startingLP'],
 ): StartDuelAction {
   return {
     type: 'StartDuel',
@@ -19,6 +20,7 @@ function startDuelAction(
       playerIds: ['alice', 'bob'],
       deckLists: [deckOf('A', 40), deckOf('B', 40)],
       ...(ruleset ? { ruleset } : {}),
+      ...(startingLP ? { startingLP } : {}),
     },
   };
 }
@@ -55,6 +57,47 @@ describe('applyAction / StartDuel', () => {
     expect(run1.state.players[0].hand.map((c) => c.definitionId)).not.toEqual(
       run2.state.players[0].hand.map((c) => c.definitionId),
     );
+  });
+});
+
+describe('applyAction / StartDuel per-side life points (C2 [DECISION])', () => {
+  it('defaults both players to 8000 LP and a 5-card hand', () => {
+    const { state } = applyAction(null, startDuelAction('seed-lp'));
+
+    expect(state.players[0].lifePoints).toBe(8000);
+    expect(state.players[1].lifePoints).toBe(8000);
+    expect(state.players[0].hand).toHaveLength(5);
+    expect(state.ruleset.extraMonsterZones).toBe(0);
+  });
+
+  it('lets StartDuel override life points per side', () => {
+    const { state } = applyAction(null, startDuelAction('seed-lp', undefined, [10000, 8000]));
+
+    expect(state.players[0].lifePoints).toBe(10000);
+    expect(state.players[1].lifePoints).toBe(8000);
+    expect(state.ruleset.startingLP).toBe(8000);
+  });
+
+  it('per-side LP overrides the ruleset startingLP', () => {
+    const { state } = applyAction(
+      null,
+      startDuelAction('seed-lp', { startingLP: 4000 }, [6000, 4000]),
+    );
+
+    expect(state.players.map((p) => p.lifePoints)).toEqual([6000, 4000]);
+  });
+
+  it.each([[0], [-5], [1.5], [Number.NaN]])('rejects invalid LP override %s', (bad) => {
+    expect(() => applyAction(null, startDuelAction('seed-lp', undefined, [bad, 8000]))).toThrow(
+      /startingLP/,
+    );
+  });
+
+  it('is reproducible for the same seed and per-side LP', () => {
+    const a = applyAction(null, startDuelAction('seed-x', undefined, [9000, 7000]));
+    const b = applyAction(null, startDuelAction('seed-x', undefined, [9000, 7000]));
+
+    expect(a.state).toEqual(b.state);
   });
 });
 

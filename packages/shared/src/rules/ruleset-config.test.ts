@@ -15,7 +15,17 @@ describe('RulesetConfig', () => {
       chainPrompt: 'ask',
       turnTimerSec: null,
       allowSurrender: true,
+      extraDeckSize: 20,
+      extraMonsterZones: 0,
     });
+  });
+
+  it('C1 [DECISION]: extraMonsterZones is stored only (0-2); Extra Deck holds up to 20 (C3)', () => {
+    expect(resolveRuleset({ extraMonsterZones: 2 }).extraMonsterZones).toBe(2);
+    expect(RulesetConfigSchema.safeParse({ extraMonsterZones: 3 }).success).toBe(false);
+    expect(RulesetConfigSchema.safeParse({ extraMonsterZones: -1 }).success).toBe(false);
+    expect(resolveRuleset({ extraDeckSize: 20 }).extraDeckSize).toBe(20);
+    expect(RulesetConfigSchema.safeParse({ extraDeckSize: 21 }).success).toBe(false);
   });
 
   it('resolveRuleset with no argument returns the defaults', () => {

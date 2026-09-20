@@ -10,6 +10,8 @@ export interface StartDuelAction {
     readonly deckLists: readonly [readonly string[], readonly string[]];
     /** Overrides applied on top of the default (early Master Rule) ruleset. */
     readonly ruleset?: Partial<RulesetConfig>;
+    /** C2 [DECISION]: per-side starting LP; wins over `ruleset.startingLP`. Each value is an integer >= 1. */
+    readonly startingLP?: readonly [number, number];
   };
 }
 

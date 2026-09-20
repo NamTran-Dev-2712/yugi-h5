@@ -8,8 +8,12 @@ import { z } from 'zod';
  */
 export const RulesetConfigSchema = z
   .object({
-    /** [RULE]/[GUESS] until Yugi H5 reference confirms. */
+    /**
+     * C2/C10 [DECISION, based on a hypothesis]: 8000 for both sides (video #2, 4/4 duels); the
+     * 10000 seen in video #1 is assumed to be another mode. StartDuel may override per side.
+     */
     startingLP: z.number().int().min(1).default(8000),
+    /** [REF] video #2 (4/4 duels): 5 cards. */
     openingHandSize: z.number().int().min(0).default(5),
     handLimit: z.number().int().min(0).default(6),
     /** G1 [RULE]: first player skips the draw and cannot attack on turn 1. */
@@ -19,8 +23,10 @@ export const RulesetConfigSchema = z
     deckMin: z.number().int().min(0).default(40),
     deckMax: z.number().int().min(0).default(60),
     copyLimit: z.number().int().min(1).default(3),
-    /** G8 [DECISION]: Fusion in P4; state keeps room for an Extra Deck. */
-    extraDeckSize: z.number().int().min(0).max(15).default(15),
+    /** G8 [DECISION]: Fusion in P4; state keeps room for an Extra Deck. C3 [REF, low: 1 source]: 20. */
+    extraDeckSize: z.number().int().min(0).max(20).default(20),
+    /** C1 [DECISION]: no Link/EX zone in P1-P4; stored only, engine ignores it (default 0). */
+    extraMonsterZones: z.number().int().min(0).max(2).default(0),
     fieldSpellReplace: z.boolean().default(true),
     /** G5 [DECISION]: ask "Activate?" when a legal response exists, or auto-pass. */
     chainPrompt: z.enum(['ask', 'auto-pass']).default('ask'),

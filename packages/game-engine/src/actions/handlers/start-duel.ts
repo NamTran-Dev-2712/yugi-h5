@@ -24,6 +24,12 @@ function emptyBoard(): PlayerState['board'] {
 export function applyStartDuel(action: StartDuelAction): { state: GameState; events: GameEvent[] } {
   const { matchId, seed, playerIds, deckLists } = action.payload;
   const ruleset = resolveRuleset(action.payload.ruleset);
+  const startingLP = action.payload.startingLP ?? [ruleset.startingLP, ruleset.startingLP];
+  for (const lp of startingLP) {
+    if (!Number.isInteger(lp) || lp < 1) {
+      throw new Error(`Invalid startingLP override: ${lp} (expected an integer >= 1).`);
+    }
+  }
 
   let rng = createRng(seed);
   const players: PlayerState[] = [];
@@ -48,7 +54,7 @@ export function applyStartDuel(action: StartDuelAction): { state: GameState; eve
 
     players.push({
       playerId: playerIds[playerIndex],
-      lifePoints: ruleset.startingLP,
+      lifePoints: startingLP[playerIndex],
       board: emptyBoard(),
       hand,
       deck,
