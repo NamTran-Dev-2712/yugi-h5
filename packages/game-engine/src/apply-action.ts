@@ -1,4 +1,5 @@
 import { applyDraw } from './actions/handlers/draw.js';
+import { applyEndPhase } from './actions/handlers/end-phase.js';
 import { applyStartDuel } from './actions/handlers/start-duel.js';
 import type { Action, ActionContext } from './actions/types.js';
 import type { GameEvent } from './events/types.js';
@@ -33,6 +34,8 @@ export function applyAction(
   switch (action.type) {
     case 'Draw':
       return applyDraw(state, action);
+    case 'EndPhase':
+      return applyEndPhase(state, action);
     default: {
       const exhaustiveCheck: never = action;
       throw new Error(`Unhandled action type: ${JSON.stringify(exhaustiveCheck)}`);

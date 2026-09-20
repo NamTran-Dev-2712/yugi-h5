@@ -1,3 +1,5 @@
+import type { Phase } from '../state/types.js';
+
 export interface DuelStartedEvent {
   readonly type: 'DuelStarted';
   readonly matchId: string;
@@ -16,9 +18,23 @@ export interface DeckOutEvent {
   readonly playerIndex: 0 | 1;
 }
 
+export interface PhaseChangedEvent {
+  readonly type: 'PhaseChanged';
+  readonly from: Phase;
+  readonly to: Phase;
+  readonly turnPlayerIndex: 0 | 1;
+}
+
+export interface TurnChangedEvent {
+  readonly type: 'TurnChanged';
+  readonly turnCount: number;
+  readonly turnPlayerIndex: 0 | 1;
+}
+
 /**
  * Skeleton union — grows through M1/M2 with CardSummoned, AttackDeclared,
  * DamageDealt, PositionChanged, ChainLinkAdded, etc. FE animates purely from
  * this stream; it never re-derives game logic client-side.
  */
-export type GameEvent = DuelStartedEvent | CardDrawnEvent | DeckOutEvent;
+export type GameEvent =
+  DuelStartedEvent | CardDrawnEvent | DeckOutEvent | PhaseChangedEvent | TurnChangedEvent;

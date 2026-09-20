@@ -23,12 +23,20 @@ export interface DrawAction {
   };
 }
 
+/** Advances to the next phase; leaving `End` passes the turn. Only the turn player may send it. */
+export interface EndPhaseAction {
+  readonly type: 'EndPhase';
+  readonly payload: {
+    readonly playerIndex: 0 | 1;
+  };
+}
+
 /**
  * Skeleton union — grows through M1/M2 with NormalSummon, SetMonster,
- * ChangePosition, DeclareAttack, ActivateEffect, PassPriority, EndPhase, etc.
+ * ChangePosition, DeclareAttack, ActivateEffect, PassPriority, etc.
  * See docs/design/engine.md for the full target list.
  */
-export type Action = StartDuelAction | DrawAction;
+export type Action = StartDuelAction | DrawAction | EndPhaseAction;
 
 export interface ActionContext {
   /** Reserved for cross-cutting concerns injected by the caller (e.g. logging hooks). Never a source of nondeterminism. */
