@@ -30,6 +30,17 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
 
 ### Bàn giao cho session mới
 
+- **C11 đã chốt (2026-09-20)**: `[DECISION]` Trap phải Set mới kích hoạt, không từ tay; `[RULE]` Trap vừa Set chưa kích hoạt trong lượt đó; `[RULE]` Spell thường kích hoạt từ tay ở Main Phase. Đã thêm `allowTrapActivationFromHand` (false) + `trapSetTurnDelay` (true) vào `RulesetConfig` (shared, có test); hành vi engine ở task 3.4 (test `it.todo` ở `packages/game-engine/src/rules/trap-activation.test.ts`). Quan sát 15:17 → backlog `rules-observed.md`.
+- **Task P1 còn lại** (nguồn: `docs/plan/MASTER-PLAN.md`; đọc `RULES-REVIEW-SHEET.md` + `rules-coverage.md` theo nhãn):
+  1. **1.2** `EndPhase` + phase + đổi lượt + lượt 1 — `[RULE]` G1 (`firstTurnDraw/Attack`); vẫn chờ chủ dự án quyết C1–C4 (xem `rules.md`).
+  2. **1.3** `NormalSummon`/`SetMonster` lv 1–4 — `[RULE]`, 1 lần/lượt.
+  3. **1.4** Tribute + `PendingPrompt` SelectTribute — `[RULE]` lv5–6:1, lv7+:2; G2 `[DECISION]` Xác nhận/Hủy; C9 (overlay) còn mở.
+  4. **1.5** `ChangePosition` — `[RULE]` không đổi khi vừa summon/set hoặc đã tấn công.
+  5. **1.6** `DeclareAttack` — `[RULE]` ATK/DEF, direct, 1 lần/lượt, lượt 1 không attack.
+  6. **1.7** Flip khi bị tấn công + damage step cơ bản — `[RULE]`; G6 `[DECISION]`.
+  7. **1.8** Win/lose + `Surrender` + hand limit 6 — `[RULE]`; G11 `[DECISION]`.
+  8. **1.9** Golden replay + fuzz harness — không có luật riêng.
+
 - **Ingest video #1 đã làm** (ffmpeg có sẵn qua Chocolatey). Việc đầu tiên của session mới: đọc `docs/reference/notes/rules.md` (mục "Kết quả ingest video #1") và hỏi chủ dự án quyết C1–C4.
 - **Task tiếp theo: 1.2** (sau khi chủ dự án trả lời C1–C4) — `EndPhase` + phase transition + đổi lượt + luật lượt 1 (`firstTurnDraw/Attack`, đọc từ `state.ruleset`).
 - Đã chốt sau duyệt 1.1: `openingHandSize = 5` (**[GUESS]** tới khi có `[REF]` từ video), `afkLossThreshold = 3`, `extraDeckSize = 15`.

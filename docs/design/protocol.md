@@ -9,6 +9,12 @@
 - Versioning: mọi `StateView` mang `version` (từ `GameState.version`). Client so sánh với
   version cục bộ; lệch → yêu cầu full re-sync thay vì áp partial update.
 
+## Mã lỗi Action & `legalActions` cho Trap (C11)
+
+- Action bị reject trả `code` riêng để UI hiện đúng thông báo: `TRAP_NOT_SET` (Trap chưa Set trên sân), `TRAP_SET_THIS_TURN` (Trap vừa Set lượt này). Đi qua `duel:error` và response lỗi REST.
+- `legalActions` trong `StateView` **không bao giờ** liệt kê "Kích hoạt" cho Trap trên tay (khi `allowTrapActivationFromHand=false`); Trap trên tay chỉ có "Set". Trap úp trên sân chỉ có "Kích hoạt" khi đã qua lượt Set (nếu `trapSetTurnDelay`).
+- Spell thường trên tay vẫn có "Kích hoạt" ở Main Phase của mình.
+
 ## REST endpoints (M3+)
 
 | Method                  | Path                      | Mô tả                                                            |

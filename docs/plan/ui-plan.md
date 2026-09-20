@@ -57,13 +57,15 @@ Phaser 3 + Vite. Landscape **1280×720** (Scale FIT, letterbox), chuột + touch
 | ------------------- | ---------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------- |
 | Normal Summon       | Kéo từ Hand → Monster Zone trống (thả vào zone ngửa)       | `NormalSummon`                | Level 5+: prompt chọn tribute (highlight quái mình)                 |
 | Set monster         | Kéo → Monster Zone + chọn "Set" (hoặc thả vào ô úp)        | `SetMonster`                  | G3                                                                  |
-| Set Spell/Trap      | Kéo → Spell/Trap Zone                                      | `SetSpellTrap`                | P3                                                                  |
+| Set Spell/Trap      | Kéo → Spell/Trap Zone (Trap từ tay: kéo xuống = Set)       | `SetSpellTrap`                | P3                                                                  |
 | Activate Spell      | Kéo → S/T Zone (ngửa) hoặc chạm → menu "Kích hoạt"         | `ActivateEffect`              | P3                                                                  |
 | Attack              | Kéo quái mình → quái đối phương / vùng đối phương (direct) | `DeclareAttack`               | Highlight target hợp lệ; G4                                         |
 | Đổi position        | Chạm quái → menu (Tấn công/Thủ/Lật)                        | `ChangePosition`/`FlipSummon` | G3                                                                  |
 | Xem chi tiết        | Chạm/hover                                                 | (không gửi)                   | Card Detail panel                                                   |
 | Menu action         | Chạm giữ hoặc chạm 1 lần → menu hành động hợp lệ           | tuỳ                           | Chỉ hiện action hợp lệ theo server (`legalActions` trong StateView) |
 | Kết thúc phase/lượt | Nút phase bar / End Turn                                   | `EndPhase`                    |                                                                     |
+
+**Trap/Spell (C11 `[DECISION]`/`[RULE]`):** kéo Trap từ tay xuống S/T Zone = **Set** (menu Trap trên tay không có "Kích hoạt"). Trap úp trên sân mới có "Kích hoạt", chỉ khi hợp lệ (qua lượt Set). Spell thường trên tay vẫn kéo/chạm để "Kích hoạt" ở Main Phase. Thông báo lỗi theo mã: `TRAP_NOT_SET` ("Bẫy phải được úp xuống trước"), `TRAP_SET_THIS_TURN` ("Bẫy vừa úp, chưa thể kích hoạt trong lượt này") — chuỗi i18n VI+EN.
 
 Quy tắc chung: kéo có "ghost" + highlight drop target hợp lệ; thả sai chỗ → snap về; chỉ tạo intent, UI đổi khi có event.
 Đề xuất `legalActions` (hoặc `legalTargets`) trong `StateView` để FE không suy luận luật — **cần cập nhật protocol.md** ở task 2.1.

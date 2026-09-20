@@ -66,4 +66,6 @@ Thiếu tư liệu → UI/animation dùng giả định, đánh dấu "nháp" tr
 
 **Ingest video #1 (2026-09-20):** phát hiện 8 điểm lệch/mâu thuẫn (Link + ô EX, LP 10000, Extra Deck 20, không thấy phase bar…). Xem `docs/reference/notes/rules.md` mục C1–C8. Chưa đổi `[DECISION]` nào.
 
+**C11 đã đóng (2026-09-20):** `[DECISION]` Trap phải Set mới kích hoạt (không từ tay); `[RULE]` Trap vừa Set chưa kích hoạt trong lượt đó; `[RULE]` Spell thường kích hoạt từ tay ở Main Phase. Quan sát 15:17 (video #2) chỉ là backlog "hỏi lại sau khi có thêm tư liệu", không phải căn cứ. Khoá: `allowTrapActivationFromHand`, `trapSetTurnDelay`.
+
 **Ingest video #2 (2026-09-20):** chi tiết `docs/reference/notes/rules-observed.md`, `timestamps-video2.md`, `animation-durations.md`. Chuyển `[GUESS]→[REF]` chỉ ở: số lá mở đầu 5, rút bài lượt 1 (G1, phần draw), hand limit 6 (thấy 1 lần), một phần G10. Mâu thuẫn mới cần chủ dự án quyết: **C9** (tribute = overlay chọn lá + "Đồng ý", không thấy "Hủy" vs G2), **C10** (LP mình 8000 vs 10000 ở video #1), **C11** (Bài Bẫy dùng thẳng từ tay, 1 lần — **đã quyết 2026-09-20: cấm kích hoạt Trap từ tay, xem DECISIONS.md**), **C12** (không thấy prompt "Kích hoạt?" vs G5). Không đổi `[DECISION]` nào.

@@ -31,6 +31,10 @@ Nhãn đề xuất chỉ là **đề xuất**; `[DECISION]` không bị đổi �
 - Cảnh báo sức khỏe góc trên: "Chơi quá 180 phút một ngày sẽ ảnh hưởng xấu tới sức khỏe" (18:26).
 - Chữ nổi số sát thương màu đỏ: "-1000" (13:25.5), "-1600" (20:38), "-3500" (26:58.2).
 
+## Backlog "hỏi lại sau khi có thêm tư liệu"
+
+- **15:17 (video #2)**: "Chuẩn Bị Dung Hợp" dùng trực tiếp từ tay, thấy 1 lần. Mâu thuẫn với C11 `[DECISION]` (Trap phải Set) nhưng **không dùng làm căn cứ**; cần thêm tư liệu (có thể lá này là Spell/Quick-Play, không phải Trap — chưa xác định).
+
 ## Mâu thuẫn mới cần chủ dự án quyết (không tự đổi)
 
 | #   | Quan sát video #2                                                                                                                    | Đang ghi                                            | Ghi chú / giả thuyết                                                                                                                                                           |

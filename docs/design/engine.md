@@ -69,6 +69,15 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 | `PassPriority`         | M2                                                      | Dùng trong chain window                                          |
 | `EndPhase`             | M1                                                      | Chuyển sang phase kế tiếp                                        |
 
+### Kích hoạt Trap/Spell — hợp đồng C11 (implement ở P3, task 3.4)
+
+`[DECISION]` Trap phải được Set úp trên sân mới kích hoạt; `[RULE]` Trap vừa Set thì lượt đó chưa kích hoạt; `[RULE]` Spell thường kích hoạt từ tay ở Main Phase của mình. Quick-Play Spell (Speed 2): để P3, chưa chốt ở đây.
+
+- `ActivateEffect` cho **Trap** chỉ hợp lệ khi lá đang ở Spell/Trap Zone, úp, và (nếu `ruleset.trapSetTurnDelay`) đã qua lượt Set. Engine ghi lượt Set của lá để so sánh.
+- `ruleset.allowTrapActivationFromHand` (mặc định `false`): khi `false`, Trap trên tay chỉ có `SetSpellTrap`, không có `ActivateEffect`.
+- Reject bằng mã lỗi tách biệt: `TRAP_NOT_SET` (Trap chưa úp trên sân, vd còn trên tay), `TRAP_SET_THIS_TURN` (Set trong chính lượt này).
+- Hiện chỉ lưu 2 khoá config trong `state.ruleset`; chưa có hành vi nào đổi (test `it.todo` ở `packages/game-engine/src/rules/trap-activation.test.ts`).
+
 ## Event list
 
 Đã có (M0): `DuelStarted`, `CardDrawn`, `DeckOut`.

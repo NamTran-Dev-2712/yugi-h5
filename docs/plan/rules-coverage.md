@@ -57,18 +57,21 @@ Việc cần làm ở task 1.1: định nghĩa `RulesetConfig` (Zod trong `packa
 
 ## Luật chuẩn bổ sung (chủ dự án yêu cầu 2026-09-20) — test tên mô tả luật, xem `RULES-REVIEW-SHEET.md`
 
-| Luật                                                                               | Nhãn   | Phase | Khó | Task |
-| ---------------------------------------------------------------------------------- | ------ | ----- | --- | ---- |
-| Mỗi quái chỉ tấn công 1 lần/lượt                                                   | [RULE] | P1    | S   | 1.6  |
-| Direct attack chỉ khi đối thủ không có quái                                        | [RULE] | P1    | S   | 1.6  |
-| ATK vs ATK: chênh lệch trừ LP bên thua; bằng nhau cả hai bị phá, không mất LP      | [RULE] | P1    | S   | 1.6  |
-| ATK vs DEF: ATK > DEF phá quái không trừ LP; ATK < DEF bên tấn công mất chênh lệch | [RULE] | P1    | S   | 1.6  |
-| Quái úp bị tấn công thì lật rồi mới tính damage                                    | [RULE] | P1    | M   | 1.7  |
-| Quái vừa Summon/Set hoặc đã tấn công thì không đổi thế trong lượt đó               | [RULE] | P1    | S   | 1.5  |
-| Trap/Quick-Play vừa Set không kích hoạt trong lượt đó                              | [RULE] | P3    | S   | 3.4  |
-| Hand limit 6 ở End Phase                                                           | [RULE] | P1    | S   | 1.8  |
+| Luật                                                                               | Nhãn       | Phase | Khó | Task |
+| ---------------------------------------------------------------------------------- | ---------- | ----- | --- | ---- |
+| Mỗi quái chỉ tấn công 1 lần/lượt                                                   | [RULE]     | P1    | S   | 1.6  |
+| Direct attack chỉ khi đối thủ không có quái                                        | [RULE]     | P1    | S   | 1.6  |
+| ATK vs ATK: chênh lệch trừ LP bên thua; bằng nhau cả hai bị phá, không mất LP      | [RULE]     | P1    | S   | 1.6  |
+| ATK vs DEF: ATK > DEF phá quái không trừ LP; ATK < DEF bên tấn công mất chênh lệch | [RULE]     | P1    | S   | 1.6  |
+| Quái úp bị tấn công thì lật rồi mới tính damage                                    | [RULE]     | P1    | M   | 1.7  |
+| Quái vừa Summon/Set hoặc đã tấn công thì không đổi thế trong lượt đó               | [RULE]     | P1    | S   | 1.5  |
+| Trap/Quick-Play vừa Set không kích hoạt trong lượt đó                              | [RULE]     | P3    | S   | 3.4  |
+| Trap phải Set trên sân mới kích hoạt; Trap trên tay chỉ có Set (C11, đã đóng)      | [DECISION] | P3    | S   | 3.4  |
+| Spell thường kích hoạt từ tay ở Main Phase của mình                                | [RULE]     | P3    | S   | 3.4  |
+| Hand limit 6 ở End Phase                                                           | [RULE]     | P1    | S   | 1.8  |
 
 ## Khoá RulesetConfig bổ sung
 
 `chainPrompt` (`ask`|`auto-pass`, G5), `turnTimerSec` (`null` solo, `60` PvP, G7), `afkLossThreshold` (G7), `allowSurrender` (G11),
-`firstTurnDraw`/`firstTurnAttack` (G1, mặc định `false`), `startingLP` (8000 `[RULE]/[GUESS]`).
+`firstTurnDraw`/`firstTurnAttack` (G1, mặc định `false`), `startingLP` (8000 `[RULE]/[GUESS]`),
+`allowTrapActivationFromHand` (C11 `[DECISION]`, mặc định `false`), `trapSetTurnDelay` (C11 `[RULE]`, mặc định `true`). Hai khoá đã có trong shared; hành vi engine ở task 3.4.
