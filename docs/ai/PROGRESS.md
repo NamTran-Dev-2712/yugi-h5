@@ -25,13 +25,18 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
 
 ### Đang làm / Bị chặn
 
-- **Planning (2026-09-20)**: bộ kế hoạch tổng thể xong trong `docs/plan/*` (11 file + `parity-board.md`), chờ người dùng duyệt.
-  Chưa bắt đầu P1. Không bị chặn.
+- **Task 1.1 ✅ xong và đã duyệt** (`RulesetConfig` + `state.ruleset`). Bộ plan `docs/plan/*` đã duyệt.
+- **Task 1.2 chưa bắt đầu — đang chờ ingest tư liệu video** (xem mục bàn giao bên dưới).
 
-### Bàn giao cho task tiếp theo
+### Bàn giao cho session mới
 
-- **Task 1.1 ✅ (chờ duyệt)**: `RulesetConfig` (Zod, `packages/shared/src/rules/ruleset-config.ts`) + `state.ruleset`, `StartDuel` nhận `ruleset?`. Chỉ lưu config, chưa có hành vi.
-- **Task tiếp theo: 1.2** — `EndPhase` + phase transition + đổi lượt + luật lượt 1 (`firstTurnDraw/Attack`, đọc từ `state.ruleset`). Chạy `/next-task` để chọn theo MASTER-PLAN.
+- **VIỆC ĐẦU TIÊN: chạy `/ingest-reference` cho video trong `docs/reference/video/`** (video ~26 phút: "Yugi H5 Cách chơi Hero Anh Hùng cơ bản",
+  1080p). **Chưa làm Task 1.2 trước khi ingest xong.** Quy trình: `ffmpeg -version` (thiếu → báo người dùng, không tự cài) → cắt frame vào
+  `docs/reference/frames/` + bảng timestamp → `notes/layout-analysis.md` → ước lượng thời lượng animation → chuyển G tương ứng `[GUESS]` → `[REF]`
+  (nêu chỗ chắc/không chắc; không bịa; mâu thuẫn với `[DECISION]` thì nêu ra chờ người dùng quyết). Video dài: lấy mẫu thưa trước, sau đó dày hơn
+  quanh đoạn có hành động; cần đối chiếu đặc biệt: số lá mở đầu (5 hay 6), LP khởi đầu, lượt 1 draw/attack, flow tribute/attack/chain, timer.
+- **Task tiếp theo sau ingest: 1.2** — `EndPhase` + phase transition + đổi lượt + luật lượt 1 (`firstTurnDraw/Attack`, đọc từ `state.ruleset`).
+- Đã chốt sau duyệt 1.1: `openingHandSize = 5` (**[GUESS]** tới khi có `[REF]` từ video), `afkLossThreshold = 3`, `extraDeckSize = 15`.
 - G1–G8/G11/G12 đã chốt (xem `docs/reference/notes/rules.md`); G9/G10 vẫn `[GUESS]` chờ tư liệu.
 - Port Postgres/Redis đã đổi (5433/6380) — dùng `apps/api/.env.example` làm chuẩn.
 - `apps/api` build bằng `tsc` trực tiếp (xem `docs/ai/DECISIONS.md`).

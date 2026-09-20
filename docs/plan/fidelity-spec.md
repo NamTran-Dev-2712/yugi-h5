@@ -58,6 +58,7 @@ Chi tiết + khoá config: `docs/reference/notes/rules.md`. `[DECISION]` không 
 | G10 | Thời lượng/phong cách animation                                                     | [GUESS]        | Chờ video (`docs/reference/video/`)  |
 | G11 | Có surrender và log trận                                                            | [DECISION]     | `allowSurrender`                     |
 | G12 | Deck 40–60, max 3, chưa gacha/pack                                                  | [DECISION]     | `deckMin/Max`, `copyLimit`           |
+| —   | Số lá mở đầu 5 (`openingHandSize`)                                                  | [GUESS]        | quirks.md ghi "5 hoặc 6"; chờ video  |
 | —   | Starting LP 8000                                                                    | [RULE]/[GUESS] | Giữ tới khi có tư liệu; `startingLP` |
 
 Thiếu tư liệu → UI/animation dùng giả định, đánh dấu "nháp" trong `parity-board.md`. Khi bạn nộp tư liệu, chạy quy trình
