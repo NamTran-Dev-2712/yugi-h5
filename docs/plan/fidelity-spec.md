@@ -44,22 +44,24 @@ Nhãn: `[REF]` có tư liệu · `[RULE]` luật chuẩn · `[DECISION]` chủ d
 
 Chi tiết + khoá config: `docs/reference/notes/rules.md`. `[DECISION]` không hỏi lại; khi có `[REF]` mâu thuẫn thì đổi config và chuyển sang `[REF]`.
 
-| #   | Nội dung                                                                            | Nhãn           | Ghi chú                              |
-| --- | ----------------------------------------------------------------------------------- | -------------- | ------------------------------------ |
-| G1  | Lượt 1 người đi trước: không draw, không attack                                     | [RULE]         | `firstTurnDraw`/`firstTurnAttack`    |
-| G2  | Tribute: kéo xuống zone → highlight quái mình → Xác nhận/Hủy                        | [DECISION]     |                                      |
-| G3  | Chạm quái mình mở menu (Tấn công/Đổi thế/Lật), chỉ action hợp lệ theo server        | [DECISION]     | cần `legalActions`                   |
-| G4  | Attack: kéo quái sang target **và** chọn "Tấn công" rồi chạm target                 | [DECISION]     |                                      |
-| G5  | Hỏi "Kích hoạt?" khi có bài hợp lệ; setting auto-pass                               | [DECISION]     | `chainPrompt`                        |
-| G6  | Không Damage Step chi tiết; Quick chỉ trước khi tính damage; state chừa chỗ mở rộng | [DECISION]     |                                      |
-| G7  | Solo không timer; PvP 60s/lượt, hết giờ tự EndPhase, AFK nhiều lần thì thua         | [DECISION]     | `turnTimerSec`, `afkLossThreshold`   |
-| G8  | Fusion ở P4; chưa Ritual/Synchro/Xyz/Link/Pendulum; state chừa `extraDeck`          | [DECISION]     |                                      |
-| G9  | Bố cục board (LP, deck, GY, hand, phase bar)                                        | [GUESS]        | Chờ tư liệu (`docs/reference/duel/`) |
-| G10 | Thời lượng/phong cách animation                                                     | [GUESS]        | Chờ video (`docs/reference/video/`)  |
-| G11 | Có surrender và log trận                                                            | [DECISION]     | `allowSurrender`                     |
-| G12 | Deck 40–60, max 3, chưa gacha/pack                                                  | [DECISION]     | `deckMin/Max`, `copyLimit`           |
-| —   | Số lá mở đầu 5 (`openingHandSize`)                                                  | [GUESS]        | quirks.md ghi "5 hoặc 6"; chờ video  |
-| —   | Starting LP 8000                                                                    | [RULE]/[GUESS] | Giữ tới khi có tư liệu; `startingLP` |
+| #   | Nội dung                                                                            | Nhãn             | Ghi chú                                                |
+| --- | ----------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------ |
+| G1  | Lượt 1 người đi trước: không draw, không attack                                     | [RULE]           | `firstTurnDraw`/`firstTurnAttack`                      |
+| G2  | Tribute: kéo xuống zone → highlight quái mình → Xác nhận/Hủy                        | [DECISION]       |                                                        |
+| G3  | Chạm quái mình mở menu (Tấn công/Đổi thế/Lật), chỉ action hợp lệ theo server        | [DECISION]       | cần `legalActions`                                     |
+| G4  | Attack: kéo quái sang target **và** chọn "Tấn công" rồi chạm target                 | [DECISION]       |                                                        |
+| G5  | Hỏi "Kích hoạt?" khi có bài hợp lệ; setting auto-pass                               | [DECISION]       | `chainPrompt`                                          |
+| G6  | Không Damage Step chi tiết; Quick chỉ trước khi tính damage; state chừa chỗ mở rộng | [DECISION]       |                                                        |
+| G7  | Solo không timer; PvP 60s/lượt, hết giờ tự EndPhase, AFK nhiều lần thì thua         | [DECISION]       | `turnTimerSec`, `afkLossThreshold`                     |
+| G8  | Fusion ở P4; chưa Ritual/Synchro/Xyz/Link/Pendulum; state chừa `extraDeck`          | [DECISION]       |                                                        |
+| G9  | Bố cục board (LP, deck, GY, hand, phase bar)                                        | [REF] (một phần) | `notes/layout-analysis.md`; còn ô chưa rõ chức năng    |
+| G10 | Thời lượng/phong cách animation                                                     | [REF] (một phần) | chỉ Phép Dung Hợp ~1.25–1.5 s; `notes/frames-index.md` |
+| G11 | Có surrender và log trận                                                            | [DECISION]       | `allowSurrender`                                       |
+| G12 | Deck 40–60, max 3, chưa gacha/pack                                                  | [DECISION]       | `deckMin/Max`, `copyLimit`                             |
+| —   | Số lá mở đầu 5 (`openingHandSize`)                                                  | [GUESS]          | quirks.md ghi "5 hoặc 6"; chờ video                    |
+| —   | Starting LP 8000                                                                    | [RULE]/[GUESS]   | Giữ tới khi có tư liệu; `startingLP`                   |
 
 Thiếu tư liệu → UI/animation dùng giả định, đánh dấu "nháp" trong `parity-board.md`. Khi bạn nộp tư liệu, chạy quy trình
 `docs/reference/README.md` (mục "Khi bạn báo đã nộp") để chuyển G tương ứng sang `[REF]`.
+
+**Ingest video #1 (2026-09-20):** phát hiện 8 điểm lệch/mâu thuẫn (Link + ô EX, LP 10000, Extra Deck 20, không thấy phase bar…). Xem `docs/reference/notes/rules.md` mục C1–C8. Chưa đổi `[DECISION]` nào.

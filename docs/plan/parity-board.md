@@ -51,3 +51,5 @@ Trạng thái: ⬜ chưa làm · 🟨 có bản nháp · ✅ đã duyệt bởi 
 | Batch 1                       | ⬜          |         |
 | Batch 2                       | ⬜          |         |
 | Batch 3                       | ⬜          |         |
+
+> Ghi chú ingest video #1: bố cục Duel (G9) có `[REF]` một phần — xem `docs/reference/notes/layout-analysis.md`. Các mục UI vẫn ⬜ (chưa làm), chưa ✅ vì chưa có bản dựng để duyệt.
