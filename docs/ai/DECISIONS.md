@@ -119,3 +119,19 @@ LP 8000 giữ `[RULE]/[GUESS]`. Chi tiết: `docs/reference/notes/rules.md`. **H
 
 `[DECISION]` (chủ dự án): Trap **không** kích hoạt từ tay; phải Set úp trên sân. Trap vừa Set ở lượt nào thì lượt đó chưa được kích hoạt `[RULE]`. Bài Phép thường vẫn kích hoạt từ tay ở Main Phase `[RULE]`. Quan sát video #2 15:17 ("Chuẩn Bị Dung Hợp" dùng từ tay, thấy 1 lần) chỉ vào backlog, không đổi quyết định.
 **Hệ quả:** `RulesetConfig` thêm 2 khóa: `allowTrapActivationFromHand` (mặc định `false`, `[DECISION]`) và `trapSetTurnDelay` (mặc định `true`, `[RULE]`) — **đã làm 2026-09-20** (shared + test; thay tên đề xuất cũ `allowTrapFromHand`/`trapSetDelayTurns`). Hành vi engine chưa đổi; hợp đồng trong `docs/design/engine.md`/`protocol.md` (mã lỗi `TRAP_NOT_SET`, `TRAP_SET_THIS_TURN`; `legalActions` không liệt kê "Kích hoạt" cho Trap trên tay), implement ở task 3.4. **C11 đóng.** Quan sát 15:17 → backlog trong `rules-observed.md`.
+
+## 2026-09-21 — Chốt C1–C4, C9, C10, C12 (+ G1/G4/openingHandSize)
+
+Chủ dự án chốt sau khi ingest 2 video (bản web Yugi H5 quay 2023 là [REF] duy nhất, là chuẩn tham chiếu):
+
+- **C1** `[DECISION]`: chưa làm Link/EX zone trong P1–P4. `RulesetConfig.extraMonsterZones` (mặc định 0, **chỉ lưu**, engine bỏ qua). UI vẽ 2 ô EX placeholder khóa. Link → backlog sau P4.
+- **C2/C10** `[DECISION]` (**dựa trên giả thuyết**): `startingLP` mặc định 8000 cho cả hai bên (video #2, 4/4 ván); 10000 ở video #1 được giả định là chế độ khác. `StartDuel.payload.startingLP?: [n, n]` ghi đè LP từng bên.
+- **C3** `[REF thấp, 1 nguồn]`: `extraDeckSize` = 20 (max schema nâng 15 → 20).
+- **C4** `[DECISION]`: UI 1 nút hex 3 trạng thái (Công/Kết thúc/Thủ), không thanh phase; engine giữ đủ phase. Nghĩa của "Công" vẫn là suy luận — không hard-code.
+- **C9**: tribute = overlay chọn lá + "Đồng ý" `[REF]`; nút "Hủy" là `[DECISION]` (chưa thấy trong tư liệu).
+- **C12** `[DECISION]`: giữ prompt "Kích hoạt?" khi người chơi có bài hợp lệ + setting auto-pass (video chưa phân biệt được "không có bài hợp lệ").
+- **G1**: lượt 1 người đi trước không draw `[REF, 4/4 ván]`; không attack `[RULE, chưa thấy]`. **G4**: kéo mũi tên tấn công là cách chính `[REF]`; "chọn Tấn công rồi chạm target" là phụ `[DECISION]`; G3 giữ `[DECISION]`.
+- `openingHandSize` = 5 `[REF]`; hand limit 6, bỏ bài bằng kéo `[REF 1 lần]`; deck max 60 / max 3 bản `[REF]`, min 40 `[RULE]`.
+- Backlog (chỉ ghi): điều kiện "thắng trong 20 lượt" (PvE), bong bóng "Đang suy nghĩ N" (timer), Link monster. Ngoài phạm vi: gacha/shop/guild/sự kiện/skill hệ thống riêng.
+
+**Hệ quả:** task 1.1b (shared `extraMonsterZones`, `extraDeckSize` 20; engine `StartDuel` LP từng bên). Task 1.2 hết bị chặn.

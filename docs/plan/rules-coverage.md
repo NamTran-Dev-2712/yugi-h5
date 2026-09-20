@@ -38,20 +38,20 @@
 
 Engine đọc `state.ruleset` (JSON, nằm trong state để replay tái lập). Mặc định = early Master Rule.
 
-| Khía cạnh                    | Early Master Rule (mặc định) `[RULE]`                    | Modern `[RULE]`           | Khoá config                |
-| ---------------------------- | -------------------------------------------------------- | ------------------------- | -------------------------- |
-| Zone                         | 5 Monster + 5 S/T + 1 Field, không Extra Monster Zone    | Master Rule 5: có EMZ     | `zones`                    |
-| Draw lượt 1 (người đi trước) | Không draw                                               | Không draw                | `firstTurnDraw`            |
-| Attack lượt 1                | Không                                                    | Không                     | `firstTurnAttack`          |
-| Extra Deck                   | 0–15, Fusion; chỉ có Fusion trong v1                     | Có Synchro/Xyz/Link (OUT) | `extraDeckSize`            |
-| Field Spell                  | Thay thế nếu activate lá mới                             | Mỗi người 1 lá            | `fieldSpellReplace`        |
-| Deck size                    | 40–60, ≤3/lá                                             | Giống                     | `deckMin/Max`, `copyLimit` |
-| Hand limit                   | 6                                                        | 6                         | `handLimit`                |
-| Starting LP                  | 8000 `[GUESS]` (gốc có thể khác)                         | 8000                      | `startingLP`               |
-| Missing-timing / SEGOC       | Đơn giản hoá, không SEGOC đầy đủ                         | Có SEGOC                  | `segoc`                    |
-| Tribute Summon               | Chuẩn                                                    | Chuẩn                     | —                          |
-| Chain prompt                 | Theo `[GUESS]` Yugi H5 (mặc định: hỏi khi có bài hợp lệ) | —                         | `chainPrompt`              |
-| Turn timer                   | `[GUESS]`                                                | —                         | `turnTimerSec`             |
+| Khía cạnh                    | Early Master Rule (mặc định) `[RULE]`                                     | Modern `[RULE]`           | Khoá config                      |
+| ---------------------------- | ------------------------------------------------------------------------- | ------------------------- | -------------------------------- |
+| Zone                         | 5 Monster + 5 S/T + 1 Field; EX zone chưa làm P1–P4 `[DECISION]` (C1)     | Master Rule 5: có EMZ     | `extraMonsterZones` (0, chỉ lưu) |
+| Draw lượt 1 (người đi trước) | Không draw                                                                | Không draw                | `firstTurnDraw`                  |
+| Attack lượt 1                | Không                                                                     | Không                     | `firstTurnAttack`                |
+| Extra Deck                   | 0–20 (mặc định 20 `[REF thấp]`), Fusion; chỉ có Fusion trong v1           | Có Synchro/Xyz/Link (OUT) | `extraDeckSize`                  |
+| Field Spell                  | Thay thế nếu activate lá mới                                              | Mỗi người 1 lá            | `fieldSpellReplace`              |
+| Deck size                    | 40–60, ≤3/lá                                                              | Giống                     | `deckMin/Max`, `copyLimit`       |
+| Hand limit                   | 6                                                                         | 6                         | `handLimit`                      |
+| Starting LP                  | 8000 `[DECISION]` (dựa giả thuyết, C2/C10); ghi đè từng bên ở `StartDuel` | 8000                      | `startingLP`                     |
+| Missing-timing / SEGOC       | Đơn giản hoá, không SEGOC đầy đủ                                          | Có SEGOC                  | `segoc`                          |
+| Tribute Summon               | Chuẩn                                                                     | Chuẩn                     | —                                |
+| Chain prompt                 | Theo `[GUESS]` Yugi H5 (mặc định: hỏi khi có bài hợp lệ)                  | —                         | `chainPrompt`                    |
+| Turn timer                   | `[GUESS]`                                                                 | —                         | `turnTimerSec`                   |
 
 Việc cần làm ở task 1.1: định nghĩa `RulesetConfig` (Zod trong `packages/shared`), truyền qua `StartDuel`.
 
@@ -73,5 +73,5 @@ Việc cần làm ở task 1.1: định nghĩa `RulesetConfig` (Zod trong `packa
 ## Khoá RulesetConfig bổ sung
 
 `chainPrompt` (`ask`|`auto-pass`, G5), `turnTimerSec` (`null` solo, `60` PvP, G7), `afkLossThreshold` (G7), `allowSurrender` (G11),
-`firstTurnDraw`/`firstTurnAttack` (G1, mặc định `false`), `startingLP` (8000 `[RULE]/[GUESS]`),
+`firstTurnDraw`/`firstTurnAttack` (G1, mặc định `false`), `startingLP` (8000 `[DECISION]`), `extraMonsterZones` (0 `[DECISION]`, chỉ lưu),
 `allowTrapActivationFromHand` (C11 `[DECISION]`, mặc định `false`), `trapSetTurnDelay` (C11 `[RULE]`, mặc định `true`). Hai khoá đã có trong shared; hành vi engine ở task 3.4.

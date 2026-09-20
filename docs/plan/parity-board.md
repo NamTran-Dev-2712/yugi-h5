@@ -19,19 +19,19 @@ Trạng thái: ⬜ chưa làm · 🟨 có bản nháp · ✅ đã duyệt bởi 
 | Chain (prompt "Kích hoạt?", auto-pass) | [RULE]/[DECISION]                        | ⬜         | G5                                        |
 | Triggers / Continuous                  | [RULE]                                   | ⬜         |                                           |
 | Equip / Field / Counter                | [RULE]                                   | ⬜         |                                           |
-| Fusion (Ritual ngoài v1)               | [RULE]                                   | ⬜         | G8                                        |
+| Fusion (Ritual ngoài v1)               | [RULE]                                   | ⬜         | G8; Link → backlog sau P4 (C1)            |
 
 ## Màn hình / UI
 
-| Mục                    | Nhãn                          | Trạng thái | Ghi chú                                  |
-| ---------------------- | ----------------------------- | ---------- | ---------------------------------------- |
-| Duel layout            | [REF] một phần                | ⬜         | video #1 + #2; ô EX không thấy ở #2 (C1) |
-| Drag-drop flow (G2–G4) | [DECISION]                    | ⬜         | tribute, menu, attack 2 cách             |
-| Card Detail panel      | [GUESS]                       | ⬜         |                                          |
-| Chain UI               | [DECISION]                    | ⬜         | prompt Kích hoạt?                        |
-| Menu                   | [GUESS]                       | ⬜         |                                          |
-| Deck Builder           | [GUESS]                       | ⬜         |                                          |
-| Match Result           | [REF] (thấy 1 lần, ván thắng) | ⬜         | video #2 27:03.5; màn thua chưa thấy     |
+| Mục                    | Nhãn                                                         | Trạng thái | Ghi chú                                                                           |
+| ---------------------- | ------------------------------------------------------------ | ---------- | --------------------------------------------------------------------------------- |
+| Duel layout            | [REF] một phần                                               | 🟨         | video #1 + #2; 1 nút hex 3 trạng thái, 2 ô EX placeholder khóa (C1/C4 [DECISION]) |
+| Drag-drop flow (G2–G4) | [REF] (tribute overlay, kéo attack) + [DECISION] (Hủy, menu) | 🟨         | tribute overlay + Đồng ý/Hủy; attack kéo mũi tên chính, nhãn nổi ATK/DEF          |
+| Card Detail panel      | [GUESS]                                                      | ⬜         |                                                                                   |
+| Chain UI               | [DECISION]                                                   | 🟨         | prompt Kích hoạt? + auto-pass (C12)                                               |
+| Menu                   | [GUESS]                                                      | ⬜         |                                                                                   |
+| Deck Builder           | [GUESS]                                                      | ⬜         |                                                                                   |
+| Match Result           | [REF] (thấy 1 lần, ván thắng)                                | ⬜         | video #2 27:03.5; màn thua chưa thấy                                              |
 
 ## Animation / âm thanh
 

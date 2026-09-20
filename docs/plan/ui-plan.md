@@ -21,7 +21,7 @@ Phaser 3 + Vite. Landscape **1280×720** (Scale FIT, letterbox), chuột + touch
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
-│ [Opp name]  LP ████████ 8000            [Phase: Main1 ▶ Battle ▶ End] │
+│ [Opp name]  LP ████████ 8000            [EX🔒][EX🔒]  (2 ô EX khóa)   │
 │ Opp hand (úp)  ▮▮▮▮▮                                       [Log ☰]   │
 │ ┌ST┐┌ST┐┌ST┐┌ST┐┌ST┐                                                │
 │ ┌M ┐┌M ┐┌M ┐┌M ┐┌M ┐        [Opp Deck] [Opp GY]                     │
@@ -29,41 +29,45 @@ Phaser 3 + Vite. Landscape **1280×720** (Scale FIT, letterbox), chuột + touch
 │ ┌M ┐┌M ┐┌M ┐┌M ┐┌M ┐        [My Deck]  [My GY]   ┌Card Detail──────┐│
 │ ┌ST┐┌ST┐┌ST┐┌ST┐┌ST┐                                │ art  name  ★★★★ ││
 │ My hand: ▯ ▯ ▯ ▯ ▯ ▯                                 │ ATK/DEF  text   ││
-│ [Me] LP ████████ 8000     [End Turn]                 └─────────────────┘│
+│ [Me] LP ████████ 8000     ⬡ Công/Kết thúc/Thủ        └─────────────────┘│
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Inventory component
 
-| Component                                 | State chính                                             | Phase |
-| ----------------------------------------- | ------------------------------------------------------- | ----- |
-| `CardSprite`                              | definitionId, faceUp, position, highlight, dragging     | P2    |
-| `Hand`                                    | cards[], hover, selecting                               | P2    |
-| `MonsterZone`/`SpellTrapZone`/`FieldZone` | slot occupied, validDropTarget                          | P2    |
-| `PileZone` (Deck/GY/Banished)             | count, top card, open viewer                            | P2    |
-| `LPBar`                                   | current, animating delta                                | P2    |
-| `PhaseBar`                                | phase, enabled transitions                              | P2    |
-| `PromptPanel`                             | kind (SelectTribute/Position/Target/Activate?), options | P2/P3 |
-| `ChainUI`                                 | chain links[], resolving index                          | P3    |
-| `CardDetailPanel`                         | card shown, effect text (i18n)                          | P2    |
-| `PileViewer`                              | list cards GY/Banished/Extra                            | P4    |
-| `LogPanel`                                | events[], toggle                                        | P2    |
-| `AnimationOverlay`                        | queue state, skip/speed                                 | P6    |
-| `Toast/Error`                             | server reject messages                                  | P2    |
+| Component                                 | State chính                                                             | Phase |
+| ----------------------------------------- | ----------------------------------------------------------------------- | ----- |
+| `CardSprite`                              | definitionId, faceUp, position, highlight, dragging                     | P2    |
+| `Hand`                                    | cards[], hover, selecting                                               | P2    |
+| `MonsterZone`/`SpellTrapZone`/`FieldZone` | slot occupied, validDropTarget                                          | P2    |
+| `PileZone` (Deck/GY/Banished)             | count, top card, open viewer                                            | P2    |
+| `LPBar`                                   | current, animating delta                                                | P2    |
+| `HexTurnButton`                           | 3 trạng thái Công/Kết thúc/Thủ + huy hiệu số lượt (C4; không phase bar) | P2    |
+| `ExZonePlaceholder`                       | 2 ô EX khóa, chỉ hiển thị (C1)                                          | P2    |
+| `FloatingStatLabel`                       | nhãn nổi "Tấn công N"/"Phòng thủ N" trên quái                           | P2    |
+| `PromptPanel`                             | kind (SelectTribute/Position/Target/Activate?), options                 | P2/P3 |
+| `ChainUI`                                 | chain links[], resolving index                                          | P3    |
+| `CardDetailPanel`                         | card shown, effect text (i18n)                                          | P2    |
+| `PileViewer`                              | list cards GY/Banished/Extra                                            | P4    |
+| `LogPanel`                                | events[], toggle                                                        | P2    |
+| `AnimationOverlay`                        | queue state, skip/speed                                                 | P6    |
+| `Toast/Error`                             | server reject messages                                                  | P2    |
 
 ## Tương tác kéo thả (`[GUESS]` — chỉnh theo reference)
 
-| Ý định              | Thao tác                                                   | Action gửi                    | Ghi chú                                                             |
-| ------------------- | ---------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------- |
-| Normal Summon       | Kéo từ Hand → Monster Zone trống (thả vào zone ngửa)       | `NormalSummon`                | Level 5+: prompt chọn tribute (highlight quái mình)                 |
-| Set monster         | Kéo → Monster Zone + chọn "Set" (hoặc thả vào ô úp)        | `SetMonster`                  | G3                                                                  |
-| Set Spell/Trap      | Kéo → Spell/Trap Zone (Trap từ tay: kéo xuống = Set)       | `SetSpellTrap`                | P3                                                                  |
-| Activate Spell      | Kéo → S/T Zone (ngửa) hoặc chạm → menu "Kích hoạt"         | `ActivateEffect`              | P3                                                                  |
-| Attack              | Kéo quái mình → quái đối phương / vùng đối phương (direct) | `DeclareAttack`               | Highlight target hợp lệ; G4                                         |
-| Đổi position        | Chạm quái → menu (Tấn công/Thủ/Lật)                        | `ChangePosition`/`FlipSummon` | G3                                                                  |
-| Xem chi tiết        | Chạm/hover                                                 | (không gửi)                   | Card Detail panel                                                   |
-| Menu action         | Chạm giữ hoặc chạm 1 lần → menu hành động hợp lệ           | tuỳ                           | Chỉ hiện action hợp lệ theo server (`legalActions` trong StateView) |
-| Kết thúc phase/lượt | Nút phase bar / End Turn                                   | `EndPhase`                    |                                                                     |
+**Chốt 2026-09-21:** không có phase bar — 1 nút hex 3 trạng thái "Công" (bận/animation) / "Kết thúc" / "Thủ" (lượt đối thủ) `[REF]`, nghĩa của "Công" là suy luận (C4 `[DECISION]`). 2 ô EX placeholder khóa (C1). Tribute = overlay chọn lá + "Đồng ý" `[REF]` + "Hủy" `[DECISION]` (C9). Tấn công = kéo mũi tên đỏ là chính `[REF]`; chọn "Tấn công" rồi chạm target là phụ `[DECISION]` (G4). Nhãn nổi "Tấn công N"/"Phòng thủ N" trên quái. Prompt "Kích hoạt?" khi có bài hợp lệ + setting auto-pass `[DECISION]` (C12).
+
+| Ý định              | Thao tác                                                                                                        | Action gửi                    | Ghi chú                                                             |
+| ------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------- |
+| Normal Summon       | Kéo từ Hand → Monster Zone trống (thả vào zone ngửa)                                                            | `NormalSummon`                | Level 5+: overlay chọn tribute + Đồng ý/Hủy (C9)                    |
+| Set monster         | Kéo → Monster Zone + chọn "Set" (hoặc thả vào ô úp)                                                             | `SetMonster`                  | G3                                                                  |
+| Set Spell/Trap      | Kéo → Spell/Trap Zone (Trap từ tay: kéo xuống = Set)                                                            | `SetSpellTrap`                | P3                                                                  |
+| Activate Spell      | Kéo → S/T Zone (ngửa) hoặc chạm → menu "Kích hoạt"                                                              | `ActivateEffect`              | P3                                                                  |
+| Attack              | Kéo mũi tên đỏ quái mình → quái đối phương / vùng đối phương (direct) `[REF]`; phụ: menu Tấn công → chạm target | `DeclareAttack`               | Highlight target hợp lệ; G4                                         |
+| Đổi position        | Chạm quái → menu (Tấn công/Thủ/Lật)                                                                             | `ChangePosition`/`FlipSummon` | G3                                                                  |
+| Xem chi tiết        | Chạm/hover                                                                                                      | (không gửi)                   | Card Detail panel                                                   |
+| Menu action         | Chạm giữ hoặc chạm 1 lần → menu hành động hợp lệ                                                                | tuỳ                           | Chỉ hiện action hợp lệ theo server (`legalActions` trong StateView) |
+| Kết thúc phase/lượt | Nút hex "Kết thúc" (C4)                                                                                         | `EndPhase`                    |                                                                     |
 
 **Trap/Spell (C11 `[DECISION]`/`[RULE]`):** kéo Trap từ tay xuống S/T Zone = **Set** (menu Trap trên tay không có "Kích hoạt"). Trap úp trên sân mới có "Kích hoạt", chỉ khi hợp lệ (qua lượt Set). Spell thường trên tay vẫn kéo/chạm để "Kích hoạt" ở Main Phase. Thông báo lỗi theo mã: `TRAP_NOT_SET` ("Bẫy phải được úp xuống trước"), `TRAP_SET_THIS_TURN` ("Bẫy vừa úp, chưa thể kích hoạt trong lượt này") — chuỗi i18n VI+EN.
 

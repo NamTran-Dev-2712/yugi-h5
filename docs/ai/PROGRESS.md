@@ -26,13 +26,14 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
 ### Đang làm / Bị chặn
 
 - **Task 1.1 ✅ xong và đã duyệt** (`RulesetConfig` + `state.ruleset`). Bộ plan `docs/plan/*` đã duyệt.
-- **Ingest video #1 xong (2026-09-20)** — kết quả + 8 mâu thuẫn C1–C8 ở `docs/reference/notes/rules.md`. **Task 1.2 chờ chủ dự án quyết C1–C4** (Link/EX zone, LP 10000, Extra Deck 20, phase bar) vì ảnh hưởng `RulesetConfig`/state.
+- **Task 1.1b ✅ xong (2026-09-21, chờ duyệt)** — áp dụng C1/C2/C3: `extraMonsterZones` (0, chỉ lưu), `extraDeckSize` 20, `StartDuel.payload.startingLP` ghi đè LP từng bên. C1–C4, C9, C10, C12 đã đóng (ADR 2026-09-21 trong `DECISIONS.md`). C2/C10 dựa trên giả thuyết.
+- **Ingest video #1/#2 xong (2026-09-20)** — mâu thuẫn ở `docs/reference/notes/rules.md` + `rules-observed.md`.
 
 ### Bàn giao cho session mới
 
 - **C11 đã chốt (2026-09-20)**: `[DECISION]` Trap phải Set mới kích hoạt, không từ tay; `[RULE]` Trap vừa Set chưa kích hoạt trong lượt đó; `[RULE]` Spell thường kích hoạt từ tay ở Main Phase. Đã thêm `allowTrapActivationFromHand` (false) + `trapSetTurnDelay` (true) vào `RulesetConfig` (shared, có test); hành vi engine ở task 3.4 (test `it.todo` ở `packages/game-engine/src/rules/trap-activation.test.ts`). Quan sát 15:17 → backlog `rules-observed.md`.
 - **Task P1 còn lại** (nguồn: `docs/plan/MASTER-PLAN.md`; đọc `RULES-REVIEW-SHEET.md` + `rules-coverage.md` theo nhãn):
-  1. **1.2** `EndPhase` + phase + đổi lượt + lượt 1 — `[RULE]` G1 (`firstTurnDraw/Attack`); vẫn chờ chủ dự án quyết C1–C4 (xem `rules.md`).
+  1. **1.2** `EndPhase` + phase + đổi lượt + lượt 1 — G1: lượt 1 người đi trước không draw `[REF, 4/4 ván]`, không attack `[RULE, chưa thấy]`; người đi sau có rút ở lượt đầu của mình. Đọc từ `state.ruleset` (`firstTurnDraw/Attack`).
   2. **1.3** `NormalSummon`/`SetMonster` lv 1–4 — `[RULE]`, 1 lần/lượt.
   3. **1.4** Tribute + `PendingPrompt` SelectTribute — `[RULE]` lv5–6:1, lv7+:2; G2 `[DECISION]` Xác nhận/Hủy; C9 (overlay) còn mở.
   4. **1.5** `ChangePosition` — `[RULE]` không đổi khi vừa summon/set hoặc đã tấn công.
@@ -41,9 +42,9 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
   7. **1.8** Win/lose + `Surrender` + hand limit 6 — `[RULE]`; G11 `[DECISION]`.
   8. **1.9** Golden replay + fuzz harness — không có luật riêng.
 
-- **Ingest video #1 đã làm** (ffmpeg có sẵn qua Chocolatey). Việc đầu tiên của session mới: đọc `docs/reference/notes/rules.md` (mục "Kết quả ingest video #1") và hỏi chủ dự án quyết C1–C4.
-- **Task tiếp theo: 1.2** (sau khi chủ dự án trả lời C1–C4) — `EndPhase` + phase transition + đổi lượt + luật lượt 1 (`firstTurnDraw/Attack`, đọc từ `state.ruleset`).
-- Đã chốt sau duyệt 1.1: `openingHandSize = 5` (**[GUESS]** tới khi có `[REF]` từ video), `afkLossThreshold = 3`, `extraDeckSize = 15`.
+- Tư liệu còn thiếu (Set / đổi thế / Lật, màn thắng-thua, ảnh tab Dung Hợp) **không chặn** 1.2 — xem `parity-board.md`, `human-tasks.md`.
+- **Task tiếp theo: 1.2** — `EndPhase` + phase transition + đổi lượt + luật lượt 1 (`firstTurnDraw/Attack`, đọc từ `state.ruleset`).
+- Đã chốt sau duyệt 1.1: `openingHandSize = 5` (**[REF]**, video #2 4/4 ván), `afkLossThreshold = 3`, `extraDeckSize = 20` (**[REF thấp, 1 nguồn]**, C3), `startingLP = 8000` (**[DECISION]**, C2/C10), `extraMonsterZones = 0` (C1).
 - G1–G8/G11/G12 đã chốt (xem `docs/reference/notes/rules.md`); G9/G10 vẫn `[GUESS]` chờ tư liệu.
 - Port Postgres/Redis đã đổi (5433/6380) — dùng `apps/api/.env.example` làm chuẩn.
 - `apps/api` build bằng `tsc` trực tiếp (xem `docs/ai/DECISIONS.md`).

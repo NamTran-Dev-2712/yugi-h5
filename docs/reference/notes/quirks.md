@@ -1,4 +1,4 @@
-# Quirks & Feel của Yugi H5 (VNG ~2017-2018)
+# Quirks & Feel của Yugi H5 (bản web quay 2023)
 
 Những điểm chắc chắn nhớ được khi chơi:
 
