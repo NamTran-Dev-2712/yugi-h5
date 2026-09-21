@@ -62,6 +62,6 @@ export type Action =
 export interface ActionContext {
   /** Reserved for cross-cutting concerns injected by the caller (e.g. logging hooks). Never a source of nondeterminism. */
   readonly now?: never;
-  /** Resolves card content (level, kind...) from packages/shared data; the engine never hardcodes cards. Required by actions that read card data. */
-  readonly cardDefinitions?: (definitionId: string) => CardDefinition | undefined;
+  /** Resolves card content (level, kind...) from packages/shared data; the engine never hardcodes cards. Required; must be a pure lookup. */
+  readonly cardDefinitions: (definitionId: string) => CardDefinition | undefined;
 }

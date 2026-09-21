@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction } from '../../apply-action.js';
 import type { EndPhaseAction, StartDuelAction } from '../types.js';
 import type { GameState, Phase } from '../../state/types.js';
+import { expectEngineError } from '../../testing/expect-engine-error.js';
 import { deepFreeze } from '../../testing/deep-freeze.js';
 
 function deckOf(prefix: string, size: number): string[] {
@@ -142,12 +143,12 @@ describe('EndPhase / deck-out and rejection', () => {
   });
 
   it('rejects an action from the non-turn player', () => {
-    expect(() => applyAction(start(), endPhase(1))).toThrow(/turn player/i);
+    expectEngineError(() => applyAction(start(), endPhase(1)), 'NOT_TURN_PLAYER');
   });
 
   it('rejects once the duel has a winner', () => {
     const over: GameState = { ...start(), winnerIndex: 1 };
-    expect(() => applyAction(over, endPhase(0))).toThrow(/ended/i);
+    expectEngineError(() => applyAction(over, endPhase(0)), 'DUEL_ENDED');
   });
 
   it('rejects while a prompt is pending', () => {
@@ -155,11 +156,11 @@ describe('EndPhase / deck-out and rejection', () => {
       ...start(),
       pendingPrompt: { promptId: 'p', playerIndex: 0, kind: 'X', payload: null },
     };
-    expect(() => applyAction(prompted, endPhase(0))).toThrow(/prompt/i);
+    expectEngineError(() => applyAction(prompted, endPhase(0)), 'PENDING_PROMPT');
   });
 
   it('requires an existing state', () => {
-    expect(() => applyAction(null, endPhase(0))).toThrow();
+    expectEngineError(() => applyAction(null, endPhase(0)), 'NO_STATE');
   });
 });
 

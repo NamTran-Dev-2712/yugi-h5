@@ -9,6 +9,7 @@ import type {
   SetMonsterAction,
 } from '../types.js';
 import type { CardInstance, GameState, Phase } from '../../state/types.js';
+import { expectEngineError } from '../../testing/expect-engine-error.js';
 import { deepFreeze } from '../../testing/deep-freeze.js';
 
 function monster(id: string, level: number): CardDefinition {
@@ -168,7 +169,7 @@ describe('one Normal Summon / Set per turn', () => {
     ['Set then Set', setMonster, setMonster],
   ])('%s is rejected the second time', (_name, first, second) => {
     const { state } = applyAction(setup(), first('h0', 0), ctx);
-    expect(() => applyAction(state, second('h1', 1), ctx)).toThrow(/already/i);
+    expectEngineError(() => applyAction(state, second('h1', 1), ctx), 'NORMAL_SUMMON_USED');
   });
 
   it('allows a new Summon after a full turn cycle', () => {
@@ -186,12 +187,12 @@ describe('one Normal Summon / Set per turn', () => {
 
 describe.each(MODES)('$name / rejections', ({ make }) => {
   it.each(['Draw', 'Standby', 'Battle', 'End'] as const)('is rejected in %s phase', (phase) => {
-    expect(() => applyAction(setup(['M4'], phase), make('h0'), ctx)).toThrow(/Main Phase/);
+    expectEngineError(() => applyAction(setup(['M4'], phase), make('h0'), ctx), 'WRONG_PHASE');
   });
 
   it('is rejected once the duel has a winner', () => {
     const over: GameState = { ...setup(), winnerIndex: 1 };
-    expect(() => applyAction(over, make('h0'), ctx)).toThrow(/ended/i);
+    expectEngineError(() => applyAction(over, make('h0'), ctx), 'DUEL_ENDED');
   });
 
   it('is rejected while a prompt is pending', () => {
@@ -199,7 +200,7 @@ describe.each(MODES)('$name / rejections', ({ make }) => {
       ...setup(),
       pendingPrompt: { promptId: 'p', playerIndex: 0, kind: 'X', payload: null },
     };
-    expect(() => applyAction(prompted, make('h0'), ctx)).toThrow(/prompt/i);
+    expectEngineError(() => applyAction(prompted, make('h0'), ctx), 'PENDING_PROMPT');
   });
 
   it('is rejected for the non-turn player', () => {
@@ -208,11 +209,14 @@ describe.each(MODES)('$name / rejections', ({ make }) => {
       ...before,
       players: [before.players[0], { ...before.players[1], hand: [card('o0', 'M4', 1)] }],
     };
-    expect(() => applyAction(withOpponentHand, make('o0', 0, 1), ctx)).toThrow(/turn player/i);
+    expectEngineError(
+      () => applyAction(withOpponentHand, make('o0', 0, 1), ctx),
+      'NOT_TURN_PLAYER',
+    );
   });
 
   it('is rejected when the card is not in the caller hand', () => {
-    expect(() => applyAction(setup(), make('nope'), ctx)).toThrow(/not in your hand/i);
+    expectEngineError(() => applyAction(setup(), make('nope'), ctx), 'CARD_NOT_IN_HAND');
   });
 
   it("is rejected for a card in the opponent's hand", () => {
@@ -221,22 +225,22 @@ describe.each(MODES)('$name / rejections', ({ make }) => {
       ...before,
       players: [before.players[0], { ...before.players[1], hand: [card('o0', 'M4', 1)] }],
     };
-    expect(() => applyAction(s, make('o0'), ctx)).toThrow(/not in your hand/i);
+    expectEngineError(() => applyAction(s, make('o0'), ctx), 'CARD_NOT_IN_HAND');
   });
 
   it.each(['SPELL', 'TRAP'])('is rejected for a %s card', (id) => {
-    expect(() => applyAction(setup([id]), make('h0'), ctx)).toThrow(/not a Monster/i);
+    expectEngineError(() => applyAction(setup([id]), make('h0'), ctx), 'NOT_A_MONSTER');
   });
 
   it.each(['M5', 'M6', 'M7'])(
     'is rejected for level 5+ monster %s (Tribute not supported yet)',
     (id) => {
-      expect(() => applyAction(setup([id]), make('h0'), ctx)).toThrow(/Tribute/);
+      expectEngineError(() => applyAction(setup([id]), make('h0'), ctx), 'LEVEL_NEEDS_TRIBUTE');
     },
   );
 
   it.each([-1, 5, 1.5, Number.NaN])('is rejected for zoneIndex %s', (zone) => {
-    expect(() => applyAction(setup(), make('h0', zone), ctx)).toThrow(/zoneIndex must be/);
+    expectEngineError(() => applyAction(setup(), make('h0', zone), ctx), 'INVALID_ZONE');
   });
 
   it('is rejected when the zone is occupied', () => {
@@ -254,7 +258,7 @@ describe.each(MODES)('$name / rejections', ({ make }) => {
         before.players[1],
       ],
     };
-    expect(() => applyAction(occupied, make('h0', 2), ctx)).toThrow(/occupied/i);
+    expectEngineError(() => applyAction(occupied, make('h0', 2), ctx), 'ZONE_OCCUPIED');
   });
 
   it('is rejected when all 5 monster zones are full', () => {
@@ -279,22 +283,26 @@ describe.each(MODES)('$name / rejections', ({ make }) => {
       ],
     };
     for (const zone of [0, 1, 2, 3, 4]) {
-      expect(() => applyAction(full, make('h0', zone), ctx)).toThrow(/occupied/i);
+      expectEngineError(() => applyAction(full, make('h0', zone), ctx), 'ZONE_OCCUPIED');
     }
   });
 
   it('is rejected when no card definition resolver is provided', () => {
-    expect(() => applyAction(setup(), make('h0'))).toThrow(/card definition/i);
+    // @ts-expect-error ctx is mandatory in types; this guards untyped callers.
+    expectEngineError(() => applyAction(setup(), make('h0')), 'NO_CARD_RESOLVER');
   });
 
   it('is rejected when the definition is unknown', () => {
-    expect(() => applyAction(setup(['UNKNOWN']), make('h0'), ctx)).toThrow(/card definition/i);
+    expectEngineError(
+      () => applyAction(setup(['UNKNOWN']), make('h0'), ctx),
+      'CARD_DEFINITION_NOT_FOUND',
+    );
   });
 
   it('does not change state when rejected', () => {
     const before = setup();
     const snapshot = JSON.stringify(before);
-    expect(() => applyAction(before, make('h0', 9), ctx)).toThrow(/zoneIndex must be/);
+    expectEngineError(() => applyAction(before, make('h0', 9), ctx), 'INVALID_ZONE');
     expect(JSON.stringify(before)).toBe(snapshot);
   });
 });

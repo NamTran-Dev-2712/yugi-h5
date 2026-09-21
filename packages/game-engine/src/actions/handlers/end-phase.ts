@@ -1,3 +1,4 @@
+import { EngineError } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
 import type { GameState, Phase } from '../../state/types.js';
 import { resetTurnFlags } from '../../state/turn-flags.js';
@@ -17,13 +18,16 @@ export function applyEndPhase(
   action: EndPhaseAction,
 ): { state: GameState; events: GameEvent[] } {
   if (state.winnerIndex !== null) {
-    throw new Error('EndPhase rejected: the duel has already ended.');
+    throw new EngineError('DUEL_ENDED', 'EndPhase rejected: the duel has already ended.');
   }
   if (state.pendingPrompt !== null) {
-    throw new Error('EndPhase rejected: a prompt is pending.');
+    throw new EngineError('PENDING_PROMPT', 'EndPhase rejected: a prompt is pending.');
   }
   if (action.payload.playerIndex !== state.turnPlayerIndex) {
-    throw new Error('EndPhase rejected: only the turn player may end the phase.');
+    throw new EngineError(
+      'NOT_TURN_PLAYER',
+      'EndPhase rejected: only the turn player may end the phase.',
+    );
   }
 
   const { turnPlayerIndex, phase } = state;

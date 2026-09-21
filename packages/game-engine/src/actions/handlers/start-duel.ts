@@ -1,4 +1,5 @@
 import { resolveRuleset } from '@yugi/shared';
+import { EngineError } from '../../errors.js';
 import { createRng, shuffle } from '../../rng/seeded-rng.js';
 import type { CardInstance, GameState, PlayerState } from '../../state/types.js';
 import type { GameEvent } from '../../events/types.js';
@@ -27,7 +28,10 @@ export function applyStartDuel(action: StartDuelAction): { state: GameState; eve
   const startingLP = action.payload.startingLP ?? [ruleset.startingLP, ruleset.startingLP];
   for (const lp of startingLP) {
     if (!Number.isInteger(lp) || lp < 1) {
-      throw new Error(`Invalid startingLP override: ${lp} (expected an integer >= 1).`);
+      throw new EngineError(
+        'INVALID_STARTING_LP',
+        `Invalid startingLP override: ${lp} (expected an integer >= 1).`,
+      );
     }
   }
 

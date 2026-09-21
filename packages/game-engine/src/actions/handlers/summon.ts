@@ -1,4 +1,5 @@
 import type { MonsterCardDefinition } from '@yugi/shared';
+import { EngineError, type EngineErrorCode } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
 import type { CardInstance, CardPosition, GameState, PlayerState } from '../../state/types.js';
 import type { ActionContext, NormalSummonAction, SetMonsterAction } from '../types.js';
@@ -33,35 +34,37 @@ function placeMonsterFromHand(
   position: Extract<CardPosition, 'Attack' | 'DefenseDown'>,
 ): Result {
   const { playerIndex, cardInstanceId, zoneIndex } = payload;
-  const reject = (reason: string): never => {
-    throw new Error(`${actionName} rejected: ${reason}`);
+  const reject = (code: EngineErrorCode, reason: string): never => {
+    throw new EngineError(code, `${actionName} rejected: ${reason}`);
   };
 
-  if (state.winnerIndex !== null) reject('the duel has already ended.');
-  if (state.pendingPrompt !== null) reject('a prompt is pending.');
-  if (playerIndex !== state.turnPlayerIndex) reject('only the turn player may act.');
+  if (state.winnerIndex !== null) reject('DUEL_ENDED', 'the duel has already ended.');
+  if (state.pendingPrompt !== null) reject('PENDING_PROMPT', 'a prompt is pending.');
+  if (playerIndex !== state.turnPlayerIndex)
+    reject('NOT_TURN_PLAYER', 'only the turn player may act.');
   if (state.phase !== 'Main1' && state.phase !== 'Main2') {
-    reject(`only allowed in a Main Phase (current phase: ${state.phase}).`);
+    reject('WRONG_PHASE', `only allowed in a Main Phase (current phase: ${state.phase}).`);
   }
   const player = state.players[playerIndex];
   if (player.hasNormalSummonedThisTurn) {
-    reject('a Normal Summon or Set was already used this turn.');
+    reject('NORMAL_SUMMON_USED', 'a Normal Summon or Set was already used this turn.');
   }
   if (!Number.isInteger(zoneIndex) || zoneIndex < 0 || zoneIndex > 4) {
-    reject(`zoneIndex must be an integer from 0 to 4 (got ${zoneIndex}).`);
+    reject('INVALID_ZONE', `zoneIndex must be an integer from 0 to 4 (got ${zoneIndex}).`);
   }
 
   const card = player.hand.find((c) => c.instanceId === cardInstanceId);
-  if (!card) return reject(`card ${cardInstanceId} is not in your hand.`);
+  if (!card) return reject('CARD_NOT_IN_HAND', `card ${cardInstanceId} is not in your hand.`);
 
   const definition = resolveMonster(card, ctx, reject);
   if (definition.level > MAX_LEVEL_WITHOUT_TRIBUTE) {
     reject(
+      'LEVEL_NEEDS_TRIBUTE',
       `level ${definition.level} monsters need a Tribute (Tribute Summon is not supported yet).`,
     );
   }
   if (player.board.monsterZones[zoneIndex] !== null) {
-    reject(`monster zone ${zoneIndex} is occupied.`);
+    reject('ZONE_OCCUPIED', `monster zone ${zoneIndex} is occupied.`);
   }
 
   const placed: CardInstance = { ...card, position };
@@ -94,11 +97,17 @@ function placeMonsterFromHand(
 function resolveMonster(
   card: CardInstance,
   ctx: ActionContext,
-  reject: (reason: string) => never,
+  reject: (code: EngineErrorCode, reason: string) => never,
 ): MonsterCardDefinition {
-  if (!ctx.cardDefinitions) return reject('no card definition resolver was provided.');
+  if (!ctx.cardDefinitions)
+    return reject('NO_CARD_RESOLVER', 'no card definition resolver was provided.');
   const definition = ctx.cardDefinitions(card.definitionId);
-  if (!definition) return reject(`card definition "${card.definitionId}" was not found.`);
-  if (definition.kind !== 'Monster') return reject(`"${definition.name}" is not a Monster card.`);
+  if (!definition)
+    return reject(
+      'CARD_DEFINITION_NOT_FOUND',
+      `card definition "${card.definitionId}" was not found.`,
+    );
+  if (definition.kind !== 'Monster')
+    return reject('NOT_A_MONSTER', `"${definition.name}" is not a Monster card.`);
   return definition;
 }

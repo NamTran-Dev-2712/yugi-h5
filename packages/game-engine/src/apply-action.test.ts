@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction } from './apply-action.js';
 import { DEFAULT_RULESET } from '@yugi/shared';
 import type { StartDuelAction, DrawAction } from './actions/types.js';
+import { expectEngineError } from './testing/expect-engine-error.js';
 
 function deckOf(prefix: string, size: number): string[] {
   return Array.from({ length: size }, (_, i) => `${prefix}-${i}`);
@@ -88,8 +89,9 @@ describe('applyAction / StartDuel per-side life points (C2 [DECISION])', () => {
   });
 
   it.each([[0], [-5], [1.5], [Number.NaN]])('rejects invalid LP override %s', (bad) => {
-    expect(() => applyAction(null, startDuelAction('seed-lp', undefined, [bad, 8000]))).toThrow(
-      /startingLP/,
+    expectEngineError(
+      () => applyAction(null, startDuelAction('seed-lp', undefined, [bad, 8000])),
+      'INVALID_STARTING_LP',
     );
   });
 
@@ -156,6 +158,6 @@ describe('applyAction / Draw', () => {
 
   it('throws when Draw is applied without an existing state', () => {
     const drawAction: DrawAction = { type: 'Draw', payload: { playerIndex: 0, count: 1 } };
-    expect(() => applyAction(null, drawAction)).toThrow();
+    expectEngineError(() => applyAction(null, drawAction), 'NO_STATE');
   });
 });

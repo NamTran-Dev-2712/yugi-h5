@@ -1,8 +1,15 @@
+import { EngineError } from './errors.js';
 import { applyDraw } from './actions/handlers/draw.js';
 import { applyEndPhase } from './actions/handlers/end-phase.js';
 import { applyNormalSummon, applySetMonster } from './actions/handlers/summon.js';
 import { applyStartDuel } from './actions/handlers/start-duel.js';
-import type { Action, ActionContext } from './actions/types.js';
+import type {
+  Action,
+  ActionContext,
+  DrawAction,
+  EndPhaseAction,
+  StartDuelAction,
+} from './actions/types.js';
 import type { GameEvent } from './events/types.js';
 import type { GameState } from './state/types.js';
 
@@ -19,15 +26,26 @@ export interface ApplyActionResult {
  */
 export function applyAction(
   state: GameState | null,
+  action: StartDuelAction | DrawAction | EndPhaseAction,
+  ctx?: ActionContext,
+): ApplyActionResult;
+export function applyAction(
+  state: GameState | null,
   action: Action,
-  ctx: ActionContext = {},
+  ctx: ActionContext,
+): ApplyActionResult;
+export function applyAction(
+  state: GameState | null,
+  action: Action,
+  ctx?: ActionContext,
 ): ApplyActionResult {
   if (action.type === 'StartDuel') {
     return applyStartDuel(action);
   }
 
   if (!state) {
-    throw new Error(
+    throw new EngineError(
+      'NO_STATE',
       `Action "${action.type}" requires an existing GameState (call StartDuel first).`,
     );
   }
@@ -38,12 +56,26 @@ export function applyAction(
     case 'EndPhase':
       return applyEndPhase(state, action);
     case 'NormalSummon':
-      return applyNormalSummon(state, action, ctx);
+      return applyNormalSummon(state, action, requireContext(action, ctx));
     case 'SetMonster':
-      return applySetMonster(state, action, ctx);
+      return applySetMonster(state, action, requireContext(action, ctx));
     default: {
       const exhaustiveCheck: never = action;
-      throw new Error(`Unhandled action type: ${JSON.stringify(exhaustiveCheck)}`);
+      throw new EngineError(
+        'UNHANDLED_ACTION',
+        `Unhandled action type: ${JSON.stringify(exhaustiveCheck)}`,
+      );
     }
   }
+}
+
+/** Overloads make `ctx` mandatory in types for card-reading actions; this guards untyped (JS/cast) callers. */
+function requireContext(action: Action, ctx: ActionContext | undefined): ActionContext {
+  if (!ctx) {
+    throw new EngineError(
+      'NO_CARD_RESOLVER',
+      `Action "${action.type}" needs an ActionContext with cardDefinitions.`,
+    );
+  }
+  return ctx;
 }
