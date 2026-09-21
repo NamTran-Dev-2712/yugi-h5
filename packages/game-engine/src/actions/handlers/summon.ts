@@ -4,8 +4,12 @@ import type { GameEvent } from '../../events/types.js';
 import type { CardInstance, CardPosition, GameState, PlayerState } from '../../state/types.js';
 import type { ActionContext, NormalSummonAction, SetMonsterAction } from '../types.js';
 
-/** Highest Level a monster can have to be Normal Summoned/Set without Tribute. */
-const MAX_LEVEL_WITHOUT_TRIBUTE = 4;
+/** Tributes required to Normal Summon/Set a monster of this Level [RULE]: 1-4 → 0, 5-6 → 1, 7+ → 2. */
+function requiredTributes(level: number): number {
+  if (level >= 7) return 2;
+  if (level >= 5) return 1;
+  return 0;
+}
 
 type Payload = NormalSummonAction['payload'];
 type Result = { state: GameState; events: GameEvent[] };
@@ -34,6 +38,7 @@ function placeMonsterFromHand(
   position: Extract<CardPosition, 'Attack' | 'DefenseDown'>,
 ): Result {
   const { playerIndex, cardInstanceId, zoneIndex } = payload;
+  const tributeInstanceIds = payload.tributeInstanceIds ?? [];
   const reject = (code: EngineErrorCode, reason: string): never => {
     throw new EngineError(code, `${actionName} rejected: ${reason}`);
   };
@@ -57,23 +62,37 @@ function placeMonsterFromHand(
   if (!card) return reject('CARD_NOT_IN_HAND', `card ${cardInstanceId} is not in your hand.`);
 
   const definition = resolveMonster(card, ctx, reject);
-  if (definition.level > MAX_LEVEL_WITHOUT_TRIBUTE) {
+  const required = requiredTributes(definition.level);
+  if (tributeInstanceIds.length !== required) {
     reject(
-      'LEVEL_NEEDS_TRIBUTE',
-      `level ${definition.level} monsters need a Tribute (Tribute Summon is not supported yet).`,
+      'TRIBUTE_COUNT_MISMATCH',
+      `level ${definition.level} monsters need exactly ${required} Tribute(s), got ${tributeInstanceIds.length}.`,
     );
   }
-  if (player.board.monsterZones[zoneIndex] !== null) {
+  const tributed = tributeInstanceIds.map((id, i) => {
+    const zone = player.board.monsterZones.findIndex((c) => c?.instanceId === id);
+    if (zone === -1) {
+      return reject('INVALID_TRIBUTE', `${id} is not a monster on your field.`);
+    }
+    if (tributeInstanceIds.indexOf(id) !== i) {
+      return reject('INVALID_TRIBUTE', `${id} is listed more than once.`);
+    }
+    return { card: player.board.monsterZones[zone] as CardInstance, zone };
+  });
+  const freedZones = new Set(tributed.map((t) => t.zone));
+  if (player.board.monsterZones[zoneIndex] !== null && !freedZones.has(zoneIndex)) {
     reject('ZONE_OCCUPIED', `monster zone ${zoneIndex} is occupied.`);
   }
 
   const placed: CardInstance = { ...card, position };
-  const monsterZones = player.board.monsterZones.map((slot, i) =>
-    i === zoneIndex ? placed : slot,
-  ) as unknown as PlayerState['board']['monsterZones'];
+  const monsterZones = player.board.monsterZones.map((slot, i) => {
+    if (i === zoneIndex) return placed;
+    return freedZones.has(i) ? null : slot;
+  }) as unknown as PlayerState['board']['monsterZones'];
   const nextPlayer: PlayerState = {
     ...player,
     hand: player.hand.filter((c) => c.instanceId !== cardInstanceId),
+    graveyard: [...player.graveyard, ...tributed.map((t) => ({ ...t.card, position: null }))],
     board: { ...player.board, monsterZones },
     hasNormalSummonedThisTurn: true,
   };
@@ -91,7 +110,18 @@ function placeMonsterFromHand(
         }
       : { type: 'MonsterSet', playerIndex, instanceId: card.instanceId, zoneIndex };
 
-  return { state: { ...state, players, version: state.version + 1 }, events: [event] };
+  const tributeEvents: GameEvent[] = tributed.map((t) => ({
+    type: 'MonsterTributed',
+    ownerIndex: playerIndex,
+    instanceId: t.card.instanceId,
+    definitionId: t.card.definitionId,
+    zoneIndex: t.zone,
+  }));
+
+  return {
+    state: { ...state, players, version: state.version + 1 },
+    events: [...tributeEvents, event],
+  };
 }
 
 function resolveMonster(

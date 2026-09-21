@@ -37,15 +37,21 @@ interface MonsterFromHandPayload {
   readonly cardInstanceId: string;
   /** Target monster zone, 0-4 (matches the drag-and-drop slot). */
   readonly zoneIndex: number;
+  /**
+   * Monsters on the caller's own field (face-up or face-down) to Tribute. Defaults to none.
+   * The count must match the monster's Level: 1-4 → 0, 5-6 → 1, 7+ → 2 [RULE].
+   * `zoneIndex` may point at a tributed monster's zone (it counts as empty after the Tribute).
+   */
+  readonly tributeInstanceIds?: readonly string[];
 }
 
-/** Face-up Attack Position Normal Summon of a Level 1-4 monster (no Tribute). Uses the turn's Normal Summon. */
+/** Face-up Attack Position Normal Summon (Tribute Summon for Level 5+). Uses the turn's Normal Summon. */
 export interface NormalSummonAction {
   readonly type: 'NormalSummon';
   readonly payload: MonsterFromHandPayload;
 }
 
-/** Face-down Defense Position Set of a Level 1-4 monster. Uses the turn's Normal Summon. */
+/** Face-down Defense Position Set (Tribute Set for Level 5+). Uses the turn's Normal Summon. */
 export interface SetMonsterAction {
   readonly type: 'SetMonster';
   readonly payload: MonsterFromHandPayload;

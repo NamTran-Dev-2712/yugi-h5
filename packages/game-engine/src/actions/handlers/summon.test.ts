@@ -232,12 +232,9 @@ describe.each(MODES)('$name / rejections', ({ make }) => {
     expectEngineError(() => applyAction(setup([id]), make('h0'), ctx), 'NOT_A_MONSTER');
   });
 
-  it.each(['M5', 'M6', 'M7'])(
-    'is rejected for level 5+ monster %s (Tribute not supported yet)',
-    (id) => {
-      expectEngineError(() => applyAction(setup([id]), make('h0'), ctx), 'LEVEL_NEEDS_TRIBUTE');
-    },
-  );
+  it.each(['M5', 'M6', 'M7'])('is rejected for level 5+ monster %s without a Tribute', (id) => {
+    expectEngineError(() => applyAction(setup([id]), make('h0'), ctx), 'TRIBUTE_COUNT_MISMATCH');
+  });
 
   it.each([-1, 5, 1.5, Number.NaN])('is rejected for zoneIndex %s', (zone) => {
     expectEngineError(() => applyAction(setup(), make('h0', zone), ctx), 'INVALID_ZONE');

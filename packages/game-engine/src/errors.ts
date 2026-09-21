@@ -13,7 +13,8 @@ export type EngineErrorCode =
   | 'NO_CARD_RESOLVER'
   | 'CARD_DEFINITION_NOT_FOUND'
   | 'NOT_A_MONSTER'
-  | 'LEVEL_NEEDS_TRIBUTE'
+  | 'TRIBUTE_COUNT_MISMATCH'
+  | 'INVALID_TRIBUTE'
   | 'ZONE_OCCUPIED';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */

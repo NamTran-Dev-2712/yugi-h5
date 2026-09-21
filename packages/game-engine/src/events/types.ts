@@ -47,6 +47,16 @@ export interface MonsterSetEvent {
   readonly zoneIndex: number;
 }
 
+/** A monster Tributed for a Tribute Summon/Set, sent to its owner's graveyard. Public zone, so `definitionId` is included even if it was face-down. */
+export interface MonsterTributedEvent {
+  readonly type: 'MonsterTributed';
+  readonly ownerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  /** Monster zone the card was Tributed from. */
+  readonly zoneIndex: number;
+}
+
 /**
  * Skeleton union — grows through M1/M2 with AttackDeclared,
  * DamageDealt, PositionChanged, ChainLinkAdded, etc. FE animates purely from
@@ -59,4 +69,5 @@ export type GameEvent =
   | PhaseChangedEvent
   | TurnChangedEvent
   | NormalSummonedEvent
-  | MonsterSetEvent;
+  | MonsterSetEvent
+  | MonsterTributedEvent;
