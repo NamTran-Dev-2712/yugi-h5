@@ -46,17 +46,17 @@ Test P1 đặt tên mô tả luật (xem `docs/reference/notes/RULES-REVIEW-SHEE
 
 Task con:
 
-| #   | Task                                                                              | Lớp    | Độ khó |
-| --- | --------------------------------------------------------------------------------- | ------ | ------ |
-| 1.1 | `RulesetConfig` (Zod, shared) + `state.ruleset`                                   | Engine | S      |
-| 1.2 | `EndPhase` + phase transition + turn change + first-turn rules                    | Engine | M      |
-| 1.3 | `NormalSummon`/`SetMonster` (level 1-4)                                           | Engine | S      |
-| 1.4 | Tribute Summon/Set (level 5-6, 7+) + `PendingPrompt` SelectTribute                | Engine | M      |
-| 1.5 | `ChangePosition` (1 lần/turn, không vừa summon)                                   | Engine | S      |
-| 1.6 | `DeclareAttack`: ATK vs ATK, ATK vs DEF, direct attack                            | Engine | M      |
-| 1.7 | Flip khi bị tấn công + damage step cơ bản                                         | Engine | M      |
-| 1.8 | Win/lose + `DuelEnded` + `Surrender` [DECISION]; hand-size 6 ở End Phase `[RULE]` | Engine | S      |
-| 1.9 | Golden replay harness + fuzz harness                                              | Engine | M      |
+| #   | Task                                                                                      | Lớp    | Độ khó |
+| --- | ----------------------------------------------------------------------------------------- | ------ | ------ |
+| 1.1 | `RulesetConfig` (Zod, shared) + `state.ruleset`                                           | Engine | S      |
+| 1.2 | `EndPhase` + phase transition + turn change + first-turn rules                            | Engine | M      |
+| 1.3 | `NormalSummon`/`SetMonster` (level 1-4)                                                   | Engine | S      |
+| 1.4 | Tribute Summon/Set (level 5-6, 7+) qua `tributeInstanceIds` (SelectTribute UI → task 2.6) | Engine | M      |
+| 1.5 | `ChangePosition` (1 lần/turn, không vừa summon)                                           | Engine | S      |
+| 1.6 | `DeclareAttack`: ATK vs ATK, ATK vs DEF, direct attack                                    | Engine | M      |
+| 1.7 | Flip khi bị tấn công + damage step cơ bản                                                 | Engine | M      |
+| 1.8 | Win/lose + `DuelEnded` + `Surrender` [DECISION]; hand-size 6 ở End Phase `[RULE]`         | Engine | S      |
+| 1.9 | Golden replay harness + fuzz harness                                                      | Engine | M      |
 
 ## P2 — VERTICAL SLICE (solo vs AI dummy, chưa effect)
 

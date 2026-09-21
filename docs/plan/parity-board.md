@@ -5,21 +5,21 @@ Trạng thái: ⬜ chưa làm · 🟨 có bản nháp · ✅ đã duyệt bởi 
 
 ## Cơ chế / luật
 
-| Mục                                    | Nhãn                                     | Trạng thái | Ghi chú                                   |
-| -------------------------------------- | ---------------------------------------- | ---------- | ----------------------------------------- |
-| Draw + phase flow                      | [RULE]; lượt 1 không rút [REF] (4/4 ván) | 🟨         | video #2; không thấy thanh phase          |
-| Normal Summon / Set                    | [RULE]                                   | 🟨         |                                           |
-| Tribute Summon                         | [RULE]                                   | ⬜         |                                           |
-| Position / Flip                        | [RULE]                                   | ⬜         |                                           |
-| Attack / damage                        | [RULE]                                   | ⬜         |                                           |
-| Win / lose + Surrender                 | [RULE]/[DECISION]                        | ⬜         | G11                                       |
-| Timer PvP / AFK                        | [DECISION]                               | ⬜         | 60s, config (G7)                          |
-| Hand limit / luật attack               | [RULE]; hand limit 6 [REF] (thấy 1 lần)  | ⬜         | xem RULES-REVIEW-SHEET; video #2 18:36    |
-| Spell/Trap activation                  | [RULE]/[DECISION] (C11)                  | ⬜         | Trap phải Set; config đã có, hành vi ở P3 |
-| Chain (prompt "Kích hoạt?", auto-pass) | [RULE]/[DECISION]                        | ⬜         | G5                                        |
-| Triggers / Continuous                  | [RULE]                                   | ⬜         |                                           |
-| Equip / Field / Counter                | [RULE]                                   | ⬜         |                                           |
-| Fusion (Ritual ngoài v1)               | [RULE]                                   | ⬜         | G8; Link → backlog sau P4 (C1)            |
+| Mục                                    | Nhãn                                     | Trạng thái | Ghi chú                                     |
+| -------------------------------------- | ---------------------------------------- | ---------- | ------------------------------------------- |
+| Draw + phase flow                      | [RULE]; lượt 1 không rút [REF] (4/4 ván) | 🟨         | video #2; không thấy thanh phase            |
+| Normal Summon / Set                    | [RULE]                                   | 🟨         |                                             |
+| Tribute Summon                         | [RULE]                                   | 🟨         | task 1.4 (Summon + Set); prompt/UI chưa làm |
+| Position / Flip                        | [RULE]                                   | ⬜         |                                             |
+| Attack / damage                        | [RULE]                                   | ⬜         |                                             |
+| Win / lose + Surrender                 | [RULE]/[DECISION]                        | ⬜         | G11                                         |
+| Timer PvP / AFK                        | [DECISION]                               | ⬜         | 60s, config (G7)                            |
+| Hand limit / luật attack               | [RULE]; hand limit 6 [REF] (thấy 1 lần)  | ⬜         | xem RULES-REVIEW-SHEET; video #2 18:36      |
+| Spell/Trap activation                  | [RULE]/[DECISION] (C11)                  | ⬜         | Trap phải Set; config đã có, hành vi ở P3   |
+| Chain (prompt "Kích hoạt?", auto-pass) | [RULE]/[DECISION]                        | ⬜         | G5                                          |
+| Triggers / Continuous                  | [RULE]                                   | ⬜         |                                             |
+| Equip / Field / Counter                | [RULE]                                   | ⬜         |                                             |
+| Fusion (Ritual ngoài v1)               | [RULE]                                   | ⬜         | G8; Link → backlog sau P4 (C1)              |
 
 ## Màn hình / UI
 

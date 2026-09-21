@@ -35,7 +35,7 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
 - **Task P1 còn lại** (nguồn: `docs/plan/MASTER-PLAN.md`; đọc `RULES-REVIEW-SHEET.md` + `rules-coverage.md` theo nhãn):
   1. **1.2** ✅ xong (2026-09-21, chờ duyệt) — `EndPhase`, `PhaseChanged`/`TurnChanged`; draw khi rời Draw phase (ADR 2026-09-21). `firstTurnAttack` chưa được dùng: `DeclareAttack` (1.6) phải đọc nó.
   2. **1.3** ✅ xong (2026-09-21, chờ duyệt) — `NormalSummon`/`SetMonster` lv 1–4, `resetTurnFlags`, `ActionContext.cardDefinitions` (ADR 2026-09-21).
-  3. **1.4** Tribute + `PendingPrompt` SelectTribute — `[RULE]` lv5–6:1, lv7+:2; G2 `[DECISION]` Xác nhận/Hủy; C9 (overlay) còn mở.
+  3. **1.4** ✅ xong (2026-09-21, chờ duyệt) — Tribute Summon/Set qua `tributeInstanceIds` (`[RULE]` lv5–6:1, lv7+:2), event `MonsterTributed`, ô giải phóng dùng lại được (ADR 2026-09-21). `PendingPrompt SelectTribute` (overlay/Hủy, C9/G2) tách sang task UI, không còn trong 1.4.
   4. **1.5** `ChangePosition` — `[RULE]` không đổi khi vừa summon/set hoặc đã tấn công.
   5. **1.6** `DeclareAttack` — `[RULE]` ATK/DEF, direct, 1 lần/lượt, lượt 1 không attack.
   6. **1.7** Flip khi bị tấn công + damage step cơ bản — `[RULE]`; G6 `[DECISION]`.
@@ -44,7 +44,7 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
 
 - Tư liệu còn thiếu (Set / đổi thế / Lật, màn thắng-thua, ảnh tab Dung Hợp) **không chặn** 1.4 — xem `parity-board.md`, `human-tasks.md`.
 - **Củng cố trước 1.4 ✅ (2026-09-21, chờ duyệt)** — mutation test `summon.ts` (17 đột biến, 0 sống), 4 commit 1.2/1.3 đều xanh độc lập, `EngineError` + `expectEngineError`, `cardDefinitions` bắt buộc (ADR 2026-09-21). Lưu ý: `docs/reference/02-yugi-h5-mechanics.md` chưa có trong repo.
-- **Task tiếp theo: 1.4** — Tribute + `PendingPrompt` SelectTribute (mở rộng NormalSummon/SetMonster cho level ≥ 5; hiện đang bị từ chối với thông báo "Tribute").
+- **Task tiếp theo: 1.5** — `ChangePosition`.
 - Đã chốt sau duyệt 1.1: `openingHandSize = 5` (**[REF]**, video #2 4/4 ván), `afkLossThreshold = 3`, `extraDeckSize = 20` (**[REF thấp, 1 nguồn]**, C3), `startingLP = 8000` (**[DECISION]**, C2/C10), `extraMonsterZones = 0` (C1).
 - G1–G8/G11/G12 đã chốt (xem `docs/reference/notes/rules.md`); G9/G10 vẫn `[GUESS]` chờ tư liệu.
 - Port Postgres/Redis đã đổi (5433/6380) — dùng `apps/api/.env.example` làm chuẩn.

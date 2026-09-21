@@ -153,3 +153,12 @@ Chủ dự án chốt sau khi ingest 2 video (bản web Yugi H5 quay 2023 là [R
 ## 2026-09-21 — `EngineError` có mã lỗi + `ActionContext.cardDefinitions` bắt buộc
 
 Reject bằng `throw new EngineError(code, message)` thay cho `Error` trần: `code` là union string literal ổn định (API map sang HTTP/socket error, test kiểm `code`, không kiểm text message — regex ngắn kiểu `/already/i` từng dễ trùng nhầm/vỡ khi đổi câu chữ). `message` giữ nguyên nội dung. `ActionContext.cardDefinitions` thành bắt buộc trong type; `applyAction` dùng overload để `StartDuel`/`Draw`/`EndPhase` vẫn gọi không cần ctx, còn lại bắt buộc ctx, kèm guard runtime `NO_CARD_RESOLVER` cho caller không qua type. `LP override` sai cũng dùng `INVALID_STARTING_LP`. **Hệ quả:** action mới phải khai báo code trong `errors.ts`; `apps/api` (P2) phải truyền resolver. Mutation test 17 đột biến trên `summon.ts`: 0 sống.
+
+## 2026-09-21 — Tribute Summon/Set (task 1.4): mở rộng action, ô giải phóng, prompt tách khỏi 1.4
+
+- **Mở rộng `NormalSummon`/`SetMonster` bằng `tributeInstanceIds?`, không thêm action mới**: server vẫn nhận 1 action nguyên tử (FE chọn tribute rồi gửi một lần), không có trạng thái trung gian trong engine, replay đơn giản. Số tribute lấy từ Level của definition `[RULE]` (1–4:0, 5–6:1, 7+:2); code `TRIBUTE_COUNT_MISMATCH`/`INVALID_TRIBUTE` (`LEVEL_NEEDS_TRIBUTE` bị gỡ). Trùng id cũng là `INVALID_TRIBUTE`; check số lượng trước tính hợp lệ.
+- **Ô giải phóng `[RULE]`**: `zoneIndex` được trỏ vào ô của quái vừa bị tribute (sân đầy 5 quái vẫn triệu hồi được); ô có quái không bị tribute → `ZONE_OCCUPIED`.
+- **Event `MonsterTributed`** (chưa có event graveyard chung): `ownerIndex, instanceId, definitionId, zoneIndex`, có `definitionId` vì mộ public; phát trước event Summon/Set. Quái vào mộ với `position: null`.
+- **`PendingPrompt SelectTribute` tách khỏi 1.4** (chủ dự án chốt): overlay chọn lá + Đồng ý `[REF]`, nút Hủy `[DECISION]` (C9/G2) làm ở task UI (gần 2.6) như bước thu thập input phía client trước khi gửi 1 action. `ResolvePendingPrompt` giữ cho các prompt thật sự cần engine chờ (chain, target) ở P3.
+- Nguồn luật `docs/reference/02-yugi-h5-mechanics.md` **chưa có trong repo**; ngưỡng tribute dựa `[RULE]`, đối chiếu khi file được thêm.
+  **Hệ quả:** MASTER-PLAN 1.4 sửa bỏ SelectTribute; task UI phải tự dựng tribute selection rồi gửi `tributeInstanceIds`.
