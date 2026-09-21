@@ -1,4 +1,4 @@
-import type { Phase } from '../state/types.js';
+import type { CardPosition, Phase } from '../state/types.js';
 
 export interface DuelStartedEvent {
   readonly type: 'DuelStarted';
@@ -57,9 +57,20 @@ export interface MonsterTributedEvent {
   readonly zoneIndex: number;
 }
 
+/** Face-up monster switched between Attack and Defense. Only face-up cards can change, so `definitionId` leaks nothing. */
+export interface PositionChangedEvent {
+  readonly type: 'PositionChanged';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+  readonly from: Extract<CardPosition, 'Attack' | 'DefenseUp'>;
+  readonly to: Extract<CardPosition, 'Attack' | 'DefenseUp'>;
+}
+
 /**
  * Skeleton union — grows through M1/M2 with AttackDeclared,
- * DamageDealt, PositionChanged, ChainLinkAdded, etc. FE animates purely from
+ * DamageDealt, ChainLinkAdded, etc. FE animates purely from
  * this stream; it never re-derives game logic client-side.
  */
 export type GameEvent =
@@ -70,4 +81,5 @@ export type GameEvent =
   | TurnChangedEvent
   | NormalSummonedEvent
   | MonsterSetEvent
-  | MonsterTributedEvent;
+  | MonsterTributedEvent
+  | PositionChangedEvent;

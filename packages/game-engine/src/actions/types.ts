@@ -1,4 +1,5 @@
 import type { CardDefinition, RulesetConfig } from '@yugi/shared';
+import type { CardPosition } from '../state/types.js';
 
 export interface StartDuelAction {
   readonly type: 'StartDuel';
@@ -58,12 +59,31 @@ export interface SetMonsterAction {
 }
 
 /**
- * Skeleton union — grows through M1/M2 with ChangePosition, DeclareAttack,
+ * Switches a face-up monster between Attack and face-up Defense. `toPosition` is explicit (never a toggle) so a
+ * client holding a stale view cannot flip a monster the wrong way. Face-down monsters are Flip Summoned instead.
+ */
+export interface ChangePositionAction {
+  readonly type: 'ChangePosition';
+  readonly payload: {
+    readonly playerIndex: 0 | 1;
+    /** `CardInstance.instanceId` of a monster on the caller's own field. */
+    readonly cardInstanceId: string;
+    readonly toPosition: Extract<CardPosition, 'Attack' | 'DefenseUp'>;
+  };
+}
+
+/**
+ * Skeleton union — grows through M1/M2 with DeclareAttack,
  * ActivateEffect, PassPriority, etc.
  * See docs/design/engine.md for the full target list.
  */
 export type Action =
-  StartDuelAction | DrawAction | EndPhaseAction | NormalSummonAction | SetMonsterAction;
+  | StartDuelAction
+  | DrawAction
+  | EndPhaseAction
+  | NormalSummonAction
+  | SetMonsterAction
+  | ChangePositionAction;
 
 export interface ActionContext {
   /** Reserved for cross-cutting concerns injected by the caller (e.g. logging hooks). Never a source of nondeterminism. */

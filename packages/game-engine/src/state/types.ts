@@ -14,6 +14,16 @@ export interface CardInstance {
   readonly definitionId: string;
   readonly position: CardPosition | null;
   readonly ownerIndex: 0 | 1;
+  /*
+   * Per-monster turn stamps: the `GameState.turnCount` in which the event happened. "This turn"
+   * means stamp === state.turnCount, so they expire on their own (no reset). Only meaningful on the field.
+   */
+  /** Turn this monster was Normal/Tribute Summoned or Set. */
+  readonly summonedTurn?: number;
+  /** Turn this monster last had its battle position changed by ChangePosition. */
+  readonly positionChangedTurn?: number;
+  /** Turn this monster last attacked (written by DeclareAttack, task 1.6). */
+  readonly attackedTurn?: number;
 }
 
 export type PlayerZoneKey = 'hand' | 'deck' | 'graveyard' | 'banished' | 'extraDeck';

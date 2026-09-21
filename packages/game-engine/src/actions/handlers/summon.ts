@@ -84,7 +84,14 @@ function placeMonsterFromHand(
     reject('ZONE_OCCUPIED', `monster zone ${zoneIndex} is occupied.`);
   }
 
-  const placed: CardInstance = { ...card, position };
+  // Built fresh (not `...card`) so marks from an earlier stay on the field never carry over.
+  const placed: CardInstance = {
+    instanceId: card.instanceId,
+    definitionId: card.definitionId,
+    ownerIndex: card.ownerIndex,
+    position,
+    summonedTurn: state.turnCount,
+  };
   const monsterZones = player.board.monsterZones.map((slot, i) => {
     if (i === zoneIndex) return placed;
     return freedZones.has(i) ? null : slot;

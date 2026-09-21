@@ -15,7 +15,14 @@ export type EngineErrorCode =
   | 'NOT_A_MONSTER'
   | 'TRIBUTE_COUNT_MISMATCH'
   | 'INVALID_TRIBUTE'
-  | 'ZONE_OCCUPIED';
+  | 'ZONE_OCCUPIED'
+  | 'INVALID_POSITION'
+  | 'CARD_NOT_ON_FIELD'
+  | 'MONSTER_FACE_DOWN'
+  | 'SAME_POSITION'
+  | 'POSITION_ALREADY_CHANGED'
+  | 'SUMMONED_THIS_TURN'
+  | 'ATTACKED_THIS_TURN';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */
 export class EngineError extends Error {

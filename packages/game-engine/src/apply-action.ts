@@ -1,4 +1,5 @@
 import { EngineError } from './errors.js';
+import { applyChangePosition } from './actions/handlers/change-position.js';
 import { applyDraw } from './actions/handlers/draw.js';
 import { applyEndPhase } from './actions/handlers/end-phase.js';
 import { applyNormalSummon, applySetMonster } from './actions/handlers/summon.js';
@@ -6,6 +7,7 @@ import { applyStartDuel } from './actions/handlers/start-duel.js';
 import type {
   Action,
   ActionContext,
+  ChangePositionAction,
   DrawAction,
   EndPhaseAction,
   StartDuelAction,
@@ -26,7 +28,7 @@ export interface ApplyActionResult {
  */
 export function applyAction(
   state: GameState | null,
-  action: StartDuelAction | DrawAction | EndPhaseAction,
+  action: StartDuelAction | DrawAction | EndPhaseAction | ChangePositionAction,
   ctx?: ActionContext,
 ): ApplyActionResult;
 export function applyAction(
@@ -55,6 +57,8 @@ export function applyAction(
       return applyDraw(state, action);
     case 'EndPhase':
       return applyEndPhase(state, action);
+    case 'ChangePosition':
+      return applyChangePosition(state, action);
     case 'NormalSummon':
       return applyNormalSummon(state, action, requireContext(action, ctx));
     case 'SetMonster':
