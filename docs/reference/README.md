@@ -16,6 +16,8 @@ docs/reference/
   notes/         ghi chú chữ (rules.md, quirks.md, ui.md)
 ```
 
+- `02-yugi-h5-mechanics.md` — tóm tắt luật cốt lõi từ project brief; nguồn chi tiết là `notes/rules*.md`.
+
 ## Quy ước tên file
 
 `<screen>-<state>-<nn>.png` — chữ thường, gạch ngang, số thứ tự 2 chữ số.
