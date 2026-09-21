@@ -43,6 +43,7 @@ Cập nhật file này ở cuối MỌI task (xem quy trình trong `CLAUDE.md` r
   8. **1.9** Golden replay + fuzz harness — không có luật riêng.
 
 - Tư liệu còn thiếu (Set / đổi thế / Lật, màn thắng-thua, ảnh tab Dung Hợp) **không chặn** 1.4 — xem `parity-board.md`, `human-tasks.md`.
+- **Củng cố trước 1.4 ✅ (2026-09-21, chờ duyệt)** — mutation test `summon.ts` (17 đột biến, 0 sống), 4 commit 1.2/1.3 đều xanh độc lập, `EngineError` + `expectEngineError`, `cardDefinitions` bắt buộc (ADR 2026-09-21). Lưu ý: `docs/reference/02-yugi-h5-mechanics.md` chưa có trong repo.
 - **Task tiếp theo: 1.4** — Tribute + `PendingPrompt` SelectTribute (mở rộng NormalSummon/SetMonster cho level ≥ 5; hiện đang bị từ chối với thông báo "Tribute").
 - Đã chốt sau duyệt 1.1: `openingHandSize = 5` (**[REF]**, video #2 4/4 ván), `afkLossThreshold = 3`, `extraDeckSize = 20` (**[REF thấp, 1 nguồn]**, C3), `startingLP = 8000` (**[DECISION]**, C2/C10), `extraMonsterZones = 0` (C1).
 - G1–G8/G11/G12 đã chốt (xem `docs/reference/notes/rules.md`); G9/G10 vẫn `[GUESS]` chờ tư liệu.

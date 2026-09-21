@@ -149,3 +149,7 @@ Chủ dự án chốt sau khi ingest 2 video (bản web Yugi H5 quay 2023 là [R
 - **`MonsterSet` không có `definitionId`**: lá úp, tránh lộ khi sau này lọc event theo góc nhìn từng người chơi. `NormalSummoned` có `definitionId` (lá ngửa).
 - **`resetTurnFlags`** gom mọi reset cờ theo lượt, gọi khi rời End Phase.
   **Hệ quả:** `apps/api` bắt buộc truyền `cardDefinitions` khi gọi `applyAction` cho action đọc dữ liệu lá.
+
+## 2026-09-21 — `EngineError` có mã lỗi + `ActionContext.cardDefinitions` bắt buộc
+
+Reject bằng `throw new EngineError(code, message)` thay cho `Error` trần: `code` là union string literal ổn định (API map sang HTTP/socket error, test kiểm `code`, không kiểm text message — regex ngắn kiểu `/already/i` từng dễ trùng nhầm/vỡ khi đổi câu chữ). `message` giữ nguyên nội dung. `ActionContext.cardDefinitions` thành bắt buộc trong type; `applyAction` dùng overload để `StartDuel`/`Draw`/`EndPhase` vẫn gọi không cần ctx, còn lại bắt buộc ctx, kèm guard runtime `NO_CARD_RESOLVER` cho caller không qua type. `LP override` sai cũng dùng `INVALID_STARTING_LP`. **Hệ quả:** action mới phải khai báo code trong `errors.ts`; `apps/api` (P2) phải truyền resolver. Mutation test 17 đột biến trên `summon.ts`: 0 sống.
