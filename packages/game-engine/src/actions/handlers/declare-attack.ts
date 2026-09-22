@@ -66,9 +66,6 @@ export function applyDeclareAttack(
       reject('INVALID_TARGET', `${targetInstanceId} is not a monster on the opponent's field.`);
     }
     target = opponent.board.monsterZones[targetZone] as CardInstance;
-    if (target.position === 'DefenseDown') {
-      reject('TARGET_FACE_DOWN', 'a face-down monster cannot be declared as an attack target.');
-    }
   } else if (opponent.board.monsterZones.some((c) => c !== null)) {
     reject('MUST_TARGET_MONSTER', 'the opponent has a monster; you must attack it directly.');
   }
@@ -84,6 +81,24 @@ export function applyDeclareAttack(
       targetInstanceId: target?.instanceId ?? null,
     },
   ];
+
+  if (target !== null && target.position === 'DefenseDown') {
+    // Attacking a face-down monster flips it face-up; it stays in Defense Position for
+    // damage calc (classic-rules assumption — never auto-switches to Attack Position).
+    const flipped: CardInstance = { ...target, position: 'DefenseUp' };
+    const monsterZones = nextOpponent.board.monsterZones.map((slot, i) =>
+      i === targetZone ? flipped : slot,
+    ) as unknown as PlayerState['board']['monsterZones'];
+    nextOpponent = { ...nextOpponent, board: { ...nextOpponent.board, monsterZones } };
+    events.push({
+      type: 'MonsterFlipped',
+      ownerIndex: opponentIndex,
+      instanceId: flipped.instanceId,
+      definitionId: flipped.definitionId,
+      zoneIndex: targetZone,
+    });
+    target = flipped;
+  }
 
   const destroy = (
     owner: PlayerState,

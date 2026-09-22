@@ -27,7 +27,6 @@ export type EngineErrorCode =
   | 'ATTACKER_IN_DEFENSE_POSITION'
   | 'JUST_SUMMONED_CANNOT_ATTACK'
   | 'MUST_TARGET_MONSTER'
-  | 'TARGET_FACE_DOWN'
   | 'INVALID_TARGET';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */

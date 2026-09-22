@@ -68,6 +68,15 @@ export interface PositionChangedEvent {
   readonly to: Extract<CardPosition, 'Attack' | 'DefenseUp'>;
 }
 
+/** A face-down monster flipped face-up because it was declared as an attack target (stays in Defense Position). Public zone, so `definitionId` is included. */
+export interface MonsterFlippedEvent {
+  readonly type: 'MonsterFlipped';
+  readonly ownerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
 export interface AttackDeclaredEvent {
   readonly type: 'AttackDeclared';
   readonly playerIndex: 0 | 1;
@@ -115,6 +124,7 @@ export type GameEvent =
   | MonsterTributedEvent
   | PositionChangedEvent
   | AttackDeclaredEvent
+  | MonsterFlippedEvent
   | MonsterDestroyedEvent
   | DamageDealtEvent
   | DuelEndedEvent;

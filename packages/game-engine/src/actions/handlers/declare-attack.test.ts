@@ -179,7 +179,7 @@ describe('DeclareAttack — direct attack', () => {
     expectEngineError(() => run(before, attack('t0')), 'MUST_TARGET_MONSTER');
   });
 
-  it('rejects a direct attack when the opponent has only a face-down monster (no legal attack yet, task 1.7)', () => {
+  it('rejects a direct attack when the opponent has only a face-down monster (must target-and-flip it instead, task 1.8)', () => {
     const before = setup({
       opp: ['M500', null, null, null, null],
       oppPositions: { 0: 'DefenseDown' },
@@ -493,13 +493,92 @@ describe('DeclareAttack — rejections (by code)', () => {
     expectEngineError(() => run(state, attack('t0', 'nope')), 'INVALID_TARGET');
     expectEngineError(() => run(state, attack('t0', 't0')), 'INVALID_TARGET');
   });
+});
 
-  it('rejects a face-down target (flip-on-attack is task 1.7)', () => {
-    const state = setup({
+describe('DeclareAttack — Flip-on-Attack (face-down target)', () => {
+  it('flips the target face-up before destroy/damage events, in order', () => {
+    const before = setup({
+      own: ['M2000', null, null, null, null],
       opp: ['M500', null, null, null, null],
       oppPositions: { 0: 'DefenseDown' },
     });
-    expectEngineError(() => run(state, attack('t0', 'o0')), 'TARGET_FACE_DOWN');
+    const { events } = run(before, attack('t0', 'o0'));
+    expect(events).toEqual([
+      { type: 'AttackDeclared', playerIndex: 0, attackerInstanceId: 't0', targetInstanceId: 'o0' },
+      {
+        type: 'MonsterFlipped',
+        ownerIndex: 1,
+        instanceId: 'o0',
+        definitionId: 'M500',
+        zoneIndex: 0,
+      },
+      {
+        type: 'MonsterDestroyed',
+        ownerIndex: 1,
+        instanceId: 'o0',
+        definitionId: 'M500',
+        zoneIndex: 0,
+      },
+    ]);
+  });
+
+  it('ATK > DEF: flipped defender destroyed, nobody loses life points', () => {
+    const before = setup({
+      own: ['M2000', null, null, null, null],
+      opp: ['M500', null, null, null, null],
+      oppPositions: { 0: 'DefenseDown' },
+    });
+    const { state } = run(before, attack('t0', 'o0'));
+    expect(state.players[1].board.monsterZones[0]).toBeNull();
+    expect(state.players[1].graveyard).toEqual([{ ...card('o0', 'M500', 1, null) }]);
+    expect(state.players[0].lifePoints).toBe(before.players[0].lifePoints);
+    expect(state.players[1].lifePoints).toBe(before.players[1].lifePoints);
+  });
+
+  it('ATK < DEF: nobody destroyed, attacker owner loses the difference, target stays face-up in Defense', () => {
+    const before = setup({
+      opp: ['M500', null, null, null, null],
+      oppPositions: { 0: 'DefenseDown' },
+    });
+    const { state } = run(before, attack('t0', 'o0'));
+    expect(state.players[0].board.monsterZones[0]?.instanceId).toBe('t0');
+    expect(state.players[1].board.monsterZones[0]).toEqual(card('o0', 'M500', 1, 'DefenseUp'));
+    expect(state.players[0].lifePoints).toBe(before.players[0].lifePoints - 500);
+  });
+
+  it('[ASSUMED] ATK == DEF against a flipped target: nobody destroyed, no damage', () => {
+    const before = setup({
+      opp: ['M1000', null, null, null, null],
+      oppPositions: { 0: 'DefenseDown' },
+    });
+    const { state } = run(before, attack('t0', 'o0'));
+    expect(state.players[0].board.monsterZones[0]?.instanceId).toBe('t0');
+    expect(state.players[1].board.monsterZones[0]).toEqual(card('o0', 'M1000', 1, 'DefenseUp'));
+    expect(state.players[0].lifePoints).toBe(before.players[0].lifePoints);
+    expect(state.players[1].lifePoints).toBe(before.players[1].lifePoints);
+  });
+
+  it('a monster the opponent Set this turn is still a valid target when attacked (summonedTurn only blocks its own actions)', () => {
+    const base = setup({
+      opp: ['M500', null, null, null, null],
+      oppPositions: { 0: 'DefenseDown' },
+    });
+    const before: GameState = {
+      ...base,
+      players: [
+        base.players[0],
+        {
+          ...base.players[1],
+          board: {
+            ...base.players[1].board,
+            monsterZones: base.players[1].board.monsterZones.map((c, i) =>
+              i === 0 && c ? { ...c, summonedTurn: base.turnCount } : c,
+            ) as unknown as GameState['players'][1]['board']['monsterZones'],
+          },
+        },
+      ],
+    };
+    expect(() => run(before, attack('t0', 'o0'))).not.toThrow();
   });
 });
 
@@ -509,10 +588,22 @@ describe('DeclareAttack — purity and invariants', () => {
     expect(() => run(before, attack('t0', 'o0'))).not.toThrow();
   });
 
+  it('does not mutate a deep-frozen input state when flipping a face-down target', () => {
+    const before = deepFreeze(
+      setup({ opp: ['M500', null, null, null, null], oppPositions: { 0: 'DefenseDown' } }),
+    );
+    expect(() => run(before, attack('t0', 'o0'))).not.toThrow();
+  });
+
   it.each<[string, () => GameState, Action]>([
     ['wrong phase', () => setup({ phase: 'Main1' }), attack('t0')],
     ['unknown attacker', () => setup(), attack('nope')],
     ['must target', () => setup({ opp: ['M500', null, null, null, null] }), attack('t0')],
+    [
+      'must target (face-down)',
+      () => setup({ opp: ['M500', null, null, null, null], oppPositions: { 0: 'DefenseDown' } }),
+      attack('t0'),
+    ],
   ])('a rejected action (%s) leaves both sides of the state untouched', (_name, build, action) => {
     const before = deepFreeze(build());
     const snapshot = JSON.stringify(before);
