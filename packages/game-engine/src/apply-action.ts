@@ -1,5 +1,6 @@
 import { EngineError } from './errors.js';
 import { applyChangePosition } from './actions/handlers/change-position.js';
+import { applyDeclareAttack } from './actions/handlers/declare-attack.js';
 import { applyDraw } from './actions/handlers/draw.js';
 import { applyEndPhase } from './actions/handlers/end-phase.js';
 import { applyNormalSummon, applySetMonster } from './actions/handlers/summon.js';
@@ -63,6 +64,8 @@ export function applyAction(
       return applyNormalSummon(state, action, requireContext(action, ctx));
     case 'SetMonster':
       return applySetMonster(state, action, requireContext(action, ctx));
+    case 'DeclareAttack':
+      return applyDeclareAttack(state, action, requireContext(action, ctx));
     default: {
       const exhaustiveCheck: never = action;
       throw new EngineError(

@@ -73,7 +73,24 @@ export interface ChangePositionAction {
 }
 
 /**
- * Skeleton union — grows through M1/M2 with DeclareAttack,
+ * A face-up Attack Position monster declares an attack on an opponent's monster, or
+ * directly on their life points if their field is empty. `targetInstanceId` omitted/null
+ * means a direct attack; the engine still validates that a direct attack is legal (the
+ * opponent must have zero monsters, face-up or face-down).
+ */
+export interface DeclareAttackAction {
+  readonly type: 'DeclareAttack';
+  readonly payload: {
+    readonly playerIndex: 0 | 1;
+    /** `CardInstance.instanceId` of a face-up Attack Position monster on the caller's own field. */
+    readonly attackerInstanceId: string;
+    /** `CardInstance.instanceId` of a monster on the opponent's field; omitted/null = direct attack. */
+    readonly targetInstanceId?: string | null;
+  };
+}
+
+/**
+ * Skeleton union — grows through M1/M2 with
  * ActivateEffect, PassPriority, etc.
  * See docs/design/engine.md for the full target list.
  */
@@ -83,7 +100,8 @@ export type Action =
   | EndPhaseAction
   | NormalSummonAction
   | SetMonsterAction
-  | ChangePositionAction;
+  | ChangePositionAction
+  | DeclareAttackAction;
 
 export interface ActionContext {
   /** Reserved for cross-cutting concerns injected by the caller (e.g. logging hooks). Never a source of nondeterminism. */

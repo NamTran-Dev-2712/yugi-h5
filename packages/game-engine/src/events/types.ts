@@ -68,9 +68,33 @@ export interface PositionChangedEvent {
   readonly to: Extract<CardPosition, 'Attack' | 'DefenseUp'>;
 }
 
+export interface AttackDeclaredEvent {
+  readonly type: 'AttackDeclared';
+  readonly playerIndex: 0 | 1;
+  readonly attackerInstanceId: string;
+  /** null = direct attack. */
+  readonly targetInstanceId: string | null;
+}
+
+/** A monster destroyed by battle, sent to its owner's graveyard. Public zone, so `definitionId` is included even if it was face-down. */
+export interface MonsterDestroyedEvent {
+  readonly type: 'MonsterDestroyed';
+  readonly ownerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
+export interface DamageDealtEvent {
+  readonly type: 'DamageDealt';
+  /** Recipient of the damage. */
+  readonly playerIndex: 0 | 1;
+  readonly amount: number;
+}
+
 /**
- * Skeleton union — grows through M1/M2 with AttackDeclared,
- * DamageDealt, ChainLinkAdded, etc. FE animates purely from
+ * Skeleton union — grows through M1/M2 with
+ * ChainLinkAdded, etc. FE animates purely from
  * this stream; it never re-derives game logic client-side.
  */
 export type GameEvent =
@@ -82,4 +106,7 @@ export type GameEvent =
   | NormalSummonedEvent
   | MonsterSetEvent
   | MonsterTributedEvent
-  | PositionChangedEvent;
+  | PositionChangedEvent
+  | AttackDeclaredEvent
+  | MonsterDestroyedEvent
+  | DamageDealtEvent;

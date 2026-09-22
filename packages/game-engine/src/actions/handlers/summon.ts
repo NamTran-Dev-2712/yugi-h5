@@ -131,7 +131,7 @@ function placeMonsterFromHand(
   };
 }
 
-function resolveMonster(
+export function resolveMonster(
   card: CardInstance,
   ctx: ActionContext,
   reject: (code: EngineErrorCode, reason: string) => never,
