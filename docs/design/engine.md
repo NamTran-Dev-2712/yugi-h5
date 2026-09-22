@@ -49,7 +49,7 @@ interface CardInstance {
   // Dấu lượt theo quái (task 1.5), = state.turnCount lúc xảy ra; "trong lượt này" ⇔ dấu === state.turnCount.
   summonedTurn?: number;        // Summon/Tribute/Set (ghi bởi summon.ts)
   positionChangedTurn?: number; // ChangePosition
-  attackedTurn?: number;        // DeclareAttack (task 1.6 sẽ ghi; hiện chỉ đọc)
+  attackedTurn?: number;        // DeclareAttack (task 1.6 ✅, ghi khi quái còn sống sau combat)
 }
 ```
 
@@ -68,17 +68,19 @@ tạo object mới (spread), không mutate.
 
 `ChangePosition` (task 1.5): đổi quái **ngửa** của chính người gọi giữa `Attack` ↔ `DefenseUp`; `toPosition` tường minh (không toggle) để client dùng view cũ không đổi nhầm. Chỉ Main1/Main2, turn player, không winner/prompt. Không tiêu tốn quyền Normal Summon. Mỗi quái tối đa 1 lần/lượt; không đổi quái vừa Summon/Tribute/Set trong lượt; không đổi quái đã tấn công trong lượt `[RULE]`. Trạng thái theo quái lưu bằng **dấu lượt** trên `CardInstance` (`summonedTurn`/`positionChangedTurn`/`attackedTurn` = `turnCount`), tự hết hiệu lực khi sang lượt khác, không cần reset (`resetTurnFlags` không đụng tới); `summon.ts` dựng `CardInstance` mới khi đặt quái nên không thừa dấu cũ. Mã lỗi: `INVALID_POSITION` (đích `DefenseDown`), `NOT_A_MONSTER` (lá phép/bẫy trên sân), `CARD_NOT_ON_FIELD` (tay/mộ/quái đối thủ/id lạ), `MONSTER_FACE_DOWN`, `SAME_POSITION`, `POSITION_ALREADY_CHANGED`, `SUMMONED_THIS_TURN`, `ATTACKED_THIS_TURN`. Quái úp: lật bằng Flip Summon (task sau), không phải ChangePosition.
 
-**`EngineError`** (`src/errors.ts`, export từ package): mọi reject là `EngineError` với `code` ổn định (`message` chỉ cho người đọc — test và API dựa vào `code`). Mã hiện có: `NO_STATE`, `UNHANDLED_ACTION`, `INVALID_STARTING_LP`, `DUEL_ENDED`, `PENDING_PROMPT`, `NOT_TURN_PLAYER`, `WRONG_PHASE`, `NORMAL_SUMMON_USED`, `INVALID_ZONE`, `CARD_NOT_IN_HAND`, `NO_CARD_RESOLVER`, `CARD_DEFINITION_NOT_FOUND`, `NOT_A_MONSTER`, `TRIBUTE_COUNT_MISMATCH`, `INVALID_TRIBUTE`, `ZONE_OCCUPIED`, và (task 1.5) `INVALID_POSITION`, `CARD_NOT_ON_FIELD`, `MONSTER_FACE_DOWN`, `SAME_POSITION`, `POSITION_ALREADY_CHANGED`, `SUMMONED_THIS_TURN`, `ATTACKED_THIS_TURN`. Test dùng `expectEngineError(fn, code)` (`src/testing/`), không so khớp regex message.
+`DeclareAttack` (task 1.6): payload `{ playerIndex, attackerInstanceId, targetInstanceId?: string | null }` (`targetInstanceId` bỏ trống/`null` = tấn công trực tiếp). Chỉ Battle Phase, turn player, quái **ngửa và đang ở Attack Position** của chính mình, chưa tấn công trong lượt (`attackedTurn`), không vừa Summon/Set trong lượt (`summonedTurn`); lượt 1 bị cấm trừ khi `ruleset.firstTurnAttack`. Tấn công trực tiếp chỉ hợp lệ khi sân đối thủ **không có quái nào** (kể cả úp) `[RULE, RULES-REVIEW-SHEET dòng 29]`; nếu có quái mà không chỉ định target → `MUST_TARGET_MONSTER`. Target phải là quái **ngửa** trên sân đối thủ; quái úp → `TARGET_FACE_DOWN` (lật khi bị tấn công là task 1.7, chưa làm — nghĩa là sân đối thủ chỉ có quái úp thì lượt này không tấn công được lá đó). Damage/destroy theo `RULES-REVIEW-SHEET.md` dòng 30-34 (không theo bảng brief gốc ở 2 dòng ATK-vs-DEF, xem ADR 2026-09-22): ATK-vs-ATK bên mạnh hơn thắng và đối phương mất hiệu số, bằng nhau cả hai bị phá không ai mất LP; ATK-vs-DEF: ATK>DEF chỉ phá quái thủ không ai mất LP, ATK<DEF không quái nào bị phá và bên tấn công mất hiệu số, ATK==DEF `[ASSUMED]` không gì xảy ra. LP damage clamp về 0 (`Math.max(0, ...)`); **chưa xử lý win condition** (task sau). Quái tấn công còn sống thì ghi `attackedTurn = turnCount`. Mã lỗi mới: `FIRST_TURN_ATTACK_BANNED`, `ATTACKER_IN_DEFENSE_POSITION`, `JUST_SUMMONED_CANNOT_ATTACK`, `MUST_TARGET_MONSTER`, `TARGET_FACE_DOWN`, `INVALID_TARGET` (tái dùng `ATTACKED_THIS_TURN`, `CARD_NOT_ON_FIELD`, `NOT_A_MONSTER`, `MONSTER_FACE_DOWN` có sẵn).
+
+**`EngineError`** (`src/errors.ts`, export từ package): mọi reject là `EngineError` với `code` ổn định (`message` chỉ cho người đọc — test và API dựa vào `code`). Mã hiện có: `NO_STATE`, `UNHANDLED_ACTION`, `INVALID_STARTING_LP`, `DUEL_ENDED`, `PENDING_PROMPT`, `NOT_TURN_PLAYER`, `WRONG_PHASE`, `NORMAL_SUMMON_USED`, `INVALID_ZONE`, `CARD_NOT_IN_HAND`, `NO_CARD_RESOLVER`, `CARD_DEFINITION_NOT_FOUND`, `NOT_A_MONSTER`, `TRIBUTE_COUNT_MISMATCH`, `INVALID_TRIBUTE`, `ZONE_OCCUPIED`, (task 1.5) `INVALID_POSITION`, `CARD_NOT_ON_FIELD`, `MONSTER_FACE_DOWN`, `SAME_POSITION`, `POSITION_ALREADY_CHANGED`, `SUMMONED_THIS_TURN`, `ATTACKED_THIS_TURN`, và (task 1.6) `FIRST_TURN_ATTACK_BANNED`, `ATTACKER_IN_DEFENSE_POSITION`, `JUST_SUMMONED_CANNOT_ATTACK`, `MUST_TARGET_MONSTER`, `TARGET_FACE_DOWN`, `INVALID_TARGET`. Test dùng `expectEngineError(fn, code)` (`src/testing/`), không so khớp regex message.
 
 Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định rời rạc của người chơi/AI):
 
-| Action                 | Milestone                                               | Ghi chú                                                                                   |
-| ---------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `ChangePosition`       | M1 (task 1.5 ✅)                                        | `{playerIndex, cardInstanceId, toPosition: 'Attack'\|'DefenseUp'}`; xem chi tiết bên dưới |
-| `DeclareAttack`        | M1                                                      | `attackerInstanceId`, `targetInstanceId?` (null = direct attack)                          |
-| `ActivateEffect`       | M2                                                      | Kèm `cardInstanceId`, `targetInstanceIds?`, `costPayload?`                                |
-| `ResolvePendingPrompt` | M1 (cho tribute selection) / M2 (target/chain response) | Trả lời `PendingPrompt` hiện tại                                                          |
-| `PassPriority`         | M2                                                      | Dùng trong chain window                                                                   |
+| Action                 | Milestone                                               | Ghi chú                                                                                              |
+| ---------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `ChangePosition`       | M1 (task 1.5 ✅)                                        | `{playerIndex, cardInstanceId, toPosition: 'Attack'\|'DefenseUp'}`; xem chi tiết bên dưới            |
+| `DeclareAttack`        | M1 (task 1.6 ✅)                                        | `{playerIndex, attackerInstanceId, targetInstanceId?}` (null = direct attack); xem chi tiết bên dưới |
+| `ActivateEffect`       | M2                                                      | Kèm `cardInstanceId`, `targetInstanceIds?`, `costPayload?`                                           |
+| `ResolvePendingPrompt` | M1 (cho tribute selection) / M2 (target/chain response) | Trả lời `PendingPrompt` hiện tại                                                                     |
+| `PassPriority`         | M2                                                      | Dùng trong chain window                                                                              |
 
 ### Kích hoạt Trap/Spell — hợp đồng C11 (implement ở P3, task 3.4)
 
@@ -91,11 +93,9 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 
 ## Event list
 
-Đã có: `DuelStarted`, `CardDrawn`, `DeckOut`, `PhaseChanged {from,to,turnPlayerIndex}`, `TurnChanged {turnCount,turnPlayerIndex}`, `NormalSummoned {playerIndex,instanceId,definitionId,zoneIndex}`, `MonsterSet {playerIndex,instanceId,zoneIndex}` (không có `definitionId`: lá úp, tránh lộ khi lọc event cho đối thủ). `MonsterTributed {ownerIndex,instanceId,definitionId,zoneIndex}` (task 1.4; có `definitionId` vì mộ là public, kể cả quái úp): phát theo thứ tự mảng tribute, **trước** `NormalSummoned`/`MonsterSet`. `PositionChanged {playerIndex,instanceId,definitionId,zoneIndex,from,to}` (task 1.5; `from`/`to` ∈ `Attack|DefenseUp`; có `definitionId` vì chỉ quái ngửa mới đổi được).
+Đã có: `DuelStarted`, `CardDrawn`, `DeckOut`, `PhaseChanged {from,to,turnPlayerIndex}`, `TurnChanged {turnCount,turnPlayerIndex}`, `NormalSummoned {playerIndex,instanceId,definitionId,zoneIndex}`, `MonsterSet {playerIndex,instanceId,zoneIndex}` (không có `definitionId`: lá úp, tránh lộ khi lọc event cho đối thủ). `MonsterTributed {ownerIndex,instanceId,definitionId,zoneIndex}` (task 1.4; có `definitionId` vì mộ là public, kể cả quái úp): phát theo thứ tự mảng tribute, **trước** `NormalSummoned`/`MonsterSet`. `PositionChanged {playerIndex,instanceId,definitionId,zoneIndex,from,to}` (task 1.5; `from`/`to` ∈ `Attack|DefenseUp`; có `definitionId` vì chỉ quái ngửa mới đổi được). `AttackDeclared {playerIndex,attackerInstanceId,targetInstanceId}` (task 1.6; `targetInstanceId: null` = tấn công trực tiếp), `MonsterDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (task 1.6; mirror `MonsterTributed`, phát cho mọi quái bị phá bởi combat), `DamageDealt {playerIndex,amount}` (task 1.6; `playerIndex` = bên nhận damage). Thứ tự phát trong 1 `DeclareAttack`: `AttackDeclared` → `MonsterDestroyed` (đối thủ trước, mình sau nếu cả hai bị phá) → `DamageDealt`.
 
-Sẽ thêm dần: `PositionChanged`, `AttackDeclared`, `DamageDealt`,
-`MonsterDestroyed`, `ChainLinkAdded`, `ChainResolved`,
-`EffectActivated`, `DuelEnded`.
+Sẽ thêm dần: `ChainLinkAdded`, `ChainResolved`, `EffectActivated`, `DuelEnded`.
 
 Event là **fact đã xảy ra**, không phải instruction cho FE — FE tự quyết định animate thế nào
 từ fact đó.
