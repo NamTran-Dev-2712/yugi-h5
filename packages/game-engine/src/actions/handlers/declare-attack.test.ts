@@ -321,6 +321,101 @@ describe('DeclareAttack — ATK vs DEF (Defense Position target)', () => {
   });
 });
 
+describe('DeclareAttack — win condition (LP <= 0)', () => {
+  it('direct attack that brings LP to exactly 0 ends the duel for the attacker', () => {
+    const before = setup({ lifePoints: [8000, 1000] });
+    const { state, events } = run(before, attack('t0'));
+    expect(state.players[1].lifePoints).toBe(0);
+    expect(state.winnerIndex).toBe(0);
+    expect(events).toEqual([
+      { type: 'AttackDeclared', playerIndex: 0, attackerInstanceId: 't0', targetInstanceId: null },
+      { type: 'DamageDealt', playerIndex: 1, amount: 1000 },
+      { type: 'DuelEnded', winnerIndex: 0, reason: 'LP_ZERO' },
+    ]);
+  });
+
+  it('overkill damage (LP would go negative) still clamps to 0 and still ends the duel', () => {
+    const before = setup({ own: ['M2000', null, null, null, null], lifePoints: [8000, 500] });
+    const { state, events } = run(before, attack('t0'));
+    expect(state.players[1].lifePoints).toBe(0);
+    expect(state.winnerIndex).toBe(0);
+    expect(events).toEqual([
+      { type: 'AttackDeclared', playerIndex: 0, attackerInstanceId: 't0', targetInstanceId: null },
+      { type: 'DamageDealt', playerIndex: 1, amount: 2000 },
+      { type: 'DuelEnded', winnerIndex: 0, reason: 'LP_ZERO' },
+    ]);
+  });
+
+  it('ATK vs ATK: the attacker itself dying to 0 LP ends the duel for the defender', () => {
+    const before = setup({ opp: ['M2000', null, null, null, null], lifePoints: [1000, 8000] });
+    const { state, events } = run(before, attack('t0', 'o0'));
+    expect(state.players[0].lifePoints).toBe(0);
+    expect(state.winnerIndex).toBe(1);
+    expect(events).toEqual([
+      { type: 'AttackDeclared', playerIndex: 0, attackerInstanceId: 't0', targetInstanceId: 'o0' },
+      {
+        type: 'MonsterDestroyed',
+        ownerIndex: 0,
+        instanceId: 't0',
+        definitionId: 'M1000',
+        zoneIndex: 0,
+      },
+      { type: 'DamageDealt', playerIndex: 0, amount: 1000 },
+      { type: 'DuelEnded', winnerIndex: 1, reason: 'LP_ZERO' },
+    ]);
+  });
+
+  it('ATK vs DEF: self-damage from a weaker attack ending at 0 LP ends the duel for the defender', () => {
+    const before = setup({
+      opp: ['M500', null, null, null, null],
+      oppPositions: { 0: 'DefenseUp' },
+      lifePoints: [500, 8000],
+    });
+    const { state, events } = run(before, attack('t0', 'o0'));
+    expect(state.players[0].lifePoints).toBe(0);
+    expect(state.winnerIndex).toBe(1);
+    expect(events).toEqual([
+      { type: 'AttackDeclared', playerIndex: 0, attackerInstanceId: 't0', targetInstanceId: 'o0' },
+      { type: 'DamageDealt', playerIndex: 0, amount: 500 },
+      { type: 'DuelEnded', winnerIndex: 1, reason: 'LP_ZERO' },
+    ]);
+  });
+
+  it('does not end the duel when nobody reaches 0 LP', () => {
+    const before = setup();
+    const { state, events } = run(before, attack('t0'));
+    expect(state.winnerIndex).toBeNull();
+    expect(events.some((e) => e.type === 'DuelEnded')).toBe(false);
+  });
+
+  it('[ASSUMED] both players at 0 LP in the same action is a draw', () => {
+    // Contrived fixture: the opponent's LP is set to 0 directly (normal play could never reach
+    // this state while winnerIndex is still null, since DUEL_ENDED would already reject further
+    // actions) so the simultaneous-zero branch can be exercised without a crash.
+    const before = setup({
+      opp: ['M500', null, null, null, null],
+      oppPositions: { 0: 'DefenseUp' },
+      lifePoints: [500, 0],
+    });
+    const { state, events } = run(before, attack('t0', 'o0'));
+    expect(state.players[0].lifePoints).toBe(0);
+    expect(state.players[1].lifePoints).toBe(0);
+    expect(state.winnerIndex).toBe('draw');
+    expect(events).toEqual([
+      { type: 'AttackDeclared', playerIndex: 0, attackerInstanceId: 't0', targetInstanceId: 'o0' },
+      { type: 'DamageDealt', playerIndex: 0, amount: 500 },
+      { type: 'DuelEnded', winnerIndex: null, reason: 'LP_ZERO' },
+    ]);
+  });
+
+  it('rejects any further action once the duel has ended this way', () => {
+    const before = setup({ lifePoints: [8000, 1000] });
+    const ended = run(before, attack('t0')).state;
+    expect(ended.winnerIndex).toBe(0);
+    expectEngineError(() => run(ended, attack('t0')), 'DUEL_ENDED');
+  });
+});
+
 describe('DeclareAttack — rejections (by code)', () => {
   it.each<Phase>(['Draw', 'Standby', 'Main1', 'Main2', 'End'])('rejects in %s phase', (phase) => {
     expectEngineError(() => run(setup({ phase }), attack('t0')), 'WRONG_PHASE');

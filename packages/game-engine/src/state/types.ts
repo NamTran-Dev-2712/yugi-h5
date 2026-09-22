@@ -87,7 +87,8 @@ export interface GameState {
   readonly players: readonly [PlayerState, PlayerState];
   readonly chainStack: readonly unknown[];
   readonly pendingPrompt: PendingPrompt | null;
-  readonly winnerIndex: 0 | 1 | null;
+  /** null = duel ongoing; 'draw' = both players' life points hit 0 in the same action. */
+  readonly winnerIndex: 0 | 1 | 'draw' | null;
   /** Bumped on every applyAction call — lets clients detect desync. See docs/design/protocol.md. */
   readonly version: number;
 }

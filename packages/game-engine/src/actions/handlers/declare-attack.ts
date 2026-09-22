@@ -1,6 +1,7 @@
 import { EngineError, type EngineErrorCode } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
 import type { CardInstance, GameState, PlayerState } from '../../state/types.js';
+import { checkLifePointsWinCondition } from '../../state/win-condition.js';
 import type { ActionContext, DeclareAttackAction } from '../types.js';
 import { resolveMonster } from './summon.js';
 
@@ -180,8 +181,16 @@ export function applyDeclareAttack(
   const players: [PlayerState, PlayerState] =
     playerIndex === 0 ? [nextAttackingPlayer, nextOpponent] : [nextOpponent, nextAttackingPlayer];
 
+  const win = checkLifePointsWinCondition(players);
+  if (win) events.push(win.event);
+
   return {
-    state: { ...state, players, version: state.version + 1 },
+    state: {
+      ...state,
+      players,
+      winnerIndex: win ? win.winnerIndex : state.winnerIndex,
+      version: state.version + 1,
+    },
     events,
   };
 }

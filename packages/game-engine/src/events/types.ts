@@ -92,6 +92,13 @@ export interface DamageDealtEvent {
   readonly amount: number;
 }
 
+/** The duel is over. `winnerIndex: null` means a draw (both players' LP hit 0 in the same action). */
+export interface DuelEndedEvent {
+  readonly type: 'DuelEnded';
+  readonly winnerIndex: 0 | 1 | null;
+  readonly reason: 'LP_ZERO';
+}
+
 /**
  * Skeleton union — grows through M1/M2 with
  * ChainLinkAdded, etc. FE animates purely from
@@ -109,4 +116,5 @@ export type GameEvent =
   | PositionChangedEvent
   | AttackDeclaredEvent
   | MonsterDestroyedEvent
-  | DamageDealtEvent;
+  | DamageDealtEvent
+  | DuelEndedEvent;
