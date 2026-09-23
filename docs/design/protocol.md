@@ -10,6 +10,10 @@
 - Versioning: mọi `StateView` mang `version` (từ `GameState.version`). Client so sánh với
   version cục bộ; lệch → yêu cầu full re-sync thay vì áp partial update.
 
+## Lỗi tầng service (`DuelService`, task 2.2)
+
+`DuelServiceError.code`: `DUEL_NOT_FOUND`, `INVALID_CONFIG`, `UNKNOWN_CARD`, `PLAYER_MISMATCH` (payload.playerIndex ≠ người gọi), `FORBIDDEN_ACTION` (client gửi `StartDuel`/`Draw`), `ACTION_REJECTED` (kèm `engineCode` = `EngineErrorCode`, state không đổi), `INTERNAL_ERROR`. Controller/gateway (2.3+) map các mã này sang HTTP/`duel:error`. Action của 1 duel xử lý tuần tự; log lưu action được chấp nhận + `version`. `submitAction` trả `{view (của người gửi), events (thô, nội bộ)}` — event filter là task sau.
+
 ## Mã lỗi Action & `legalActions` cho Trap (C11)
 
 - Action bị reject trả `code` riêng để UI hiện đúng thông báo: `TRAP_NOT_SET` (Trap chưa Set trên sân), `TRAP_SET_THIS_TURN` (Trap vừa Set lượt này). Đi qua `duel:error` và response lỗi REST.
