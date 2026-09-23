@@ -201,3 +201,12 @@ Reject bằng `throw new EngineError(code, message)` thay cho `Error` trần: `c
 - **Chưa làm Flip Effect thật** (chờ effect system P3) — `MonsterFlippedEvent` chỉ mang đủ thông tin (`instanceId`, `definitionId`, `zoneIndex`, `ownerIndex`) để hook vào sau, không tự ý mở rộng sang effect system trong task này.
 - **[ASSUMED]**: ATK == DEF chống lại target vừa lật cũng không ai bị phá/mất LP — tái dùng đúng `[ASSUMED]` đã có từ task 1.6 cho case ATK-vs-DEF thường (không phải luật mới), vì downstream dùng chung nhánh code.
   **Hệ quả:** `docs/design/engine.md` cập nhật đoạn `DeclareAttack`; `RULES-REVIEW-SHEET.md` dòng "Quái úp bị tấn công" đổi tên test thật, để trống ô duyệt (nội dung cụ thể hơn bản nháp cũ, cần user duyệt lại); `parity-board.md` cập nhật ghi chú "Attack / damage". 277 test xanh (270 cũ + test mới, 1 test cũ đổi tên/hành vi có chủ đích). Mutation test thủ công trên đoạn code sửa trong `declare-attack.ts`: xem review packet task 1.8.
+
+## 2026-09-23 — Surrender (task 1.9): chặn `DUEL_ENDED` + `SURRENDER_DISABLED`, thêm reason `'SURRENDER'`
+
+- **Chỉ thêm giá trị mới, không đổi shape**: `DuelEndedEvent.reason` mở rộng `'LP_ZERO'` → `'LP_ZERO' | 'SURRENDER'`; `winnerIndex` (state và event) giữ nguyên. Surrender luôn có người thắng (đối thủ của người đầu hàng), không bao giờ hòa.
+- **Validate `DUEL_ENDED` rồi `SURRENDER_DISABLED`** `[RULE]`/`[DECISION]` (G11): không `NOT_TURN_PLAYER`, `WRONG_PHASE` — cả hai bên đầu hàng được ở mọi phase. **Không chặn bởi `PENDING_PROMPT`** (khác `ChangePosition`/`Summon`/`DeclareAttack`): người chơi bị treo ở prompt (target/chain sau này) vẫn phải thoát được trận. Đây là thiết kế của AI dựa trên "bất kỳ phase nào", được test riêng.
+- **Handler thuần**: chỉ đổi `winnerIndex` + `version + 1`, không đụng LP/board/hand/`pendingPrompt`; không tái dùng `checkLifePointsWinCondition` vì không liên quan LP.
+- **Engine đọc `state.ruleset.allowSurrender`** (field có sẵn, mặc định `true`): `false` → `SURRENDER_DISABLED`. Sửa lại sau review: bản đầu để `apps/api` tự kiểm, lệch dòng "(nếu `allowSurrender`)" đã duyệt trong RULES-REVIEW-SHEET và nguyên tắc mọi thay đổi trạng thái đi qua engine. Thứ tự guard: `DUEL_ENDED` trước (trạng thái cấp cao hơn), rồi `SURRENDER_DISABLED`.
+- **Đánh số lại**: Surrender là 1.9; hand limit 6 + deck-out phát `DuelEnded` là task kế tiếp; golden replay/fuzz đẩy xuống sau đó.
+  **Hệ quả:** API chỉ cần map `SURRENDER_DISABLED`; UI ẩn nút theo `legalActions`. Mutation test thủ công 14 đột biến trên `surrender.ts` (10 + 4 cho `allowSurrender`): 0 sống.
