@@ -7,8 +7,9 @@ import {
   type GameState,
   type StartDuelAction,
 } from '@yugi/game-engine';
-import type { CardDefinition, RulesetConfig, StateView } from '@yugi/shared';
+import type { CardDefinition, EventView, RulesetConfig, StateView } from '@yugi/shared';
 import { DuelServiceError } from './duel-errors';
+import { toEventViews } from './event-view';
 import type { DuelSession, DuelStore } from './duel-store';
 import { toStateView } from './state-view';
 
@@ -33,11 +34,13 @@ export interface DuelManagerOptions {
 export interface SubmitActionResult {
   /** The SENDER view (never the opponent view). */
   readonly view: StateView;
+  /** The events the SENDER may see (same array as `eventsByViewer[sender]`). */
+  readonly events: readonly EventView[];
   /**
-   * SERVER-INTERNAL and UNFILTERED: may contain cards the opponent must not see. Never forward these to
-   * the other player until the event filter task exists.
+   * Events already filtered per viewer, indexed by player: forward `eventsByViewer[i]` to player i only.
+   * The engine raw events never leave this class.
    */
-  readonly events: GameEvent[];
+  readonly eventsByViewer: readonly [readonly EventView[], readonly EventView[]];
 }
 
 /**
@@ -116,7 +119,15 @@ export class DuelManager {
         state: result.state,
         actionLog: [...session.actionLog, { playerIndex, action, version: result.state.version }],
       });
-      return { view: toStateView(result.state, playerIndex), events: result.events };
+      const eventsByViewer = [
+        toEventViews(result.events, 0),
+        toEventViews(result.events, 1),
+      ] as const;
+      return {
+        view: toStateView(result.state, playerIndex),
+        events: eventsByViewer[playerIndex],
+        eventsByViewer,
+      };
     });
   }
 

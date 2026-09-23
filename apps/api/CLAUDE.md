@@ -14,6 +14,6 @@ Luật riêng:
   (Zod) trước, để app fail-fast khi thiếu config thay vì lỗi runtime giữa chừng.
 - View gửi cho client phải ẩn thông tin đối thủ (bài trên tay, bài úp) — xử lý ở tầng
   API/service trước khi trả response/emit event, không phải ở engine.
-- Mọi response/emit chứa game state phải đi qua `toStateView` (`modules/duels/state-view.ts`), không bao giờ gửi `GameState` thô. Event chưa có filter — không phát `GameEvent` thô cho đối thủ khi task lọc event chưa xong.
-- Mọi thay đổi state duel đi qua `DuelService` (`modules/duels`), không gọi `applyAction` trực tiếp từ controller/gateway. `submitAction` trả `events` thô, chỉ nội bộ — không forward cho đối thủ trước khi có event filter. `getDuel` trả `GameState` thô, không bao giờ trả cho client (dùng `getView`). Controller map `DuelServiceError.code` sang HTTP.
+- Mọi response/emit chứa game state phải đi qua `toStateView` (`modules/duels/state-view.ts`), không bao giờ gửi `GameState` thô. Mọi event gửi client phải là `EventView` (`toEventView`, `modules/duels/event-view.ts`): dùng `eventsByViewer[i]` cho người chơi `i`, không bao giờ `GameEvent` thô.
+- Mọi thay đổi state duel đi qua `DuelService` (`modules/duels`), không gọi `applyAction` trực tiếp từ controller/gateway. `getDuel` trả `GameState` thô, không bao giờ trả cho client (dùng `getView`). Thêm `GameEvent` mới trong engine ⇒ `tsc` đỏ ở `event-view.ts`: phải phân loại (xem `docs/design/event-visibility.md`). Controller map `DuelServiceError.code` sang HTTP.
 - Test dùng Vitest (không phải Jest mặc định của Nest CLI).

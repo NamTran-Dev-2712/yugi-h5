@@ -6,13 +6,17 @@
 - `StateView` = `GameState` đã lọc: ẩn `hand`/`deck` order của đối thủ, ẩn face-down card
   identity trừ khi đã lật. Việc lọc xảy ra ở `apps/api` (service layer), không phải trong
   `packages/game-engine`.
-  Contract cụ thể: type `StateView`/`CardView` ở `packages/shared/src/duel/state-view.ts`; hàm `toStateView` ở `apps/api/src/modules/duels/state-view.ts`. Lá ẩn = `{hidden:true, instanceId, ownerIndex}` (không `definitionId`/`position`); tay đối thủ = toàn lá ẩn + `handCount`; deck/extra deck chỉ có count; `rng`/`chainStack` không gửi; Spell/Trap/Field của đối thủ ẩn trừ khi có position ngửa (fail-closed). **Event chưa lọc** (task sau).
+  Contract cụ thể: type `StateView`/`CardView` ở `packages/shared/src/duel/state-view.ts`; hàm `toStateView` ở `apps/api/src/modules/duels/state-view.ts`. Lá ẩn = `{hidden:true, instanceId, ownerIndex}` (không `definitionId`/`position`); tay đối thủ = toàn lá ẩn + `handCount`; deck/extra deck chỉ có count; `rng`/`chainStack` không gửi; Spell/Trap/Field của đối thủ ẩn trừ khi có position ngửa (fail-closed). Event lọc riêng bằng `toEventView` (xem dưới).
 - Versioning: mọi `StateView` mang `version` (từ `GameState.version`). Client so sánh với
   version cục bộ; lệch → yêu cầu full re-sync thay vì áp partial update.
 
+## Event gửi cho client (`EventView`)
+
+Client chỉ nhận `EventView` (`packages/shared/src/duel/event-view.ts`), không bao giờ `GameEvent` thô. Gửi `eventsByViewer[i]` cho người chơi `i` (không gửi chéo). Event PUBLIC giữ nguyên shape engine; `CardDrawn` có dạng `{type, playerIndex, card: CardView}` — đối thủ nhận lá ẩn `{hidden:true, instanceId, ownerIndex}`. Bảng phân loại, bất biến engine và cách thêm event mới: [`event-visibility.md`](./event-visibility.md). Loại event chưa phân loại bị bỏ (deny by default).
+
 ## Lỗi tầng service (`DuelService`, task 2.2)
 
-`DuelServiceError.code`: `DUEL_NOT_FOUND`, `INVALID_CONFIG`, `UNKNOWN_CARD`, `PLAYER_MISMATCH` (payload.playerIndex ≠ người gọi), `FORBIDDEN_ACTION` (client gửi `StartDuel`/`Draw`), `ACTION_REJECTED` (kèm `engineCode` = `EngineErrorCode`, state không đổi), `INTERNAL_ERROR`. Controller/gateway (2.3+) map các mã này sang HTTP/`duel:error`. Action của 1 duel xử lý tuần tự; log lưu action được chấp nhận + `version`. `submitAction` trả `{view (của người gửi), events (thô, nội bộ)}` — event filter là task sau.
+`DuelServiceError.code`: `DUEL_NOT_FOUND`, `INVALID_CONFIG`, `UNKNOWN_CARD`, `PLAYER_MISMATCH` (payload.playerIndex ≠ người gọi), `FORBIDDEN_ACTION` (client gửi `StartDuel`/`Draw`), `ACTION_REJECTED` (kèm `engineCode` = `EngineErrorCode`, state không đổi), `INTERNAL_ERROR`. Controller/gateway (2.3+) map các mã này sang HTTP/`duel:error`. Action của 1 duel xử lý tuần tự; log lưu action được chấp nhận + `version`. `submitAction` trả `{view (của người gửi), events (đã lọc cho người gửi), eventsByViewer}`; events thô của engine không ra khỏi `DuelManager`.
 
 ## Mã lỗi Action & `legalActions` cho Trap (C11)
 
