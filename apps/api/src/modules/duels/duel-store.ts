@@ -1,5 +1,8 @@
 import type { Action, GameState, StartDuelAction } from '@yugi/game-engine';
 
+/** `solo-debug`: one guest drives both seats (no AI yet). `solo-vs-ai` and `pvp` come later. */
+export type DuelMode = 'solo-debug';
+
 /** An action the engine ACCEPTED, with the state `version` it produced. Rejected actions are never logged. */
 export interface LoggedAction {
   readonly playerIndex: 0 | 1;
@@ -14,6 +17,9 @@ export interface LoggedAction {
  */
 export interface DuelSession {
   readonly duelId: string;
+  /** Who may do what is decided from these two by `duel-access.ts`; absent = nobody (fail closed). */
+  readonly mode?: DuelMode;
+  readonly ownerId?: string;
   readonly seed: string;
   readonly startAction: StartDuelAction;
   readonly state: GameState;

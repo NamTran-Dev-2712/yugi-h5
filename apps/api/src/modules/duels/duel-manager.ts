@@ -10,7 +10,8 @@ import {
 import type { CardDefinition, EventView, RulesetConfig, StateView } from '@yugi/shared';
 import { DuelServiceError } from './duel-errors';
 import { toEventViews } from './event-view';
-import type { DuelSession, DuelStore } from './duel-store';
+import type { DuelMode, DuelSession, DuelStore } from './duel-store';
+import type { DuelMeta } from './duel-access';
 import { toStateView } from './state-view';
 
 export interface CreateDuelConfig {
@@ -21,6 +22,17 @@ export interface CreateDuelConfig {
   readonly startingLP?: readonly [number, number];
   /** Tests/replays only; production leaves it out and the server picks one. */
   readonly seed?: string;
+  /** Who may act/view (see `duel-access.ts`); a session without them is unreachable over HTTP. */
+  readonly mode?: DuelMode;
+  readonly ownerId?: string;
+}
+
+export interface CreateDuelResult {
+  readonly duelId: string;
+  /** Opening state per seat (already filtered: index i is what player i may see). */
+  readonly views: readonly [StateView, StateView];
+  /** Opening events (`DuelStarted` + opening `CardDrawn`s) already filtered per viewer. */
+  readonly eventsByViewer: readonly [readonly EventView[], readonly EventView[]];
 }
 
 export interface DuelManagerOptions {
@@ -62,7 +74,7 @@ export class DuelManager {
     this.newSeed = options.newSeed ?? randomUUID;
   }
 
-  async createDuel(config: CreateDuelConfig): Promise<{ duelId: string }> {
+  async createDuel(config: CreateDuelConfig): Promise<CreateDuelResult> {
     this.validateConfig(config);
     const duelId = this.newDuelId();
     const seed = config.seed ?? this.newSeed();
@@ -78,14 +90,27 @@ export class DuelManager {
       },
     };
     let state: GameState;
+    let events: GameEvent[];
     try {
-      state = applyAction(null, startAction).state;
+      ({ state, events } = applyAction(null, startAction));
     } catch (e) {
       if (e instanceof EngineError) throw new DuelServiceError('INVALID_CONFIG', e.message);
       throw new DuelServiceError('INTERNAL_ERROR', 'Failed to start the duel.');
     }
-    await this.store.save({ duelId, seed, startAction, state, actionLog: [] });
-    return { duelId };
+    await this.store.save({
+      duelId,
+      ...(config.mode !== undefined ? { mode: config.mode } : {}),
+      ...(config.ownerId !== undefined ? { ownerId: config.ownerId } : {}),
+      seed,
+      startAction,
+      state,
+      actionLog: [],
+    });
+    return {
+      duelId,
+      views: [toStateView(state, 0), toStateView(state, 1)],
+      eventsByViewer: [toEventViews(events, 0), toEventViews(events, 1)],
+    };
   }
 
   submitAction(duelId: string, playerIndex: 0 | 1, action: Action): Promise<SubmitActionResult> {
@@ -134,6 +159,15 @@ export class DuelManager {
   async getView(duelId: string, viewerIndex: 0 | 1): Promise<StateView> {
     const session = await this.requireSession(duelId);
     return toStateView(session.state, viewerIndex);
+  }
+
+  /** Who owns the duel and in which mode; no game state, safe for access checks. */
+  async getMeta(duelId: string): Promise<DuelMeta> {
+    const { mode, ownerId } = await this.requireSession(duelId);
+    return {
+      ...(mode !== undefined ? { mode } : {}),
+      ...(ownerId !== undefined ? { ownerId } : {}),
+    };
   }
 
   /** INTERNAL: the raw session (full GameState). Never return this to a client; use `getView`. */

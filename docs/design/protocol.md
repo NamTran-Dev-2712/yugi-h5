@@ -26,20 +26,60 @@ Client chỉ nhận `EventView` (`packages/shared/src/duel/event-view.ts`), khô
 
 ## REST endpoints (M3+)
 
-| Method                  | Path                      | Mô tả                                                            |
-| ----------------------- | ------------------------- | ---------------------------------------------------------------- |
-| `GET`                   | `/health`                 | Liveness + DB check (đã có từ M0)                                |
-| `GET`                   | `/cards`                  | List CardDefinition (đã có từ M0, dùng sample data tới M2)       |
-| `POST`                  | `/auth/guest`             | Tạo guest User + JWT                                             |
-| `POST`                  | `/auth/register`          | Đăng ký account (email/password)                                 |
-| `POST`                  | `/auth/login`             | Login, trả access + refresh token                                |
-| `POST`                  | `/auth/refresh`           | Đổi refresh token lấy access token mới                           |
-| `POST`                  | `/auth/upgrade`           | Guest → Account (giữ nguyên userId/collection)                   |
-| `GET`                   | `/users/me`               | Profile hiện tại                                                 |
-| `GET/POST/PATCH/DELETE` | `/decks`                  | CRUD deck (M6)                                                   |
-| `GET`                   | `/collections/me`         | Card collection của user (M6)                                    |
-| `POST`                  | `/duels/solo`             | Tạo duel session solo vs AI, trả `matchId` + `StateView` ban đầu |
-| `POST`                  | `/duels/:matchId/actions` | Gửi 1 Action (fallback không dùng socket, dùng cho solo)         |
+| Method                  | Path                     | Mô tả                                                         |
+| ----------------------- | ------------------------ | ------------------------------------------------------------- |
+| `GET`                   | `/health`                | Liveness + DB check (đã có từ M0)                             |
+| `GET`                   | `/cards`                 | List CardDefinition (đã có từ M0, dùng sample data tới M2)    |
+| `POST`                  | `/auth/guest`            | Tạo guest + JWT (**đã có, task 2.3**, stateless, chưa lưu DB) |
+| `POST`                  | `/auth/register`         | Đăng ký account (email/password)                              |
+| `POST`                  | `/auth/login`            | Login, trả access + refresh token                             |
+| `POST`                  | `/auth/refresh`          | Đổi refresh token lấy access token mới                        |
+| `POST`                  | `/auth/upgrade`          | Guest → Account (giữ nguyên userId/collection)                |
+| `GET`                   | `/users/me`              | Profile hiện tại                                              |
+| `GET/POST/PATCH/DELETE` | `/decks`                 | CRUD deck (M6)                                                |
+| `GET`                   | `/collections/me`        | Card collection của user (M6)                                 |
+| `POST`                  | `/duels/solo`            | **Đã có (2.3)**: duel solo-debug, xem "HTTP duel solo" dưới   |
+| `GET`                   | `/duels/:id?viewer=0\|1` | **Đã có (2.3)**: `StateView` của 1 phía                       |
+| `POST`                  | `/duels/:id/actions`     | **Đã có (2.3)**: gửi 1 Action                                 |
+
+## HTTP duel solo (task 2.3)
+
+Mọi route `/duels/*` cần `Authorization: Bearer <accessToken>` (token từ `POST /auth/guest`); thiếu/sai chữ ký/hết hạn/không phải token guest → `401`. Body JSON tối đa **100kb** (`413`), JSON hỏng → `400`. CORS theo env `CORS_ORIGIN` (nhiều origin cách nhau bằng dấu phẩy).
+
+**Chế độ `solo-debug`** (chưa có AI): guest tạo duel sở hữu **cả hai ghế** (playerIndex 0 và 1), tự gửi action cho từng ghế và chọn `viewer` khi xem. Người khác → `403 NOT_OWNER`. Ánh xạ guest → ghế nằm ở `apps/api/src/modules/duels/duel-access.ts` (thêm `solo-vs-ai`/`pvp` = thêm nhánh ở đó). Engine `playerIds` = `["<guestId>:0", "<guestId>:1"]`.
+
+| Endpoint                             | Body / query                                                                                                                                            | Trả về                                                                                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /auth/guest` → `201`           | (không)                                                                                                                                                 | `{ guestId, accessToken }` (JWT `sub=guestId`, `kind:"guest"`, TTL env `GUEST_TOKEN_TTL`, mặc định 12h)                                           |
+| `POST /duels/solo` → `201`           | `{ deck?: string[], decks?: [string[], string[]], viewer?: 0 \| 1 }` (không có `deck`/`decks` = starter deck; không được gửi cả hai; key lạ bị từ chối) | `{ duelId, mode: "solo-debug", viewer, view, events }` — `events` gồm `DuelStarted` + 10 `CardDrawn` (5 của đối thủ là lá ẩn) đã lọc cho `viewer` |
+| `GET /duels/:id?viewer=0\|1` → `200` | `viewer` mặc định 0                                                                                                                                     | `{ view }`                                                                                                                                        |
+| `POST /duels/:id/actions` → `200`    | `{ playerIndex: 0 \| 1, action: { type, payload: { playerIndex, ... } } }`                                                                              | `{ view, events }` — view và events của ghế `playerIndex` (không bao giờ của ghế kia)                                                             |
+
+Deck đi qua `validateDeck` (`packages/shared/src/deck/validate-deck.ts`: 40–60 lá, ≤3 bản/lá, lá phải có trong card data). Sai → `400 { code: "INVALID_DECK", errors: [{ seat, code: "TOO_FEW" | "TOO_MANY" | "TOO_MANY_COPIES" | "UNKNOWN_CARD", ... }] }`. Chỉ phần vỏ của `action` được kiểm ở HTTP (type thuộc danh sách action, `payload.playerIndex`); nội dung payload do engine kiểm.
+
+Ví dụ:
+
+```jsonc
+// POST /duels/:id/actions  { "playerIndex": 0, "action": { "type": "EndPhase", "payload": { "playerIndex": 0 } } }
+// 200
+{ "view": { "viewerIndex": 0, "phase": "Standby", "version": 2 /* ... */ },
+  "events": [ { "type": "PhaseChanged" /* ... */ } ] }
+
+// Sai lượt: 409, state không đổi
+{ "statusCode": 409, "code": "ACTION_REJECTED", "message": "...", "engineCode": "NOT_TURN_PLAYER" }
+```
+
+| HTTP | `code`                                                                                            | Nguồn                                                                                |
+| ---- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 400  | `VALIDATION_FAILED` (+`issues[]`), `INVALID_DECK` (+`errors[]`), `INVALID_CONFIG`, `UNKNOWN_CARD` | body/query sai schema; deck sai                                                      |
+| 401  | (không có `code`)                                                                                 | thiếu/sai/hết hạn token                                                              |
+| 403  | `NOT_OWNER`, `PLAYER_MISMATCH`, `FORBIDDEN_ACTION`                                                | không phải chủ duel; `playerIndex` envelope ≠ payload; client gửi `StartDuel`/`Draw` |
+| 404  | `DUEL_NOT_FOUND`                                                                                  | id lạ                                                                                |
+| 409  | `ACTION_REJECTED` + `engineCode`                                                                  | engine từ chối (luật)                                                                |
+| 413  |                                                                                                   | body > 100kb                                                                         |
+| 500  | `INTERNAL_ERROR`                                                                                  | lỗi lạ; message chung, không stack, state không đổi                                  |
+
+Mã lỗi `DuelServiceError` → HTTP nằm ở `duel-http.ts` (hàm thuần `toDuelHttpError`); filter `DuelServiceErrorFilter` gắn vào `DuelsController`.
 
 Tất cả response lỗi theo format của `AllExceptionsFilter`:
 `{ statusCode, message, ...(validation errors nếu có) }`.

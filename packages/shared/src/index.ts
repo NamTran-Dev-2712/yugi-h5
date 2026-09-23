@@ -1,5 +1,7 @@
 export * from './cards/card-definition.js';
 export * from './cards/sample-cards.js';
+export * from './deck/validate-deck.js';
+export * from './deck/starter-deck.js';
 export * from './rules/ruleset-config.js';
 export * from './duel/state-view.js';
 export * from './duel/event-view.js';

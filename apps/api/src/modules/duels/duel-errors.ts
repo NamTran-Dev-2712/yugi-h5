@@ -7,6 +7,7 @@ export type DuelErrorCode =
   | 'UNKNOWN_CARD'
   | 'PLAYER_MISMATCH'
   | 'FORBIDDEN_ACTION'
+  | 'NOT_OWNER'
   | 'ACTION_REJECTED'
   | 'INTERNAL_ERROR';
 

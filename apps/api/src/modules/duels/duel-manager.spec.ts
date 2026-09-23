@@ -340,3 +340,39 @@ describe('DuelManager replay + close', () => {
     await expectDuelError(manager.getView(duelId, 0), 'DUEL_NOT_FOUND');
   });
 });
+
+describe('DuelManager 2.3 additions', () => {
+  it('createDuel returns opening views and per-viewer opening events', async () => {
+    const { manager } = makeManager();
+    const res = await manager.createDuel(CONFIG);
+    expect(res.views.map((v) => v.viewerIndex)).toEqual([0, 1]);
+    for (const i of [0, 1] as const) {
+      const types = res.eventsByViewer[i].map((e) => e.type);
+      expect(types[0]).toBe('DuelStarted');
+      expect(types.filter((t) => t === 'CardDrawn')).toHaveLength(10);
+    }
+  });
+
+  it('opening CardDrawn shows own cards but hides the opponent hand', async () => {
+    const { manager } = makeManager();
+    const res = await manager.createDuel(CONFIG);
+    const p0 = JSON.stringify(res.eventsByViewer[0]);
+    expect(p0).toContain('SMP-001');
+    expect(p0).not.toContain('SMP-002');
+    const p1 = JSON.stringify(res.eventsByViewer[1]);
+    expect(p1).toContain('SMP-002');
+    expect(p1).not.toContain('SMP-001');
+  });
+
+  it('stores mode and owner and exposes them through getMeta only', async () => {
+    const { manager } = makeManager();
+    const { duelId } = await manager.createDuel({ ...CONFIG, mode: 'solo-debug', ownerId: 'g1' });
+    expect(await manager.getMeta(duelId)).toEqual({ mode: 'solo-debug', ownerId: 'g1' });
+  });
+
+  it('getMeta is empty when no owner was given and throws DUEL_NOT_FOUND for unknown ids', async () => {
+    const { manager, duelId } = await setup();
+    expect(await manager.getMeta(duelId)).toEqual({});
+    await expectDuelError(manager.getMeta('nope'), 'DUEL_NOT_FOUND');
+  });
+});

@@ -23,4 +23,24 @@ describe('validateEnv', () => {
   it('throws when a JWT secret is too short', () => {
     expect(() => validateEnv({ ...validConfig, JWT_ACCESS_SECRET: 'short' })).toThrow();
   });
+
+  it('defaults GUEST_TOKEN_TTL to 12h', () => {
+    expect(validateEnv(validConfig).GUEST_TOKEN_TTL).toBe('12h');
+  });
+
+  it('refuses the placeholder .env.example secret in production', () => {
+    const prod = {
+      ...validConfig,
+      NODE_ENV: 'production',
+      JWT_ACCESS_SECRET: 'change-me-access-secret-min-16-chars',
+    };
+    expect(() => validateEnv(prod)).toThrow(/JWT_ACCESS_SECRET/);
+  });
+
+  it('accepts a real secret in production and the placeholder in development', () => {
+    expect(() => validateEnv({ ...validConfig, NODE_ENV: 'production' })).not.toThrow();
+    expect(() =>
+      validateEnv({ ...validConfig, JWT_ACCESS_SECRET: 'change-me-access-secret-min-16-chars' }),
+    ).not.toThrow();
+  });
 });

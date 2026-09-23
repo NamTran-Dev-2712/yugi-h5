@@ -1,4 +1,4 @@
-import type { CardDefinition } from './card-definition.js';
+import type { Attribute, CardDefinition } from './card-definition.js';
 
 /**
  * Placeholder card pool — original names/stats only, no Konami IP.
@@ -39,6 +39,33 @@ export const SAMPLE_CARDS: CardDefinition[] = [
     atk: 2700,
     def: 2000,
   },
+  ...[
+    ['SMP-004', 'Lantern Sprite', 'LIGHT', 'Fairy', 2, 700, 600],
+    ['SMP-005', 'Mossback Tortoise', 'EARTH', 'Beast', 3, 900, 1400],
+    ['SMP-006', 'Tidecaller Adept', 'WATER', 'Spellcaster', 4, 1500, 1100],
+    ['SMP-007', 'Cinder Hound', 'FIRE', 'Beast', 3, 1300, 700],
+    ['SMP-008', 'Gale Skirmisher', 'WIND', 'Warrior', 4, 1600, 900],
+    ['SMP-009', 'Hollow Marauder', 'DARK', 'Fiend', 4, 1700, 1000],
+    ['SMP-010', 'Dawnbreak Cleric', 'LIGHT', 'Spellcaster', 3, 1000, 1200],
+    ['SMP-011', 'Rustfang Wolf', 'EARTH', 'Beast', 2, 800, 500],
+    ['SMP-012', 'Brine Serpent', 'WATER', 'Sea Serpent', 4, 1400, 1300],
+    ['SMP-013', 'Ember Acolyte', 'FIRE', 'Pyro', 1, 500, 400],
+    ['SMP-014', 'Stormwing Scout', 'WIND', 'Winged Beast', 3, 1100, 800],
+    ['SMP-015', 'Gravel Golem', 'EARTH', 'Rock', 5, 1900, 1700],
+    ['SMP-016', 'Duskveil Stalker', 'DARK', 'Fiend', 5, 2000, 1200],
+    ['SMP-017', 'Solar Vanguard', 'LIGHT', 'Warrior', 4, 1800, 1300],
+    ['SMP-018', 'Abyssal Leviathan', 'WATER', 'Sea Serpent', 7, 2500, 2100],
+  ].map(([id, name, attribute, race, level, atk, def]): CardDefinition => ({
+    id: id as string,
+    kind: 'Monster',
+    name: name as string,
+    category: 'Normal',
+    attribute: attribute as Attribute,
+    race: race as string,
+    level: level as number,
+    atk: atk as number,
+    def: def as number,
+  })),
   {
     id: 'SMP-101',
     kind: 'Spell',
