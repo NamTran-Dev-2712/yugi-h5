@@ -4,6 +4,7 @@ import { applyDeclareAttack } from './actions/handlers/declare-attack.js';
 import { applyDraw } from './actions/handlers/draw.js';
 import { applyEndPhase } from './actions/handlers/end-phase.js';
 import { applyNormalSummon, applySetMonster } from './actions/handlers/summon.js';
+import { applyResolvePendingPrompt } from './actions/handlers/resolve-pending-prompt.js';
 import { applyStartDuel } from './actions/handlers/start-duel.js';
 import { applySurrender } from './actions/handlers/surrender.js';
 import type {
@@ -12,6 +13,7 @@ import type {
   ChangePositionAction,
   DrawAction,
   EndPhaseAction,
+  ResolvePendingPromptAction,
   StartDuelAction,
   SurrenderAction,
 } from './actions/types.js';
@@ -31,7 +33,13 @@ export interface ApplyActionResult {
  */
 export function applyAction(
   state: GameState | null,
-  action: StartDuelAction | DrawAction | EndPhaseAction | ChangePositionAction | SurrenderAction,
+  action:
+    | StartDuelAction
+    | DrawAction
+    | EndPhaseAction
+    | ChangePositionAction
+    | SurrenderAction
+    | ResolvePendingPromptAction,
   ctx?: ActionContext,
 ): ApplyActionResult;
 export function applyAction(
@@ -62,6 +70,8 @@ export function applyAction(
       return applyEndPhase(state, action);
     case 'ChangePosition':
       return applyChangePosition(state, action);
+    case 'ResolvePendingPrompt':
+      return applyResolvePendingPrompt(state, action);
     case 'Surrender':
       return applySurrender(state, action);
     case 'NormalSummon':

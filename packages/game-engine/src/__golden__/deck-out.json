@@ -1,0 +1,358 @@
+{
+  "name": "deck-out",
+  "steps": [
+    {
+      "action": {
+        "type": "StartDuel",
+        "payload": {
+          "matchId": "golden",
+          "seed": "g-deckout",
+          "playerIds": ["alice", "bob"],
+          "deckLists": [
+            ["M1000", "M1000", "M1000", "M1000", "M1000"],
+            ["M1000", "M1000", "M1000", "M1000", "M1000"]
+          ]
+        }
+      },
+      "ok": true,
+      "version": 1,
+      "events": [
+        {
+          "type": "DuelStarted",
+          "matchId": "golden",
+          "turnPlayerIndex": 0
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-2",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-1",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-4",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-3",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-0",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-4",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-2",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-3",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-0",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-1",
+          "definitionId": "M1000"
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 2,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Draw",
+          "to": "Standby",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 3,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Standby",
+          "to": "Main1",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 4,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main1",
+          "to": "Battle",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 5,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Battle",
+          "to": "Main2",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 6,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main2",
+          "to": "End",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 7,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "End",
+          "to": "Draw",
+          "turnPlayerIndex": 1
+        },
+        {
+          "type": "TurnChanged",
+          "turnCount": 2,
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 8,
+      "events": [
+        {
+          "type": "DeckOut",
+          "playerIndex": 1
+        },
+        {
+          "type": "DuelEnded",
+          "winnerIndex": 0,
+          "reason": "DECK_OUT"
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": false,
+      "errorCode": "DUEL_ENDED"
+    }
+  ],
+  "finalState": {
+    "matchId": "golden",
+    "rng": {
+      "state": 1606579418
+    },
+    "ruleset": {
+      "startingLP": 8000,
+      "openingHandSize": 5,
+      "handLimit": 6,
+      "firstTurnDraw": false,
+      "firstTurnAttack": false,
+      "deckMin": 40,
+      "deckMax": 60,
+      "copyLimit": 3,
+      "extraDeckSize": 20,
+      "extraMonsterZones": 0,
+      "fieldSpellReplace": true,
+      "chainPrompt": "ask",
+      "turnTimerSec": null,
+      "afkLossThreshold": 3,
+      "allowSurrender": true,
+      "allowTrapActivationFromHand": false,
+      "trapSetTurnDelay": true
+    },
+    "turnCount": 2,
+    "turnPlayerIndex": 1,
+    "phase": "Draw",
+    "players": [
+      {
+        "playerId": "alice",
+        "lifePoints": 8000,
+        "board": {
+          "monsterZones": [null, null, null, null, null],
+          "spellTrapZones": [null, null, null, null, null],
+          "fieldZone": null
+        },
+        "hand": [
+          {
+            "instanceId": "p0-2",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-1",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-4",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-3",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-0",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 0
+          }
+        ],
+        "deck": [],
+        "graveyard": [],
+        "banished": [],
+        "extraDeck": [],
+        "hasNormalSummonedThisTurn": false
+      },
+      {
+        "playerId": "bob",
+        "lifePoints": 8000,
+        "board": {
+          "monsterZones": [null, null, null, null, null],
+          "spellTrapZones": [null, null, null, null, null],
+          "fieldZone": null
+        },
+        "hand": [
+          {
+            "instanceId": "p1-4",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-2",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-3",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-0",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-1",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          }
+        ],
+        "deck": [],
+        "graveyard": [],
+        "banished": [],
+        "extraDeck": [],
+        "hasNormalSummonedThisTurn": false
+      }
+    ],
+    "chainStack": [],
+    "pendingPrompt": null,
+    "winnerIndex": 0,
+    "version": 8
+  }
+}

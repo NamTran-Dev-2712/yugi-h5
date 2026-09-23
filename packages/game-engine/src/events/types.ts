@@ -101,14 +101,22 @@ export interface DamageDealtEvent {
   readonly amount: number;
 }
 
+/** A card left the hand for the graveyard (hand limit). The graveyard is public, so `definitionId` is shown. */
+export interface CardDiscardedEvent {
+  readonly type: 'CardDiscarded';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+}
+
 /**
  * The duel is over. `winnerIndex: null` means a draw (both players' LP hit 0 in the same action).
- * `SURRENDER` always has a winner: the opponent of the player who conceded.
+ * `SURRENDER` and `DECK_OUT` always have a winner: the opponent of the player who conceded / could not draw.
  */
 export interface DuelEndedEvent {
   readonly type: 'DuelEnded';
   readonly winnerIndex: 0 | 1 | null;
-  readonly reason: 'LP_ZERO' | 'SURRENDER';
+  readonly reason: 'LP_ZERO' | 'SURRENDER' | 'DECK_OUT';
 }
 
 /**
@@ -120,6 +128,7 @@ export type GameEvent =
   | DuelStartedEvent
   | CardDrawnEvent
   | DeckOutEvent
+  | CardDiscardedEvent
   | PhaseChangedEvent
   | TurnChangedEvent
   | NormalSummonedEvent

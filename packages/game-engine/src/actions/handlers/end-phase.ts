@@ -50,6 +50,27 @@ export function applyEndPhase(
     };
   }
 
+  // Hand limit: leaving Main2 with too many cards asks the turn player which to discard [RULE]; the phase
+  // advances once ResolvePendingPrompt answers (resolve-pending-prompt.ts).
+  if (phase === 'Main2') {
+    const hand = state.players[turnPlayerIndex].hand.length;
+    if (hand > state.ruleset.handLimit) {
+      return {
+        state: {
+          ...state,
+          pendingPrompt: {
+            promptId: `discard-${state.turnCount}`,
+            playerIndex: turnPlayerIndex,
+            kind: 'DiscardToHandLimit',
+            payload: { count: hand - state.ruleset.handLimit },
+          },
+          version: state.version + 1,
+        },
+        events: [],
+      };
+    }
+  }
+
   const events: GameEvent[] = [];
   let next = state;
 

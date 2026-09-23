@@ -139,7 +139,10 @@ describe('EndPhase / deck-out and rejection', () => {
 
     expect(state.winnerIndex).toBe(1);
     expect(state.phase).toBe('Draw');
-    expect(events).toEqual([{ type: 'DeckOut', playerIndex: 0 }]);
+    expect(events).toEqual([
+      { type: 'DeckOut', playerIndex: 0 },
+      { type: 'DuelEnded', winnerIndex: 1, reason: 'DECK_OUT' },
+    ]);
   });
 
   it('rejects an action from the non-turn player', () => {

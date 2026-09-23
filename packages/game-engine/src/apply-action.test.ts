@@ -153,7 +153,10 @@ describe('applyAction / Draw', () => {
     const { state, events } = applyAction(started, drawAction);
 
     expect(state.winnerIndex).toBe(1);
-    expect(events).toEqual([{ type: 'DeckOut', playerIndex: 0 }]);
+    expect(events).toEqual([
+      { type: 'DeckOut', playerIndex: 0 },
+      { type: 'DuelEnded', winnerIndex: 1, reason: 'DECK_OUT' },
+    ]);
   });
 
   it('throws when Draw is applied without an existing state', () => {

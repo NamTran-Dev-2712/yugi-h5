@@ -98,6 +98,20 @@ export interface SurrenderAction {
 }
 
 /**
+ * Answers `state.pendingPrompt` (must match `promptId` and `playerIndex`). `cardInstanceIds` is the answer to a
+ * `DiscardToHandLimit` prompt: exactly `payload.count` distinct cards from the caller's hand. Later prompt kinds
+ * will add their own answer fields.
+ */
+export interface ResolvePendingPromptAction {
+  readonly type: 'ResolvePendingPrompt';
+  readonly payload: {
+    readonly playerIndex: 0 | 1;
+    readonly promptId: string;
+    readonly cardInstanceIds: readonly string[];
+  };
+}
+
+/**
  * Skeleton union — grows through M1/M2 with
  * ActivateEffect, PassPriority, etc.
  * See docs/design/engine.md for the full target list.
@@ -110,7 +124,8 @@ export type Action =
   | SetMonsterAction
   | ChangePositionAction
   | DeclareAttackAction
-  | SurrenderAction;
+  | SurrenderAction
+  | ResolvePendingPromptAction;
 
 export interface ActionContext {
   /** Reserved for cross-cutting concerns injected by the caller (e.g. logging hooks). Never a source of nondeterminism. */
