@@ -101,11 +101,14 @@ export interface DamageDealtEvent {
   readonly amount: number;
 }
 
-/** The duel is over. `winnerIndex: null` means a draw (both players' LP hit 0 in the same action). */
+/**
+ * The duel is over. `winnerIndex: null` means a draw (both players' LP hit 0 in the same action).
+ * `SURRENDER` always has a winner: the opponent of the player who conceded.
+ */
 export interface DuelEndedEvent {
   readonly type: 'DuelEnded';
   readonly winnerIndex: 0 | 1 | null;
-  readonly reason: 'LP_ZERO';
+  readonly reason: 'LP_ZERO' | 'SURRENDER';
 }
 
 /**

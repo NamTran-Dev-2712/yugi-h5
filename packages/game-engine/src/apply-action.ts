@@ -5,6 +5,7 @@ import { applyDraw } from './actions/handlers/draw.js';
 import { applyEndPhase } from './actions/handlers/end-phase.js';
 import { applyNormalSummon, applySetMonster } from './actions/handlers/summon.js';
 import { applyStartDuel } from './actions/handlers/start-duel.js';
+import { applySurrender } from './actions/handlers/surrender.js';
 import type {
   Action,
   ActionContext,
@@ -12,6 +13,7 @@ import type {
   DrawAction,
   EndPhaseAction,
   StartDuelAction,
+  SurrenderAction,
 } from './actions/types.js';
 import type { GameEvent } from './events/types.js';
 import type { GameState } from './state/types.js';
@@ -29,7 +31,7 @@ export interface ApplyActionResult {
  */
 export function applyAction(
   state: GameState | null,
-  action: StartDuelAction | DrawAction | EndPhaseAction | ChangePositionAction,
+  action: StartDuelAction | DrawAction | EndPhaseAction | ChangePositionAction | SurrenderAction,
   ctx?: ActionContext,
 ): ApplyActionResult;
 export function applyAction(
@@ -60,6 +62,8 @@ export function applyAction(
       return applyEndPhase(state, action);
     case 'ChangePosition':
       return applyChangePosition(state, action);
+    case 'Surrender':
+      return applySurrender(state, action);
     case 'NormalSummon':
       return applyNormalSummon(state, action, requireContext(action, ctx));
     case 'SetMonster':

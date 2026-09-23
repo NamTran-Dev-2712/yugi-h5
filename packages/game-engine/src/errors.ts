@@ -4,6 +4,7 @@ export type EngineErrorCode =
   | 'UNHANDLED_ACTION'
   | 'INVALID_STARTING_LP'
   | 'DUEL_ENDED'
+  | 'SURRENDER_DISABLED'
   | 'PENDING_PROMPT'
   | 'NOT_TURN_PLAYER'
   | 'WRONG_PHASE'

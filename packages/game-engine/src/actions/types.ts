@@ -89,6 +89,14 @@ export interface DeclareAttackAction {
   };
 }
 
+/** Concede the duel; the opponent wins. Legal for either player in any phase while the duel is running. */
+export interface SurrenderAction {
+  readonly type: 'Surrender';
+  readonly payload: {
+    readonly playerIndex: 0 | 1;
+  };
+}
+
 /**
  * Skeleton union — grows through M1/M2 with
  * ActivateEffect, PassPriority, etc.
@@ -101,7 +109,8 @@ export type Action =
   | NormalSummonAction
   | SetMonsterAction
   | ChangePositionAction
-  | DeclareAttackAction;
+  | DeclareAttackAction
+  | SurrenderAction;
 
 export interface ActionContext {
   /** Reserved for cross-cutting concerns injected by the caller (e.g. logging hooks). Never a source of nondeterminism. */
