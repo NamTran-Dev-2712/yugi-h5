@@ -210,3 +210,39 @@ Reject bằng `throw new EngineError(code, message)` thay cho `Error` trần: `c
 - **Engine đọc `state.ruleset.allowSurrender`** (field có sẵn, mặc định `true`): `false` → `SURRENDER_DISABLED`. Sửa lại sau review: bản đầu để `apps/api` tự kiểm, lệch dòng "(nếu `allowSurrender`)" đã duyệt trong RULES-REVIEW-SHEET và nguyên tắc mọi thay đổi trạng thái đi qua engine. Thứ tự guard: `DUEL_ENDED` trước (trạng thái cấp cao hơn), rồi `SURRENDER_DISABLED`.
 - **Đánh số lại**: Surrender là 1.9; hand limit 6 + deck-out phát `DuelEnded` là task kế tiếp; golden replay/fuzz đẩy xuống sau đó.
   **Hệ quả:** API chỉ cần map `SURRENDER_DISABLED`; UI ẩn nút theo `legalActions`. Mutation test thủ công 14 đột biến trên `surrender.ts` (10 + 4 cho `allowSurrender`): 0 sống.
+
+## 2026-09-23 — Deck-out (task 1.10): giữ `DeckOut`, thêm `DuelEnded 'DECK_OUT'`, guard `DUEL_ENDED` cho `Draw`
+
+- **Logic rút bài đã có sẵn** (`draw.ts`, và `EndPhase` gọi khi rời Draw phase) nên task chỉ bổ sung phần thiếu: deck-out trước đây chỉ set `winnerIndex` + phát `DeckOut`, **không** phát `DuelEnded`. Không phải làm lại Draw Phase.
+- **Giữ `DeckOut` rồi thêm `DuelEnded { winnerIndex: đối thủ, reason: 'DECK_OUT' }`** (không thay): `DeckOut` cho UI animate lần rút hụt, `DuelEnded` là tín hiệu kết thúc thống nhất với `LP_ZERO`/`SURRENDER` (cùng mẫu `DamageDealt` → `DuelEnded`). Chỉ thêm giá trị `reason`, không đổi shape.
+- **Deck rỗng chỉ thua khi phải rút** `[RULE]`: rút đầu lượt (không ở lượt 1 nếu `!firstTurnDraw`, `[REF]` G1) hoặc `Draw` với `count > deck.length`. Deck vừa đủ (rút hết lá cuối) hợp lệ.
+- **`applyDraw` thêm guard `DUEL_ENDED`**: trước đó gọi `Draw` trực tiếp sau khi trận kết thúc vẫn chạy. Sửa nhỏ cần để yêu cầu "action sau deck-out bị chặn" đúng với mọi action.
+- **Test cũ phải đổi (bắt buộc)**: 2 assertion `events` toEqual `[DeckOut]` (`apply-action.test.ts`, `end-phase.test.ts`) nay có thêm `DuelEnded`. Không test nào khác đổi.
+  **Hệ quả:** không thêm mã lỗi. Mutation test thủ công 9 đột biến trên `draw.ts`/`end-phase.ts`: 0 sống.
+
+## 2026-09-23 — Hand limit (task 1.11): prompt thật đầu tiên, `ResolvePendingPrompt` vỏ chung, `Draw` bị chặn khi có prompt
+
+- **Trước task này chưa handler nào tạo `PendingPrompt`** (chỉ có type + guard). Chủ dự án chọn dùng prompt thật (không gộp lá bỏ vào `EndPhase` như tribute ở ADR 1.4): tay > `handLimit` thì `EndPhase` từ `Main2` đặt `pendingPrompt {kind:'DiscardToHandLimit', payload:{count}}` và **không tiến phase**; người chơi trả lời bằng `ResolvePendingPrompt`. Lý do: dựng sớm cơ chế chung mà P3 (target/chain) cần; đổi lại thêm 1 action + trạng thái trung gian.
+- **`promptId` tất định** `discard-<turnCount>` (không RNG/đồng hồ, replay tái lập; mỗi lượt tối đa 1 prompt này).
+- **`ResolvePendingPrompt` là vỏ chung**: guard `DUEL_ENDED` → `NO_PENDING_PROMPT` → `PROMPT_MISMATCH` (sai `promptId` hoặc người) rồi dispatch theo `kind` (kind lạ → `UNKNOWN_PROMPT_KIND`). Với `DiscardToHandLimit`: đúng `count` lá khác nhau từ tay người được hỏi, không thì `INVALID_DISCARD`; state không đổi khi reject. Xong: lá vào mộ `position: null` (quy ước như tribute), phát `CardDiscarded` từng lá theo thứ tự chọn (mộ public nên có `definitionId`), xoá prompt, tiến `Main2 → End`. Payload answer hiện chỉ có `cardInstanceIds`; kind sau này thêm field riêng.
+- **Thời điểm kiểm = rời Main2** `[RULE]` (theo brief). `[REF]` video #2 18:36 chỉ thấy "bấm Kết thúc với tay 7 → overlay kéo bài bỏ", việc ánh xạ sang Main2→End là `[ASSUMED]`. Giới hạn đọc `ruleset.handLimit` (mặc định 6, `[REF]` 1 lần).
+- **`Draw` thêm guard `PENDING_PROMPT`** (trước đó thiếu; `EndPhase` đã tự guard trước khi gọi `applyDraw` nên không đổi hành vi có sẵn). `Surrender` vẫn bỏ qua prompt (ADR 1.9).
+- **Không đổi test cũ nào.** Mutation test thủ công 17 đột biến (`end-phase.ts`, `resolve-pending-prompt.ts`, `draw.ts`): 16 bị bắt; 1 sống là **mutant tương đương** — bỏ `position: null` khi vào mộ không đổi gì quan sát được vì lá trên tay luôn có `position: null` (giữ dòng đó để phòng thủ).
+  **Hệ quả:** API/UI phải hiển thị overlay khi `pendingPrompt.kind === 'DiscardToHandLimit'` và gửi `ResolvePendingPrompt`; `legalActions` (P2) liệt kê action này khi có prompt.
+
+## 2026-09-23 — Golden replay + fuzz harness (task 1.12): baseline JSON commit, cập nhật bằng env, không thêm dependency
+
+- **Golden = INPUT trong code, OUTPUT ghi từ engine**: `GOLDEN_CASES` chỉ chứa `StartDuel` + danh sách action; `src/__golden__/<case>.json` lưu events + `version` từng bước, mã lỗi khi action bị reject, và final state. Không lưu state từng bước (file nhỏ; events + version + final state đủ bắt regression). Một hàm `replay` + một assertion cho mọi case. Reject cũng được đóng băng (bắt được đổi mã lỗi/thứ tự guard).
+- **Cập nhật baseline bằng `UPDATE_GOLDEN=1`** trong chính test (dùng `node:fs` chỉ ở `*.test.ts`, không vào build) thay vì thêm `tsx`/script riêng — không thêm dependency. Diff JSON phải được xem trước khi commit.
+- **Fuzz**: PRNG riêng theo seed (không dùng `state.rng`), generator theo phase (~85% hợp lệ có chủ đích, ~15% rác) để không toàn bị reject; engine truyền vào được (`apply`) để test rằng harness bắt được engine bị phá. State đầu vào deep-freeze ⇒ mutate = throw ⇒ vi phạm. Chỉ `EngineError` là reject hợp lệ.
+- Invariant chi tiết ở `docs/ai/review-packets/task-1.12.md`. Suite thường 10 seed × 300; chạy dài bằng `FUZZ_SEEDS`/`FUZZ_STEPS`. **Hệ quả:** khi thêm action/lá mới (P3+) phải mở rộng generator + `FUZZ_DEFS` và thêm golden case; đổi shuffle/thứ tự event làm golden đỏ (chủ đích).
+
+## 2026-09-23 — StateView filter (task 2.1): type ở shared, lá ẩn là union, Spell/Trap fail-closed, chưa lọc event
+
+- **Type `StateView` ở `packages/shared`** (types only) vì `apps/web` chỉ được import shared; hàm `toStateView` ở `apps/api/src/modules/duels/state-view.ts` (thuần, dùng type `GameState` từ engine). Không sửa game-engine.
+- **Lá ẩn = `HiddenCardView {hidden:true, instanceId, ownerIndex}`**, lá thấy = `VisibleCardView {hidden:false, ...}` (discriminant `hidden`). Giữ `instanceId` để FE định vị/animate; `instanceId` engine sinh dạng `p<i>-<n>` không chứa `definitionId` nên không rò. Tay đối thủ = mảng lá ẩn cùng độ dài + `handCount`.
+- **Deck/Extra Deck: chỉ count cho cả hai bên** (kể cả chủ, theo yêu cầu). Extra Deck không có trong yêu cầu — chọn ẩn nội dung `[ASSUMED]`, đổi khi UI cần chủ xem Extra Deck (P4).
+- **Không gửi `rng` và `chainStack`** (rng lộ thứ tự shuffle; chainStack là `unknown`). `pendingPrompt` gửi nguyên (public theo yêu cầu); prompt tương lai chứa thông tin riêng (chọn target...) phải lọc theo `playerIndex` khi làm P3.
+- **Quái úp ⇔ `position === 'DefenseDown'`. Spell/Trap/Field của đối thủ: fail-closed** — chỉ thấy khi `position` là `Attack`/`DefenseUp`; engine chưa có handler đặt Spell/Trap và chưa có marker ngửa/úp riêng nên `[ASSUMED]`, chốt lại ở task 3.4.
+- **Event filter chưa làm (ngoài scope 2.1)**: `MonsterSet` đã không có `definitionId` (ADR 1.3), nhưng cần xem lại `CardDrawn`/`CardDiscarded`(tay)/`MonsterFlipped`... khi lọc theo viewer; phải xong trước khi 2.3 phát event thô cho đối thủ.
+  **Hệ quả:** 2.2/2.3 chỉ trả state qua `toStateView`. Mutation test thủ công 5 đột biến: 0 sống.

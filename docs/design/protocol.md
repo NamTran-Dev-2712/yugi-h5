@@ -6,6 +6,7 @@
 - `StateView` = `GameState` đã lọc: ẩn `hand`/`deck` order của đối thủ, ẩn face-down card
   identity trừ khi đã lật. Việc lọc xảy ra ở `apps/api` (service layer), không phải trong
   `packages/game-engine`.
+  Contract cụ thể: type `StateView`/`CardView` ở `packages/shared/src/duel/state-view.ts`; hàm `toStateView` ở `apps/api/src/modules/duels/state-view.ts`. Lá ẩn = `{hidden:true, instanceId, ownerIndex}` (không `definitionId`/`position`); tay đối thủ = toàn lá ẩn + `handCount`; deck/extra deck chỉ có count; `rng`/`chainStack` không gửi; Spell/Trap/Field của đối thủ ẩn trừ khi có position ngửa (fail-closed). **Event chưa lọc** (task sau).
 - Versioning: mọi `StateView` mang `version` (từ `GameState.version`). Client so sánh với
   version cục bộ; lệch → yêu cầu full re-sync thay vì áp partial update.
 

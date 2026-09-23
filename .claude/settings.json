@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/format-changed-file.js"
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/format-changed-file.js\""
           }
         ]
       }
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/remind-progress.js"
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/remind-progress.js\""
           }
         ]
       }
