@@ -41,8 +41,10 @@ export const CreateSoloBody = z.preprocess(
       deck: DeckIds.optional(),
       /** A deck per seat. Mutually exclusive with `deck`. */
       decks: z.tuple([DeckIds, DeckIds]).optional(),
-      /** Which seat's view/events to return (the caller owns both in solo-debug). */
-      viewer: Seat.default(0),
+      /** `solo-debug` (default): the caller drives both seats. `solo-vs-ai`: the caller plays seat 0, the server plays seat 1. */
+      mode: z.enum(['solo-debug', 'solo-vs-ai']).default('solo-debug'),
+      /** Which seat's view/events to return (solo-debug: either; solo-vs-ai: only the caller's own seat). */
+      viewer: Seat.optional(),
     })
     .strict()
     .refine((b) => !(b.deck && b.decks), { message: 'Send either "deck" or "decks", not both.' }),

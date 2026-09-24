@@ -55,6 +55,15 @@ Nếu trang báo lỗi:
 
 - **Nhật ký event** ở dưới: mỗi hành động ghi các dòng như `P0 rút 1 lá: …`, `P0 Triệu hồi … ở ô 0`. Lưu ý: nhật ký là những gì **bên vừa gửi action** nhận được. Dòng bắt đầu bằng `✗` là action bị từ chối.
 
+### Chơi thử với AI (dưới 5 phút)
+
+1. Ở thanh trên, đổi ô chọn chế độ sang **Đấu với AI (bạn = P0)** rồi bấm **Tạo duel mới**. Bạn luôn là P0 (đi trước); P1 là 🤖 AI. Nút "Xem là P…" và công tắc tự chuyển viewer biến mất (viewer khoá ở P0 — AI không cho xem tay).
+2. Bấm **End Turn** (đường tắt gọi `EndPhase` nhiều lần). Ở request cuối, server cho AI chơi trọn lượt của nó rồi trả quyền lại cho bạn. Nhật ký hiện các dòng `🤖 AI Normal Summon … ở ô N`, `🤖 AI úp …`, `🤖 AI tấn công …`, `🤖 AI kết thúc phase`, mỗi dòng đi kèm các event nó gây ra (`Phase …`, `P1 mất … LP`...).
+3. Kiểm tra: tay AI luôn hiện `Tay: N lá (ẩn)`; quái AI úp hiện `? [id]`; sau lượt AI thì phase là `Draw` của lượt kế và bạn có nút sáng. Bảng "Hành động" chỉ của P0 (không có nút cho AI).
+4. Thử triệu hồi một quái mạnh, End Turn vài vòng: AI direct attack khi bạn không có quái; không tấn công quái mạnh hơn nó; Set quái yếu khi bạn có quái mạnh ngửa.
+5. Đánh tới hết trận hoặc bấm `Surrender`: banner **BẠN THẮNG / AI THẮNG**, không còn nút hành động. (AI không bao giờ tự đầu hàng.)
+6. Muốn thấy phản hồi thô: bật **Raw JSON** → có mảng `aiActions` (`{action, eventsFrom, eventsTo}`) và không có `definitionId` của lá AI còn trên tay.
+
 ### Bảng lá trong deck mẫu (Level và chỉ số, để bạn chọn lá cho từng bước)
 
 Mỗi lá có 3 bản. Trang **không** hiện Level của lá trên tay, hãy tra bảng này.

@@ -72,20 +72,20 @@ Task con:
 | Rủi ro    | Kéo thả trên touch; đồng bộ optimistic vs server-authoritative (không optimistic — ADR).                                                                                                                                                                                    |
 | Bạn làm   | Screenshot màn Duel gốc `[REF]` (**cần trước 2.7**); chơi thử + điền checklist QA.                                                                                                                                                                                          |
 
-| #    | Task                                                                                      | Lớp           | Độ khó |
-| ---- | ----------------------------------------------------------------------------------------- | ------------- | ------ |
-| 2.1  | `StateView` filter (ẩn hand/deck/face-down đối thủ) + test                                | API           | M      |
-| 2.2  | `DuelService` wrap `applyAction`, lưu seed + action log                                   | API           | M      |
-| 2.3  | `POST /duels/solo` + `/actions` + guest token tối thiểu                                   | API           | M      |
-| 2.4  | Trang debug thô (HTML/TS, không Phaser) chơi solo-debug qua HTTP + Action schema ở shared | Frontend      | M      |
-| 2.5  | `legalActions` (engine `getLegalActions` + API + trang debug); phục vụ AI, debug, Phaser  | Engine+API+FE | M      |
-| 2.6  | AI dummy (`AIPlayer` interface + random-legal-with-seed), mode `solo-vs-ai`               | API           | S      |
-| 2.7  | Duel scene: layout board 1280×720 từ reference, CardSprite placeholder                    | Frontend      | M      |
-| 2.8  | Hand + kéo thả Summon/Set (chọn tribute qua prompt)                                       | Frontend      | L      |
-| 2.9  | Kéo attack + prompt vị trí + LP bar + phase bar                                           | Frontend      | M      |
-| 2.10 | Action/Event log panel (bật/tắt) + kết thúc trận                                          | Frontend      | S      |
-| 2.11 | Dev-endpoint nạp scenario JSON + Duel Sandbox page                                        | Tooling       | M      |
-| 2.12 | i18n bootstrap (VI/EN locale files, `t()`)                                                | Frontend      | S      |
+| #    | Task                                                                                                 | Lớp           | Độ khó |
+| ---- | ---------------------------------------------------------------------------------------------------- | ------------- | ------ |
+| 2.1  | `StateView` filter (ẩn hand/deck/face-down đối thủ) + test                                           | API           | M      |
+| 2.2  | `DuelService` wrap `applyAction`, lưu seed + action log                                              | API           | M      |
+| 2.3  | `POST /duels/solo` + `/actions` + guest token tối thiểu                                              | API           | M      |
+| 2.4  | Trang debug thô (HTML/TS, không Phaser) chơi solo-debug qua HTTP + Action schema ở shared            | Frontend      | M      |
+| 2.5  | `legalActions` (engine `getLegalActions` + API + trang debug); phục vụ AI, debug, Phaser             | Engine+API+FE | M      |
+| 2.6  | AI rule-based (`chooseAction` thuần: chỉ thấy StateView + legalActions) + mode `solo-vs-ai` + driver | API+FE(debug) | M      |
+| 2.7  | Duel scene: layout board 1280×720 từ reference, CardSprite placeholder                               | Frontend      | M      |
+| 2.8  | Hand + kéo thả Summon/Set (chọn tribute qua prompt)                                                  | Frontend      | L      |
+| 2.9  | Kéo attack + prompt vị trí + LP bar + phase bar                                                      | Frontend      | M      |
+| 2.10 | Action/Event log panel (bật/tắt) + kết thúc trận                                                     | Frontend      | S      |
+| 2.11 | Dev-endpoint nạp scenario JSON + Duel Sandbox page                                                   | Tooling       | M      |
+| 2.12 | i18n bootstrap (VI/EN locale files, `t()`)                                                           | Frontend      | S      |
 
 ## P3 — Effect system + Chain
 

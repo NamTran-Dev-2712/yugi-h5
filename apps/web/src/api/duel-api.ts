@@ -5,6 +5,7 @@ import type {
   GuestResponse,
   PlayerAction,
   PlayerIndex,
+  SoloMode,
   ValidationIssue,
   ViewResponse,
 } from '@yugi/shared';
@@ -31,6 +32,8 @@ export interface CreateSoloBody {
   readonly deck?: readonly string[];
   readonly decks?: readonly [readonly string[], readonly string[]];
   readonly viewer?: PlayerIndex;
+  /** Default `solo-debug`; `solo-vs-ai` = the server plays seat 1. */
+  readonly mode?: SoloMode;
 }
 
 /** Every non-2xx answer (and a network failure, as status 0) becomes one of these. */

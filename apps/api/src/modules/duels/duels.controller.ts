@@ -15,9 +15,9 @@ import type { Action } from '@yugi/game-engine';
 import {
   STARTER_DECK,
   validateDeck,
-  type EventView,
-  type PlayerAction,
-  type StateView,
+  type CreateSoloResponse,
+  type GetViewResponse,
+  type ViewResponse,
 } from '@yugi/shared';
 import type { z } from 'zod';
 import { ZodPipe } from '../../common/pipes/zod-pipe';
@@ -27,13 +27,6 @@ import { assertMayControl, assertMayView, playerIdsFor } from './duel-access';
 import { DuelServiceErrorFilter } from './duel-error.filter';
 import { DuelService } from './duel.service';
 import { ActionBody, CreateSoloBody, ViewerQuery } from './duels.dto';
-
-/** Everything a viewer gets back: their own view, events and legal actions, never the other seat's. */
-interface ViewResponse {
-  readonly view: StateView;
-  readonly events: readonly EventView[];
-  readonly legalActions: readonly PlayerAction[];
-}
 
 /** HTTP only: parse, authorize through `duel-access`, call `DuelService`, answer. No game logic here. */
 @Controller('duels')
@@ -47,7 +40,7 @@ export class DuelsController {
   async createSolo(
     @GuestId() guestId: string,
     @Body(new ZodPipe(CreateSoloBody)) body: z.infer<typeof CreateSoloBody>,
-  ): Promise<ViewResponse & { duelId: string; mode: 'solo-debug'; viewer: 0 | 1 }> {
+  ): Promise<CreateSoloResponse> {
     const single = body.deck ?? STARTER_DECK;
     const decks = body.decks ?? [single, single];
     const errors = decks.flatMap((deck, seat) => {
@@ -61,21 +54,32 @@ export class DuelsController {
         errors,
       });
     }
-    const mode = 'solo-debug' as const;
+    const mode = body.mode;
+    // vs-ai: the caller is seat 0 (first to act), the server plays seat 1. The AI seat is never viewable.
+    const aiSeat = mode === 'solo-vs-ai' ? (1 as const) : undefined;
+    const viewer = body.viewer ?? 0;
+    if (viewer === aiSeat) {
+      throw new BadRequestException({
+        code: 'INVALID_VIEWER',
+        message: 'You cannot view the AI seat.',
+      });
+    }
     const created = await this.duels.createDuel({
-      playerIds: playerIdsFor(mode, guestId),
+      playerIds: playerIdsFor(mode, guestId, aiSeat),
       deckLists: [decks[0], decks[1]],
       mode,
       ownerId: guestId,
+      ...(aiSeat !== undefined ? { aiSeat } : {}),
     });
-    const viewer = body.viewer;
     return {
       duelId: created.duelId,
       mode,
       viewer,
+      ...(aiSeat !== undefined ? { aiSeat } : {}),
       view: created.views[viewer],
       events: created.eventsByViewer[viewer],
       legalActions: created.legalActionsByViewer[viewer],
+      ...(created.aiActions ? { aiActions: created.aiActions } : {}),
     };
   }
 
@@ -84,7 +88,7 @@ export class DuelsController {
     @GuestId() guestId: string,
     @Param('id') duelId: string,
     @Query(new ZodPipe(ViewerQuery)) query: z.infer<typeof ViewerQuery>,
-  ): Promise<{ view: StateView; legalActions: readonly PlayerAction[] }> {
+  ): Promise<GetViewResponse> {
     assertMayView(await this.duels.getMeta(duelId), guestId, query.viewer);
     return {
       view: await this.duels.getView(duelId, query.viewer),
@@ -106,6 +110,11 @@ export class DuelsController {
       body.playerIndex,
       body.action as unknown as Action,
     );
-    return { view: result.view, events: result.events, legalActions: result.legalActions };
+    return {
+      view: result.view,
+      events: result.events,
+      legalActions: result.legalActions,
+      aiActions: result.aiActions,
+    };
   }
 }

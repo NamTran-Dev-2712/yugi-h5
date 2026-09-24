@@ -9,12 +9,16 @@ import {
   type StartDuelAction,
 } from '@yugi/game-engine';
 import type {
+  AiActionView,
   CardDefinition,
   EventView,
   PlayerAction,
   RulesetConfig,
   StateView,
 } from '@yugi/shared';
+import { MAX_AI_ACTIONS_PER_REQUEST } from './ai/ai-config';
+import { createAiRng } from './ai/ai-rng';
+import { chooseAction, type AiPolicy } from './ai/choose-action';
 import { DuelServiceError } from './duel-errors';
 import { toEventViews } from './event-view';
 import type { DuelMode, DuelSession, DuelStore } from './duel-store';
@@ -32,6 +36,8 @@ export interface CreateDuelConfig {
   /** Who may act/view (see `duel-access.ts`); a session without them is unreachable over HTTP. */
   readonly mode?: DuelMode;
   readonly ownerId?: string;
+  /** Required for `solo-vs-ai`: the seat the server plays. */
+  readonly aiSeat?: 0 | 1;
 }
 
 export interface CreateDuelResult {
@@ -42,6 +48,11 @@ export interface CreateDuelResult {
   readonly eventsByViewer: readonly [readonly EventView[], readonly EventView[]];
   /** Opening legal actions per seat (index i = what seat i may submit now). */
   readonly legalActionsByViewer: readonly [readonly PlayerAction[], readonly PlayerAction[]];
+  /**
+   * `solo-vs-ai` when the AI moved first: what it did, as slices of `eventsByViewer[human seat]`
+   * (the opening events come before the first slice).
+   */
+  readonly aiActions?: readonly AiActionView[];
 }
 
 export interface DuelManagerOptions {
@@ -50,6 +61,10 @@ export interface DuelManagerOptions {
   readonly cardDefinitions: (definitionId: string) => CardDefinition | undefined;
   readonly newDuelId?: () => string;
   readonly newSeed?: () => string;
+  /** The AI brain for `solo-vs-ai`; tests inject fakes. Default: the rule-based `chooseAction`. */
+  readonly aiPolicy?: AiPolicy;
+  /** Hard cap on AI actions inside one request (loop guard). Default `MAX_AI_ACTIONS_PER_REQUEST`. */
+  readonly maxAiActionsPerRequest?: number;
 }
 
 export interface SubmitActionResult {
@@ -64,7 +79,22 @@ export interface SubmitActionResult {
   readonly eventsByViewer: readonly [readonly EventView[], readonly EventView[]];
   /** What the SENDER seat may submit next (state after this action). */
   readonly legalActions: readonly PlayerAction[];
+  /**
+   * `solo-vs-ai`: the actions the AI played after this one, in order; `eventsFrom`/`eventsTo` slice `events`
+   * (the sender's filtered events; the AI's come after the sender's own). `[]` when the AI did not move.
+   */
+  readonly aiActions: readonly AiActionView[];
 }
+
+/** One AI action already applied and saved. */
+interface AiStep {
+  readonly action: PlayerAction;
+  readonly events: readonly GameEvent[];
+}
+
+/** Who has to act now: the prompted player if a prompt is pending, else the turn player. */
+const actorOf = (state: GameState): 0 | 1 =>
+  state.pendingPrompt?.playerIndex ?? state.turnPlayerIndex;
 
 /**
  * Framework-free duel loop: holds sessions in a `DuelStore`, validates who may act, runs the engine and
@@ -75,6 +105,8 @@ export class DuelManager {
   private readonly cardDefinitions: DuelManagerOptions['cardDefinitions'];
   private readonly newDuelId: () => string;
   private readonly newSeed: () => string;
+  private readonly aiPolicy: AiPolicy;
+  private readonly maxAiActions: number;
   /** Tail of the pending-work chain per duel; this is the mutex. */
   private readonly tails = new Map<string, Promise<void>>();
 
@@ -83,6 +115,8 @@ export class DuelManager {
     this.cardDefinitions = options.cardDefinitions;
     this.newDuelId = options.newDuelId ?? randomUUID;
     this.newSeed = options.newSeed ?? randomUUID;
+    this.aiPolicy = options.aiPolicy ?? chooseAction;
+    this.maxAiActions = options.maxAiActionsPerRequest ?? MAX_AI_ACTIONS_PER_REQUEST;
   }
 
   async createDuel(config: CreateDuelConfig): Promise<CreateDuelResult> {
@@ -108,21 +142,60 @@ export class DuelManager {
       if (e instanceof EngineError) throw new DuelServiceError('INVALID_CONFIG', e.message);
       throw new DuelServiceError('INTERNAL_ERROR', 'Failed to start the duel.');
     }
-    await this.store.save({
+    const session: DuelSession = {
       duelId,
       ...(config.mode !== undefined ? { mode: config.mode } : {}),
       ...(config.ownerId !== undefined ? { ownerId: config.ownerId } : {}),
+      ...(config.aiSeat !== undefined ? { aiSeat: config.aiSeat } : {}),
       seed,
       startAction,
       state,
       actionLog: [],
-    });
-    return {
-      duelId,
-      views: [toStateView(state, 0), toStateView(state, 1)],
-      eventsByViewer: [toEventViews(events, 0), toEventViews(events, 1)],
-      legalActionsByViewer: [this.legalActionsOf(state, 0), this.legalActionsOf(state, 1)],
     };
+    await this.store.save(session);
+    // The AI may hold the first seat: let it play before anyone sees the duel. Same lock as any other change.
+    return this.runExclusive(duelId, async () => {
+      const driven = await this.driveAi(session);
+      const finalState = driven.session.state;
+      const eventsByViewer: [EventView[], EventView[]] = [
+        toEventViews(events, 0),
+        toEventViews(events, 1),
+      ];
+      let aiActions: AiActionView[] | undefined;
+      if (driven.steps.length > 0 && session.aiSeat !== undefined) {
+        const human = session.aiSeat === 0 ? 1 : 0;
+        aiActions = this.appendAiSteps(eventsByViewer, driven.steps, human);
+      }
+      return {
+        duelId,
+        views: [toStateView(finalState, 0), toStateView(finalState, 1)],
+        eventsByViewer,
+        legalActionsByViewer: [
+          this.legalActionsOf(finalState, 0),
+          this.legalActionsOf(finalState, 1),
+        ],
+        ...(aiActions ? { aiActions } : {}),
+      };
+    });
+  }
+
+  /**
+   * Appends the AI steps' events to both viewers' lists (viewer order preserved) and returns the slices they
+   * occupy in `human`'s list.
+   */
+  private appendAiSteps(
+    eventsByViewer: [EventView[], EventView[]],
+    steps: readonly AiStep[],
+    human: 0 | 1,
+  ): AiActionView[] {
+    const out: AiActionView[] = [];
+    for (const step of steps) {
+      const eventsFrom = eventsByViewer[human].length;
+      eventsByViewer[0].push(...toEventViews(step.events, 0));
+      eventsByViewer[1].push(...toEventViews(step.events, 1));
+      out.push({ action: step.action, eventsFrom, eventsTo: eventsByViewer[human].length });
+    }
+    return out;
   }
 
   submitAction(duelId: string, playerIndex: 0 | 1, action: Action): Promise<SubmitActionResult> {
@@ -142,31 +215,104 @@ export class DuelManager {
     }
     return this.runExclusive(duelId, async () => {
       const session = await this.requireSession(duelId);
-      let result: { state: GameState; events: GameEvent[] };
-      try {
-        result = applyAction(session.state, action, { cardDefinitions: this.cardDefinitions });
-      } catch (e) {
-        if (e instanceof EngineError) {
-          throw new DuelServiceError('ACTION_REJECTED', e.message, e.code);
-        }
-        throw new DuelServiceError('INTERNAL_ERROR', 'Unexpected error while applying the action.');
+      // In `solo-vs-ai` the AI seat is the server's: nobody else may act for it (duel-access checks this too).
+      if (session.mode === 'solo-vs-ai' && playerIndex === session.aiSeat) {
+        throw new DuelServiceError('NOT_OWNER', 'The AI seat cannot be controlled by a caller.');
       }
-      await this.store.save({
-        ...session,
-        state: result.state,
-        actionLog: [...session.actionLog, { playerIndex, action, version: result.state.version }],
-      });
-      const eventsByViewer = [
-        toEventViews(result.events, 0),
-        toEventViews(result.events, 1),
-      ] as const;
+      const applied = await this.applyAndSave(session, playerIndex, action);
+      const driven = await this.driveAi(applied.session);
+      const eventsByViewer: [EventView[], EventView[]] = [
+        toEventViews(applied.events, 0),
+        toEventViews(applied.events, 1),
+      ];
+      const aiActions = this.appendAiSteps(eventsByViewer, driven.steps, playerIndex);
+      const finalState = driven.session.state;
       return {
-        view: toStateView(result.state, playerIndex),
+        view: toStateView(finalState, playerIndex),
         events: eventsByViewer[playerIndex],
         eventsByViewer,
-        legalActions: this.legalActionsOf(result.state, playerIndex),
+        legalActions: this.legalActionsOf(finalState, playerIndex),
+        aiActions,
       };
     });
+  }
+
+  /**
+   * The ONE place a duel changes: runs the engine, logs the accepted action, saves. Player actions and AI actions both
+   * come through here (caller holds the duel lock). Reject/unexpected error ⇒ nothing saved.
+   */
+  private async applyAndSave(
+    session: DuelSession,
+    playerIndex: 0 | 1,
+    action: Action,
+  ): Promise<{ session: DuelSession; events: GameEvent[] }> {
+    let result: { state: GameState; events: GameEvent[] };
+    try {
+      result = applyAction(session.state, action, { cardDefinitions: this.cardDefinitions });
+    } catch (e) {
+      if (e instanceof EngineError) {
+        throw new DuelServiceError('ACTION_REJECTED', e.message, e.code);
+      }
+      throw new DuelServiceError('INTERNAL_ERROR', 'Unexpected error while applying the action.');
+    }
+    const next: DuelSession = {
+      ...session,
+      state: result.state,
+      actionLog: [...session.actionLog, { playerIndex, action, version: result.state.version }],
+    };
+    await this.store.save(next);
+    return { session: next, events: result.events };
+  }
+
+  /**
+   * `solo-vs-ai`: while the AI is the one to act (turn player, or the player a pending prompt waits for), ask the policy
+   * — which sees only the AI seat's StateView and legal actions — and apply its answer through `applyAndSave`.
+   * Runs inside the caller's duel lock, so no other request interleaves. Bounded by `maxAiActions`; hitting the cap
+   * throws AI_LOOP_LIMIT and leaves the duel in the (valid, saved) state reached so far.
+   */
+  private async driveAi(
+    start: DuelSession,
+  ): Promise<{ session: DuelSession; steps: readonly AiStep[] }> {
+    const aiSeat = start.aiSeat;
+    if (start.mode !== 'solo-vs-ai' || aiSeat === undefined) return { session: start, steps: [] };
+    let session = start;
+    const steps: AiStep[] = [];
+    while (session.state.winnerIndex === null && actorOf(session.state) === aiSeat) {
+      if (steps.length >= this.maxAiActions) {
+        throw new DuelServiceError(
+          'AI_LOOP_LIMIT',
+          `The AI exceeded ${this.maxAiActions} actions in one request.`,
+        );
+      }
+      let action: PlayerAction;
+      try {
+        action = this.aiPolicy({
+          view: toStateView(session.state, aiSeat),
+          legalActions: this.legalActionsOf(session.state, aiSeat),
+          cardDefinitions: this.cardDefinitions,
+          rng: createAiRng(`${session.seed}:ai:${session.actionLog.length}`),
+        });
+      } catch {
+        throw new DuelServiceError('INTERNAL_ERROR', 'The AI could not choose an action.');
+      }
+      // The AI never gives up, whatever the policy says.
+      if (action.type === 'Surrender') {
+        throw new DuelServiceError('INTERNAL_ERROR', 'The AI tried to surrender.');
+      }
+      let applied: { session: DuelSession; events: GameEvent[] };
+      try {
+        applied = await this.applyAndSave(session, aiSeat, action as unknown as Action);
+      } catch (e) {
+        // The engine refusing the AI's own move is a server bug, not the human's mistake (no 409 for them).
+        if (e instanceof DuelServiceError && e.code === 'ACTION_REJECTED') {
+          throw new DuelServiceError('INTERNAL_ERROR', 'The AI chose an illegal action.');
+        }
+        throw e;
+      }
+      session = applied.session;
+      steps.push({ action, events: applied.events });
+    }
+    return { session, steps };
   }
 
   async getView(duelId: string, viewerIndex: 0 | 1): Promise<StateView> {
@@ -190,10 +336,11 @@ export class DuelManager {
 
   /** Who owns the duel and in which mode; no game state, safe for access checks. */
   async getMeta(duelId: string): Promise<DuelMeta> {
-    const { mode, ownerId } = await this.requireSession(duelId);
+    const { mode, ownerId, aiSeat } = await this.requireSession(duelId);
     return {
       ...(mode !== undefined ? { mode } : {}),
       ...(ownerId !== undefined ? { ownerId } : {}),
+      ...(aiSeat !== undefined ? { aiSeat } : {}),
     };
   }
 

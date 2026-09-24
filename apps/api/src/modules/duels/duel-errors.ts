@@ -9,6 +9,7 @@ export type DuelErrorCode =
   | 'FORBIDDEN_ACTION'
   | 'NOT_OWNER'
   | 'ACTION_REJECTED'
+  | 'AI_LOOP_LIMIT'
   | 'INTERNAL_ERROR';
 
 export class DuelServiceError extends Error {

@@ -18,6 +18,7 @@ const STATUS: Record<DuelErrorCode, number> = {
   ACTION_REJECTED: 409,
   INVALID_CONFIG: 400,
   UNKNOWN_CARD: 400,
+  AI_LOOP_LIMIT: 500,
   INTERNAL_ERROR: 500,
 };
 

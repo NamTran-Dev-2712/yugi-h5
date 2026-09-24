@@ -12,19 +12,37 @@ export interface GuestResponse {
   readonly accessToken: string;
 }
 
+export type SoloMode = 'solo-debug' | 'solo-vs-ai';
+
+/**
+ * One action the server played for the AI seat during this request (`solo-vs-ai` only). `eventsFrom`/`eventsTo` is the
+ * half-open slice `[from, to)` of the response's `events` this action produced, so a client can animate turn by turn.
+ * Public information only: the action carries instance ids, which the matching events already reveal.
+ */
+export interface AiActionView {
+  readonly action: PlayerAction;
+  readonly eventsFrom: number;
+  readonly eventsTo: number;
+}
+
 /** `POST /duels/:id/actions` → the sender seat's view + that seat's filtered events. */
 export interface ViewResponse {
   readonly view: StateView;
+  /** Human events first, then those caused by the AI (see `aiActions`); all filtered for the view's seat. */
   readonly events: readonly EventView[];
   /** Actions the view's seat (`view.viewerIndex`) may submit now; ids/zones only, never a hidden definitionId. */
   readonly legalActions: readonly PlayerAction[];
+  /** `solo-vs-ai` only: what the AI did after the caller's action, in order. Empty when the AI did not move. */
+  readonly aiActions?: readonly AiActionView[];
 }
 
 /** `POST /duels/solo` */
 export interface CreateSoloResponse extends ViewResponse {
   readonly duelId: string;
-  readonly mode: 'solo-debug';
+  readonly mode: SoloMode;
   readonly viewer: PlayerIndex;
+  /** `solo-vs-ai` only: the seat the server plays. Never viewable or controllable by the caller. */
+  readonly aiSeat?: PlayerIndex;
 }
 
 /** `GET /duels/:id?viewer=` */

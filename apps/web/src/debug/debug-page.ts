@@ -6,6 +6,7 @@ import {
   type PlayerAction,
   type PlayerIndex,
   type PlayerView,
+  type SoloMode,
   type StateView,
 } from '@yugi/shared';
 import type { DuelApi } from '../api/duel-api';
@@ -23,8 +24,10 @@ import {
   applyActionError,
   applyActionSuccess,
   initialDebugState,
+  logLinesFor,
   type DebugState,
 } from './debug-state';
+import { describeAiAction } from './describe-ai-action';
 import { describeEvent } from './describe-event';
 
 /** DOM glue for the debug page. All decisions live in the pure modules next to this file. */
@@ -89,6 +92,7 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
   let showRaw = false;
   let allowIllegal = false;
   let busy = false;
+  let modeChoice: SoloMode = 'solo-debug';
 
   const describeAll = (events: readonly EventView[], view: StateView): string[] =>
     events.map((e) =>
@@ -97,6 +101,9 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
         instanceLabel: (id) => instanceLabelIn(view, id),
       }),
     );
+
+  const describeAi = (action: PlayerAction, view: StateView): string =>
+    describeAiAction(action, { instanceLabel: (id) => instanceLabelIn(view, id) });
 
   async function run(task: () => Promise<void>): Promise<void> {
     if (busy) return;
@@ -120,7 +127,8 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
 
   async function follow(): Promise<void> {
     const view = state.view;
-    if (!autoSwitch || view === null) return;
+    // vs-ai: the viewer stays on the human seat (the AI seat is not viewable; the server answers 403).
+    if (!autoSwitch || view === null || state.mode === 'solo-vs-ai') return;
     const target = pickViewer(view);
     if (target !== view.viewerIndex) await fetchViewer(target);
   }
@@ -128,18 +136,20 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
   async function send(action: PlayerAction): Promise<void> {
     if (state.duelId === null) return;
     const res = await api.submitAction(state.duelId, action.payload.playerIndex, action);
-    state = applyActionSuccess(state, res, describeAll);
+    state = applyActionSuccess(state, res, describeAll, describeAi);
   }
 
   const newDuel = () =>
     run(async () => {
-      const res = await api.createSolo({ viewer: 0 });
+      const res = await api.createSolo({ viewer: 0, mode: modeChoice });
       state = {
         ...initialDebugState,
         duelId: res.duelId,
+        mode: res.mode,
+        aiSeat: res.aiSeat ?? null,
         view: res.view,
         legalActions: res.legalActions,
-        log: describeAll(res.events, res.view),
+        log: logLinesFor(res, describeAll, describeAi),
         raw: res,
       };
     });
@@ -221,7 +231,7 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
       'div',
       { class: `panel${isViewer ? ' viewer' : ''}` },
       h('h2', {
-        text: `P${seat}${isViewer ? ' (bạn đang xem)' : ' (đối thủ)'}${view.turnPlayerIndex === seat ? ' — đến lượt' : ''}`,
+        text: `P${seat}${seat === state.aiSeat ? ' 🤖 AI' : isViewer ? ' (bạn đang xem)' : ' (đối thủ)'}${view.turnPlayerIndex === seat ? ' — đến lượt' : ''}`,
       }),
       h(
         'div',
@@ -251,8 +261,22 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
     const top = h(
       'div',
       { class: 'bar' },
+      Object.assign(
+        h(
+          'select',
+          {},
+          h('option', { text: 'Solo debug (tự chơi cả 2 bên)', attrs: { value: 'solo-debug' } }),
+          h('option', { text: 'Đấu với AI (bạn = P0)', attrs: { value: 'solo-vs-ai' } }),
+        ),
+        {
+          value: modeChoice,
+          onchange: (e: Event) => {
+            modeChoice = (e.target as HTMLSelectElement).value as SoloMode;
+          },
+        },
+      ),
       h('button', { text: 'Tạo duel mới (guest + starter deck)', onClick: () => void newDuel() }),
-      ...(view
+      ...(view && state.mode === 'solo-debug'
         ? ([0, 1] as const).map((seat) =>
             h('button', {
               text: `Xem là P${seat}`,
@@ -261,17 +285,21 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
             }),
           )
         : []),
-      h(
-        'label',
-        {},
-        Object.assign(h('input', { attrs: { type: 'checkbox' } }), {
-          checked: autoSwitch,
-          onchange: (e: Event) => {
-            autoSwitch = (e.target as HTMLInputElement).checked;
-          },
-        }),
-        ' tự chuyển viewer theo bên có quyền',
-      ),
+      ...(state.mode === 'solo-vs-ai'
+        ? [h('span', { class: 'muted', text: 'viewer khoá ở P0 (không xem được AI)' })]
+        : [
+            h(
+              'label',
+              {},
+              Object.assign(h('input', { attrs: { type: 'checkbox' } }), {
+                checked: autoSwitch,
+                onchange: (e: Event) => {
+                  autoSwitch = (e.target as HTMLInputElement).checked;
+                },
+              }),
+              ' tự chuyển viewer theo bên có quyền',
+            ),
+          ]),
       h(
         'label',
         {},
@@ -311,7 +339,11 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
             text:
               view.winnerIndex === 'draw'
                 ? 'Trận kết thúc: HÒA'
-                : `Trận kết thúc: P${view.winnerIndex} THẮNG`,
+                : state.aiSeat !== null
+                  ? view.winnerIndex === state.aiSeat
+                    ? 'Trận kết thúc: AI THẮNG 🤖'
+                    : 'Trận kết thúc: BẠN THẮNG 🎉'
+                  : `Trận kết thúc: P${view.winnerIndex} THẮNG`,
           }),
         );
       }
@@ -330,7 +362,12 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
       const actions = h(
         'div',
         { class: 'panel' },
-        h('h2', { text: `Hành động của P${view.viewerIndex}` }),
+        h('h2', {
+          text:
+            state.aiSeat !== null
+              ? `Hành động của bạn (P${view.viewerIndex})`
+              : `Hành động của P${view.viewerIndex}`,
+        }),
       );
       // Narrow the choice lists only while illegal attempts are off; otherwise the tester may pick anything.
       const buttons = applyLegality(

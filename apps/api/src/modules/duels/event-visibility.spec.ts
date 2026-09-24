@@ -127,6 +127,7 @@ describe('submitAction result shape', () => {
     const ctx = await setup();
     const result = await ctx.manager.submitAction(ctx.duelId, 0, endPhase(0));
     expect(Object.keys(result).sort()).toEqual([
+      'aiActions',
       'events',
       'eventsByViewer',
       'legalActions',

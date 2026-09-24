@@ -100,3 +100,47 @@ describe('applyActionSuccess', () => {
     expect(seen).toBe(viewB);
   });
 });
+
+describe('applyActionSuccess with AI actions', () => {
+  const events: EventView[] = [
+    { type: 'DamageDealt', playerIndex: 0, amount: 100 }, // 0: the human's own
+    { type: 'DamageDealt', playerIndex: 0, amount: 200 }, // 1: AI action 1
+    { type: 'DamageDealt', playerIndex: 0, amount: 300 }, // 2: AI action 2
+  ];
+  const aiActions = [
+    { action: { type: 'EndPhase', payload: { playerIndex: 1 } }, eventsFrom: 1, eventsTo: 2 },
+    { action: { type: 'EndPhase', payload: { playerIndex: 1 } }, eventsFrom: 2, eventsTo: 3 },
+  ] as const;
+  const describe1 = (evs: readonly EventView[]) =>
+    evs.map((e) => (e.type === 'DamageDealt' ? `-${e.amount}` : e.type));
+
+  it('puts each AI action line before the events it caused, after the human events', () => {
+    const next = applyActionSuccess(
+      base(),
+      { view: viewB, events, legalActions: [], aiActions },
+      describe1,
+      (a) => `AI ${a.type}`,
+    );
+    expect(next.log).toEqual(['first', '-100', 'AI EndPhase', '-200', 'AI EndPhase', '-300']);
+  });
+
+  it('never drops an event when slices do not cover everything', () => {
+    const next = applyActionSuccess(
+      base(),
+      { view: viewB, events, legalActions: [], aiActions: [aiActions[0]] },
+      describe1,
+      () => 'AI x',
+    );
+    expect(next.log).toEqual(['first', '-100', 'AI x', '-200', '-300']);
+  });
+
+  it('logs the plain event list when there are no AI actions', () => {
+    const next = applyActionSuccess(
+      base(),
+      { view: viewB, events, legalActions: [], aiActions: [] },
+      describe1,
+      () => 'AI x',
+    );
+    expect(next.log).toEqual(['first', '-100', '-200', '-300']);
+  });
+});

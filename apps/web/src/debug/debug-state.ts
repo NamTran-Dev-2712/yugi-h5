@@ -1,9 +1,20 @@
-import type { EventView, PlayerAction, StateView, ViewResponse } from '@yugi/shared';
+import type {
+  EventView,
+  PlayerAction,
+  PlayerIndex,
+  SoloMode,
+  StateView,
+  ViewResponse,
+} from '@yugi/shared';
 import { DuelApiError } from '../api/duel-api';
 
 /** Everything the debug page shows, as plain data so the transitions can be tested without a DOM. */
 export interface DebugState {
   readonly duelId: string | null;
+  /** Mode of the current duel; `solo-vs-ai` locks the viewer to the human seat. */
+  readonly mode: SoloMode;
+  /** `solo-vs-ai`: the seat the server plays (never viewable); null otherwise. */
+  readonly aiSeat: PlayerIndex | null;
   /** Latest view for the current viewer. Only ever replaced by a server response, never edited locally. */
   readonly view: StateView | null;
   /** What the server says the view's seat may submit now; null until the first response. Replaced together with `view`. */
@@ -18,6 +29,8 @@ export interface DebugState {
 
 export const initialDebugState: DebugState = {
   duelId: null,
+  mode: 'solo-debug',
+  aiSeat: null,
   view: null,
   legalActions: null,
   log: [],
@@ -47,6 +60,32 @@ export function applyActionError(prev: DebugState, err: unknown): DebugState {
 }
 
 /**
+ * Log lines for one response. Events keep the response's order; each AI action gets its own header line right
+ * before the events it caused (`eventsFrom..eventsTo`). Events outside every slice are still logged, never dropped.
+ */
+export function logLinesFor(
+  response: ViewResponse,
+  describe: (events: readonly EventView[], view: StateView) => readonly string[],
+  describeAi?: (action: PlayerAction, view: StateView) => string,
+): string[] {
+  const { events, view } = response;
+  const ai = response.aiActions ?? [];
+  if (ai.length === 0 || !describeAi) return [...describe(events, view)];
+  const lines: string[] = [];
+  let cursor = 0;
+  for (const step of ai) {
+    if (step.eventsFrom > cursor) {
+      lines.push(...describe(events.slice(cursor, step.eventsFrom), view));
+    }
+    lines.push(describeAi(step.action, view));
+    lines.push(...describe(events.slice(step.eventsFrom, step.eventsTo), view));
+    cursor = Math.max(cursor, step.eventsTo);
+  }
+  if (cursor < events.length) lines.push(...describe(events.slice(cursor), view));
+  return lines;
+}
+
+/**
  * A successful response replaces the view; `describe` words the events against the NEW view (so cards that only
  * just became visible can be labelled).
  */
@@ -54,13 +93,14 @@ export function applyActionSuccess(
   prev: DebugState,
   response: ViewResponse,
   describe: (events: readonly EventView[], view: StateView) => readonly string[],
+  describeAi?: (action: PlayerAction, view: StateView) => string,
 ): DebugState {
   return {
     ...prev,
     view: response.view,
     legalActions: response.legalActions,
     error: null,
-    log: [...prev.log, ...describe(response.events, response.view)],
+    log: [...prev.log, ...logLinesFor(response, describe, describeAi)],
     raw: response,
   };
 }
