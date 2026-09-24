@@ -42,7 +42,17 @@ Nếu trang báo lỗi:
 - **Dòng trạng thái:** `Lượt N · lượt của Px · phase … · version …` và, nếu có, `PROMPT …`.
 - **Hai khung người chơi:** LP, Deck, Tay (số lá), Extra, Mộ; 5 ô quái; danh sách Mộ; Tay. Bên đối thủ chỉ hiện `Tay N lá (ẩn)`; quái úp của đối thủ hiện `? [mã]`.
 - **Ô quái** ghi `Tên Lv ATK/DEF`, rồi `tư thế [mã]`. Tư thế: `Attack`, `DefenseUp` (thủ ngửa), `DefenseDown` (úp; chỉ chủ nhân thấy tên).
-- **Khung "Hành động của Px"** (cho bên đang xem): mỗi dòng một nút. Các nút **luôn hiện dù sai luật** để bạn thử — server sẽ từ chối. Không có nút "Draw": bài được rút tự động khi bạn rời phase Draw.
+- **Khung "Hành động của Px"** (cho bên đang xem): mỗi dòng một nút. Từ task 2.5, nút **không nằm trong `legalActions` của server thì bị mờ và tắt** (rê chuột để xem lý do); ô chọn (ô quái, tribute, mục tiêu) chỉ còn các giá trị hợp lệ. Bật công tắc **"Cho phép thử hành động sai luật"** để nút mờ bấm được và ô chọn hiện đủ giá trị → server trả `409` như trước (kiểm tra server không tin client). Không có nút "Draw": bài được rút tự động khi bạn rời phase Draw.
+
+### Xem thử legalActions (dưới 5 phút)
+
+1. **Tạo duel mới** → P0 đến lượt: chỉ `EndPhase`, `End Turn`, `Surrender` sáng; nếu chuyển **Xem là P1** thì chỉ còn `Surrender` (P1 không đến lượt), mọi nút khác mờ.
+2. Xem là P0, bấm `EndPhase` 2 lần tới **Main1**: các nút `Triệu hồi`/`Úp` của quái Lv ≤ 4 sáng, ô quái đủ 5; lá Lv ≥ 5 mờ (chưa có quái để tribute). `Tấn công`/`Đổi thế` không có (chưa có quái).
+3. `Triệu hồi` một lá: **mọi** nút `Triệu hồi`/`Úp` còn lại mờ (đã dùng Normal Summon); nút `Đổi thế` của quái vừa triệu hồi mờ (vừa triệu hồi).
+4. Bấm `EndPhase` tới **Battle** ở lượt 1: `Tấn công` mờ (lượt 1 không tấn công). Qua lượt sau, quái đủ điều kiện sẽ hiện `Tấn công`, và ô Mục tiêu chỉ có "Tấn công trực tiếp" khi đối thủ không có quái.
+5. Bật công tắc **Cho phép thử hành động sai luật**, bấm một nút mờ (vd `Triệu hồi` lần hai) → khung đỏ `409 ACTION_REJECTED / NORMAL_SUMMON_USED`, `version` không tăng.
+6. Để tay > 6 rồi rời Main2: chỉ còn nút bỏ bài (`Bỏ N lá`) và `Surrender` sáng cho bên phải trả lời.
+
 - **Nhật ký event** ở dưới: mỗi hành động ghi các dòng như `P0 rút 1 lá: …`, `P0 Triệu hồi … ở ô 0`. Lưu ý: nhật ký là những gì **bên vừa gửi action** nhận được. Dòng bắt đầu bằng `✗` là action bị từ chối.
 
 ### Bảng lá trong deck mẫu (Level và chỉ số, để bạn chọn lá cho từng bước)
@@ -167,8 +177,8 @@ Raw JSON (nếu liên quan tới lộ bài / số liệu): (dán đoạn liên q
 ## F. Hai script kiểm tra tự động (không thay cho buổi test của bạn)
 
 ```bash
-node --experimental-strip-types tools/smoke-http.ts   # 18 kiểm tra API thật; ghi docs/ai/review-packets/task-2.4-smoke.md
-node --experimental-strip-types tools/play-duel.ts    # tự chơi 1 ván tới LP 0 + 1 ván Surrender
+node --experimental-strip-types tools/smoke-http.ts   # 23 kiểm tra API thật (gồm legalActions); ghi docs/ai/review-packets/task-2.4-smoke.md
+node --experimental-strip-types tools/play-duel.ts    # tự chơi 1 ván tới LP 0 + 1 ván Surrender; mọi action gửi đều đối chiếu legalActions (được liệt kê ⇔ server chấp nhận)
 HEAVY=1 node --experimental-strip-types tools/play-duel.ts   # như trên nhưng deck nhiều quái Lv5+ để chạy nhánh Tribute
 ```
 

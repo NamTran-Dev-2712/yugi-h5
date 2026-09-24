@@ -146,6 +146,23 @@ async function main(): Promise<void> {
     !/"rng"|actionLog/.test(g0.text + g1.text + created.text),
   );
 
+  const typesOf = (r: Reply): string[] =>
+    ((r.json as { legalActions?: { type: string }[] }).legalActions ?? []).map((a) => a.type);
+  check(
+    'GET viewer 0 có legalActions [EndPhase, Surrender]; viewer 1 (không đến lượt) chỉ [Surrender]',
+    JSON.stringify(typesOf(g0)) === '["EndPhase","Surrender"]' &&
+      JSON.stringify(typesOf(g1)) === '["Surrender"]',
+    `${typesOf(g0)} | ${typesOf(g1)}`,
+  );
+  const legalLeak = /definitionId/.test(
+    JSON.stringify((g0.json as { legalActions?: unknown }).legalActions),
+  );
+  check('legalActions không chứa definitionId', !legalLeak);
+  check(
+    'POST /duels/solo trả legalActions của viewer 0',
+    JSON.stringify(typesOf(created)) === '["EndPhase","Surrender"]',
+  );
+
   const legal = { playerIndex: 0, action: { type: 'EndPhase', payload: { playerIndex: 0 } } };
   const ok = await call('POST', `/duels/${id}/actions`, { token, body: legal });
   record(
@@ -162,6 +179,11 @@ async function main(): Promise<void> {
     ok.status === 200 && okBody.view.phase === 'Standby' && okBody.view.version > v0.version,
   );
   check(
+    'POST action trả legalActions của người gửi (sau EndPhase vẫn [EndPhase, Surrender])',
+    JSON.stringify(typesOf(ok)) === '["EndPhase","Surrender"]',
+    `${typesOf(ok)}`,
+  );
+  check(
     'lượt 1: P0 không rút bài khi rời Draw (deck không giảm)',
     okBody.view.players[0].deckCount === v0.players[0].deckCount,
   );
@@ -176,6 +198,12 @@ async function main(): Promise<void> {
     wrong,
     bad,
     true,
+  );
+  const p1Legal = await call('GET', `/duels/${id}?viewer=1`, { token });
+  check(
+    'action sai luật (P1 EndPhase) KHÔNG nằm trong legalActions của P1',
+    !typesOf(p1Legal).includes('EndPhase'),
+    `${typesOf(p1Legal)}`,
   );
   const badBody = bad.json as { code?: string; engineCode?: string };
   check(

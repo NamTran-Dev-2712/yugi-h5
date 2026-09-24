@@ -1,4 +1,4 @@
-import type { EventView, StateView, ViewResponse } from '@yugi/shared';
+import type { EventView, PlayerAction, StateView, ViewResponse } from '@yugi/shared';
 import { DuelApiError } from '../api/duel-api';
 
 /** Everything the debug page shows, as plain data so the transitions can be tested without a DOM. */
@@ -6,6 +6,8 @@ export interface DebugState {
   readonly duelId: string | null;
   /** Latest view for the current viewer. Only ever replaced by a server response, never edited locally. */
   readonly view: StateView | null;
+  /** What the server says the view's seat may submit now; null until the first response. Replaced together with `view`. */
+  readonly legalActions: readonly PlayerAction[] | null;
   /** Human-readable log lines: events ("P0 rút 1 lá") and rejected actions ("✗ 409 ..."). */
   readonly log: readonly string[];
   /** Last error to put on screen, or null. */
@@ -17,6 +19,7 @@ export interface DebugState {
 export const initialDebugState: DebugState = {
   duelId: null,
   view: null,
+  legalActions: null,
   log: [],
   error: null,
   raw: null,
@@ -55,6 +58,7 @@ export function applyActionSuccess(
   return {
     ...prev,
     view: response.view,
+    legalActions: response.legalActions,
     error: null,
     log: [...prev.log, ...describe(response.events, response.view)],
     raw: response,

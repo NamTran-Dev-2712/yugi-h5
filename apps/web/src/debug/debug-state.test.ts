@@ -1,4 +1,4 @@
-import type { EventView, StateView } from '@yugi/shared';
+import type { EventView, PlayerAction, StateView } from '@yugi/shared';
 import { describe, expect, it } from 'vitest';
 import { DuelApiError } from '../api/duel-api';
 import {
@@ -81,9 +81,11 @@ describe('applyActionSuccess', () => {
 
   it('replaces the view, clears the error, appends described events and keeps the raw response', () => {
     const before = applyActionError(base(), rejected);
-    const response = { view: viewB, events };
+    const legalActions: PlayerAction[] = [{ type: 'EndPhase', payload: { playerIndex: 1 } }];
+    const response = { view: viewB, events, legalActions };
     const next = applyActionSuccess(before, response, () => ['P1 mất 100 LP']);
     expect(next.view).toBe(viewB);
+    expect(next.legalActions).toBe(legalActions);
     expect(next.error).toBeNull();
     expect(next.log).toEqual([...before.log, 'P1 mất 100 LP']);
     expect(next.raw).toBe(response);
@@ -91,7 +93,7 @@ describe('applyActionSuccess', () => {
 
   it('describes events against the NEW view (labels of cards that just appeared)', () => {
     let seen: StateView | undefined;
-    applyActionSuccess(base(), { view: viewB, events }, (_events, view) => {
+    applyActionSuccess(base(), { view: viewB, events, legalActions: [] }, (_events, view) => {
       seen = view;
       return [];
     });

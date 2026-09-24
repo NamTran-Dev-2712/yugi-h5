@@ -80,9 +80,46 @@ function hiddenFromOpponent(sender: Seat, events: EventV[]): Set<string> {
   return new Set([...hiddenFrom(oppView, opp)].filter((id) => !revealed.has(id)));
 }
 
+/** Same action, one spelling: sorted keys, null/undefined fields dropped (a direct attack has no target). */
+function canon(type: string, payload: Record<string, unknown>): string {
+  const keys = Object.keys(payload)
+    .filter((k) => payload[k] !== null && payload[k] !== undefined)
+    .sort();
+  return JSON.stringify([type, keys.map((k) => [k, payload[k]])]);
+}
+
+let legalChecks = 0;
+
+/**
+ * Cross-check with the server's legalActions: an action is accepted (200) exactly when it is listed. Every action this
+ * script sends goes through here, both the intended ones (must be listed) and the deliberately illegal ones (must not).
+ */
+async function legalityBefore(
+  seat: Seat,
+  type: string,
+  payload: Record<string, unknown>,
+): Promise<boolean> {
+  const r = await call('GET', `/duels/${duelId}?viewer=${seat}`, { token });
+  const list = (r.json as { legalActions?: { type: string; payload: Record<string, unknown> }[] })
+    .legalActions;
+  if (!Array.isArray(list)) throw new Error(`GET view ${seat} has no legalActions: ${r.text}`);
+  const want = canon(type, payload);
+  return list.some((a) => canon(a.type, a.payload) === want);
+}
+
 async function act(seat: Seat, type: string, extra: Record<string, unknown> = {}): Promise<Act> {
-  const body = { playerIndex: seat, action: { type, payload: { playerIndex: seat, ...extra } } };
+  const payload = { playerIndex: seat, ...extra };
+  const body = { playerIndex: seat, action: { type, payload } };
+  const listed = await legalityBefore(seat, type, payload);
   const r = await call('POST', `/duels/${duelId}/actions`, { token, body });
+  legalChecks++;
+  if (listed !== (r.status === 200)) {
+    check(
+      `legalActions agrees with the server for P${seat} ${type}`,
+      false,
+      `listed=${listed} but status=${r.status} ${JSON.stringify(extra)}`,
+    );
+  }
   const tag = `P${seat} ${type}${Object.keys(extra).length ? ` ${JSON.stringify(extra)}` : ''}`;
   if (r.status !== 200) {
     const e = r.json as { code?: string; engineCode?: string };
@@ -581,6 +618,13 @@ async function main(): Promise<void> {
     'action after Surrender is rejected (DUEL_ENDED)',
     after.engineCode === 'DUEL_ENDED',
     `${after.status} ${after.engineCode}`,
+  );
+
+  // Disagreements were already recorded as FAILs inside act(); this line records that the cross-check really ran.
+  check(
+    'every action sent agreed with legalActions (listed ⇔ accepted)',
+    legalChecks > 0 && !results.some((r) => !r.ok && r.name.startsWith('legalActions agrees')),
+    `${legalChecks} actions cross-checked`,
   );
 
   const failed = results.filter((r) => !r.ok);

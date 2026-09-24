@@ -1,3 +1,4 @@
+import type { PlayerAction } from './action-schema.js';
 import type { EventView } from './event-view.js';
 import type { PlayerIndex, StateView } from './state-view.js';
 
@@ -15,6 +16,8 @@ export interface GuestResponse {
 export interface ViewResponse {
   readonly view: StateView;
   readonly events: readonly EventView[];
+  /** Actions the view's seat (`view.viewerIndex`) may submit now; ids/zones only, never a hidden definitionId. */
+  readonly legalActions: readonly PlayerAction[];
 }
 
 /** `POST /duels/solo` */
@@ -27,6 +30,8 @@ export interface CreateSoloResponse extends ViewResponse {
 /** `GET /duels/:id?viewer=` */
 export interface GetViewResponse {
   readonly view: StateView;
+  /** Same meaning as `ViewResponse.legalActions` (seat = `view.viewerIndex`). */
+  readonly legalActions: readonly PlayerAction[];
 }
 
 export interface ValidationIssue {

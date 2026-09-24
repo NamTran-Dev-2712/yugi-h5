@@ -376,3 +376,57 @@ describe('DuelManager 2.3 additions', () => {
     await expectDuelError(manager.getMeta('nope'), 'DUEL_NOT_FOUND');
   });
 });
+
+describe('DuelManager legalActions (2.5)', () => {
+  const types = (list: readonly { type: string }[]) => list.map((a) => a.type);
+
+  it('createDuel returns opening legalActions per seat', async () => {
+    const { manager } = makeManager();
+    const created = await manager.createDuel(CONFIG);
+    expect(types(created.legalActionsByViewer[0])).toEqual(['EndPhase', 'Surrender']);
+    expect(types(created.legalActionsByViewer[1])).toEqual(['Surrender']);
+  });
+
+  it('submitAction returns the SENDER seat legalActions for the state after the action', async () => {
+    const { manager, duelId } = await setup();
+    await toMain1(manager, duelId);
+    const result = await manager.submitAction(duelId, 0, endPhase(0)); // Main1 -> Battle
+    expect(await manager.getLegalActions(duelId, 0)).toEqual(result.legalActions);
+    expect(types(await manager.getLegalActions(duelId, 1))).toEqual(['Surrender']); // not on turn
+  });
+
+  it('lists Summon/Set for the hand in Main1 and drops them after a Normal Summon', async () => {
+    const { manager, duelId } = await setup();
+    await toMain1(manager, duelId);
+    const before = await manager.getLegalActions(duelId, 0);
+    expect(types(before)).toContain('NormalSummon');
+    expect(types(before)).toContain('SetMonster');
+    const summon = before.find((a) => a.type === 'NormalSummon')!;
+    const after = await manager.submitAction(duelId, 0, summon as unknown as Action);
+    expect(types(after.legalActions)).not.toContain('NormalSummon');
+    expect(types(after.legalActions)).not.toContain('SetMonster');
+  });
+
+  it('every listed action is accepted by submitAction (the list is the engine verdict)', async () => {
+    const probe = await setup();
+    await toMain1(probe.manager, probe.duelId);
+    const listed = await probe.manager.getLegalActions(probe.duelId, 0);
+    expect(listed.length).toBeGreaterThan(2);
+    for (const a of listed) {
+      if (a.type === 'Surrender') continue; // would end the duel
+      const fresh = await setup();
+      await toMain1(fresh.manager, fresh.duelId);
+      await expect(
+        fresh.manager.submitAction(fresh.duelId, 0, a as unknown as Action),
+      ).resolves.toBeDefined();
+    }
+  });
+
+  it('is empty once the duel ended and throws DUEL_NOT_FOUND for unknown ids', async () => {
+    const { manager, duelId } = await setup();
+    await manager.submitAction(duelId, 0, { type: 'Surrender', payload: { playerIndex: 0 } });
+    expect(await manager.getLegalActions(duelId, 0)).toEqual([]);
+    expect(await manager.getLegalActions(duelId, 1)).toEqual([]);
+    await expectDuelError(manager.getLegalActions('nope', 0), 'DUEL_NOT_FOUND');
+  });
+});

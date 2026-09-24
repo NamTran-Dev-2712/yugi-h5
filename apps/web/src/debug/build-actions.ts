@@ -190,6 +190,68 @@ export function buildActionButtons(view: StateView, lookup: CardLookup): ActionB
   return buttons;
 }
 
+export interface AnnotatedButton {
+  readonly button: ActionButton;
+  /** true when the server's `legalActions` contains at least one action this button could produce. */
+  readonly legal: boolean;
+}
+
+const payloadOf = (action: PlayerAction): Record<string, unknown> =>
+  action.payload as unknown as Record<string, unknown>;
+
+function narrowInput(input: InputSpec, matching: readonly PlayerAction[]): InputSpec {
+  const allowed = new Set<string>();
+  for (const action of matching) {
+    const p = payloadOf(action);
+    switch (input.name) {
+      case 'zoneIndex':
+        if (typeof p.zoneIndex === 'number') allowed.add(String(p.zoneIndex));
+        break;
+      case 'targetInstanceId':
+        allowed.add(typeof p.targetInstanceId === 'string' ? p.targetInstanceId : '');
+        break;
+      case 'tributeInstanceIds':
+      case 'cardInstanceIds': {
+        const ids = p[input.name];
+        if (Array.isArray(ids)) for (const id of ids) allowed.add(String(id));
+        break;
+      }
+    }
+  }
+  return { ...input, options: input.options.filter((o) => allowed.has(o.value)) };
+}
+
+/**
+ * Marks which buttons the server says are legal (`legalActions`, already filtered by the engine's own validators;
+ * nothing is re-derived here). `narrow` also cuts the choice lists down to values that appear in some legal action;
+ * turn it off to let the tester pick anything and watch the server answer 409.
+ * `legalActions === null` (no server answer yet) leaves every button legal.
+ */
+export function applyLegality(
+  buttons: readonly ActionButton[],
+  legalActions: readonly PlayerAction[] | null,
+  narrow: boolean,
+): AnnotatedButton[] {
+  if (legalActions === null) return buttons.map((button) => ({ button, legal: true }));
+  return buttons.map((button) => {
+    const type = button.type === 'EndTurn' ? 'EndPhase' : button.type;
+    const matching = legalActions.filter((a) => {
+      if (a.type !== type) return false;
+      const p = payloadOf(a);
+      return (
+        p.playerIndex === button.playerIndex &&
+        Object.entries(button.fixed).every(([key, value]) => p[key] === value)
+      );
+    });
+    const legal = matching.length > 0;
+    if (!narrow || !legal || button.inputs.length === 0) return { button, legal };
+    return {
+      button: { ...button, inputs: button.inputs.map((i) => narrowInput(i, matching)) },
+      legal,
+    };
+  });
+}
+
 /** Assembles the action to send from a button + what was chosen; the shared schema has the final say on shape. */
 export function toAction(button: ActionButton, chosen: ChosenValues): PlayerAction {
   if (button.type === 'EndTurn')

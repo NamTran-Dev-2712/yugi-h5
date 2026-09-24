@@ -1,6 +1,6 @@
 # Task 2.4 — Smoke test HTTP thật
 
-Sinh bởi `tools/smoke-http.ts` lúc 2026-09-24T04:14:26.435Z (API: http://localhost:3000). Token được rút gọn; view dài bị cắt khi in (kiểm tra rò rỉ chạy trên bản đầy đủ).
+Sinh bởi `tools/smoke-http.ts` lúc 2026-09-24T04:51:33.679Z (API: http://localhost:3000). Token được rút gọn; view dài bị cắt khi in (kiểm tra rò rỉ chạy trên bản đầy đủ).
 
 ## 0. Health
 
@@ -29,8 +29,8 @@ Response **201**:
 
 ```json
 {
-  "guestId": "da8c1d3b-e6ed-441e-8043-fdac55cd7f1a",
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYThjMWQzYi1lNmVkLTQ0MWUtODA0My1mZGFjNTVjZDdmMWEiLCJraW5kIjoiZ3Vlc3QiLCJpYXQiOjE3OTAyMjMyNjYsImV4cCI6MTc5MDI2NjQ2Nn0.jZkMtThleKi2O1OIFreuSAtl3Y3xa1eelioGccw0W1I"
+  "guestId": "4bf265b1-a999-4021-857e-b3dcce1851a3",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YmYyNjViMS1hOTk5LTQwMjEtODU3ZS1iM2RjY2UxODUxYTMiLCJraW5kIjoiZ3Vlc3QiLCJpYXQiOjE3OTAyMjU0OTMsImV4cCI6MTc5MDI2ODY5M30.ASsXB6ewBJsaIImR50nl5xU-4xcLGhyVNwpjZo_GwR8"
 }
 ```
 
@@ -53,11 +53,11 @@ Response **201**:
 
 ```json
 {
-  "duelId": "99cb200d-10ff-41c3-90fb-bffc7909cfd1",
+  "duelId": "45d23561-d733-4940-b9c1-feb6eb78e8dd",
   "mode": "solo-debug",
   "viewer": 0,
   "view": {
-    "matchId": "99cb200d-10ff-41c3-90fb-bffc7909cfd1",
+    "matchId": "45d23561-d733-4940-b9c1-feb6eb78e8dd",
     "version": 1,
     "viewerIndex": 0,
     "ruleset": {
@@ -86,41 +86,41 @@ Response **201**:
     "pendingPrompt": null,
     "players": [
       {
-        "playerId": "da8c1d3b-e6ed-441e-8043-fdac55cd7f1a:0",
+        "playerId": "4bf265b1-a999-4021-857e-b3dcce1851a3:0",
         "lifePoints": 8000,
         "hand": [
           {
             "hidden": false,
-            "instanceId": "p0-2",
-            "definitionId": "SMP-001",
+            "instanceId": "p0-36",
+            "definitionId": "SMP-013",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-24",
-            "definitionId": "SMP-009",
+            "instanceId": "p0-4",
+            "definitionId": "SMP-002",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-10",
-            "definitionId": "SMP-004",
+            "instanceId": "p0-38",
+            "definitionId": "SMP-013",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-6",
-            "definitionId": "SMP-003",
+            "instanceId": "p0-12",
+            "definitionId": "SMP-005",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-7",
-            "definitionId": "SMP-003",
+            "instanceId": "p0-33",
+            "definitionId": "SMP-012",
             "position": null,
             "ownerIndex": 0
           }
@@ -150,14 +150,14 @@ Response **201**:
         "hasNormalSummonedThisTurn": false
       },
       {
-        "playerId": "da8c1d3b-e6ed-441e-8043-fdac55cd7f1a:1",
+        "playerId": "4bf265b1-a999-4021-857e-b3dcce1851a3:1",
         "lifePoints": 8000,
         "hand": [
           {
             "hidden": true,
-            "instanceId": "p1-17",
-            "ow
-… (cắt 3126 ký tự)
+            "instanceId": "p1-29",
+            "
+… (cắt 3339 ký tự)
 ```
 
 - ✅ POST /duels/solo → 201
@@ -166,7 +166,7 @@ Response **201**:
 ## 3a. Xem duel là viewer 0
 
 ```http
-GET /duels/99cb200d-10ff-41c3-90fb-bffc7909cfd1?viewer=0   (Authorization: Bearer <token>)
+GET /duels/45d23561-d733-4940-b9c1-feb6eb78e8dd?viewer=0   (Authorization: Bearer <token>)
 ```
 
 Response **200**:
@@ -174,7 +174,7 @@ Response **200**:
 ```json
 {
   "view": {
-    "matchId": "99cb200d-10ff-41c3-90fb-bffc7909cfd1",
+    "matchId": "45d23561-d733-4940-b9c1-feb6eb78e8dd",
     "version": 1,
     "viewerIndex": 0,
     "ruleset": {
@@ -203,41 +203,41 @@ Response **200**:
     "pendingPrompt": null,
     "players": [
       {
-        "playerId": "da8c1d3b-e6ed-441e-8043-fdac55cd7f1a:0",
+        "playerId": "4bf265b1-a999-4021-857e-b3dcce1851a3:0",
         "lifePoints": 8000,
         "hand": [
           {
             "hidden": false,
-            "instanceId": "p0-2",
-            "definitionId": "SMP-001",
+            "instanceId": "p0-36",
+            "definitionId": "SMP-013",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-24",
-            "definitionId": "SMP-009",
+            "instanceId": "p0-4",
+            "definitionId": "SMP-002",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-10",
-            "definitionId": "SMP-004",
+            "instanceId": "p0-38",
+            "definitionId": "SMP-013",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-6",
-            "definitionId": "SMP-003",
+            "instanceId": "p0-12",
+            "definitionId": "SMP-005",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-7",
-            "definitionId": "SMP-003",
+            "instanceId": "p0-33",
+            "definitionId": "SMP-012",
             "position": null,
             "ownerIndex": 0
           }
@@ -267,24 +267,24 @@ Response **200**:
         "hasNormalSummonedThisTurn": false
       },
       {
-        "playerId": "da8c1d3b-e6ed-441e-8043-fdac55cd7f1a:1",
+        "playerId": "4bf265b1-a999-4021-857e-b3dcce1851a3:1",
         "lifePoints": 8000,
         "hand": [
           {
             "hidden": true,
-            "instanceId": "p1-17",
+            "instanceId": "p1-29",
             "ownerIndex": 1
           },
           {
             "hidden": true,
-            "instanceId":
-… (cắt 916 ký tự)
+            "instanceId
+… (cắt 1126 ký tự)
 ```
 
 ## 3b. Xem duel là viewer 1
 
 ```http
-GET /duels/99cb200d-10ff-41c3-90fb-bffc7909cfd1?viewer=1   (Authorization: Bearer <token>)
+GET /duels/45d23561-d733-4940-b9c1-feb6eb78e8dd?viewer=1   (Authorization: Bearer <token>)
 ```
 
 Response **200**:
@@ -292,7 +292,7 @@ Response **200**:
 ```json
 {
   "view": {
-    "matchId": "99cb200d-10ff-41c3-90fb-bffc7909cfd1",
+    "matchId": "45d23561-d733-4940-b9c1-feb6eb78e8dd",
     "version": 1,
     "viewerIndex": 1,
     "ruleset": {
@@ -321,32 +321,32 @@ Response **200**:
     "pendingPrompt": null,
     "players": [
       {
-        "playerId": "da8c1d3b-e6ed-441e-8043-fdac55cd7f1a:0",
+        "playerId": "4bf265b1-a999-4021-857e-b3dcce1851a3:0",
         "lifePoints": 8000,
         "hand": [
           {
             "hidden": true,
-            "instanceId": "p0-2",
+            "instanceId": "p0-36",
             "ownerIndex": 0
           },
           {
             "hidden": true,
-            "instanceId": "p0-24",
+            "instanceId": "p0-4",
             "ownerIndex": 0
           },
           {
             "hidden": true,
-            "instanceId": "p0-10",
+            "instanceId": "p0-38",
             "ownerIndex": 0
           },
           {
             "hidden": true,
-            "instanceId": "p0-6",
+            "instanceId": "p0-12",
             "ownerIndex": 0
           },
           {
             "hidden": true,
-            "instanceId": "p0-7",
+            "instanceId": "p0-33",
             "ownerIndex": 0
           }
         ],
@@ -375,30 +375,30 @@ Response **200**:
         "hasNormalSummonedThisTurn": false
       },
       {
-        "playerId": "da8c1d3b-e6ed-441e-8043-fdac55cd7f1a:1",
+        "playerId": "4bf265b1-a999-4021-857e-b3dcce1851a3:1",
         "lifePoints": 8000,
         "hand": [
           {
             "hidden": false,
-            "instanceId": "p1-17",
-            "definitionId": "SMP-006",
+            "instanceId": "p1-29",
+            "definitionId": "SMP-010",
             "position": null,
             "ownerIndex": 1
           },
           {
             "hidden": false,
-            "instanceId": "p1-0",
-            "definitionId": "SMP-001",
+            "instanceId": "p1-6",
+            "definitionId": "SMP-003",
             "position": null,
             "ownerIndex": 1
           },
           {
             "hidden": false,
-            "instanceId": "p1-30",
-            "definitionId": "SMP-011",
+            "instanceId": "p1-12",
+            "definitionId": "SMP-005",
             "position": null,
-            "ow
-… (cắt 916 ký tự)
+            "
+… (cắt 1035 ký tự)
 ```
 
 - ✅ response viewer 0 không lộ definitionId của tay P1
@@ -406,11 +406,14 @@ Response **200**:
 - ✅ response tạo duel (viewer 0) không lộ tay P1
 - ✅ grep thô: definitionId chỉ có trong tay P1 không xuất hiện trong response viewer 0 — đã kiểm 3 id; trùng: không
 - ✅ response không chứa rng / actionLog
+- ✅ GET viewer 0 có legalActions [EndPhase, Surrender]; viewer 1 (không đến lượt) chỉ [Surrender] — EndPhase,Surrender | Surrender
+- ✅ legalActions không chứa definitionId
+- ✅ POST /duels/solo trả legalActions của viewer 0
 
 ## 4a. Action hợp lệ: P0 EndPhase (Draw → Standby)
 
 ```http
-POST /duels/99cb200d-10ff-41c3-90fb-bffc7909cfd1/actions   (Authorization: Bearer <token>)
+POST /duels/45d23561-d733-4940-b9c1-feb6eb78e8dd/actions   (Authorization: Bearer <token>)
 ```
 
 Request body:
@@ -424,7 +427,7 @@ Response **200**:
 ```json
 {
   "view": {
-    "matchId": "99cb200d-10ff-41c3-90fb-bffc7909cfd1",
+    "matchId": "45d23561-d733-4940-b9c1-feb6eb78e8dd",
     "version": 2,
     "viewerIndex": 0,
     "ruleset": {
@@ -453,41 +456,41 @@ Response **200**:
     "pendingPrompt": null,
     "players": [
       {
-        "playerId": "da8c1d3b-e6ed-441e-8043-fdac55cd7f1a:0",
+        "playerId": "4bf265b1-a999-4021-857e-b3dcce1851a3:0",
         "lifePoints": 8000,
         "hand": [
           {
             "hidden": false,
-            "instanceId": "p0-2",
-            "definitionId": "SMP-001",
+            "instanceId": "p0-36",
+            "definitionId": "SMP-013",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-24",
-            "definitionId": "SMP-009",
+            "instanceId": "p0-4",
+            "definitionId": "SMP-002",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-10",
-            "definitionId": "SMP-004",
+            "instanceId": "p0-38",
+            "definitionId": "SMP-013",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-6",
-            "definitionId": "SMP-003",
+            "instanceId": "p0-12",
+            "definitionId": "SMP-005",
             "position": null,
             "ownerIndex": 0
           },
           {
             "hidden": false,
-            "instanceId": "p0-7",
-            "definitionId": "SMP-003",
+            "instanceId": "p0-33",
+            "definitionId": "SMP-012",
             "position": null,
             "ownerIndex": 0
           }
@@ -517,27 +520,28 @@ Response **200**:
         "hasNormalSummonedThisTurn": false
       },
       {
-        "playerId": "da8c1d3b-e6ed-441e-8043-fdac55cd7f1a:1",
+        "playerId": "4bf265b1-a999-4021-857e-b3dcce1851a3:1",
         "lifePoints": 8000,
         "hand": [
           {
             "hidden": true,
-            "instanceId": "p1-17",
+            "instanceId": "p1-29",
             "ownerIndex": 1
           },
           {
             "hidden": true,
-            "instanceI
-… (cắt 1052 ký tự)
+            "instanc
+… (cắt 1262 ký tự)
 ```
 
 - ✅ EndPhase hợp lệ → 200, phase Standby, version tăng
+- ✅ POST action trả legalActions của người gửi (sau EndPhase vẫn [EndPhase, Surrender]) — EndPhase,Surrender
 - ✅ lượt 1: P0 không rút bài khi rời Draw (deck không giảm)
 
 ## 4b. Action sai luật: P1 EndPhase trong lượt P0
 
 ```http
-POST /duels/99cb200d-10ff-41c3-90fb-bffc7909cfd1/actions   (Authorization: Bearer <token>)
+POST /duels/45d23561-d733-4940-b9c1-feb6eb78e8dd/actions   (Authorization: Bearer <token>)
 ```
 
 Request body:
@@ -557,13 +561,14 @@ Response **409**:
 }
 ```
 
+- ✅ action sai luật (P1 EndPhase) KHÔNG nằm trong legalActions của P1 — Surrender
 - ✅ sai lượt → 409 ACTION_REJECTED + engineCode NOT_TURN_PLAYER
 - ✅ state không đổi sau lỗi 409 (version giữ nguyên)
 
 ## 4c. Payload méo: zoneIndex = 9
 
 ```http
-POST /duels/99cb200d-10ff-41c3-90fb-bffc7909cfd1/actions   (Authorization: Bearer <token>)
+POST /duels/45d23561-d733-4940-b9c1-feb6eb78e8dd/actions   (Authorization: Bearer <token>)
 ```
 
 Request body:
@@ -600,7 +605,7 @@ Response **400**:
 ## 5a. Guest khác xem duel của người ta
 
 ```http
-GET /duels/99cb200d-10ff-41c3-90fb-bffc7909cfd1?viewer=0   (Authorization: Bearer <token>)
+GET /duels/45d23561-d733-4940-b9c1-feb6eb78e8dd?viewer=0   (Authorization: Bearer <token>)
 ```
 
 Response **403**:
@@ -618,7 +623,7 @@ Response **403**:
 ## 5b. Không token
 
 ```http
-GET /duels/99cb200d-10ff-41c3-90fb-bffc7909cfd1?viewer=0
+GET /duels/45d23561-d733-4940-b9c1-feb6eb78e8dd?viewer=0
 ```
 
 Response **401**:
@@ -635,4 +640,4 @@ Response **401**:
 
 ## Tổng kết
 
-**Tất cả 18 kiểm tra đạt.**
+**Tất cả 23 kiểm tra đạt.**

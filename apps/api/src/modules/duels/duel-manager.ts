@@ -2,12 +2,19 @@ import { randomUUID } from 'node:crypto';
 import {
   applyAction,
   EngineError,
+  getLegalActions,
   type Action,
   type GameEvent,
   type GameState,
   type StartDuelAction,
 } from '@yugi/game-engine';
-import type { CardDefinition, EventView, RulesetConfig, StateView } from '@yugi/shared';
+import type {
+  CardDefinition,
+  EventView,
+  PlayerAction,
+  RulesetConfig,
+  StateView,
+} from '@yugi/shared';
 import { DuelServiceError } from './duel-errors';
 import { toEventViews } from './event-view';
 import type { DuelMode, DuelSession, DuelStore } from './duel-store';
@@ -33,6 +40,8 @@ export interface CreateDuelResult {
   readonly views: readonly [StateView, StateView];
   /** Opening events (`DuelStarted` + opening `CardDrawn`s) already filtered per viewer. */
   readonly eventsByViewer: readonly [readonly EventView[], readonly EventView[]];
+  /** Opening legal actions per seat (index i = what seat i may submit now). */
+  readonly legalActionsByViewer: readonly [readonly PlayerAction[], readonly PlayerAction[]];
 }
 
 export interface DuelManagerOptions {
@@ -53,6 +62,8 @@ export interface SubmitActionResult {
    * The engine raw events never leave this class.
    */
   readonly eventsByViewer: readonly [readonly EventView[], readonly EventView[]];
+  /** What the SENDER seat may submit next (state after this action). */
+  readonly legalActions: readonly PlayerAction[];
 }
 
 /**
@@ -110,6 +121,7 @@ export class DuelManager {
       duelId,
       views: [toStateView(state, 0), toStateView(state, 1)],
       eventsByViewer: [toEventViews(events, 0), toEventViews(events, 1)],
+      legalActionsByViewer: [this.legalActionsOf(state, 0), this.legalActionsOf(state, 1)],
     };
   }
 
@@ -152,6 +164,7 @@ export class DuelManager {
         view: toStateView(result.state, playerIndex),
         events: eventsByViewer[playerIndex],
         eventsByViewer,
+        legalActions: this.legalActionsOf(result.state, playerIndex),
       };
     });
   }
@@ -159,6 +172,20 @@ export class DuelManager {
   async getView(duelId: string, viewerIndex: 0 | 1): Promise<StateView> {
     const session = await this.requireSession(duelId);
     return toStateView(session.state, viewerIndex);
+  }
+
+  /** What `seat` may submit now: candidates filtered by the engine's own validators (see `getLegalActions`). */
+  async getLegalActions(duelId: string, seat: 0 | 1): Promise<readonly PlayerAction[]> {
+    const session = await this.requireSession(duelId);
+    return this.legalActionsOf(session.state, seat);
+  }
+
+  private legalActionsOf(state: GameState, seat: 0 | 1): PlayerAction[] {
+    const actions = getLegalActions(state, seat, { cardDefinitions: this.cardDefinitions });
+    // The engine never lists StartDuel/Draw; the filter narrows the type to the wire shape (PlayerActionSchema).
+    return actions.filter(
+      (a) => a.type !== 'StartDuel' && a.type !== 'Draw',
+    ) as unknown as PlayerAction[];
   }
 
   /** Who owns the duel and in which mode; no game state, safe for access checks. */

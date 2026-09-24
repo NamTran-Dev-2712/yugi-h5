@@ -12,7 +12,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Action } from '@yugi/game-engine';
-import { STARTER_DECK, validateDeck, type EventView, type StateView } from '@yugi/shared';
+import {
+  STARTER_DECK,
+  validateDeck,
+  type EventView,
+  type PlayerAction,
+  type StateView,
+} from '@yugi/shared';
 import type { z } from 'zod';
 import { ZodPipe } from '../../common/pipes/zod-pipe';
 import { GuestAuthGuard, GuestId } from '../auth/guest-auth.guard';
@@ -22,10 +28,11 @@ import { DuelServiceErrorFilter } from './duel-error.filter';
 import { DuelService } from './duel.service';
 import { ActionBody, CreateSoloBody, ViewerQuery } from './duels.dto';
 
-/** Everything a viewer gets back: their own view and their own filtered events, never the other seat's. */
+/** Everything a viewer gets back: their own view, events and legal actions, never the other seat's. */
 interface ViewResponse {
   readonly view: StateView;
   readonly events: readonly EventView[];
+  readonly legalActions: readonly PlayerAction[];
 }
 
 /** HTTP only: parse, authorize through `duel-access`, call `DuelService`, answer. No game logic here. */
@@ -68,6 +75,7 @@ export class DuelsController {
       viewer,
       view: created.views[viewer],
       events: created.eventsByViewer[viewer],
+      legalActions: created.legalActionsByViewer[viewer],
     };
   }
 
@@ -76,9 +84,12 @@ export class DuelsController {
     @GuestId() guestId: string,
     @Param('id') duelId: string,
     @Query(new ZodPipe(ViewerQuery)) query: z.infer<typeof ViewerQuery>,
-  ): Promise<{ view: StateView }> {
+  ): Promise<{ view: StateView; legalActions: readonly PlayerAction[] }> {
     assertMayView(await this.duels.getMeta(duelId), guestId, query.viewer);
-    return { view: await this.duels.getView(duelId, query.viewer) };
+    return {
+      view: await this.duels.getView(duelId, query.viewer),
+      legalActions: await this.duels.getLegalActions(duelId, query.viewer),
+    };
   }
 
   @Post(':id/actions')
@@ -95,6 +106,6 @@ export class DuelsController {
       body.playerIndex,
       body.action as unknown as Action,
     );
-    return { view: result.view, events: result.events };
+    return { view: result.view, events: result.events, legalActions: result.legalActions };
   }
 }

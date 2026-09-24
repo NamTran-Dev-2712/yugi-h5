@@ -10,12 +10,13 @@ import {
 } from '@yugi/shared';
 import type { DuelApi } from '../api/duel-api';
 import {
+  applyLegality,
   buildActionButtons,
   cardLabel,
   pickViewer,
   shouldContinueEndTurn,
   toAction,
-  type ActionButton,
+  type AnnotatedButton,
   type ChosenValues,
 } from './build-actions';
 import {
@@ -86,6 +87,7 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
   let state: DebugState = initialDebugState;
   let autoSwitch = true;
   let showRaw = false;
+  let allowIllegal = false;
   let busy = false;
 
   const describeAll = (events: readonly EventView[], view: StateView): string[] =>
@@ -113,7 +115,7 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
   async function fetchViewer(seat: PlayerIndex): Promise<void> {
     if (state.duelId === null) return;
     const res = await api.getView(state.duelId, seat);
-    state = { ...state, view: res.view, raw: res, error: null };
+    state = { ...state, view: res.view, legalActions: res.legalActions, raw: res, error: null };
   }
 
   async function follow(): Promise<void> {
@@ -136,6 +138,7 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
         ...initialDebugState,
         duelId: res.duelId,
         view: res.view,
+        legalActions: res.legalActions,
         log: describeAll(res.events, res.view),
         raw: res,
       };
@@ -152,7 +155,7 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
       await follow();
     });
 
-  function actionRow(button: ActionButton): HTMLElement {
+  function actionRow({ button, legal }: AnnotatedButton): HTMLElement {
     const getters: Array<() => [string, string | string[]]> = [];
     const inputs = h('div', { class: 'inputs' });
     for (const spec of button.inputs) {
@@ -193,8 +196,10 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
         });
       },
     });
-    go.disabled = busy;
-    return h('div', { class: 'action' }, go, inputs);
+    // Not in the server's legalActions: dimmed, and only clickable when the tester turned "allow illegal" on.
+    go.disabled = busy || (!legal && !allowIllegal);
+    if (!legal) go.title = 'Server: không có trong legalActions (bật công tắc để thử, sẽ nhận 409)';
+    return h('div', { class: legal ? 'action' : 'action illegal' }, go, inputs);
   }
 
   function playerPanel(view: StateView, seat: PlayerIndex): HTMLElement {
@@ -279,6 +284,18 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
         }),
         ' Raw JSON',
       ),
+      h(
+        'label',
+        {},
+        Object.assign(h('input', { attrs: { type: 'checkbox' } }), {
+          checked: allowIllegal,
+          onchange: (e: Event) => {
+            allowIllegal = (e.target as HTMLInputElement).checked;
+            render();
+          },
+        }),
+        ' Cho phép thử hành động sai luật (nút mờ vẫn bấm được → xem 409)',
+      ),
       h('span', { class: 'muted', text: state.duelId ? `duel ${state.duelId}` : 'chưa có duel' }),
       busy ? h('span', { text: '⏳ đang gửi…' }) : null,
     );
@@ -315,7 +332,12 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
         { class: 'panel' },
         h('h2', { text: `Hành động của P${view.viewerIndex}` }),
       );
-      const buttons = buildActionButtons(view, lookup);
+      // Narrow the choice lists only while illegal attempts are off; otherwise the tester may pick anything.
+      const buttons = applyLegality(
+        buildActionButtons(view, lookup),
+        state.legalActions,
+        !allowIllegal,
+      );
       if (buttons.length === 0)
         actions.append(h('div', { class: 'muted', text: '(không có — trận đã kết thúc)' }));
       for (const b of buttons) actions.append(actionRow(b));

@@ -2,12 +2,14 @@ import {
   PlayerActionSchema,
   type CardDefinition,
   type CardView,
+  type PlayerAction,
   type PlayerView,
   type StateView,
   type ViewCardPosition,
 } from '@yugi/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  applyLegality,
   buildActionButtons,
   pickViewer,
   shouldContinueEndTurn,
@@ -323,5 +325,92 @@ describe('shouldContinueEndTurn', () => {
     ],
   ])('stops when %s', (_n, v) => {
     expect(shouldContinueEndTurn(1, v)).toBe(false);
+  });
+});
+
+describe('applyLegality', () => {
+  const v = view({
+    p0: {
+      hand: [visible('p0-1', 'MON', 0)],
+      board: {
+        monsterZones: [visible('p0-9', 'MON', 0, 'Attack'), null, null, null, null],
+        spellTrapZones: EMPTY5,
+        fieldZone: null,
+      },
+    },
+    p1: {
+      board: {
+        monsterZones: [visible('p1-5', 'MON', 1, 'Attack'), null, null, null, null],
+        spellTrapZones: EMPTY5,
+        fieldZone: null,
+      },
+    },
+  });
+  const buttons = buildActionButtons(v, lookup);
+  const legalOf = (list: readonly PlayerAction[], narrow = true) =>
+    Object.fromEntries(applyLegality(buttons, list, narrow).map((a) => [a.button.id, a.legal]));
+
+  it('leaves everything legal before the server has answered (null)', () => {
+    const all = applyLegality(buttons, null, true);
+    expect(all.every((a) => a.legal)).toBe(true);
+  });
+
+  it('marks only buttons that appear in legalActions', () => {
+    const legal = legalOf([
+      { type: 'EndPhase', payload: { playerIndex: 0 } },
+      { type: 'Surrender', payload: { playerIndex: 0 } },
+    ]);
+    expect(legal['EndPhase']).toBe(true);
+    expect(legal['EndTurn']).toBe(true); // EndTurn = repeated EndPhase
+    expect(legal['Surrender']).toBe(true);
+    expect(legal['NormalSummon:p0-1']).toBe(false);
+    expect(legal['SetMonster:p0-1']).toBe(false);
+    expect(legal['DeclareAttack:p0-9']).toBe(false);
+    expect(legal['ChangePosition:p0-9']).toBe(false);
+  });
+
+  it('matches by card (fixed payload fields), not just by action type', () => {
+    const legal = legalOf([
+      {
+        type: 'NormalSummon',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-OTHER', zoneIndex: 1 },
+      },
+    ]);
+    expect(legal['NormalSummon:p0-1']).toBe(false);
+  });
+
+  it('narrows zone and target choices to the legal ones, and keeps all of them when narrow=false', () => {
+    const list: PlayerAction[] = [
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-1', zoneIndex: 2 } },
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-1', zoneIndex: 4 } },
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-9', targetInstanceId: 'p1-5' },
+      },
+    ];
+    const narrowed = applyLegality(buttons, list, true);
+    const summon = narrowed.find((a) => a.button.id === 'NormalSummon:p0-1')!.button;
+    expect(summon.inputs[0]!.options.map((o) => o.value)).toEqual(['2', '4']);
+    const attack = narrowed.find((a) => a.button.id === 'DeclareAttack:p0-9')!.button;
+    expect(attack.inputs[0]!.options.map((o) => o.value)).toEqual(['p1-5']); // no direct attack
+
+    const wide = applyLegality(buttons, list, false).find(
+      (a) => a.button.id === 'NormalSummon:p0-1',
+    )!.button;
+    expect(wide.inputs[0]!.options).toHaveLength(5);
+  });
+
+  it('offers the direct-attack option only when a direct attack is legal', () => {
+    const direct: PlayerAction[] = [
+      { type: 'DeclareAttack', payload: { playerIndex: 0, attackerInstanceId: 'p0-9' } },
+    ];
+    const attack = applyLegality(buttons, direct, true).find(
+      (a) => a.button.id === 'DeclareAttack:p0-9',
+    )!.button;
+    expect(attack.inputs[0]!.options.map((o) => o.value)).toEqual(['']);
+  });
+
+  it('is fully illegal (nothing enabled) for an empty list', () => {
+    expect(applyLegality(buttons, [], true).some((a) => a.legal)).toBe(false);
   });
 });

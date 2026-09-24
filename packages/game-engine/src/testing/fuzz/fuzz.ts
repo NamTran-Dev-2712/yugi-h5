@@ -52,6 +52,8 @@ export interface FuzzOptions {
   readonly steps?: number;
   /** Engine under test; injectable so the harness itself can be tested against deliberately broken engines. */
   readonly apply?: ApplyFn;
+  /** Extra per-state check run after every accepted action; return a violation message or null. */
+  readonly onState?: (state: GameState, ctx: ActionContext, step: number) => string | null;
 }
 
 export interface FuzzStats {
@@ -472,6 +474,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
     }
     const broken = checkStateInvariants(next, initialIds);
     if (broken) return fail(step, broken);
+    const custom = options.onState?.(next, ctx, step);
+    if (custom) return fail(step, custom);
     state = next;
   }
 

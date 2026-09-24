@@ -4,7 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
-import { SAMPLE_CARDS, STARTER_DECK, type StateView } from '@yugi/shared';
+import { PlayerActionSchema, SAMPLE_CARDS, STARTER_DECK, type StateView } from '@yugi/shared';
 import { LoggerModule } from 'nestjs-pino';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -81,6 +81,10 @@ const act = (d: Duel, playerIndex: 0 | 1, type: string, extra: object = {}) =>
 
 const viewOf = async (d: Duel, viewer: 0 | 1): Promise<StateView> =>
   (await http().get(`/duels/${d.duelId}?viewer=${viewer}`).set(d.guest.auth).expect(200)).body.view;
+
+const legalOf = async (d: Duel, viewer: 0 | 1): Promise<{ type: string }[]> =>
+  (await http().get(`/duels/${d.duelId}?viewer=${viewer}`).set(d.guest.auth).expect(200)).body
+    .legalActions;
 
 describe('POST /auth/guest', () => {
   it('issues a JWT whose sub is a fresh guest id', async () => {
@@ -242,6 +246,20 @@ describe('POST /duels/solo', () => {
   });
 });
 
+describe('POST /duels/solo legalActions', () => {
+  it('returns the legalActions of the requested viewer seat', async () => {
+    const guest = await newGuest();
+    const types = async (viewer: 0 | 1) => {
+      const res = await http().post('/duels/solo').set(guest.auth).send({ viewer }).expect(201);
+      expect(res.body.view.viewerIndex).toBe(viewer);
+      return (res.body.legalActions as { type: string }[]).map((a) => a.type);
+    };
+    const first = await types(0);
+    expect(first).toEqual(['EndPhase', 'Surrender']);
+    expect(await types(1)).toEqual(['Surrender']);
+  });
+});
+
 describe('GET /duels/:id', () => {
   it('returns each seat view to the owner', async () => {
     const d = await newDuel();
@@ -253,6 +271,17 @@ describe('GET /duels/:id', () => {
     const d = await newDuel();
     const res = await http().get(`/duels/${d.duelId}`).set(d.guest.auth).expect(200);
     expect(res.body.view.viewerIndex).toBe(0);
+  });
+
+  it('returns the viewer seat legalActions, all of which parse as player actions', async () => {
+    const d = await newDuel();
+    const turn = (await viewOf(d, 0)).turnPlayerIndex;
+    const idle = (1 - turn) as 0 | 1;
+    const mine = await legalOf(d, turn);
+    expect(mine.map((a) => a.type)).toEqual(['EndPhase', 'Surrender']);
+    for (const a of mine) expect(PlayerActionSchema.safeParse(a).success).toBe(true);
+    // The seat that is not on turn can only concede.
+    expect((await legalOf(d, idle)).map((a) => a.type)).toEqual(['Surrender']);
   });
 
   it('answers 403 NOT_OWNER to another guest, for both seats', async () => {
@@ -286,6 +315,11 @@ describe('POST /duels/:id/actions', () => {
     expect(res.body.view.phase).toBe('Standby');
     expect(res.body.events[0]).toMatchObject({ type: 'PhaseChanged' });
     expect(res.body.eventsByViewer).toBeUndefined();
+    // legalActions belong to the sender seat, computed on the state AFTER the action (Standby → EndPhase again).
+    expect(res.body.legalActions.map((a: { type: string }) => a.type)).toEqual([
+      'EndPhase',
+      'Surrender',
+    ]);
   });
 
   it('answers 409 DUEL_ENDED for any action after a Surrender', async () => {
@@ -451,11 +485,26 @@ describe('a short duel over HTTP never leaks hidden information', () => {
     const problems: string[] = [];
 
     /** Check the response the sender got and both seat views against what is hidden right now. */
-    const audit = async (label: string, senderBody?: { view: StateView; events: unknown[] }) => {
+    const audit = async (
+      label: string,
+      senderBody?: { view: StateView; events: unknown[]; legalActions: unknown[] },
+    ) => {
       const views: [StateView, StateView] = [await viewOf(d, 0), await viewOf(d, 1)];
       for (const viewer of [0, 1] as const) {
         const other = (1 - viewer) as 0 | 1;
         const hidden = hiddenFrom(views[other], other);
+        // legalActions: never a definitionId, and never name the opponent's hand cards (their ids are secret too).
+        const legal = JSON.stringify(await legalOf(d, viewer));
+        if (legal.includes('definitionId'))
+          problems.push(`${label} legalActions viewer ${viewer}: definitionId`);
+        for (const c of views[other].players[other].hand) {
+          // the opponent's hand instanceIds must not be addressable by this viewer
+          if (legal.includes(`"${c.instanceId}"`)) {
+            problems.push(
+              `${label} legalActions viewer ${viewer} names opponent hand card ${c.instanceId}`,
+            );
+          }
+        }
         problems.push(
           ...findLeaks(views[viewer], hidden).map((p) => `${label} GET viewer ${viewer}: ${p}`),
         );
@@ -468,6 +517,15 @@ describe('a short duel over HTTP never leaks hidden information', () => {
         problems.push(
           ...findLeaks(senderBody, hidden).map((p) => `${label} action response: ${p}`),
         );
+        const legal = JSON.stringify(senderBody.legalActions);
+        if (legal.includes('definitionId'))
+          problems.push(`${label} action response legalActions: definitionId`);
+        for (const id of views[(1 - sender) as 0 | 1].players[(1 - sender) as 0 | 1].hand.map(
+          (c) => c.instanceId,
+        )) {
+          if (legal.includes(`"${id}"`))
+            problems.push(`${label} action response legalActions names opponent hand ${id}`);
+        }
       }
     };
 

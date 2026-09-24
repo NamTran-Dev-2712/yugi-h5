@@ -126,7 +126,12 @@ describe('submitAction result shape', () => {
   it('exposes only filtered events: view, events (sender) and eventsByViewer', async () => {
     const ctx = await setup();
     const result = await ctx.manager.submitAction(ctx.duelId, 0, endPhase(0));
-    expect(Object.keys(result).sort()).toEqual(['events', 'eventsByViewer', 'view']);
+    expect(Object.keys(result).sort()).toEqual([
+      'events',
+      'eventsByViewer',
+      'legalActions',
+      'view',
+    ]);
     expect(result.events).toBe(result.eventsByViewer[0]);
     expect(result.eventsByViewer[0].map((e) => e.type)).toEqual(['PhaseChanged']);
     expect(result.eventsByViewer[1]).toEqual(result.eventsByViewer[0]);
