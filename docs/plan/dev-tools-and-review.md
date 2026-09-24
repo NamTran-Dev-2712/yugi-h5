@@ -5,8 +5,8 @@ Trang dev nằm dưới `/dev/*` trong web, ẩn khỏi production build.
 
 | Tool              | Việc                                                                                                                                      | Phase | Task     |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----- | -------- |
-| Event/Action Log  | Panel trong Duel, bật/tắt, hiện action + event theo thời gian                                                                             | P2    | 2.8      |
-| Duel Sandbox      | Nạp `scenarios/*.json` (board state) → thao tác thủ công → xem event log; scenario mẫu: `tribute-summon`, `attack-defense`, `chain-basic` | P2    | 2.9      |
+| Event/Action Log  | Panel trong Duel, bật/tắt, hiện action + event theo thời gian                                                                             | P2    | 2.9      |
+| Duel Sandbox      | Nạp `scenarios/*.json` (board state) → thao tác thủ công → xem event log; scenario mẫu: `tribute-summon`, `attack-defense`, `chain-basic` | P2    | 2.10     |
 | Card Gallery      | Xem/lọc card; art thật hay placeholder; effect dạng text; lọc thiếu art; theo batch/tag                                                   | P5    | 5.5      |
 | Animation Preview | Chọn GameEvent/VFX → phát lại, chỉnh tốc độ, so với reference, đánh dấu duyệt                                                             | P6    | 6.5      |
 | Replay Viewer     | Nạp seed + action log → bước từng action, xem state/event                                                                                 | P6    | 6.7      |

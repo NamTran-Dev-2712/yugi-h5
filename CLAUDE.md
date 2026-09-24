@@ -96,6 +96,8 @@ dùng placeholder — KHÔNG tự bịa/tải asset. Không thêm `sharp`/Spine/
 
 **Dev tool** (Sandbox, Replay, Animation Preview) đi qua dev-endpoint ở `apps/api` (tắt ở production); `apps/web` vẫn không import engine.
 
+**Tạo file bằng Write/Edit, không bằng Bash heredoc có dấu nháy** (`<<'EOF'`, `<<"EOF"`): hook PreToolUse `.claude/hooks/block-heredoc.js` (đăng ký trong `.claude/settings.json`, test: `node --test .claude/hooks/block-heredoc.test.js`) chặn lệnh Bash chứa heredoc kiểu đó và nhắc "Tạo file bằng Write". **Script chạy thật qua HTTP** ở `tools/` (không thuộc package nào, không thêm dependency): `node --experimental-strip-types tools/smoke-http.ts` (smoke API thật, ghi `docs/ai/review-packets/task-2.4-smoke.md`) và `tools/play-duel.ts` (tự chơi 1 ván; `HEAVY=1` để có nhánh Tribute) — cần API + Postgres đang chạy.
+
 ## TUYỆT ĐỐI KHÔNG
 
 - Import `phaser`/`@nestjs/*`/`socket.io`/Node API vào `packages/game-engine`.

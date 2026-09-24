@@ -382,6 +382,37 @@ describe('POST /duels/:id/actions', () => {
     const d = await newDuel();
     await http().post(`/duels/${d.duelId}/actions`).set(d.guest.auth).send(body).expect(400);
   });
+
+  it.each([
+    ['summon without cardInstanceId', 'NormalSummon', { zoneIndex: 0 }],
+    ['summon zone out of range', 'NormalSummon', { cardInstanceId: 'p0-1', zoneIndex: 9 }],
+    [
+      'set with tributes that are not strings',
+      'SetMonster',
+      { cardInstanceId: 'p0-1', zoneIndex: 0, tributeInstanceIds: [1] },
+    ],
+    [
+      'position DefenseDown',
+      'ChangePosition',
+      { cardInstanceId: 'p0-1', toPosition: 'DefenseDown' },
+    ],
+    ['attack without attacker', 'DeclareAttack', {}],
+    [
+      'prompt answer not an array',
+      'ResolvePendingPrompt',
+      { promptId: 'x', cardInstanceIds: 'p0-1' },
+    ],
+    ['unknown payload key', 'EndPhase', { hax: true }],
+  ])(
+    'rejects a malformed payload (%s) with 400, not 500, and changes nothing',
+    async (_n, type, extra) => {
+      const d = await newDuel();
+      const before = await viewOf(d, 0);
+      const res = await act(d, 0, type, extra).expect(400);
+      expect(res.body.statusCode).toBe(400);
+      expect(await viewOf(d, 0)).toEqual(before);
+    },
+  );
 });
 
 describe('a short duel over HTTP never leaks hidden information', () => {

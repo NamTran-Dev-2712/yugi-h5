@@ -9,8 +9,8 @@ với giả định và đánh dấu "nháp". Nộp = thả file vào thư mục
 | --- | -------------------------------------------------------------------- | ------------------ | -------- | ------------ | -------------------------------- | ------- |
 | ☐   | Duyệt bộ plan này (MASTER-PLAN + ADR)                                | Trả lời "OK"/góp ý | 1        | P1           | Chat                             | Bạn     |
 | ☐   | Trả lời câu G1–G2 (lượt 1 draw/attack? tribute flow?)                | Chữ/ảnh            | 2 câu    | Task 1.2/1.4 | `docs/reference/notes/rules.md`  | AI      |
-| ☐   | Screenshot Duel gốc (đầu lượt, chọn summon, tribute, attack, prompt) | PNG ≥1080p         | ≥ 8      | Task 2.5     | `docs/reference/duel/`           | AI      |
-| ☐   | Ghi chú quirk luật/flow (auto-chain? timer? hỏi activate?)           | Markdown tự do     | 1 file   | Task 2.5     | `docs/reference/notes/quirks.md` | AI      |
+| ☐   | Screenshot Duel gốc (đầu lượt, chọn summon, tribute, attack, prompt) | PNG ≥1080p         | ≥ 8      | Task 2.6     | `docs/reference/duel/`           | AI      |
+| ☐   | Ghi chú quirk luật/flow (auto-chain? timer? hỏi activate?)           | Markdown tự do     | 1 file   | Task 2.6     | `docs/reference/notes/quirks.md` | AI      |
 
 ## Theo phase
 

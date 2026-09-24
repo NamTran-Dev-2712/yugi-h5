@@ -51,7 +51,7 @@ Task con:
 | 1.1 | `RulesetConfig` (Zod, shared) + `state.ruleset`                                                                                                                 | Engine | S      |
 | 1.2 | `EndPhase` + phase transition + turn change + first-turn rules                                                                                                  | Engine | M      |
 | 1.3 | `NormalSummon`/`SetMonster` (level 1-4)                                                                                                                         | Engine | S      |
-| 1.4 | Tribute Summon/Set (level 5-6, 7+) qua `tributeInstanceIds` (SelectTribute UI → task 2.6)                                                                       | Engine | M      |
+| 1.4 | Tribute Summon/Set (level 5-6, 7+) qua `tributeInstanceIds` (SelectTribute UI → task 2.7)                                                                       | Engine | M      |
 | 1.5 | `ChangePosition` (1 lần/turn, không vừa summon)                                                                                                                 | Engine | S      |
 | 1.6 | `DeclareAttack`: ATK vs ATK, ATK vs DEF, direct attack                                                                                                          | Engine | M      |
 | 1.7 | Flip khi bị tấn công + damage step cơ bản _(làm ở task 1.8)_                                                                                                    | Engine | M      |
@@ -70,20 +70,21 @@ Task con:
 | Done      | Test integration "tạo duel → draw → summon → attack → end"; `pnpm dev` → mở web → chơi hết 1 ván; Review Packet + checklist QA kéo thả.                                                                                                                                     |
 | Phụ thuộc | P1.                                                                                                                                                                                                                                                                         |
 | Rủi ro    | Kéo thả trên touch; đồng bộ optimistic vs server-authoritative (không optimistic — ADR).                                                                                                                                                                                    |
-| Bạn làm   | Screenshot màn Duel gốc `[REF]` (**cần trước 2.5**); chơi thử + điền checklist QA.                                                                                                                                                                                          |
+| Bạn làm   | Screenshot màn Duel gốc `[REF]` (**cần trước 2.6**); chơi thử + điền checklist QA.                                                                                                                                                                                          |
 
-| #    | Task                                                                   | Lớp      | Độ khó |
-| ---- | ---------------------------------------------------------------------- | -------- | ------ |
-| 2.1  | `StateView` filter (ẩn hand/deck/face-down đối thủ) + test             | API      | M      |
-| 2.2  | `DuelService` wrap `applyAction`, lưu seed + action log                | API      | M      |
-| 2.3  | `POST /duels/solo` + `/actions` + guest token tối thiểu                | API      | M      |
-| 2.4  | AI dummy (`AIPlayer` interface + random-legal-with-seed)               | API      | S      |
-| 2.5  | Duel scene: layout board 1280×720 từ reference, CardSprite placeholder | Frontend | M      |
-| 2.6  | Hand + kéo thả Summon/Set (chọn tribute qua prompt)                    | Frontend | L      |
-| 2.7  | Kéo attack + prompt vị trí + LP bar + phase bar                        | Frontend | M      |
-| 2.8  | Action/Event log panel (bật/tắt) + kết thúc trận                       | Frontend | S      |
-| 2.9  | Dev-endpoint nạp scenario JSON + Duel Sandbox page                     | Tooling  | M      |
-| 2.10 | i18n bootstrap (VI/EN locale files, `t()`)                             | Frontend | S      |
+| #    | Task                                                                                      | Lớp      | Độ khó |
+| ---- | ----------------------------------------------------------------------------------------- | -------- | ------ |
+| 2.1  | `StateView` filter (ẩn hand/deck/face-down đối thủ) + test                                | API      | M      |
+| 2.2  | `DuelService` wrap `applyAction`, lưu seed + action log                                   | API      | M      |
+| 2.3  | `POST /duels/solo` + `/actions` + guest token tối thiểu                                   | API      | M      |
+| 2.4  | Trang debug thô (HTML/TS, không Phaser) chơi solo-debug qua HTTP + Action schema ở shared | Frontend | M      |
+| 2.5  | AI dummy (`AIPlayer` interface + random-legal-with-seed)                                  | API      | S      |
+| 2.6  | Duel scene: layout board 1280×720 từ reference, CardSprite placeholder                    | Frontend | M      |
+| 2.7  | Hand + kéo thả Summon/Set (chọn tribute qua prompt)                                       | Frontend | L      |
+| 2.8  | Kéo attack + prompt vị trí + LP bar + phase bar                                           | Frontend | M      |
+| 2.9  | Action/Event log panel (bật/tắt) + kết thúc trận                                          | Frontend | S      |
+| 2.10 | Dev-endpoint nạp scenario JSON + Duel Sandbox page                                        | Tooling  | M      |
+| 2.11 | i18n bootstrap (VI/EN locale files, `t()`)                                                | Frontend | S      |
 
 ## P3 — Effect system + Chain
 
@@ -210,7 +211,7 @@ Done: guest → nâng cấp account giữ deck; deck hợp lệ dùng để duel
 | Cần có trước | Việc                                  |
 | ------------ | ------------------------------------- |
 | P1 (1.4)     | Xác nhận flow phase/tribute `[GUESS]` |
-| P2 (2.5)     | Screenshot Duel gốc                   |
+| P2 (2.6)     | Screenshot Duel gốc                   |
 | P3 (3.4)     | Mô tả/video chain                     |
 | P5 (5.6)     | 10 ảnh art đầu                        |
 | P6 (6.3/6.6) | Video animation, SFX/BGM              |

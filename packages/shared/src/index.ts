@@ -5,3 +5,5 @@ export * from './deck/starter-deck.js';
 export * from './rules/ruleset-config.js';
 export * from './duel/state-view.js';
 export * from './duel/event-view.js';
+export * from './duel/action-schema.js';
+export * from './duel/http-types.js';

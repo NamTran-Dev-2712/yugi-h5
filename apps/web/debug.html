@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yugi H5 — Debug duel</title>
+    <style>
+      body { font: 14px/1.4 system-ui, sans-serif; margin: 0; padding: 12px; background: #14141c; color: #e6e6ee; }
+      h1 { font-size: 16px; margin: 0 0 8px; }
+      h2 { font-size: 13px; margin: 0 0 6px; color: #9aa; text-transform: uppercase; letter-spacing: .05em; }
+      button { font: inherit; padding: 3px 10px; cursor: pointer; }
+      button:disabled { cursor: default; opacity: .5; }
+      select { font: inherit; }
+      .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+      .panel { border: 1px solid #333a4a; border-radius: 4px; padding: 8px; margin-bottom: 10px; background: #1b1b26; }
+      .panel.viewer { border-color: #4a7; }
+      .stats span { margin-right: 14px; }
+      .zones { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 6px 0; }
+      .zone { border: 1px dashed #445; min-height: 38px; padding: 3px; font-size: 12px; overflow-wrap: anywhere; }
+      .zone.hiddencard { background: #2a2233; color: #c9a; }
+      .zone.up { background: #1f2c2a; }
+      .error { background: #4a1d1d; border: 1px solid #a44; padding: 8px; margin-bottom: 10px; white-space: pre-wrap; }
+      .winner { background: #2c3d1f; border: 1px solid #6a4; padding: 8px; margin-bottom: 10px; font-weight: bold; }
+      .action { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; padding: 4px 0; border-bottom: 1px solid #262633; }
+      .action .inputs { display: flex; flex-wrap: wrap; gap: 10px; }
+      .action label { font-size: 12px; color: #9aa; }
+      .checks { display: flex; flex-direction: column; }
+      pre { margin: 0; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
+      .log { max-height: 260px; overflow: auto; font-size: 12px; }
+      .log div.err { color: #f99; }
+      .muted { color: #889; }
+    </style>
+  </head>
+  <body>
+    <h1>Yugi H5 — trang debug solo (công cụ kiểm luật, không phải UI cuối)</h1>
+    <div id="debug-root"></div>
+    <script type="module" src="/src/debug/main.ts"></script>
+  </body>
+</html>

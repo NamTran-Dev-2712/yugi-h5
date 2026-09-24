@@ -39,6 +39,27 @@ Kiểm tra nhanh: `GET http://localhost:3000/health` phải trả `{"status":"ok
 Swagger UI ở `http://localhost:3000/docs`. Mở `http://localhost:5173` sẽ thấy Menu hiển thị
 "API: Connected" nếu health check qua được.
 
+> **Docker Desktop phải đang chạy** trước `docker compose up -d`. API cần Postgres để khởi động
+> (`PrismaService` kết nối lúc boot): không có DB thì `pnpm dev` báo `P1001 Can't reach database
+server at localhost:5433`. Chạy `pnpm test` thì không cần DB.
+> Các giá trị mẫu trong `apps/api/.env.example` chạy được ngay ở dev; production từ chối JWT secret
+> bắt đầu bằng `change-me`.
+
+### Chơi thử một ván bằng trang debug (task 2.4)
+
+Sau khi `pnpm dev` chạy, mở **http://localhost:5173/debug.html** — trang thô để kiểm luật bằng mắt
+(một người điều khiển cả hai ghế, xem JSON thô để kiểm bài úp có bị lộ không). Kịch bản chơi thử và
+checklist "điều cần để ý": [`docs/design/debug-ui.md`](./docs/design/debug-ui.md).
+
+Thử API bằng tay (ví dụ chuỗi guest → duel → action → xem):
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:3000/auth/guest | node -pe "JSON.parse(require('fs').readFileSync(0,'utf8')).accessToken")
+DUEL=$(curl -s -X POST http://localhost:3000/duels/solo -H "Authorization: Bearer $TOKEN" | node -pe "JSON.parse(require('fs').readFileSync(0,'utf8')).duelId")
+curl -s -X POST http://localhost:3000/duels/$DUEL/actions -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"playerIndex":0,"action":{"type":"EndPhase","payload":{"playerIndex":0}}}'
+curl -s "http://localhost:3000/duels/$DUEL?viewer=1" -H "Authorization: Bearer $TOKEN"
+```
+
 ## Lệnh thường dùng
 
 | Lệnh                                                        | Ý nghĩa                                                              |
