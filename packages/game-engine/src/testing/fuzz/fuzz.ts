@@ -1,4 +1,4 @@
-import type { CardDefinition } from '@yugi/shared';
+import type { CardDefinition, EffectDefinition } from '@yugi/shared';
 import type { Action, ActionContext, StartDuelAction } from '../../actions/types.js';
 import type { ApplyActionResult } from '../../apply-action.js';
 import { applyAction } from '../../apply-action.js';
@@ -27,10 +27,38 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
   M4: monster('M4', 4, 1600, 900),
   M5: monster('M5', 5, 2100, 1500),
   M7: monster('M7', 7, 2800, 2000),
-  SP: { id: 'SP', kind: 'Spell', name: { vi: 'Fuzz Spell', en: 'Fuzz Spell' }, subType: 'Normal' },
+  SP: spell('SP', {
+    trigger: { kind: 'Ignition' },
+    operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+  }),
+  SPK: spell('SPK', {
+    trigger: { kind: 'Ignition' },
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  SPP: spell('SPP', {
+    trigger: { kind: 'Ignition' },
+    cost: [{ kind: 'PayLP', amount: 500 }],
+    operations: [{ kind: 'Damage', amount: 700, target: 'opponent' }],
+  }),
+  SPD: spell('SPD', {
+    trigger: { kind: 'Ignition' },
+    cost: [{ kind: 'Discard', count: 1 }],
+    operations: [{ kind: 'Heal', amount: 300, target: 'self' }],
+  }),
 };
 const DECK_POOL = Object.keys(FUZZ_DEFS);
 const PHASES: readonly Phase[] = ['Draw', 'Standby', 'Main1', 'Battle', 'Main2', 'End'];
+
+function spell(id: string, effect: Omit<EffectDefinition, 'id'>): CardDefinition {
+  return {
+    id,
+    kind: 'Spell',
+    name: { vi: `Fuzz ${id}`, en: `Fuzz ${id}` },
+    subType: 'Normal',
+    effects: [{ id: 'e1', ...effect } as EffectDefinition],
+  };
+}
 
 function monster(id: string, level: number, atk: number, def: number): CardDefinition {
   return {
@@ -183,6 +211,57 @@ function plausibleFromHand(
   };
 }
 
+function plausibleSetSpellTrap(state: GameState, rand: Rand): Action | null {
+  const p = state.turnPlayerIndex;
+  const hand = state.players[p].hand;
+  if (hand.length === 0) return null;
+  const board = state.players[p].board.spellTrapZones;
+  const free = board.flatMap((c, i) => (c === null ? [i] : []));
+  return {
+    type: 'SetSpellTrap',
+    payload: {
+      playerIndex: p,
+      cardInstanceId: rand.pick(hand).instanceId,
+      zoneIndex: free.length > 0 ? rand.pick(free) : rand.int(5),
+    },
+  };
+}
+
+/** A hand card + its first effect; cost ids are drawn from the matching pools (may still be wrong: engine decides). */
+function plausibleActivate(state: GameState, rand: Rand): Action | null {
+  const p = state.turnPlayerIndex;
+  const hand = state.players[p].hand;
+  if (hand.length === 0) return null;
+  const card = rand.pick(hand);
+  const def = FUZZ_DEFS[card.definitionId];
+  const effect = def && def.kind !== 'Monster' ? def.effects?.[0] : undefined;
+  const costIds: string[] = [];
+  for (const cost of effect?.cost ?? []) {
+    if (cost.kind === 'Discard') {
+      costIds.push(
+        ...shuffledPrefix(
+          hand.filter((c) => c.instanceId !== card.instanceId),
+          cost.count,
+          rand,
+        ).map((c) => c.instanceId),
+      );
+    } else if (cost.kind === 'Tribute') {
+      costIds.push(
+        ...shuffledPrefix(monstersOf(state, p), cost.count, rand).map((c) => c.instanceId),
+      );
+    }
+  }
+  return {
+    type: 'ActivateEffect',
+    payload: {
+      playerIndex: p,
+      cardInstanceId: card.instanceId,
+      effectId: rand.chance(0.05) ? 'bogus' : 'e1',
+      ...(costIds.length > 0 || rand.chance(0.1) ? { costInstanceIds: costIds } : {}),
+    },
+  };
+}
+
 function shuffledPrefix<T>(items: readonly T[], count: number, rand: Rand): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -196,7 +275,22 @@ function garbageAction(state: GameState, rand: Rand): Action {
   const wrong = other(state.turnPlayerIndex);
   const anyPlayer = rand.pick<0 | 1>([0, 1]);
   const anyCard = rand.pick([...allCards(state).map((c) => c.instanceId), 'bogus-id', '']);
-  switch (rand.int(8)) {
+  switch (rand.int(10)) {
+    case 8:
+      return {
+        type: 'SetSpellTrap',
+        payload: { playerIndex: anyPlayer, cardInstanceId: anyCard, zoneIndex: rand.int(7) - 1 },
+      };
+    case 9:
+      return {
+        type: 'ActivateEffect',
+        payload: {
+          playerIndex: anyPlayer,
+          cardInstanceId: anyCard,
+          effectId: rand.pick(['e1', 'bogus']),
+          costInstanceIds: rand.pick([[], [anyCard], [anyCard, anyCard]]),
+        },
+      };
     case 0:
       return { type: 'EndPhase', payload: { playerIndex: wrong } };
     case 1:
@@ -252,15 +346,18 @@ function nextAction(state: GameState, rand: Rand): Action {
 
   if (state.pendingPrompt && rand.chance(0.7)) {
     const prompt = state.pendingPrompt;
-    const payload = prompt.payload as { count?: unknown };
+    const payload = prompt.payload as { count?: unknown; candidateInstanceIds?: string[] };
     const count = typeof payload.count === 'number' ? payload.count : 1;
-    const hand = state.players[prompt.playerIndex].hand;
+    const pool =
+      prompt.kind === 'SelectEffectTarget' && Array.isArray(payload.candidateInstanceIds)
+        ? payload.candidateInstanceIds
+        : state.players[prompt.playerIndex].hand.map((c) => c.instanceId);
     return {
       type: 'ResolvePendingPrompt',
       payload: {
         playerIndex: prompt.playerIndex,
         promptId: prompt.promptId,
-        cardInstanceIds: shuffledPrefix(hand, count, rand).map((c) => c.instanceId),
+        cardInstanceIds: shuffledPrefix(pool, count, rand),
       },
     };
   }
@@ -301,8 +398,10 @@ function nextAction(state: GameState, rand: Rand): Action {
   };
   const mainPhaseAction = (): Action | null => {
     const r = rand.int(100);
-    if (r < 50) return plausibleFromHand(state, rand, 'NormalSummon');
-    if (r < 75) return plausibleFromHand(state, rand, 'SetMonster');
+    if (r < 40) return plausibleFromHand(state, rand, 'NormalSummon');
+    if (r < 60) return plausibleFromHand(state, rand, 'SetMonster');
+    if (r < 70) return plausibleSetSpellTrap(state, rand);
+    if (r < 85) return plausibleActivate(state, rand);
     return changePosition();
   };
 

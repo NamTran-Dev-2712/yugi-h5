@@ -70,6 +70,26 @@ function perturb(action: Action, ids: string[], int: (n: number) => number): Act
       });
       break;
     }
+    case 'SetSpellTrap':
+      out.push({
+        ...action,
+        payload: { ...action.payload, zoneIndex: (action.payload.zoneIndex + 1 + int(4)) % 5 },
+      });
+      out.push({ ...action, payload: { ...action.payload, zoneIndex: 7 } });
+      out.push({ ...action, payload: { ...action.payload, cardInstanceId: pick() } });
+      break;
+    case 'ActivateEffect':
+      out.push({ ...action, payload: { ...action.payload, effectId: 'bogus' } });
+      out.push({ ...action, payload: { ...action.payload, cardInstanceId: pick() } });
+      out.push({ ...action, payload: { ...action.payload, costInstanceIds: [pick()] } });
+      out.push({
+        ...action,
+        payload: {
+          ...action.payload,
+          costInstanceIds: [...(action.payload.costInstanceIds ?? []), pick()],
+        },
+      });
+      break;
     case 'ChangePosition':
       out.push({ ...action, payload: { ...p, cardInstanceId: pick() } } as Action);
       out.push({ ...action, payload: { ...action.payload, toPosition: 'DefenseUp' } });
@@ -115,6 +135,19 @@ function junk(seat: 0 | 1, ids: string[], int: (n: number) => number): Action[] 
     {
       type: 'SetMonster',
       payload: { playerIndex: seat, cardInstanceId: pick(), zoneIndex: int(5) },
+    },
+    {
+      type: 'SetSpellTrap',
+      payload: { playerIndex: seat, cardInstanceId: pick(), zoneIndex: int(5) },
+    },
+    {
+      type: 'ActivateEffect',
+      payload: {
+        playerIndex: seat,
+        cardInstanceId: pick(),
+        effectId: 'e1',
+        costInstanceIds: [pick()],
+      },
     },
     {
       type: 'ChangePosition',

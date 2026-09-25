@@ -4,9 +4,26 @@ Mục tiêu: thêm lá bài mới = thêm data vào `packages/shared`, không s�
 core cho phần lớn trường hợp. Lá quá phức tạp để mô tả bằng DSL dùng `scriptId` trỏ tới 1
 handler function đăng ký sẵn trong engine.
 
-> Trạng thái: **schema Zod đã có (task 3.1, batch 1)** ở `packages/shared/src/effects/`.
-> **Chưa có engine chạy effect**: registry chỉ là metadata (`implemented: false`), handler
-> thật (`effects/operations/<kind>.ts` trong engine) làm ở task 3.2. Thêm kind mới: `/new-effect-type`.
+> Trạng thái: **schema Zod đã có (task 3.1, batch 1)** ở `packages/shared/src/effects/`;
+> **engine chạy được 4 operation `Damage`/`Heal`/`Draw`/`Destroy` (task 3.2)** qua `ActivateEffect` cho Normal Spell
+> từ tay. Registry ở shared chỉ là metadata (`implemented: true` cho 4 kind này, không giữ hàm); handler thật ở
+> `packages/game-engine/src/effects/operations/<kind>.ts` (`OPERATION_HANDLERS`, thiếu kind = `tsc` đỏ; test đối chiếu
+> hai phía). Resolve **ngay lập tức**, chưa có chain (task 3.3). Thêm kind mới: `/new-effect-type`.
+
+## Engine chạy effect thế nào (task 3.2)
+
+- `ActivateEffect {playerIndex, cardInstanceId, effectId, costInstanceIds?}`: chỉ **Spell `Normal` ở TAY**, Main1/Main2,
+  turn player, effect có `trigger.kind === 'Ignition'` `[DECISION]` (Normal Spell "kích hoạt chủ động" map vào `Ignition`,
+  không thêm trigger kind). Trap ở tay → `TRAP_NOT_SET`; Spell khác subType / trigger khác → `NOT_ACTIVATABLE`; lá đã Set
+  trên sân chưa kích hoạt được (task 3.4).
+- Thứ tự: kiểm tra (phase, condition, cost trả được, target) → **không đổi state** cho tới bước cuối → trả cost →
+  chạy `operations[]` tuần tự (dừng nếu duel kết thúc giữa chừng) → Spell vào mộ. Event: `EffectActivated`, (event của
+  cost/operation), `EffectResolved`, `CardSentToGraveyard`; `DuelEnded` luôn cuối.
+- `costInstanceIds` tiêu thụ tuần tự theo `cost[]`: mỗi `Discard`/`Tribute` lấy `count` id; `PayLP` không id (cần LP **lớn hơn**
+  số trả `[ASSUMED]`). `Discard` từ tay (không phải chính lá kích hoạt), `Tribute` từ quái của mình.
+- `target` kiểu `Card` (chỉ `MonsterZone`/`SpellTrapZone` ở 3.2): đúng `count` ứng viên → tự chọn; ít hơn → `NO_VALID_TARGET`;
+  nhiều hơn → `PendingPrompt SelectEffectTarget`, trả lời bằng `ResolvePendingPrompt.cardInstanceIds`. Lá úp chỉ là target khi effect
+  không có `filter`. `Destroy` bắt buộc có target `Card`.
 
 ## Schema (nguồn thật: `packages/shared/src/effects/*.ts`)
 

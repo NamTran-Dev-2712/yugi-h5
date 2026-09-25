@@ -73,9 +73,16 @@ export const SAMPLE_CARDS: CardDefinition[] = [
     name: { vi: 'Tiếp Viện Bất Ngờ', en: 'Sudden Reinforcement' },
     subType: 'Normal',
     effectText: {
-      vi: 'Placeholder: hiệu ứng rút bài, sẽ định nghĩa bằng effect DSL.',
-      en: 'Placeholder: draw effect defined via effect DSL.',
+      vi: 'Rút 1 lá bài.',
+      en: 'Draw 1 card.',
     },
+    effects: [
+      {
+        id: 'draw-one',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+      },
+    ],
   },
   {
     id: 'SMP-201',

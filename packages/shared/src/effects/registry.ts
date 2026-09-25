@@ -38,16 +38,16 @@ export const _costComplete: Missing<CostKind, (typeof COST_KINDS)[number]> = tru
 export const _operationComplete: Missing<OperationKind, (typeof OPERATION_KINDS)[number]> = true;
 
 /**
- * Operation registry — metadata only. Task 3.1 executes nothing: handlers
- * (`effects/operations/<kind>.ts` in the engine) arrive in task 3.2.
+ * Operation registry — metadata only: it says whether the engine implements a kind, it never holds functions.
+ * The handlers live in the engine (`effects/operations/<kind>.ts`); the engine tests that both sides agree.
  */
 export interface OperationEntry {
-  readonly implemented: false;
+  readonly implemented: boolean;
 }
 
 export const OPERATION_REGISTRY: Record<OperationKind, OperationEntry> = {
-  Damage: { implemented: false },
-  Heal: { implemented: false },
-  Draw: { implemented: false },
-  Destroy: { implemented: false },
+  Damage: { implemented: true },
+  Heal: { implemented: true },
+  Draw: { implemented: true },
+  Destroy: { implemented: true },
 };

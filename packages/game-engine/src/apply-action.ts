@@ -1,6 +1,8 @@
 import { EngineError } from './errors.js';
 import { applyChangePosition } from './actions/handlers/change-position.js';
+import { applyActivateEffect } from './actions/handlers/activate-effect.js';
 import { applyDeclareAttack } from './actions/handlers/declare-attack.js';
+import { applySetSpellTrap } from './actions/handlers/set-spell-trap.js';
 import { applyDraw } from './actions/handlers/draw.js';
 import { applyEndPhase } from './actions/handlers/end-phase.js';
 import { applyNormalSummon, applySetMonster } from './actions/handlers/summon.js';
@@ -71,7 +73,7 @@ export function applyAction(
     case 'ChangePosition':
       return applyChangePosition(state, action);
     case 'ResolvePendingPrompt':
-      return applyResolvePendingPrompt(state, action);
+      return applyResolvePendingPrompt(state, action, ctx);
     case 'Surrender':
       return applySurrender(state, action);
     case 'NormalSummon':
@@ -80,6 +82,10 @@ export function applyAction(
       return applySetMonster(state, action, requireContext(action, ctx));
     case 'DeclareAttack':
       return applyDeclareAttack(state, action, requireContext(action, ctx));
+    case 'SetSpellTrap':
+      return applySetSpellTrap(state, action, requireContext(action, ctx));
+    case 'ActivateEffect':
+      return applyActivateEffect(state, action, requireContext(action, ctx));
     default: {
       const exhaustiveCheck: never = action;
       throw new EngineError(

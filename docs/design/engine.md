@@ -80,14 +80,15 @@ tạo object mới (spread), không mutate.
 
 Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định rời rạc của người chơi/AI):
 
-| Action                 | Milestone                                                  | Ghi chú                                                                                                 |
-| ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `ChangePosition`       | M1 (task 1.5 ✅)                                           | `{playerIndex, cardInstanceId, toPosition: 'Attack'\|'DefenseUp'}`; xem chi tiết bên dưới               |
-| `DeclareAttack`        | M1 (task 1.6 ✅)                                           | `{playerIndex, attackerInstanceId, targetInstanceId?}` (null = direct attack); xem chi tiết bên dưới    |
-| `Surrender`            | M1 (task 1.9 ✅)                                           | `{playerIndex}`; mọi phase, cả hai bên; reject `DUEL_ENDED`/`SURRENDER_DISABLED`; xem chi tiết bên dưới |
-| `ActivateEffect`       | M2                                                         | Kèm `cardInstanceId`, `targetInstanceIds?`, `costPayload?`                                              |
-| `ResolvePendingPrompt` | M1 (task 1.11 ✅, hand limit) / M2 (target/chain response) | `{playerIndex, promptId, cardInstanceIds}`; trả lời `PendingPrompt` hiện tại; xem mục PendingPrompt     |
-| `PassPriority`         | M2                                                         | Dùng trong chain window                                                                                 |
+| Action                 | Milestone                                                  | Ghi chú                                                                                                                                                                                                                 |
+| ---------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChangePosition`       | M1 (task 1.5 ✅)                                           | `{playerIndex, cardInstanceId, toPosition: 'Attack'\|'DefenseUp'}`; xem chi tiết bên dưới                                                                                                                               |
+| `DeclareAttack`        | M1 (task 1.6 ✅)                                           | `{playerIndex, attackerInstanceId, targetInstanceId?}` (null = direct attack); xem chi tiết bên dưới                                                                                                                    |
+| `Surrender`            | M1 (task 1.9 ✅)                                           | `{playerIndex}`; mọi phase, cả hai bên; reject `DUEL_ENDED`/`SURRENDER_DISABLED`; xem chi tiết bên dưới                                                                                                                 |
+| `SetSpellTrap`         | M2 (task 3.2 ✅)                                           | `{playerIndex, cardInstanceId, zoneIndex}`; Spell/Trap từ tay vào ô 0–4, úp (`DefenseDown`), ghi `setTurn`; không giới hạn/lượt, không tốn Normal Summon; Main1/Main2; Field Spell chưa hỗ trợ                          |
+| `ActivateEffect`       | M2 (task 3.2 ✅, resolve ngay; chain ở 3.3)                | `{playerIndex, cardInstanceId, effectId, costInstanceIds?}`; **Normal Spell ở tay** + trigger `Ignition`; target chọn qua prompt `SelectEffectTarget` (không có `targetInstanceIds` trong payload); xem `effect-dsl.md` |
+| `ResolvePendingPrompt` | M1 (task 1.11 ✅, hand limit) / M2 (target/chain response) | `{playerIndex, promptId, cardInstanceIds}`; trả lời `PendingPrompt` hiện tại; xem mục PendingPrompt                                                                                                                     |
+| `PassPriority`         | M2                                                         | Dùng trong chain window                                                                                                                                                                                                 |
 
 ### Kích hoạt Trap/Spell — hợp đồng C11 (implement ở P3, task 3.4)
 
@@ -96,13 +97,19 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 - `ActivateEffect` cho **Trap** chỉ hợp lệ khi lá đang ở Spell/Trap Zone, úp, và (nếu `ruleset.trapSetTurnDelay`) đã qua lượt Set. Engine ghi lượt Set của lá để so sánh.
 - `ruleset.allowTrapActivationFromHand` (mặc định `false`): khi `false`, Trap trên tay chỉ có `SetSpellTrap`, không có `ActivateEffect`.
 - Reject bằng mã lỗi tách biệt: `TRAP_NOT_SET` (Trap chưa úp trên sân, vd còn trên tay), `TRAP_SET_THIS_TURN` (Set trong chính lượt này).
-- Hiện chỉ lưu 2 khoá config trong `state.ruleset`; chưa có hành vi nào đổi (test `it.todo` ở `packages/game-engine/src/rules/trap-activation.test.ts`).
+- Task 3.2 đã làm phần "ở tay": Trap trên tay → `TRAP_NOT_SET`, `legalActions` không liệt kê `ActivateEffect` cho Trap ở tay (chỉ `SetSpellTrap`), `CardInstance.setTurn` được ghi lúc Set. Còn lại (kích hoạt Trap đã Set, `TRAP_SET_THIS_TURN`) là task 3.4 (`it.todo` ở `packages/game-engine/src/rules/trap-activation.test.ts`).
+
+### Mã lỗi thêm ở task 3.2
+
+`NOT_A_SPELL_TRAP`, `EFFECT_NOT_FOUND`, `NOT_ACTIVATABLE` (subType/trigger chưa hỗ trợ, Field Spell, effect `Destroy` không khai target Card, target ở zone chưa hỗ trợ), `TRAP_NOT_SET`, `CONDITION_NOT_MET`, `INVALID_COST` (sai số/loại id, trùng, chính lá kích hoạt, không đủ LP), `NO_VALID_TARGET`, `INVALID_EFFECT_TARGET` (đáp án prompt sai số lượng/trùng/ngoài ứng viên). Tái dùng `WRONG_PHASE`, `NOT_TURN_PLAYER`, `INVALID_ZONE`, `ZONE_OCCUPIED`, `CARD_NOT_IN_HAND`...
 
 ## Event list
 
 Đã có: `DuelStarted`, `CardDrawn`, `DeckOut`, `CardDiscarded {playerIndex,instanceId,definitionId}` (task 1.11; lá rời tay vào mộ do hand limit, phát trước `PhaseChanged Main2→End`), `PhaseChanged {from,to,turnPlayerIndex}`, `TurnChanged {turnCount,turnPlayerIndex}`, `NormalSummoned {playerIndex,instanceId,definitionId,zoneIndex}`, `MonsterSet {playerIndex,instanceId,zoneIndex}` (không có `definitionId`: lá úp, tránh lộ khi lọc event cho đối thủ). `MonsterTributed {ownerIndex,instanceId,definitionId,zoneIndex}` (task 1.4; có `definitionId` vì mộ là public, kể cả quái úp): phát theo thứ tự mảng tribute, **trước** `NormalSummoned`/`MonsterSet`. `PositionChanged {playerIndex,instanceId,definitionId,zoneIndex,from,to}` (task 1.5; `from`/`to` ∈ `Attack|DefenseUp`; có `definitionId` vì chỉ quái ngửa mới đổi được). `AttackDeclared {playerIndex,attackerInstanceId,targetInstanceId}` (task 1.6; `targetInstanceId: null` = tấn công trực tiếp), `MonsterDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (task 1.6; mirror `MonsterTributed`, phát cho mọi quái bị phá bởi combat), `DamageDealt {playerIndex,amount}` (task 1.6; `playerIndex` = bên nhận damage). `DuelEnded {winnerIndex,reason}` (task 1.7; `winnerIndex: 0|1|null` — `null` = hòa trong ngữ cảnh event này, không nhập nhằng với "đang đấu" vì event chỉ phát khi duel thật sự kết thúc; `reason` là string literal union: `'LP_ZERO'` (1.7), `'SURRENDER'` (1.9), `'DECK_OUT'` (1.10); hai reason sau luôn có người thắng). Thứ tự phát trong 1 `DeclareAttack`: `AttackDeclared` → `MonsterDestroyed` (đối thủ trước, mình sau nếu cả hai bị phá) → `DamageDealt` → `DuelEnded` (nếu có).
 
-Sẽ thêm dần: `ChainLinkAdded`, `ChainResolved`, `EffectActivated`.
+Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `definitionId`, lá úp), `EffectActivated`/`EffectResolved {playerIndex,instanceId,definitionId,effectId}`, `CardSentToGraveyard {ownerIndex,instanceId,definitionId,from:'Hand'}` (Spell dùng xong), `LifePointsRecovered {playerIndex,amount}` (Heal), `LifePointsPaid {playerIndex,amount}` (cost PayLP), `SpellTrapDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (Destroy lên Spell/Trap; quái vẫn dùng `MonsterDestroyed`). Thứ tự khi kích hoạt: `EffectActivated` → event của cost (`LifePointsPaid`/`CardDiscarded`/`MonsterTributed`) → event của từng operation (`CardDrawn`, `DamageDealt`, `LifePointsRecovered`, `MonsterDestroyed`…) → `EffectResolved` → `CardSentToGraveyard` → `DuelEnded` (nếu có, luôn cuối). Damage/Heal/Draw dùng lại `DamageDealt`/`CardDrawn`/`DeckOut`+`DuelEnded` sẵn có. **Các event này chưa được API forward** (xem `event-visibility.md`).
+
+Sẽ thêm dần: `ChainLinkAdded`, `ChainResolved`.
 
 Event là **fact đã xảy ra**, không phải instruction cho FE — FE tự quyết định animate thế nào
 từ fact đó.
@@ -123,7 +130,9 @@ interface PendingPrompt {
 
 **Prompt đầu tiên thật sự được dùng (task 1.11): `DiscardToHandLimit`.** `EndPhase` từ `Main2` khi `hand.length > ruleset.handLimit` **không** tiến phase: nó đặt `pendingPrompt = { promptId: 'discard-<turnCount>', playerIndex: turn player, kind: 'DiscardToHandLimit', payload: { count: hand - handLimit } }` (`promptId` tất định, không RNG). `ResolvePendingPrompt { playerIndex, promptId, cardInstanceIds }` trả lời: đúng `count` lá khác nhau từ tay của người được hỏi → vào mộ (`position: null`), phát `CardDiscarded {playerIndex, instanceId, definitionId}` từng lá theo thứ tự chọn, xoá prompt rồi tiến `Main2 → End` (`PhaseChanged`). Guard theo thứ tự: `DUEL_ENDED` → `NO_PENDING_PROMPT` → `PROMPT_MISMATCH` (sai `promptId` hoặc sai người) → `UNKNOWN_PROMPT_KIND` / `INVALID_DISCARD` (sai số lượng, trùng id, lá không ở tay). `ResolvePendingPrompt` là vỏ chung, dispatch theo `prompt.kind`; prompt mới (target, chain) thêm 1 case.
 
-Khi `pendingPrompt != null`, `EndPhase`, `Draw`, `NormalSummon`/`SetMonster`, `ChangePosition`, `DeclareAttack` đều bị **engine** reject `PENDING_PROMPT`. `Surrender` cố ý bỏ qua prompt (task 1.9). Chỉ `ResolvePendingPrompt` đi tiếp được.
+**Prompt thứ hai (task 3.2): `SelectEffectTarget`.** `ActivateEffect` mà effect có target `Card` với **nhiều hơn `count` ứng viên** không đổi gì ngoài `pendingPrompt = { promptId: 'effect-<turnCount>-<version>', playerIndex: người kích hoạt, kind: 'SelectEffectTarget', payload: { cardInstanceId, effectId, costInstanceIds, candidateInstanceIds, count } }` (`version` +1). `ResolvePendingPrompt.cardInstanceIds` = đúng `count` id khác nhau nằm trong ứng viên (sai → `INVALID_EFFECT_TARGET`); engine **kiểm lại toàn bộ** activation trên state chưa đổi rồi mới trả cost + resolve (một bước, `version` +1). Đúng `count` ứng viên → tự chọn, không prompt; ít hơn → `NO_VALID_TARGET`. `ResolvePendingPrompt` giờ cần `ctx` cho kind này.
+
+Khi `pendingPrompt != null`, `EndPhase`, `Draw`, `NormalSummon`/`SetMonster`, `SetSpellTrap`, `ActivateEffect`, `ChangePosition`, `DeclareAttack` đều bị **engine** reject `PENDING_PROMPT`. `Surrender` cố ý bỏ qua prompt (task 1.9). Chỉ `ResolvePendingPrompt` đi tiếp được.
 
 ## Chain stack (M2)
 

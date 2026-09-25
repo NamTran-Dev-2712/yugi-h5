@@ -35,7 +35,14 @@ describe('fuzz: engine invariants hold', () => {
     }
     expect(accepted / (accepted + rejected)).toBeGreaterThan(0.3);
     expect(duelsEnded).toBeGreaterThan(0);
-    for (const type of ['EndPhase', 'NormalSummon', 'SetMonster', 'DeclareAttack']) {
+    for (const type of [
+      'EndPhase',
+      'NormalSummon',
+      'SetMonster',
+      'DeclareAttack',
+      'SetSpellTrap',
+      'ActivateEffect',
+    ]) {
       expect(byType[type] ?? 0, `${type} never accepted`).toBeGreaterThan(0);
     }
   });

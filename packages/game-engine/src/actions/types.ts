@@ -99,8 +99,8 @@ export interface SurrenderAction {
 
 /**
  * Answers `state.pendingPrompt` (must match `promptId` and `playerIndex`). `cardInstanceIds` is the answer to a
- * `DiscardToHandLimit` prompt: exactly `payload.count` distinct cards from the caller's hand. Later prompt kinds
- * will add their own answer fields.
+ * `DiscardToHandLimit` prompt: exactly `payload.count` distinct cards from the caller's hand. For a
+ * `SelectEffectTarget` prompt it is the chosen target ids (exactly `payload.count`, all among the candidates).
  */
 export interface ResolvePendingPromptAction {
   readonly type: 'ResolvePendingPrompt';
@@ -112,8 +112,40 @@ export interface ResolvePendingPromptAction {
 }
 
 /**
+ * Sets a Spell/Trap from the caller's hand face-down into a Spell/Trap Zone. No per-turn limit; Main Phase only.
+ * Does not use the turn's Normal Summon.
+ */
+export interface SetSpellTrapAction {
+  readonly type: 'SetSpellTrap';
+  readonly payload: {
+    readonly playerIndex: 0 | 1;
+    /** `CardInstance.instanceId` of a Spell/Trap in the caller's hand. */
+    readonly cardInstanceId: string;
+    /** Target Spell/Trap Zone, 0-4. */
+    readonly zoneIndex: number;
+  };
+}
+
+/**
+ * Activates an effect of a Normal Spell in the caller's hand (Ignition trigger, Main Phase). Task 3.2 resolves it
+ * immediately (no chain yet). `costInstanceIds` feeds the effect's `cost[]` in order: each `Discard`/`Tribute` cost takes
+ * `count` ids from the front; `PayLP` takes none. A `Card` target is chosen automatically when the candidates are exactly
+ * `count`, otherwise a `SelectEffectTarget` prompt is opened.
+ */
+export interface ActivateEffectAction {
+  readonly type: 'ActivateEffect';
+  readonly payload: {
+    readonly playerIndex: 0 | 1;
+    readonly cardInstanceId: string;
+    /** `EffectDefinition.id` on the card's definition. */
+    readonly effectId: string;
+    readonly costInstanceIds?: readonly string[];
+  };
+}
+
+/**
  * Skeleton union — grows through M1/M2 with
- * ActivateEffect, PassPriority, etc.
+ * PassPriority, etc.
  * See docs/design/engine.md for the full target list.
  */
 export type Action =
@@ -125,7 +157,9 @@ export type Action =
   | ChangePositionAction
   | DeclareAttackAction
   | SurrenderAction
-  | ResolvePendingPromptAction;
+  | ResolvePendingPromptAction
+  | SetSpellTrapAction
+  | ActivateEffectAction;
 
 export interface ActionContext {
   /** Reserved for cross-cutting concerns injected by the caller (e.g. logging hooks). Never a source of nondeterminism. */

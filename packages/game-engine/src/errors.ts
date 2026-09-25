@@ -32,7 +32,15 @@ export type EngineErrorCode =
   | 'ATTACKER_IN_DEFENSE_POSITION'
   | 'JUST_SUMMONED_CANNOT_ATTACK'
   | 'MUST_TARGET_MONSTER'
-  | 'INVALID_TARGET';
+  | 'INVALID_TARGET'
+  | 'NOT_A_SPELL_TRAP'
+  | 'EFFECT_NOT_FOUND'
+  | 'NOT_ACTIVATABLE'
+  | 'TRAP_NOT_SET'
+  | 'CONDITION_NOT_MET'
+  | 'INVALID_COST'
+  | 'NO_VALID_TARGET'
+  | 'INVALID_EFFECT_TARGET';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */
 export class EngineError extends Error {

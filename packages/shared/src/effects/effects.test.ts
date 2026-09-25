@@ -161,11 +161,11 @@ describe('EffectDefinition', () => {
   });
 });
 
-describe('registry (metadata only, nothing executes)', () => {
-  it('has one entry per operation kind and no handlers', () => {
+describe('registry (metadata only: no functions)', () => {
+  it('has one entry per operation kind, metadata only (task 3.2: all batch-1 operations implemented)', () => {
     expect(Object.keys(OPERATION_REGISTRY).sort()).toEqual([...OPERATION_KINDS].sort());
     for (const entry of Object.values(OPERATION_REGISTRY)) {
-      expect(entry).toEqual({ implemented: false });
+      expect(entry).toEqual({ implemented: true });
     }
   });
   it('kind lists match the schemas', () => {

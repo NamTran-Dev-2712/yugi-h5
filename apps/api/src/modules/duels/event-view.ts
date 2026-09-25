@@ -49,6 +49,17 @@ export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | n
     case 'DuelEnded':
       return event;
 
+    // CLASSIFIED (PUBLIC: SpellTrapSet has no definitionId; the rest concern face-up/graveyard cards) but NOT FORWARDED
+    // yet: the shared `EventView` union and the web client do not know them until task 3.2b. Dropped, never leaked.
+    case 'SpellTrapSet':
+    case 'EffectActivated':
+    case 'EffectResolved':
+    case 'CardSentToGraveyard':
+    case 'LifePointsRecovered':
+    case 'LifePointsPaid':
+    case 'SpellTrapDestroyed':
+      return null;
+
     default: {
       const unclassified: never = event;
       void unclassified;

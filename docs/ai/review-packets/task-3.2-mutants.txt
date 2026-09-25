@@ -1,0 +1,37 @@
+KILLED   lethal damage no longer stops later operations
+KILLED   DuelEnded no longer last
+KILLED   no auto-target
+KILLED   trigger not checked
+KILLED   Trap in hand not rejected
+KILLED   Spell subtype not checked
+KILLED   conditions not checked
+KILLED   prompt answer not checked against candidates
+KILLED   duplicate targets accepted
+KILLED   version not bumped on execute
+KILLED   prompt not cleared before resolving
+KILLED   promptId not unique
+KILLED   spell never reaches the graveyard
+KILLED   PayLP allows paying all LP
+KILLED   unused cost ids accepted
+KILLED   the spell can pay its own discard cost
+KILLED   duplicate cost ids accepted
+KILLED   filter reads face-down cards
+KILLED   level filter matches non-monsters
+KILLED   IsMyTurn always true
+KILLED   damage not clamped
+KILLED   lethal damage emits no DuelEnded
+KILLED   heal does nothing
+KILLED   destroyed card goes to the wrong owner
+KILLED   spell/trap destroy event wrong
+KILLED   Draw ignores target side
+KILLED   Set Spell is face-up
+KILLED   setTurn not stamped
+KILLED   monsters can be Set as Spell/Trap
+KILLED   occupied zone overwritten
+KILLED   no SetSpellTrap candidates
+KILLED   no target-answer candidates
+KILLED   legalActions leak engine-only actions
+KILLED   engine-only actions accepted over the service
+KILLED   unclassified event (tsc) — expected to fail typecheck, not tests
+
+35/35 mutants killed

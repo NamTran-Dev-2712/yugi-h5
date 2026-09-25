@@ -1,3 +1,4 @@
+import type { Cost } from '@yugi/shared';
 import type { Action, ActionContext } from './actions/types.js';
 import { applyAction } from './apply-action.js';
 import { EngineError } from './errors.js';
@@ -36,7 +37,38 @@ function combinations<T>(items: readonly T[], size: number, limit: number): T[][
   return out;
 }
 
-function candidates(state: GameState, seat: Seat): Action[] {
+/**
+ * Candidate cost-id lists for an effect: the cartesian product, per cost, of every way to pick `count` cards from the
+ * pool that kind of cost draws on (hand without the activating card / own monsters). PayLP contributes no ids.
+ * Structure only — whether a selection is actually payable is decided by the engine (dry run).
+ */
+function costSelections(
+  costs: readonly Cost[] | undefined,
+  source: CardInstance,
+  hand: readonly CardInstance[],
+  monsters: readonly CardInstance[],
+): string[][] {
+  let selections: string[][] = [[]];
+  for (const cost of costs ?? []) {
+    if (cost.kind === 'PayLP') continue;
+    const pool =
+      cost.kind === 'Discard' ? hand.filter((c) => c.instanceId !== source.instanceId) : monsters;
+    const picks = combinations(pool, cost.count, MAX_ANSWER_COMBINATIONS).map((c) =>
+      c.map((x) => x.instanceId),
+    );
+    const next: string[][] = [];
+    for (const base of selections) {
+      for (const pick of picks) {
+        if (next.length >= MAX_ANSWER_COMBINATIONS) break;
+        next.push([...base, ...pick]);
+      }
+    }
+    selections = next;
+  }
+  return selections;
+}
+
+function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] {
   const me = state.players[seat];
   const opp = state.players[seat === 0 ? 1 : 0];
   const out: Action[] = [];
@@ -66,6 +98,24 @@ function candidates(state: GameState, seat: Seat): Action[] {
     }
   }
 
+  if (prompt && prompt.kind === 'SelectEffectTarget') {
+    const payload = prompt.payload as { count?: unknown; candidateInstanceIds?: unknown };
+    if (
+      typeof payload.count === 'number' &&
+      Number.isInteger(payload.count) &&
+      payload.count >= 0 &&
+      Array.isArray(payload.candidateInstanceIds)
+    ) {
+      const ids = payload.candidateInstanceIds.filter((id): id is string => typeof id === 'string');
+      for (const combo of combinations(ids, payload.count, MAX_ANSWER_COMBINATIONS)) {
+        out.push({
+          type: 'ResolvePendingPrompt',
+          payload: { playerIndex: seat, promptId: prompt.promptId, cardInstanceIds: combo },
+        });
+      }
+    }
+  }
+
   out.push({ type: 'EndPhase', payload: { playerIndex: seat } });
   out.push({ type: 'Surrender', payload: { playerIndex: seat } });
 
@@ -90,6 +140,31 @@ function candidates(state: GameState, seat: Seat): Action[] {
             },
           });
         }
+      }
+    }
+  }
+
+  // Spell/Trap: Set into each zone; activate each effect of a hand card with every candidate cost selection.
+  for (const handCard of me.hand) {
+    for (let zoneIndex = 0; zoneIndex < 5; zoneIndex++) {
+      out.push({
+        type: 'SetSpellTrap',
+        payload: { playerIndex: seat, cardInstanceId: handCard.instanceId, zoneIndex },
+      });
+    }
+    const def = ctx.cardDefinitions(handCard.definitionId);
+    if (!def || def.kind === 'Monster') continue;
+    for (const effect of def.effects ?? []) {
+      for (const costInstanceIds of costSelections(effect.cost, handCard, me.hand, ownMonsters)) {
+        out.push({
+          type: 'ActivateEffect',
+          payload: {
+            playerIndex: seat,
+            cardInstanceId: handCard.instanceId,
+            effectId: effect.id,
+            ...(costInstanceIds.length > 0 ? { costInstanceIds } : {}),
+          },
+        });
       }
     }
   }
@@ -125,7 +200,7 @@ export function getLegalActions(state: GameState, seat: Seat, ctx: ActionContext
   if (state.winnerIndex !== null) return [];
   const seen = new Set<string>();
   const legal: Action[] = [];
-  for (const candidate of candidates(state, seat)) {
+  for (const candidate of candidates(state, seat, ctx)) {
     const key = JSON.stringify(candidate);
     if (seen.has(key)) continue;
     seen.add(key);

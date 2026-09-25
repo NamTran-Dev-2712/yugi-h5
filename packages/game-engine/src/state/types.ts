@@ -24,6 +24,8 @@ export interface CardInstance {
   readonly positionChangedTurn?: number;
   /** Turn this monster last attacked (written by DeclareAttack, task 1.6). */
   readonly attackedTurn?: number;
+  /** Turn this Spell/Trap was Set (written by SetSpellTrap; task 3.4 reads it for `trapSetTurnDelay`). */
+  readonly setTurn?: number;
 }
 
 export type PlayerZoneKey = 'hand' | 'deck' | 'graveyard' | 'banished' | 'extraDeck';

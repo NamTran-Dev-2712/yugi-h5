@@ -21,7 +21,22 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
   M1000: monster('M1000', 4, 1000, 1000),
   M1800: monster('M1800', 4, 1800, 600),
   L5: monster('L5', 5, 2100, 1500),
+  G_DRAW: {
+    id: 'G_DRAW',
+    kind: 'Spell',
+    name: { vi: 'Golden G_DRAW', en: 'Golden G_DRAW' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+      },
+    ],
+  },
 };
+
+const SPELL_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5', 'G_DRAW'][i % 4]!);
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
 
@@ -181,6 +196,47 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
         payload: { playerIndex: 0, promptId: 'discard-1', cardInstanceIds: ['p0-18'] },
       },
       ...endPhase(0, 1),
+    ],
+  },
+  {
+    name: 'spell-set-and-activate',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-spell',
+        playerIds: ['alice', 'bob'],
+        deckLists: [SPELL_DECK, SPELL_DECK],
+      },
+    },
+    actions: [
+      ...endPhase(0, 2),
+      // T1 (P0) hand: p0-17 M1800, p0-14 L5, p0-3 G_DRAW, p0-10 L5, p0-32 M1000.
+      // Rejects (state untouched): a monster is not a Spell, unknown effect id.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-17', effectId: 'e1' },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-3', effectId: 'nope' },
+      },
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-17', zoneIndex: 0 } },
+      // The real activation: draw 1, the Spell goes to the graveyard.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-3', effectId: 'e1' },
+      },
+      ...endPhase(0, 4),
+      // T2 (P1) hand after its draw includes p1-19 G_DRAW: Set it face-down; it can no longer be activated from the hand.
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-19', zoneIndex: 2 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-19', effectId: 'e1' },
+      },
+      ...endPhase(1, 4),
     ],
   },
 ];

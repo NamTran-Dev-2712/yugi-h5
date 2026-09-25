@@ -104,6 +104,15 @@ interface AiStep {
 }
 
 /** Who has to act now: the prompted player if a prompt is pending, else the turn player. */
+/**
+ * Engine actions (task 3.2) that the wire contract (`PlayerActionSchema`), the event view and the web client do not
+ * support yet — task 3.2b wires them. Never listed in `legalActions`, refused if submitted.
+ */
+const ENGINE_ONLY_ACTIONS: ReadonlySet<Action['type']> = new Set([
+  'SetSpellTrap',
+  'ActivateEffect',
+]);
+
 const actorOf = (state: GameState): 0 | 1 =>
   state.pendingPrompt?.playerIndex ?? state.turnPlayerIndex;
 
@@ -263,7 +272,11 @@ export class DuelManager {
 
   submitAction(duelId: string, playerIndex: 0 | 1, action: Action): Promise<SubmitActionResult> {
     // State-independent checks first: they must not queue behind other work.
-    if (action.type === 'StartDuel' || action.type === 'Draw') {
+    if (
+      action.type === 'StartDuel' ||
+      action.type === 'Draw' ||
+      ENGINE_ONLY_ACTIONS.has(action.type)
+    ) {
       return Promise.reject(
         new DuelServiceError(
           'FORBIDDEN_ACTION',
@@ -392,9 +405,9 @@ export class DuelManager {
   private legalActionsOf(state: GameState, seat: 0 | 1): PlayerAction[] {
     const actions = getLegalActions(state, seat, { cardDefinitions: this.cardDefinitions });
     // The engine never lists StartDuel/Draw; the filter narrows the type to the wire shape (PlayerActionSchema).
-    return actions.filter(
-      (a) => a.type !== 'StartDuel' && a.type !== 'Draw',
-    ) as unknown as PlayerAction[];
+    // SetSpellTrap/ActivateEffect (task 3.2) are engine-only until task 3.2b adds them to the wire schema, the
+    // event view and the web client: hiding them keeps HTTP, the AI and the UI from ever reaching the new prompt.
+    return actions.filter((a) => !ENGINE_ONLY_ACTIONS.has(a.type)) as unknown as PlayerAction[];
   }
 
   /** Who owns the duel and in which mode; no game state, safe for access checks. */

@@ -109,6 +109,63 @@ export interface CardDiscardedEvent {
   readonly definitionId: string;
 }
 
+/** Deliberately carries no `definitionId`: the card is Set face-down. */
+export interface SpellTrapSetEvent {
+  readonly type: 'SpellTrapSet';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly zoneIndex: number;
+}
+
+/** A Spell's effect is activated from the hand (the card is revealed by activating it, so `definitionId` is public). */
+export interface EffectActivatedEvent {
+  readonly type: 'EffectActivated';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+}
+
+/** The activated effect finished resolving (all operations ran, or the duel ended part-way). */
+export interface EffectResolvedEvent {
+  readonly type: 'EffectResolved';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+}
+
+/** A used Normal Spell went from where it was activated to its owner's graveyard. */
+export interface CardSentToGraveyardEvent {
+  readonly type: 'CardSentToGraveyard';
+  readonly ownerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly from: 'Hand';
+}
+
+export interface LifePointsRecoveredEvent {
+  readonly type: 'LifePointsRecovered';
+  readonly playerIndex: 0 | 1;
+  readonly amount: number;
+}
+
+/** LP paid as an effect cost. */
+export interface LifePointsPaidEvent {
+  readonly type: 'LifePointsPaid';
+  readonly playerIndex: 0 | 1;
+  readonly amount: number;
+}
+
+/** A Spell/Trap on the field destroyed by an effect, sent to its owner's graveyard. Public zone, so `definitionId` is included. */
+export interface SpellTrapDestroyedEvent {
+  readonly type: 'SpellTrapDestroyed';
+  readonly ownerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
 /**
  * The duel is over. `winnerIndex: null` means a draw (both players' LP hit 0 in the same action).
  * `SURRENDER` and `DECK_OUT` always have a winner: the opponent of the player who conceded / could not draw.
@@ -139,4 +196,11 @@ export type GameEvent =
   | MonsterFlippedEvent
   | MonsterDestroyedEvent
   | DamageDealtEvent
+  | SpellTrapSetEvent
+  | EffectActivatedEvent
+  | EffectResolvedEvent
+  | CardSentToGraveyardEvent
+  | LifePointsRecoveredEvent
+  | LifePointsPaidEvent
+  | SpellTrapDestroyedEvent
   | DuelEndedEvent;

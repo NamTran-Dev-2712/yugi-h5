@@ -17,6 +17,7 @@ Luật bất biến (không được vi phạm):
 ## legalActions (task 2.5)
 
 - `getLegalActions(state, seat, ctx)` (`src/legal-actions.ts`, export từ `index.ts`) = ứng viên theo cấu trúc + lọc bằng dry-run `applyAction`. **KHÔNG sao chép luật vào đây** (không kiểm phase/lượt/Level/zone trống): luật nào cũng phải nằm ở handler; hàm này chỉ liệt kê "có thể thử gì". Thêm loại Action mới ⇒ thêm bộ sinh ứng viên trong `candidates()` + mở rộng `perturb`/`junk` ở `legal-actions.property.test.ts` (không có bộ sinh = action mới không bao giờ hiện trong list). Không sinh `Draw`/`StartDuel`. `Surrender` luôn có cho cả hai ghế khi engine chấp nhận.
+- Effect (task 3.2): `effects/{filter,conditions,costs,targets}.ts` + `effects/operations/<kind>.ts` (1 file/operation, đăng ký ở `operations/index.ts`; thiếu kind ở `OperationKind` = `tsc` đỏ). `actions/handlers/activate-effect.ts` tách `prepare` (validate, KHÔNG đổi state) và `execute` (cost → operations → Spell vào mộ, `version` +1 một lần); prompt `SelectEffectTarget` trả lời bằng `ResolvePendingPrompt` (kiểm lại toàn bộ trên state chưa đổi). Operation thuần, không tự bump `version`, không đụng `chainStack` (task 3.3 bọc chain quanh `execute`). Fixture test: `testing/effect-fixtures.ts`. Sửa/thêm kind ở `packages/shared` phải cập nhật `OPERATION_REGISTRY` (test đối chiếu `registry-sync.test.ts`).
 - Hiệu năng: đầy sân + tay 7 ≈ 15 ms (≈1100 dry-run). Nếu sau này ứng viên tăng nhiều (P3), cân nhắc thu hẹp bằng cấu trúc (không bằng luật) trước khi tối ưu.
 
 ## Golden replay + fuzz (task 1.12)

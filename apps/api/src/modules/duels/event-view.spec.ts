@@ -5,7 +5,19 @@ import { toEventView, toEventViews } from './event-view';
 
 const SECRET = 'SECRET-CARD';
 
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
+/** Task 3.2 events: classified but NOT forwarded yet (shared `EventView` + web support arrive in task 3.2b). */
+const NOT_FORWARDED_TYPES = [
+  'SpellTrapSet',
+  'EffectActivated',
+  'EffectResolved',
+  'CardSentToGraveyard',
+  'LifePointsRecovered',
+  'LifePointsPaid',
+  'SpellTrapDestroyed',
+] as const satisfies readonly GameEvent['type'][];
+type NotForwarded = Extract<GameEvent, { type: (typeof NOT_FORWARDED_TYPES)[number] }>;
+
+type PublicEvent = Exclude<GameEvent, CardDrawnEvent | NotForwarded>;
 
 /** One fixture per GameEvent type: adding a type to the engine makes this Record fail to typecheck. */
 const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = {
@@ -65,6 +77,37 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
     zoneIndex: 3,
   },
   DamageDealt: { type: 'DamageDealt', playerIndex: 1, amount: 500 },
+  SpellTrapSet: { type: 'SpellTrapSet', playerIndex: 0, instanceId: 'p0-8', zoneIndex: 1 },
+  EffectActivated: {
+    type: 'EffectActivated',
+    playerIndex: 0,
+    instanceId: 'p0-9',
+    definitionId: SECRET,
+    effectId: 'e1',
+  },
+  EffectResolved: {
+    type: 'EffectResolved',
+    playerIndex: 0,
+    instanceId: 'p0-9',
+    definitionId: SECRET,
+    effectId: 'e1',
+  },
+  CardSentToGraveyard: {
+    type: 'CardSentToGraveyard',
+    ownerIndex: 0,
+    instanceId: 'p0-9',
+    definitionId: SECRET,
+    from: 'Hand',
+  },
+  LifePointsRecovered: { type: 'LifePointsRecovered', playerIndex: 0, amount: 300 },
+  LifePointsPaid: { type: 'LifePointsPaid', playerIndex: 0, amount: 500 },
+  SpellTrapDestroyed: {
+    type: 'SpellTrapDestroyed',
+    ownerIndex: 1,
+    instanceId: 'p1-4',
+    definitionId: SECRET,
+    zoneIndex: 2,
+  },
   DuelEnded: { type: 'DuelEnded', winnerIndex: 0, reason: 'LP_ZERO' },
 };
 
@@ -72,18 +115,24 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
 const asView = (e: PublicEvent): EventView => e;
 
 const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
-  (t) => t !== 'CardDrawn',
+  (t) => t !== 'CardDrawn' && !(NOT_FORWARDED_TYPES as readonly string[]).includes(t),
 );
 
 describe('toEventView', () => {
   it('covers every engine event type', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(15);
+    expect(Object.keys(FIXTURES)).toHaveLength(22);
   });
 
   it.each(PUBLIC_TYPES)('passes public event %s through unchanged to both viewers', (type) => {
     const event = FIXTURES[type] as PublicEvent;
     for (const viewer of [0, 1] as const) {
       expect(toEventView(event, viewer)).toEqual(asView(event));
+    }
+  });
+
+  it.each(NOT_FORWARDED_TYPES)('does not forward %s yet (deny until 3.2b wires it)', (type) => {
+    for (const viewer of [0, 1] as const) {
+      expect(toEventView(FIXTURES[type], viewer)).toBeNull();
     }
   });
 
