@@ -1,4 +1,4 @@
-# Review Packet — Task 2.9b: Log panel (ẩn/lọc) — Frontend
+# Review Packet — Task 2.10: Log panel (ẩn/lọc) — Frontend
 
 ## Đã làm
 
@@ -12,10 +12,10 @@
 
 ## Verify
 
-- Đỏ trước: `task-2.9b-red.txt` (3 file × 6 test đỏ vì chưa có module).
+- Đỏ trước: `task-2.10-red.txt` (3 file × 6 test đỏ vì chưa có module).
 - `pnpm --filter @yugi/web lint / typecheck / test / build`: xanh; 330 test (toàn bộ, gồm `src/debug/*`).
-- Mutant thủ công 13/13 bị bắt (`task-2.9b-mutants.txt`); 1 sống lần đầu (con trỏ lát AI chồng lấn) → thêm test.
-- Screenshot thật (Edge headless, API thật): `task-2.9b-screens/` 01-all, 02-combat-off, 03-combat-only, 04-hidden, 05-shown-again.
+- Mutant thủ công 13/13 bị bắt (`task-2.10-mutants.txt`); 1 sống lần đầu (con trỏ lát AI chồng lấn) → thêm test.
+- Screenshot thật (Edge headless, API thật): `task-2.10-screens/` 01-all, 02-combat-off, 03-combat-only, 04-hidden, 05-shown-again.
 - Chưa chạy: e2e `tools/play-duel-ui.ts` (không đổi luồng gửi action; `.log` vẫn có nên e2e cũ không bị ảnh hưởng — chưa kiểm bằng chạy).
 
 ## Cần bạn duyệt
@@ -25,8 +25,7 @@
 3. **Persist** localStorage: giữ hay bỏ?
 4. Chip "Tất cả" sáng khi đang lọc (bấm để reset) và mờ khi đang hiện tất cả — có dễ hiểu không?
 5. 03-combat-only.png trống vì ván mẫu chưa có đánh nhau (AI lượt đầu chỉ Summon) — nhóm Đánh đã được test bằng dữ liệu, chưa có ảnh có dòng.
-6. Số task "2.9b" là tạm.
 
 ## Việc tiếp theo đề xuất
 
-2.10 theo MASTER-PLAN.
+2.11 (Dev-endpoint scenario + Duel Sandbox) theo MASTER-PLAN.

@@ -3,15 +3,17 @@
 Tool dev chạy qua `apps/api` dev-only endpoints (chỉ bật ngoài production); `apps/web` không import engine (CLAUDE.md #2).
 Trang dev nằm dưới `/dev/*` trong web, ẩn khỏi production build.
 
-| Tool              | Việc                                                                                                                                      | Phase | Task     |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----- | -------- |
-| Event/Action Log  | Panel trong Duel, bật/tắt, hiện action + event theo thời gian                                                                             | P2    | 2.9      |
-| Duel Sandbox      | Nạp `scenarios/*.json` (board state) → thao tác thủ công → xem event log; scenario mẫu: `tribute-summon`, `attack-defense`, `chain-basic` | P2    | 2.10     |
-| Card Gallery      | Xem/lọc card; art thật hay placeholder; effect dạng text; lọc thiếu art; theo batch/tag                                                   | P5    | 5.5      |
-| Animation Preview | Chọn GameEvent/VFX → phát lại, chỉnh tốc độ, so với reference, đánh dấu duyệt                                                             | P6    | 6.5      |
-| Replay Viewer     | Nạp seed + action log → bước từng action, xem state/event                                                                                 | P6    | 6.7      |
-| Parity Board      | `docs/plan/parity-board.md`: trạng thái từng cơ chế/animation/màn hình                                                                    | P2+   | mỗi task |
-| Review Packet     | Cuối MỖI task (lệnh `/review-packet`)                                                                                                     | mọi   | —        |
+| Tool              | Việc                                                                                                                                      | Phase | Task                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----- | --------------------------------------------------------- |
+| Event/Action Log  | Panel trong Duel, bật/tắt, hiện action + event theo thời gian                                                                             | P2    | 2.7 (log cơ bản) + 2.9 (animation) + 2.10 (bật/tắt + lọc) |
+| Duel Sandbox      | Nạp `scenarios/*.json` (board state) → thao tác thủ công → xem event log; scenario mẫu: `tribute-summon`, `attack-defense`, `chain-basic` | P2    | 2.11                                                      |
+| Card Gallery      | Xem/lọc card; art thật hay placeholder; effect dạng text; lọc thiếu art; theo batch/tag                                                   | P5    | 5.5                                                       |
+| Animation Preview | Chọn GameEvent/VFX → phát lại, chỉnh tốc độ, so với reference, đánh dấu duyệt                                                             | P6    | 6.5                                                       |
+| Replay Viewer     | Nạp seed + action log → bước từng action, xem state/event                                                                                 | P6    | 6.7                                                       |
+| Parity Board      | `docs/plan/parity-board.md`: trạng thái từng cơ chế/animation/màn hình                                                                    | P2+   | mỗi task                                                  |
+| Review Packet     | Cuối MỖI task (lệnh `/review-packet`)                                                                                                     | mọi   | —                                                         |
+
+> Numbering đã đổi so với bản đầu (log panel gốc có từ 2.7, animation ở 2.9, bật/tắt + lọc ở 2.10, Sandbox ở 2.11); đối chiếu `MASTER-PLAN.md` là nguồn đúng.
 
 ## Scenario JSON (Duel Sandbox)
 

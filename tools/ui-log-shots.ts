@@ -12,7 +12,7 @@ import { join } from 'node:path';
 const EDGE =
   process.env.EDGE ?? 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const WEB = process.env.WEB_BASE ?? 'http://localhost:5173';
-const OUT = process.env.OUT ?? 'docs/ai/review-packets/task-2.9b-screens';
+const OUT = process.env.OUT ?? 'docs/ai/review-packets/task-2.10-screens';
 const SHOTS = Number(process.env.SHOTS ?? 24);
 const INTERVAL = Number(process.env.INTERVAL ?? 400);
 const PORT = 9335;
