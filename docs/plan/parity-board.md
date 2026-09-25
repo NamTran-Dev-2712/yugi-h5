@@ -38,13 +38,13 @@ Trạng thái: ⬜ chưa làm · 🟨 có bản nháp · ✅ đã duyệt bởi 
 
 ## Animation / âm thanh
 
-| Mục                        | Nhãn                                                                               | Trạng thái | Ghi chú                        |
-| -------------------------- | ---------------------------------------------------------------------------------- | ---------- | ------------------------------ |
-| Draw / Summon / Set / Flip | [REF] một phần (thấy 1 lần: draw đối thủ, Normal/Tribute Summon); Set/Flip [GUESS] | ⬜         | `notes/animation-durations.md` |
-| Attack / Damage / Destroy  | [REF] (thấy 1 lần mỗi mục)                                                         | ⬜         | `notes/animation-durations.md` |
-| Activate / Chain           | [REF] một phần (Phép/Bẫy/Fusion thấy 1 lần); Chain nhiều link [GUESS]              | ⬜         |                                |
-| LP / Phase / Win-Lose      | [REF] (thấy 1 lần: LP chạy, banner đổi lượt, thắng→kết quả)                        | ⬜         |                                |
-| SFX / BGM                  | [GUESS]                                                                            | ⬜         |                                |
+| Mục                        | Nhãn                                                                               | Trạng thái | Ghi chú                                                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| Draw / Summon / Set / Flip | [REF] một phần (thấy 1 lần: draw đối thủ, Normal/Tribute Summon); Set/Flip [GUESS] | 🟨         | `notes/animation-durations.md`; task 2.9: hiệu ứng nháp bằng code, thời lượng ngắn hơn gốc 2–5× (chờ duyệt) |
+| Attack / Damage / Destroy  | [REF] (thấy 1 lần mỗi mục)                                                         | 🟨         | `notes/animation-durations.md`; task 2.9: mũi tên + số damage nổi + flash, chưa có vệt lửa/LP chạy          |
+| Activate / Chain           | [REF] một phần (Phép/Bẫy/Fusion thấy 1 lần); Chain nhiều link [GUESS]              | ⬜         |                                                                                                             |
+| LP / Phase / Win-Lose      | [REF] (thấy 1 lần: LP chạy, banner đổi lượt, thắng→kết quả)                        | ⬜         |                                                                                                             |
+| SFX / BGM                  | [GUESS]                                                                            | ⬜         |                                                                                                             |
 
 ## Card
 

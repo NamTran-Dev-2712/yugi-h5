@@ -35,6 +35,7 @@ function fake(name: FixtureName, submitImpl: (a: PlayerAction) => Promise<Submit
     showFixture: () => undefined,
     press,
     submit,
+    skipAnimation: () => undefined,
   };
   return {
     controller,

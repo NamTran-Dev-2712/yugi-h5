@@ -72,8 +72,8 @@ docker compose up -d                      # Postgres (5433) + Redis (6380, chưa
    luật mới.
 6. Báo cáo cuối task: đã làm gì, file đổi, cách verify, việc tiếp theo đề xuất.
 
-7. **Kết thúc mỗi task bằng Review Packet** cho người duyệt (`/review-packet`) + cập nhật
-   `docs/plan/parity-board.md` (AI chỉ tới 🟨 "nháp"; chỉ người dùng chuyển ✅).
+6b. Task có đổi hiển thị UI: kèm screenshot thật ở `docs/ai/review-packets/task-<số>-screens/` (mẫu: `tools/ui-drag-shots.ts`, `tools/ui-anim-shots.ts`) và nêu đường dẫn trong báo cáo. 7. **Kết thúc mỗi task bằng Review Packet** cho người duyệt (`/review-packet`) + cập nhật
+`docs/plan/parity-board.md` (AI chỉ tới 🟨 "nháp"; chỉ người dùng chuyển ✅).
 
 Slash commands hỗ trợ quy trình này: `/task-start`, `/task-done`, `/next-task`, `/new-card`,
 `/new-effect-type`, `/new-action`, `/review`, `/review-packet`, `/fidelity-check`, `/asset-request`,

@@ -82,7 +82,7 @@ Task con:
 | 2.6  | AI rule-based (`chooseAction` thuần: chỉ thấy StateView + legalActions) + mode `solo-vs-ai` + driver                             | API+FE(debug) | M      |
 | 2.7  | Phaser Duel Scene tĩnh + `solo-vs-ai` (board 1280×720, tay, LP, phase, log, banner kết thúc, fixture; chỉ nút bấm, chưa kéo thả) | Frontend      | M      |
 | 2.8  | Kéo thả + highlight ô hợp lệ: Summon/Set (tribute qua prompt), Attack (kéo mũi tên), đổi thế, bỏ bài nhiều lá ✅ nháp 2026-09-25 | Frontend      | L      |
-| 2.9  | Animation theo `GameEvent[]` + nhịp lượt AI (phát lại `aiActions` từng bước)                                                     | Frontend      | M      |
+| 2.9  | Animation theo `GameEvent[]` + nhịp lượt AI (phát lại `aiActions` từng bước) ✅ nháp 2026-09-25                                  | Frontend      | M      |
 | 2.10 | Log panel bật/tắt + lọc (log cơ bản và banner kết thúc trận đã có từ 2.7)                                                        | Frontend      | S      |
 | 2.11 | Dev-endpoint nạp scenario JSON + Duel Sandbox page                                                                               | Tooling       | M      |
 | 2.12 | i18n bootstrap (VI/EN locale files, `t()`)                                                                                       | Frontend      | S      |

@@ -1,0 +1,19 @@
+KILLED   human slice end uses eventsTo
+KILLED   ai slice starts at 0
+KILLED   ai slice ends at end
+KILLED   ai order reversed
+KILLED   no ai label
+KILLED   draws not merged
+KILLED   draw merge ignores player
+KILLED   phase run keeps all
+KILLED   damage amount wrong
+KILLED   skip does not resolve
+KILLED   speed ignored
+KILLED   no cancel timer on skip
+KILLED   onStep throw hangs
+KILLED   snap forgotten on animator error
+KILLED   view applied before animation
+KILLED   animating never cleared
+KILLED   skip ignores animating flag
+KILLED   animates first view
+survived/notfound: 0 of 18

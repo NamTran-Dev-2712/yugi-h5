@@ -1,10 +1,17 @@
 import Phaser from 'phaser';
 import type { DuelController, DuelUiState } from '../duel/duel-controller';
+import {
+  animationSpeedFromSearch,
+  createAnimationPlayer,
+  timerScheduler,
+  type AnimationPlayer,
+} from '../duel/animation-player';
+import type { AnimationStep } from '../duel/animation-queue';
 import { formatDetail } from '../duel/detail-text';
 import { createInteractionDriver, type InteractionDriver } from '../duel/interaction-driver';
 import { computeLayout, staticRects, type Rect } from '../duel/layout';
 import { present, type CardDetail, type RenderModel } from '../duel/presenter';
-import { cardLookup } from '../duel/services';
+import { animatorHost, cardLookup } from '../duel/services';
 import { strings } from '../duel/strings';
 import { theme } from '../duel/theme';
 import { createCardView } from './card-view';
@@ -30,6 +37,10 @@ export class DuelScene extends Phaser.Scene {
   private unsubscribe: (() => void) | null = null;
   private driver!: InteractionDriver;
   private overlay!: Phaser.GameObjects.Container;
+  /** Transient effects of the animation step being played (drawn over the OLD board, gone at the snap). */
+  private fx!: Phaser.GameObjects.Container;
+  private player: AnimationPlayer | null = null;
+  private lastModel: RenderModel | null = null;
   private toastSeen = 0;
   private toastUntil = 0;
 
@@ -86,7 +97,18 @@ export class DuelScene extends Phaser.Scene {
     back.on('pointerup', () => this.scene.start('Menu'));
 
     this.dynamic = this.add.container(0, 0);
+    this.fx = this.add.container(0, 0).setDepth(5);
     this.overlay = this.add.container(0, 0).setDepth(10);
+    this.player = createAnimationPlayer({
+      schedule: timerScheduler,
+      onStep: (step) => this.playStep(step),
+      onSkip: () => this.fx.removeAll(true),
+      speed: animationSpeedFromSearch(window.location.search),
+    });
+    animatorHost.attach(this.player);
+    const skip = (): void => this.controller.skipAnimation();
+    this.input.keyboard?.on('keydown-SPACE', skip);
+    this.input.keyboard?.on('keydown-ENTER', skip);
     this.driver = createInteractionDriver(this.controller, {
       lookup: cardLookup,
       layout: this.layout,
@@ -101,6 +123,10 @@ export class DuelScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribe?.();
       this.unsubscribe = null;
+      animatorHost.attach(null);
+      this.player = null;
+      this.input.keyboard?.off('keydown-SPACE', skip);
+      this.input.keyboard?.off('keydown-ENTER', skip);
       this.input.off('pointerdown');
       this.input.off('pointermove');
       this.input.off('pointerup');
@@ -284,6 +310,7 @@ export class DuelScene extends Phaser.Scene {
 
   private render(state: DuelUiState): void {
     this.dynamic.removeAll(true);
+    if (!state.animating) this.fx.removeAll(true);
     this.logText.setText(state.log.slice(-LOG_LINES).join('\n'));
     if (!state.view) return;
 
@@ -292,12 +319,137 @@ export class DuelScene extends Phaser.Scene {
       surrenderArmed: state.surrenderArmed,
       layout: this.layout,
     });
+    this.lastModel = model;
     this.drawPiles(model);
     this.drawLp(model);
     this.drawCards(model);
     this.drawPhase(model, state);
     this.drawButtons(model, state);
     if (model.banner) this.drawBanner(model);
+  }
+
+  /**
+   * One animation step = a caption (the log sentence) plus a small effect on the spot the event names. Everything is
+   * read from the step; the board underneath is still the previous state and only changes at the snap.
+   */
+  private playStep(step: AnimationStep): void {
+    this.fx.removeAll(true);
+    const viewer = this.controller.getState().view?.viewerIndex ?? 0;
+    const sideOf = (playerIndex: number): 'self' | 'opp' =>
+      playerIndex === viewer ? 'self' : 'opp';
+    const cardRect = (id: string): Rect | undefined =>
+      this.lastModel?.cards.find((c) => c.id === id)?.rect;
+    const zoneRect = (playerIndex: number, zone: number): Rect | undefined =>
+      this.layout[sideOf(playerIndex)].monsterZones[zone];
+    const centre = (r: Rect): { x: number; y: number } => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    const c = theme.colors;
+
+    const flash = (r: Rect | undefined, color: number): void => {
+      if (!r) return;
+      const box = this.add.rectangle(r.x, r.y, r.w, r.h, color, 0.35).setOrigin(0, 0);
+      box.setStrokeStyle(3, color, 1);
+      this.fx.add(box);
+      this.tweens.add({ targets: box, alpha: 0, duration: step.durationMs, ease: 'Quad.easeIn' });
+    };
+    const pop = (r: Rect | undefined, texture: string): void => {
+      if (!r) return;
+      const p = centre(r);
+      const img = this.add.image(p.x, p.y, texture).setDisplaySize(r.w, r.h).setScale(0.3);
+      this.fx.add(img);
+      this.tweens.add({
+        targets: img,
+        scale: 1,
+        duration: step.durationMs * 0.6,
+        ease: 'Back.easeOut',
+      });
+    };
+
+    switch (step.kind) {
+      case 'draw':
+        flash(this.layout[sideOf(step.playerIndex)].handBand, c.highlight);
+        break;
+      case 'summon':
+        flash(zoneRect(step.playerIndex, step.zoneIndex), c.validZone);
+        pop(zoneRect(step.playerIndex, step.zoneIndex), 'card-frame-monster');
+        break;
+      case 'set':
+        flash(zoneRect(step.playerIndex, step.zoneIndex), c.dim);
+        pop(zoneRect(step.playerIndex, step.zoneIndex), 'card-back');
+        break;
+      case 'flip':
+      case 'changePosition':
+        flash(cardRect(step.instanceId) ?? zoneRect(step.playerIndex, step.zoneIndex), c.highlight);
+        break;
+      case 'tribute':
+      case 'destroy':
+        flash(cardRect(step.instanceId) ?? zoneRect(step.playerIndex, step.zoneIndex), c.danger);
+        break;
+      case 'attack': {
+        const from = cardRect(step.instanceId);
+        const target = step.targetInstanceId ? cardRect(step.targetInstanceId) : undefined;
+        const to = target ?? this.layout[sideOf(step.playerIndex) === 'self' ? 'opp' : 'self'].lp;
+        if (from) {
+          flash(from, c.arrow);
+          this.drawFxArrow(centre(from), centre(to), step.durationMs);
+        }
+        break;
+      }
+      case 'damage': {
+        const lp = this.layout[sideOf(step.playerIndex)].lp;
+        const t = this.add
+          .text(lp.x + lp.w / 2, lp.y + lp.h / 2, `-${step.amount}`, {
+            fontFamily: theme.fonts.ui,
+            fontStyle: 'bold',
+            fontSize: '40px',
+            color: theme.css.danger,
+            stroke: '#000000',
+            strokeThickness: 5,
+          })
+          .setOrigin(0.5);
+        this.fx.add(t);
+        this.tweens.add({
+          targets: t,
+          y: t.y - 50,
+          alpha: 0,
+          duration: step.durationMs,
+          ease: 'Quad.easeOut',
+        });
+        break;
+      }
+      case 'discard':
+      case 'deckOut':
+      case 'phase':
+      case 'turn':
+      case 'duelEnd':
+      case 'aiLabel':
+        break; // the caption below is the whole effect
+    }
+
+    const w = 640;
+    const x = this.layout.frame.w / 2 - w / 2;
+    const y = 300;
+    this.fx.add(this.add.rectangle(x, y, w, 40, theme.colors.toastBg, 0.9).setOrigin(0, 0));
+    this.fx.add(
+      this.add
+        .text(x + w / 2, y + 20, step.text, {
+          fontFamily: theme.fonts.ui,
+          fontSize: `${theme.fontSize.label}px`,
+          color: step.kind === 'aiLabel' ? theme.css.gold : theme.css.text,
+        })
+        .setOrigin(0.5),
+    );
+  }
+
+  private drawFxArrow(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    durationMs: number,
+  ): void {
+    const g = this.add.graphics();
+    g.lineStyle(6, theme.colors.arrow, 0.9);
+    g.lineBetween(from.x, from.y, to.x, to.y);
+    this.fx.add(g);
+    this.tweens.add({ targets: g, alpha: 0, duration: durationMs, ease: 'Quad.easeIn' });
   }
 
   private drawCards(model: RenderModel): void {
@@ -392,11 +544,13 @@ export class DuelScene extends Phaser.Scene {
         })
         .setOrigin(0.5, 0),
     );
-    const note = state.busy
-      ? state.thinking
-        ? strings.thinking
-        : strings.sending
-      : (model.prompt?.text ?? state.error ?? '');
+    const note = state.animating
+      ? strings.animating
+      : state.busy
+        ? state.thinking
+          ? strings.thinking
+          : strings.sending
+        : (model.prompt?.text ?? state.error ?? '');
     if (note) {
       this.dynamic.add(
         this.add

@@ -30,6 +30,7 @@ export const strings = {
 
   thinking: 'AI đang suy nghĩ…',
   sending: 'Đang gửi…',
+  animating: 'Nhấn Space / Enter để bỏ qua hiệu ứng',
 
   win: 'BẠN THẮNG',
   lose: 'BẠN THUA',

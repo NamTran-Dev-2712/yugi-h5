@@ -1,0 +1,18 @@
+[31m     → expected [Function] to not throw an error but 'TypeError: c.skipAnimation is not a f…' was thrown[39m
+[41m[1m FAIL [22m[49m src/duel/animation-player.test.ts[2m [ src/duel/animation-player.test.ts ][22m
+[41m[1m FAIL [22m[49m src/duel/animation-queue.test.ts[2m [ src/duel/animation-queue.test.ts ][22m
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 10 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22manimation in the controller[2m > [22mkeeps the OLD view while animating, then snaps to the response view and legalActions
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22manimation in the controller[2m > [22mhands the animator the human segment first, then one segment per AI action
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22manimation in the controller[2m > [22ma response without aiActions animates just the human events
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22manimation in the controller[2m > [22mskipAnimation() finishes it and the new view appears
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22manimation in the controller[2m > [22mskipAnimation() with nothing playing is harmless
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but 'TypeError: c.skipAnimation is not a f…' was thrown[39m
+"TypeError: c.skipAnimation is not a function"
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22manimation in the controller[2m > [22ma failing animator still ends with the new view and an unlocked controller
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22manimation in the controller[2m > [22ma rejected action never animates and never touches the board
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22manimation in the controller[2m > [22mwithout an animator the behaviour is unchanged: the view is set at once
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22manimation in the controller[2m > [22mend turn (several EndPhase requests) animates each response before the next request
+[41m[1m FAIL [22m[49m src/duel/duel-controller.animation.test.ts[2m > [22minput lock while animating[2m > [22mignores pointer input during the animation and accepts it again right after
+[2m Test Files [22m [1m[31m3 failed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[31m10 failed[39m[22m[2m | [22m[1m[32m3 passed[39m[22m[90m (13)[39m

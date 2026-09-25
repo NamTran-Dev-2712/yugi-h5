@@ -1,6 +1,7 @@
 import type { EventView, PlayerAction, StateView, ViewResponse } from '@yugi/shared';
 import { DuelApiError, type DuelApi } from '../api/duel-api';
 import { shouldContinueEndTurn } from '../debug/build-actions';
+import { segmentsFor, type AnimationSegment } from './animation-queue';
 import { formatApiError, logLinesFor } from '../debug/debug-state';
 import { describeAiAction } from '../debug/describe-ai-action';
 import { describeEvent } from '../debug/describe-event';
@@ -31,6 +32,8 @@ export interface DuelUiState {
   readonly log: readonly string[];
   /** A request is in flight; input is ignored meanwhile. */
   readonly busy: boolean;
+  /** The events of the last response are being played; `view` is still the OLD board until they finish. */
+  readonly animating: boolean;
   /** The request in flight can hand the turn to the AI ("AI đang suy nghĩ"). */
   readonly thinking: boolean;
   /** "Đầu hàng" was pressed once and waits for a second press. */
@@ -44,6 +47,7 @@ export const initialUiState: DuelUiState = {
   legalActions: [],
   log: [],
   busy: false,
+  animating: false,
   thinking: false,
   surrenderArmed: false,
   error: null,
@@ -66,15 +70,30 @@ export interface DuelController {
    * and never reaches the server. Without a server (fixture) it only logs "sẽ gửi: <action>".
    */
   submit(action: PlayerAction): Promise<SubmitResult>;
+  /** Cuts a running animation short (the new view shows at once). No-op when nothing plays. */
+  skipAnimation(): void;
+}
+
+/** What the controller needs from the animation layer; the scene provides it (see `animation-player.ts`). */
+export interface DuelAnimator {
+  /** Resolves when the segments have been played or skipped. Must not reject (the controller also guards). */
+  play(segments: readonly AnimationSegment[]): Promise<void>;
+  skip(): void;
 }
 
 export interface DuelControllerDeps {
   /** Absent for fixtures: they show a fixed view and can send nothing. */
   readonly api?: DuelApi;
   readonly lookup: CardLookup;
+  /** Absent = no animation: a response's view is applied at once (fixtures, tests, the e2e tools). */
+  readonly animator?: DuelAnimator;
 }
 
-export function createDuelController({ api, lookup }: DuelControllerDeps): DuelController {
+export function createDuelController({
+  api,
+  lookup,
+  animator,
+}: DuelControllerDeps): DuelController {
   let state: DuelUiState = initialUiState;
   const listeners = new Set<(s: DuelUiState) => void>();
 
@@ -95,12 +114,42 @@ export function createDuelController({ api, lookup }: DuelControllerDeps): DuelC
   const describeAi = (action: PlayerAction, view: StateView): string =>
     describeAiAction(action, { instanceLabel: (id) => instanceLabelIn(view, id, lookup) });
 
-  const applyResponse = (response: ViewResponse, patch: Partial<DuelUiState> = {}): void => {
+  const applyResponse = async (
+    response: ViewResponse,
+    patch: Partial<DuelUiState> = {},
+  ): Promise<void> => {
+    const log = addLog(logLinesFor(response, describeAll, describeAi));
+    const before = state.view;
+    const segments =
+      animator && before
+        ? segmentsFor(
+            response,
+            (e) =>
+              describeEvent(e, {
+                cardName: (id) => lookup(id)?.name ?? id,
+                // The board shown is still the old one; a card that is gone from it is looked up in the new one.
+                instanceLabel: (id) => {
+                  const old = instanceLabelIn(before, id, lookup);
+                  return old !== id ? old : instanceLabelIn(response.view, id, lookup);
+                },
+              }),
+            (a) => describeAi(a, response.view),
+          )
+        : [];
+    if (animator && segments.length > 0) {
+      set({ log, error: null, animating: true });
+      try {
+        await animator.play(segments);
+      } catch {
+        // an effect that fails must never leave the board stale or the input locked
+      }
+    }
     set({
       view: response.view,
       legalActions: response.legalActions,
-      log: addLog(logLinesFor(response, describeAll, describeAi)),
+      log,
       error: null,
+      animating: false,
       ...patch,
     });
   };
@@ -110,7 +159,7 @@ export function createDuelController({ api, lookup }: DuelControllerDeps): DuelC
     const { duelId, view } = state;
     if (api === undefined || duelId === null || view === null) return strings.toastNotAllowed;
     try {
-      applyResponse(await api.submitAction(duelId, view.viewerIndex, action));
+      await applyResponse(await api.submitAction(duelId, view.viewerIndex, action));
       return null;
     } catch (err) {
       const text = formatApiError(err);
@@ -168,7 +217,7 @@ export function createDuelController({ api, lookup }: DuelControllerDeps): DuelC
         if (!api) throw new Error('Không có API');
         await api.ensureGuest();
         const res = await api.createSolo({ mode: 'solo-vs-ai' });
-        applyResponse(res, { duelId: res.duelId });
+        await applyResponse(res, { duelId: res.duelId });
       } catch (err) {
         set({ error: formatApiError(err), log: addLog([`✗ ${formatApiError(err)}`]) });
       } finally {
@@ -196,6 +245,9 @@ export function createDuelController({ api, lookup }: DuelControllerDeps): DuelC
       }
       const action = legal('EndPhase');
       if (action) await run(action, true);
+    },
+    skipAnimation() {
+      if (state.animating) animator?.skip();
     },
     async submit(action) {
       if (!state.view) return { ok: false, message: strings.toastNotAllowed };

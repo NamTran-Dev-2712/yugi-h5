@@ -1,5 +1,6 @@
 import { SAMPLE_CARDS } from '@yugi/shared';
 import { createDuelApi, type TokenStorage } from '../api/duel-api';
+import { createAnimatorHost } from './animation-player';
 import { createDuelController, type DuelController } from './duel-controller';
 import type { CardLookup } from './presenter';
 
@@ -16,6 +17,9 @@ function browserStorage(): TokenStorage | undefined {
   }
 }
 
+/** The duel scene attaches its animation player here while it is on screen (see `animation-player.ts`). */
+export const animatorHost = createAnimatorHost();
+
 export function createAppController(): DuelController {
   const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
   return createDuelController({
@@ -25,5 +29,6 @@ export function createAppController(): DuelController {
       storage: browserStorage(),
     }),
     lookup: cardLookup,
+    animator: animatorHost.animator,
   });
 }
