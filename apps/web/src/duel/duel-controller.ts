@@ -2,11 +2,12 @@ import type { EventView, PlayerAction, StateView, ViewResponse } from '@yugi/sha
 import { DuelApiError, type DuelApi } from '../api/duel-api';
 import { shouldContinueEndTurn } from '../debug/build-actions';
 import { segmentsFor, type AnimationSegment } from './animation-queue';
-import { formatApiError, logLinesFor } from '../debug/debug-state';
+import { formatApiError } from '../debug/debug-state';
 import { describeAiAction } from '../debug/describe-ai-action';
 import { describeEvent } from '../debug/describe-event';
 import { messageFor } from './error-messages';
 import { instanceLabelIn } from './labels';
+import { entriesFor, errorEntry, type LogEntry } from './log-entries';
 import { isListed } from './legal-index';
 import type { ButtonId, CardLookup } from './presenter';
 import { strings } from './strings';
@@ -30,6 +31,8 @@ export interface DuelUiState {
   /** From the server for the viewer's seat, replaced together with `view`. */
   readonly legalActions: readonly PlayerAction[];
   readonly log: readonly string[];
+  /** The same lines as `log`, in the same order, with a category (for the scene's log filter). */
+  readonly entries: readonly LogEntry[];
   /** A request is in flight; input is ignored meanwhile. */
   readonly busy: boolean;
   /** The events of the last response are being played; `view` is still the OLD board until they finish. */
@@ -46,6 +49,7 @@ export const initialUiState: DuelUiState = {
   view: null,
   legalActions: [],
   log: [],
+  entries: [],
   busy: false,
   animating: false,
   thinking: false,
@@ -101,8 +105,11 @@ export function createDuelController({
     state = { ...state, ...patch };
     for (const l of listeners) l(state);
   };
-  const addLog = (lines: readonly string[]): readonly string[] =>
-    [...state.log, ...lines].slice(-MAX_LOG_LINES);
+  /** Both logs grow together; `log` is the plain text of `entries`. */
+  const addLog = (entries: readonly LogEntry[]): Pick<DuelUiState, 'log' | 'entries'> => {
+    const all = [...state.entries, ...entries].slice(-MAX_LOG_LINES);
+    return { log: all.map((e) => e.text), entries: all };
+  };
 
   const describeAll = (events: readonly EventView[], view: StateView): string[] =>
     events.map((e) =>
@@ -118,7 +125,7 @@ export function createDuelController({
     response: ViewResponse,
     patch: Partial<DuelUiState> = {},
   ): Promise<void> => {
-    const log = addLog(logLinesFor(response, describeAll, describeAi));
+    const log = addLog(entriesFor(response, describeAll, describeAi));
     const before = state.view;
     const segments =
       animator && before
@@ -137,7 +144,7 @@ export function createDuelController({
           )
         : [];
     if (animator && segments.length > 0) {
-      set({ log, error: null, animating: true });
+      set({ ...log, error: null, animating: true });
       try {
         await animator.play(segments);
       } catch {
@@ -147,7 +154,7 @@ export function createDuelController({
     set({
       view: response.view,
       legalActions: response.legalActions,
-      log,
+      ...log,
       error: null,
       animating: false,
       ...patch,
@@ -163,7 +170,7 @@ export function createDuelController({
       return null;
     } catch (err) {
       const text = formatApiError(err);
-      set({ error: text, log: addLog([`✗ ${text.replace(/\n/g, ' | ')}`]) });
+      set({ error: text, ...addLog([errorEntry(`✗ ${text.replace(/\n/g, ' | ')}`)]) });
       return messageFor(err instanceof DuelApiError ? err : { code: 'UNKNOWN' });
     }
   }
@@ -219,7 +226,7 @@ export function createDuelController({
         const res = await api.createSolo({ mode: 'solo-vs-ai' });
         await applyResponse(res, { duelId: res.duelId });
       } catch (err) {
-        set({ error: formatApiError(err), log: addLog([`✗ ${formatApiError(err)}`]) });
+        set({ error: formatApiError(err), ...addLog([errorEntry(`✗ ${formatApiError(err)}`)]) });
       } finally {
         set({ busy: false });
       }
@@ -257,9 +264,14 @@ export function createDuelController({
       }
       if (state.busy) return { ok: false, message: strings.toastBusy };
       if (api === undefined || state.duelId === null) {
-        set({
-          log: addLog([`${strings.sendPreview} ${JSON.stringify(action).replace(/,/g, ', ')}`]),
-        });
+        set(
+          addLog([
+            {
+              text: `${strings.sendPreview} ${JSON.stringify(action).replace(/,/g, ', ')}`,
+              category: 'field',
+            },
+          ]),
+        );
         return { ok: true, sent: false };
       }
       return run(action, false);

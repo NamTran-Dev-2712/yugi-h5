@@ -10,6 +10,17 @@ import type { AnimationStep } from '../duel/animation-queue';
 import { formatDetail } from '../duel/detail-text';
 import { createInteractionDriver, type InteractionDriver } from '../duel/interaction-driver';
 import { computeLayout, staticRects, type Rect } from '../duel/layout';
+import { filterEntries } from '../duel/log-entries';
+import {
+  loadLogPanel,
+  logHitTest,
+  logPanelRects,
+  reduceLogPanel,
+  saveLogPanel,
+  type LogPanelAction,
+  type LogPanelState,
+  type LogStorage,
+} from '../duel/log-panel';
 import { present, type CardDetail, type RenderModel } from '../duel/presenter';
 import { animatorHost, cardLookup } from '../duel/services';
 import { strings } from '../duel/strings';
@@ -23,6 +34,15 @@ export interface DuelSceneData {
 const LOG_LINES = 24;
 const TOAST_MS = 2500;
 
+/** localStorage may be missing or throw (private window); the panel then just uses its defaults. */
+function browserStorage(): LogStorage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Draws a RenderModel and forwards clicks to the controller. Nothing here knows a game rule: what is on screen comes
  * from `present()`, what a button does comes from the action the server listed. The dynamic layer is rebuilt on every
@@ -34,6 +54,9 @@ export class DuelScene extends Phaser.Scene {
   private dynamic!: Phaser.GameObjects.Container;
   private detailText!: Phaser.GameObjects.Text;
   private logText!: Phaser.GameObjects.Text;
+  /** Header band of the log panel (title, collapse button, filter chips), or just the small tab while hidden. */
+  private logUi!: Phaser.GameObjects.Container;
+  private logPanel!: LogPanelState;
   private unsubscribe: (() => void) | null = null;
   private driver!: InteractionDriver;
   private overlay!: Phaser.GameObjects.Container;
@@ -85,6 +108,10 @@ export class DuelScene extends Phaser.Scene {
       })
       .setOrigin(0, 1);
 
+    this.logPanel = loadLogPanel(browserStorage());
+    this.logUi = this.add.container(0, 0).setDepth(2);
+    this.drawLogUi();
+
     const back = this.add
       .text(16, 88, strings.back, {
         fontFamily: theme.fonts.mono,
@@ -107,7 +134,9 @@ export class DuelScene extends Phaser.Scene {
     });
     animatorHost.attach(this.player);
     const skip = (): void => this.controller.skipAnimation();
+    const toggleLog = (): void => this.dispatchLog({ type: 'toggleVisible' });
     this.input.keyboard?.on('keydown-SPACE', skip);
+    this.input.keyboard?.on('keydown-L', toggleLog);
     this.input.keyboard?.on('keydown-ENTER', skip);
     this.driver = createInteractionDriver(this.controller, {
       lookup: cardLookup,
@@ -126,6 +155,7 @@ export class DuelScene extends Phaser.Scene {
       animatorHost.attach(null);
       this.player = null;
       this.input.keyboard?.off('keydown-SPACE', skip);
+      this.input.keyboard?.off('keydown-L', toggleLog);
       this.input.keyboard?.off('keydown-ENTER', skip);
       this.input.off('pointerdown');
       this.input.off('pointermove');
@@ -135,10 +165,73 @@ export class DuelScene extends Phaser.Scene {
     this.render(this.controller.getState());
   }
 
+  private dispatchLog(action: LogPanelAction): void {
+    this.logPanel = reduceLogPanel(this.logPanel, action);
+    saveLogPanel(browserStorage(), this.logPanel);
+    this.drawLogUi();
+    this.renderLogText(this.controller.getState());
+  }
+
+  private renderLogText(state: DuelUiState): void {
+    const lines = filterEntries(state.entries, this.logPanel.enabled)
+      .slice(-LOG_LINES)
+      .map((e) => e.text);
+    this.logText.setVisible(this.logPanel.visible).setText(lines.join('\n'));
+  }
+
+  /** Header (title, collapse button, chips) while shown; only a small tab at the same corner while hidden. */
+  private drawLogUi(): void {
+    this.logUi.removeAll(true);
+    const r = logPanelRects(this.layout);
+    const c = theme.colors;
+    const size = theme.fontSize.small;
+    const box = (rect: Rect, label: string, on: boolean): void => {
+      const bg = this.add
+        .rectangle(rect.x, rect.y, rect.w, rect.h, on ? c.button : c.buttonDisabled)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, on ? c.highlight : c.panelLine, on ? 0.9 : 0.4);
+      const text = this.add
+        .text(rect.x + rect.w / 2, rect.y + rect.h / 2, label, {
+          fontFamily: theme.fonts.ui,
+          fontSize: `${size}px`,
+          color: on ? theme.css.text : theme.css.textDisabled,
+        })
+        .setOrigin(0.5);
+      this.logUi.add([bg, text]);
+    };
+    if (!this.logPanel.visible) {
+      box(r.toggleTab, strings.logShow, true);
+      return;
+    }
+    const { header } = r;
+    this.logUi.add(
+      this.add.rectangle(header.x, header.y, header.w, header.h, c.panel, 1).setOrigin(0, 0),
+    );
+    this.logUi.add(
+      this.add.text(header.x + 2, header.y + 4, strings.logTitle, {
+        fontFamily: theme.fonts.ui,
+        fontSize: `${size}px`,
+        color: theme.css.textDim,
+      }),
+    );
+    box(r.toggleButton, strings.logHide, true);
+    const entries = Object.entries(r.chips) as [keyof typeof r.chips, Rect][];
+    box(r.showAll, strings.logAll, this.logPanel.enabled.size < entries.length);
+    for (const [category, rect] of entries) {
+      box(rect, strings.logCategory[category], this.logPanel.enabled.has(category));
+    }
+  }
+
   /** Mouse and touch both arrive as Phaser pointers; everything below is coordinates in the logical frame. */
   private wireInput(): void {
     const at = (p: Phaser.Input.Pointer) => ({ x: p.x, y: p.y });
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      // The log panel is plain UI, not part of a gesture: it never reaches the interaction machine.
+      const logAction = logHitTest(this.layout, this.logPanel, at(p));
+      if (logAction) {
+        this.dispatchLog(logAction);
+        return;
+      }
       if (p.rightButtonDown()) void this.driver.dispatch({ type: 'cancel' });
       else void this.driver.dispatch({ type: 'pointerDown', point: at(p) });
     });
@@ -311,7 +404,7 @@ export class DuelScene extends Phaser.Scene {
   private render(state: DuelUiState): void {
     this.dynamic.removeAll(true);
     if (!state.animating) this.fx.removeAll(true);
-    this.logText.setText(state.log.slice(-LOG_LINES).join('\n'));
+    this.renderLogText(state);
     if (!state.view) return;
 
     const model = present(state.view, state.legalActions, {
