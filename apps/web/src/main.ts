@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
+import { initI18n } from './i18n/i18n';
 import { theme } from './duel/theme';
 import { BootScene } from './scenes/boot-scene';
 import { MenuScene } from './scenes/menu-scene';
 import { DuelScene } from './scenes/duel-scene';
+
+initI18n();
 
 new Phaser.Game({
   type: Phaser.AUTO,

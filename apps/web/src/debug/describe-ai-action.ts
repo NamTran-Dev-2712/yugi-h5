@@ -1,4 +1,5 @@
 import type { PlayerAction } from '@yugi/shared';
+import { t } from '../i18n/i18n';
 
 export interface DescribeAiContext {
   /** Readable label for a card instance, against the view the person is looking at. */
@@ -13,31 +14,44 @@ export function describeAiAction(action: PlayerAction, ctx: DescribeAiContext): 
   const label = ctx.instanceLabel;
   switch (action.type) {
     case 'EndPhase':
-      return '🤖 AI kết thúc phase';
+      return t('ai.endPhase');
     case 'NormalSummon': {
       const { cardInstanceId, zoneIndex, tributeInstanceIds } = action.payload;
       const tributes = tributeInstanceIds ?? [];
       return tributes.length === 0
-        ? `🤖 AI Normal Summon ${label(cardInstanceId)} ở ô ${zoneIndex}`
-        : `🤖 AI Tribute Summon ${label(cardInstanceId)} ở ô ${zoneIndex}, hiến tế ${tributes.map(label).join(', ')}`;
+        ? t('ai.normalSummon', { card: label(cardInstanceId), zone: zoneIndex })
+        : t('ai.tributeSummon', {
+            card: label(cardInstanceId),
+            zone: zoneIndex,
+            tributes: tributes.map(label).join(', '),
+          });
     }
     case 'SetMonster':
-      return `🤖 AI úp ${label(action.payload.cardInstanceId)} ở ô ${action.payload.zoneIndex}`;
+      return t('ai.setMonster', {
+        card: label(action.payload.cardInstanceId),
+        zone: action.payload.zoneIndex,
+      });
     case 'ChangePosition':
-      return `🤖 AI đổi thế ${label(action.payload.cardInstanceId)} sang ${action.payload.toPosition}`;
+      return t('ai.changePosition', {
+        card: label(action.payload.cardInstanceId),
+        to: action.payload.toPosition,
+      });
     case 'DeclareAttack': {
       const { attackerInstanceId, targetInstanceId } = action.payload;
       return targetInstanceId == null
-        ? `🤖 AI tấn công trực tiếp bằng ${label(attackerInstanceId)}`
-        : `🤖 AI tấn công ${label(targetInstanceId)} bằng ${label(attackerInstanceId)}`;
+        ? t('ai.attackDirect', { attacker: label(attackerInstanceId) })
+        : t('ai.attackTarget', {
+            target: label(targetInstanceId),
+            attacker: label(attackerInstanceId),
+          });
     }
     case 'ResolvePendingPrompt':
-      return `🤖 AI bỏ ${action.payload.cardInstanceIds.map(label).join(', ')} xuống mộ`;
+      return t('ai.discard', { cards: action.payload.cardInstanceIds.map(label).join(', ') });
     case 'Surrender':
-      return '🤖 AI đầu hàng';
+      return t('ai.surrender');
     default: {
       const unhandled: never = action;
-      return `AI hành động không rõ: ${JSON.stringify(unhandled)}`;
+      return t('ai.unknown', { json: JSON.stringify(unhandled) });
     }
   }
 }

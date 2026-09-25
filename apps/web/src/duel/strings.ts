@@ -1,71 +1,199 @@
+import { t } from '../i18n/i18n';
+
 /**
- * UI strings for the duel screen, Vietnamese, in one module so i18n (task 2.12) can replace it with locale files
- * without touching the scenes. Card text comes from card data, not from here.
+ * UI strings for the duel screen. A thin facade over the locale files (`src/i18n/locales`): every property is a getter,
+ * so the text follows the current language at read time (never cache a value at module level). Card text comes from
+ * card data, not from here.
  */
-export const strings = {
-  menuTitle: 'YUGI H5 RECREATE',
-  playVsAi: 'Đấu với AI',
-  starting: 'Đang tạo trận…',
-  startFailed: 'Không tạo được trận (API chưa chạy?)',
-  back: '< Menu',
-
-  nextPhase: 'Phase tiếp theo',
-  endTurn: 'Kết thúc lượt',
-  surrender: 'Đầu hàng',
-  surrenderConfirm: 'Xác nhận đầu hàng?',
-
-  you: 'Bạn',
-  opponent: 'Đối thủ',
-  turn: 'Lượt',
-  phase: {
-    Draw: 'Draw',
-    Standby: 'Standby',
-    Main1: 'Main 1',
-    Battle: 'Battle',
-    Main2: 'Main 2',
-    End: 'End',
+const phaseNames = {
+  get Draw() {
+    return t('duel.phase.Draw');
   },
-  yourTurn: 'Lượt của bạn',
-  opponentTurn: 'Lượt của đối thủ',
+  get Standby() {
+    return t('duel.phase.Standby');
+  },
+  get Main1() {
+    return t('duel.phase.Main1');
+  },
+  get Battle() {
+    return t('duel.phase.Battle');
+  },
+  get Main2() {
+    return t('duel.phase.Main2');
+  },
+  get End() {
+    return t('duel.phase.End');
+  },
+};
 
-  thinking: 'AI đang suy nghĩ…',
-  sending: 'Đang gửi…',
-  animating: 'Nhấn Space / Enter để bỏ qua hiệu ứng',
+const logCategories = {
+  get field() {
+    return t('duel.logCategory.field');
+  },
+  get combat() {
+    return t('duel.logCategory.combat');
+  },
+  get turn() {
+    return t('duel.logCategory.turn');
+  },
+  get error() {
+    return t('duel.logCategory.error');
+  },
+};
 
-  win: 'BẠN THẮNG',
-  lose: 'BẠN THUA',
-  draw: 'HÒA',
-  backToMenu: 'Về menu',
+export const strings = {
+  get menuTitle() {
+    return t('duel.menuTitle');
+  },
+  get playVsAi() {
+    return t('duel.playVsAi');
+  },
+  get starting() {
+    return t('duel.starting');
+  },
+  get startFailed() {
+    return t('duel.startFailed');
+  },
+  get back() {
+    return t('duel.back');
+  },
 
-  discardPrompt: 'Tay quá giới hạn: bấm 1 lá để bỏ xuống mộ',
-  discardNeedsDrag: 'Cần bỏ nhiều lá: chọn các lá rồi bấm Xác nhận',
+  get nextPhase() {
+    return t('duel.nextPhase');
+  },
+  get endTurn() {
+    return t('duel.endTurn');
+  },
+  get surrender() {
+    return t('duel.surrender');
+  },
+  get surrenderConfirm() {
+    return t('duel.surrenderConfirm');
+  },
+
+  get you() {
+    return t('duel.you');
+  },
+  get opponent() {
+    return t('duel.opponent');
+  },
+  get turn() {
+    return t('duel.turn');
+  },
+  phase: phaseNames,
+  get yourTurn() {
+    return t('duel.yourTurn');
+  },
+  get opponentTurn() {
+    return t('duel.opponentTurn');
+  },
+
+  get thinking() {
+    return t('duel.thinking');
+  },
+  get sending() {
+    return t('duel.sending');
+  },
+  get animating() {
+    return t('duel.animating');
+  },
+
+  get win() {
+    return t('duel.win');
+  },
+  get lose() {
+    return t('duel.lose');
+  },
+  get draw() {
+    return t('duel.draw');
+  },
+  get backToMenu() {
+    return t('duel.backToMenu');
+  },
+
+  get discardPrompt() {
+    return t('duel.discardPrompt');
+  },
+  get discardNeedsDrag() {
+    return t('duel.discardNeedsDrag');
+  },
 
   // Interaction (task 2.8)
-  summonOption: 'Triệu hồi',
-  setOption: 'Úp (Set)',
-  toAttackOption: 'Đổi sang Tấn công',
-  toDefenseOption: 'Đổi sang Phòng thủ',
-  confirm: 'Xác nhận',
-  cancel: 'Hủy',
-  pickTributeHint: 'Chọn quái để hiến tế rồi bấm Xác nhận',
-  pickDiscardHint: 'Chọn các lá để bỏ rồi bấm Xác nhận',
-  toastNoZone: 'Không thể đặt lá này vào đây.',
-  toastCardLocked: 'Lá này chưa thể dùng lúc này.',
-  toastBadTarget: 'Không thể tấn công mục tiêu này.',
-  toastNotAllowed: 'Hành động này hiện không hợp lệ.',
-  toastBusy: 'Đang xử lý, chờ một chút…',
-  sendPreview: 'sẽ gửi:',
-  promptOther: 'Đang chờ trả lời prompt',
+  get summonOption() {
+    return t('duel.summonOption');
+  },
+  get setOption() {
+    return t('duel.setOption');
+  },
+  get toAttackOption() {
+    return t('duel.toAttackOption');
+  },
+  get toDefenseOption() {
+    return t('duel.toDefenseOption');
+  },
+  get confirm() {
+    return t('duel.confirm');
+  },
+  get cancel() {
+    return t('duel.cancel');
+  },
+  get pickTributeHint() {
+    return t('duel.pickTributeHint');
+  },
+  get pickDiscardHint() {
+    return t('duel.pickDiscardHint');
+  },
+  get toastNoZone() {
+    return t('duel.toastNoZone');
+  },
+  get toastCardLocked() {
+    return t('duel.toastCardLocked');
+  },
+  get toastBadTarget() {
+    return t('duel.toastBadTarget');
+  },
+  get toastNotAllowed() {
+    return t('duel.toastNotAllowed');
+  },
+  get toastBusy() {
+    return t('duel.toastBusy');
+  },
+  get sendPreview() {
+    return t('duel.sendPreview');
+  },
+  get promptOther() {
+    return t('duel.promptOther');
+  },
 
-  detailEmpty: 'Rê chuột / bấm vào một lá để xem chi tiết',
-  detailHidden: 'Lá úp / lá ẩn',
-  logTitle: 'Nhật ký',
-  logHide: 'Ẩn',
-  logShow: 'Log',
-  logAll: 'Tất cả',
-  logCategory: { field: 'Sân', combat: 'Đánh', turn: 'Lượt', error: 'Lỗi' },
-  deck: 'Deck',
-  graveyard: 'Mộ',
-  extraDeck: 'Extra',
-  field: 'Field',
-} as const;
+  get detailEmpty() {
+    return t('duel.detailEmpty');
+  },
+  get detailHidden() {
+    return t('duel.detailHidden');
+  },
+  get logTitle() {
+    return t('duel.logTitle');
+  },
+  get logHide() {
+    return t('duel.logHide');
+  },
+  get logShow() {
+    return t('duel.logShow');
+  },
+  get logAll() {
+    return t('duel.logAll');
+  },
+  logCategory: logCategories,
+  get deck() {
+    return t('duel.deck');
+  },
+  get graveyard() {
+    return t('duel.graveyard');
+  },
+  get extraDeck() {
+    return t('duel.extraDeck');
+  },
+  get field() {
+    return t('duel.field');
+  },
+};

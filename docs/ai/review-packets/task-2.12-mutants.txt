@@ -1,0 +1,18 @@
+KILLED   interpolation swallows missing param
+EQUIV    unknown key falls back to vi (vi/en key-sets are identical by test, so the fallback is unobservable)
+KILLED   storage beats ?lang
+KILLED   default lang en
+KILLED   invalid ?lang stored
+KILLED   re-interpolates values
+KILLED   strings cached at module level
+KILLED   engine code ignored
+KILLED   429 not mapped
+KILLED   hidden label swapped
+KILLED   level dropped
+KILLED   event winner/draw swapped
+KILLED   tribute list dropped
+KILLED   en key rotted
+KILLED   en param renamed
+KILLED   en leftover Vietnamese
+
+16/16 killed

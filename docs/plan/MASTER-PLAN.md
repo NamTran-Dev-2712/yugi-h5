@@ -103,7 +103,7 @@ Task con:
 | 2.9  | Animation theo `GameEvent[]` + nhịp lượt AI (phát lại `aiActions` từng bước) ✅ nháp 2026-09-25                                  | Frontend      | M      |
 | 2.10 | Log panel bật/tắt + lọc (log cơ bản và banner kết thúc trận đã có từ 2.7)                                                        | Frontend      | S      |
 | 2.11 | Dev-endpoint nạp scenario JSON + Duel Sandbox page                                                                               | Tooling       | M      |
-| 2.12 | i18n bootstrap (VI/EN locale files, `t()`)                                                                                       | Frontend      | S      |
+| 2.12 | i18n bootstrap (VI/EN locale files, `t()`) ✅ nháp 2026-09-25                                                                    | Frontend      | S      |
 
 ## P3 — Effect system + Chain
 

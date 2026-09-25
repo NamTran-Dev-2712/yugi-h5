@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { DuelController } from '../duel/duel-controller';
 import { FIXTURE_NAMES } from '../duel/fixture-names';
+import { t } from '../i18n/i18n';
 import { createAppController } from '../duel/services';
 import { strings } from '../duel/strings';
 import { theme } from '../duel/theme';
@@ -112,10 +113,10 @@ export class MenuScene extends Phaser.Scene {
     const status = viewStore.getState().connectionStatus;
     const label =
       status === 'connected'
-        ? 'API: Connected'
+        ? t('duel.apiConnected')
         : status === 'disconnected'
-          ? 'API: Disconnected'
-          : 'API: Checking...';
+          ? t('duel.apiDisconnected')
+          : t('duel.apiChecking');
     const color =
       status === 'connected' ? '#7fd07f' : status === 'disconnected' ? '#d07f7f' : '#aaaaaa';
     this.statusText.setText(label);

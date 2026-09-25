@@ -408,3 +408,12 @@ Chỉ đổi bảng số + comment ở `animation-queue.ts`; không đổi logic
 - **Tái dùng 100% UI**: `DuelController.startScenario` (cùng `startWith` với `start`), `DuelScene` không đổi dòng nào; `SandboxBootScene` (vẽ texture rồi mở `Duel`) và `SandboxMenuScene` (đích của nút "Menu": đóng game, hiện lại form) là hai scene nhỏ riêng của Sandbox. Đối thủ = AI (`solo-vs-ai`, ghế 1) vì scene chỉ điều khiển ghế 0; `?mode=solo-debug` có ở API nhưng trang chưa dùng.
 - **`chain-basic` chỉ dựng state đầu** (Trap úp + Spell trên tay/sân cả hai bên): engine chưa có Spell/Trap/Chain (P3) nên không có script kích hoạt, và lá Spell/Trap chưa thể dùng. Khi P3 xong thêm `script`/hành động vào file JSON, không cần sửa code.
   **Hệ quả:** scenario mới = thêm 1 file JSON (dùng id trong `SAMPLE_CARDS`); thêm trường vào `GameState` ở engine ⇒ test drift đỏ và phải sửa `scenario-to-state.ts`.
+
+## 2026-09-25 — i18n bootstrap (task 2.12): key phẳng, `strings` thành facade getter, không fallback ngôn ngữ
+
+- **Tự viết, không thư viện** (CLAUDE.md cấm thêm dependency chưa hỏi): `t(key, params)` + `{param}` (một lượt, không nội suy lại giá trị đã thế; thiếu param thì giữ nguyên `{param}` hiện rõ). `[DECISION]`
+- **Chọn ngôn ngữ** `[DECISION]`: `?lang=vi|en` hợp lệ > localStorage `yugi.lang` > `vi`; `?lang` hợp lệ được ghi lại, giá trị lạ bị bỏ qua. Đọc một lần ở `main.ts` (`initI18n`); trang debug/sandbox không gọi nên luôn `vi`. Nút đổi ngôn ngữ trong UI để 9.6.
+- **Locale phẳng** `duel.endTurn`, `event.normalSummoned`, `error.engine.<CODE>`: `vi.json` là nguồn kiểu (`MessageKey`), `en.json` bị test ép cùng key-set + cùng `{param}` + không dấu tiếng Việt. Thiếu key = test đỏ, không rơi sang ngôn ngữ khác; key lạ lúc chạy trả chính key (`lookup` trả `null` cho mã lỗi động, rồi dùng câu "mã X"). Mutant "fallback về vi" là tương đương vì key-set hai file bị test ép bằng nhau.
+- **`strings.ts` là facade getter** (không cache ở module level) để 8 nơi dùng + test cũ không đổi và ngôn ngữ đổi có hiệu lực ngay lúc đọc.
+- **Không dịch mã kỹ thuật**: tên phase (`Main1 → Battle`), tư thế (`Attack/DefenseUp`), `reason` (`LP_ZERO`, `SURRENDER`), "P0/P1" giữ nguyên, truyền qua param. Tên/effect lá đến từ card data (chưa có `{vi,en}`), không thuộc task này.
+- **Ngoài phạm vi, để dành**: trang debug/sandbox/nhãn fixture; dòng lỗi mạng thô trong log; card data song ngữ; nút đổi ngôn ngữ (9.6). Mở rộng ngoài danh sách brief: 3 nhãn "API: …" ở menu (người chơi thấy, đang hardcode tiếng Anh). Bản dịch en là AI tự viết, cần chủ dự án đọc lại.
