@@ -41,6 +41,14 @@ export const theme = {
     buttonDisabled: 0x1c1c24,
     danger: 0x7a2a2a,
     highlight: 0xf5d76e,
+    /** Interaction overlay (task 2.8): all drawn in code, no textures. */
+    validZone: 0x7fe07f,
+    target: 0xff6b5a,
+    arrow: 0xffd23f,
+    selected: 0x4fc3f7,
+    dim: 0x000000,
+    menuBg: 0x1c2a34,
+    toastBg: 0x4a1f1f,
   },
 
   css: {

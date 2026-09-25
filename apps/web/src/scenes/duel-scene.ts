@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { DuelController, DuelUiState } from '../duel/duel-controller';
 import { formatDetail } from '../duel/detail-text';
+import { createInteractionDriver, type InteractionDriver } from '../duel/interaction-driver';
 import { computeLayout, staticRects, type Rect } from '../duel/layout';
 import { present, type CardDetail, type RenderModel } from '../duel/presenter';
 import { cardLookup } from '../duel/services';
@@ -13,6 +14,7 @@ export interface DuelSceneData {
 }
 
 const LOG_LINES = 24;
+const TOAST_MS = 2500;
 
 /**
  * Draws a RenderModel and forwards clicks to the controller. Nothing here knows a game rule: what is on screen comes
@@ -26,6 +28,10 @@ export class DuelScene extends Phaser.Scene {
   private detailText!: Phaser.GameObjects.Text;
   private logText!: Phaser.GameObjects.Text;
   private unsubscribe: (() => void) | null = null;
+  private driver!: InteractionDriver;
+  private overlay!: Phaser.GameObjects.Container;
+  private toastSeen = 0;
+  private toastUntil = 0;
 
   constructor() {
     super('Duel');
@@ -80,12 +86,196 @@ export class DuelScene extends Phaser.Scene {
     back.on('pointerup', () => this.scene.start('Menu'));
 
     this.dynamic = this.add.container(0, 0);
-    this.unsubscribe = this.controller.subscribe((s) => this.render(s));
+    this.overlay = this.add.container(0, 0).setDepth(10);
+    this.driver = createInteractionDriver(this.controller, {
+      lookup: cardLookup,
+      layout: this.layout,
+    });
+    const stopController = this.controller.subscribe((s) => this.render(s));
+    const stopDriver = this.driver.subscribe(() => this.renderOverlay());
+    this.unsubscribe = () => {
+      stopController();
+      stopDriver();
+    };
+    this.wireInput();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribe?.();
       this.unsubscribe = null;
+      this.input.off('pointerdown');
+      this.input.off('pointermove');
+      this.input.off('pointerup');
+      this.input.off('pointerupoutside');
     });
     this.render(this.controller.getState());
+  }
+
+  /** Mouse and touch both arrive as Phaser pointers; everything below is coordinates in the logical frame. */
+  private wireInput(): void {
+    const at = (p: Phaser.Input.Pointer) => ({ x: p.x, y: p.y });
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (p.rightButtonDown()) void this.driver.dispatch({ type: 'cancel' });
+      else void this.driver.dispatch({ type: 'pointerDown', point: at(p) });
+    });
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      void this.driver.dispatch({ type: 'pointerMove', point: at(p) });
+    });
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+      void this.driver.dispatch({ type: 'pointerUp', point: at(p) });
+    });
+    this.input.on('pointerupoutside', () => void this.driver.dispatch({ type: 'cancel' }));
+    this.input.keyboard?.on('keydown-ESC', () => void this.driver.dispatch({ type: 'cancel' }));
+  }
+
+  /** Drop zones / targets / arrow / ghost / menus / tribute bar / toast, redrawn from the driver on every change. */
+  private renderOverlay(): void {
+    this.overlay.removeAll(true);
+    const ctx = this.driver.getContext();
+    const o = this.driver.getOverlay();
+    if (!ctx || !o) return;
+    const c = theme.colors;
+    const outline = (r: Rect, color: number, width = 3, fillAlpha = 0.12): void => {
+      const box = this.add.rectangle(r.x, r.y, r.w, r.h, color, fillAlpha).setOrigin(0, 0);
+      box.setStrokeStyle(width, color, 1);
+      this.overlay.add(box);
+    };
+    const cardRect = (id: string): Rect | undefined =>
+      ctx.model.cards.find((x) => x.id === id)?.rect;
+
+    for (const z of o.zones) outline(z, c.validZone);
+    for (const t of o.targets) outline(t, c.target);
+    if (o.lpTarget) outline(o.lpTarget, c.target);
+    for (const id of o.candidates) {
+      const r = cardRect(id);
+      if (r)
+        outline(
+          r,
+          o.selected.includes(id) ? c.selected : c.highlight,
+          4,
+          o.selected.includes(id) ? 0.3 : 0.1,
+        );
+    }
+
+    if (o.ghost) {
+      const card = ctx.model.cards.find((x) => x.id === o.ghost!.cardId);
+      if (card) {
+        const r = card.rect;
+        this.overlay.add(this.add.rectangle(r.x, r.y, r.w, r.h, c.dim, 0.5).setOrigin(0, 0));
+        const at = o.ghost.at;
+        const ghost = createCardView(this, {
+          ...card,
+          action: null,
+          highlight: false,
+          rect: { x: at.x - r.w / 2, y: at.y - r.h / 2, w: r.w, h: r.h },
+        });
+        ghost.disableInteractive().setAlpha(0.85);
+        this.overlay.add(ghost);
+      }
+    }
+
+    if (o.arrow) this.drawArrow(o.arrow.from, o.arrow.to);
+
+    if (o.menu) {
+      o.menu.rects.forEach((r, i) => {
+        const box = this.add.rectangle(r.x, r.y, r.w, r.h, c.menuBg, 0.96).setOrigin(0, 0);
+        box.setStrokeStyle(2, c.highlight, 0.9);
+        const label = this.add
+          .text(r.x + r.w / 2, r.y + r.h / 2, o.menu!.labels[i] ?? '', {
+            fontFamily: theme.fonts.ui,
+            fontSize: `${theme.fontSize.label}px`,
+            color: theme.css.text,
+          })
+          .setOrigin(0.5);
+        this.overlay.add([box, label]);
+      });
+    }
+
+    if (o.confirm)
+      this.drawConfirmBar(o.confirm.enabled, o.confirm.showCancel, ctx.view.pendingPrompt !== null);
+
+    this.drawToast();
+  }
+
+  private drawArrow(from: { x: number; y: number }, to: { x: number; y: number }): void {
+    const g = this.add.graphics();
+    g.lineStyle(6, theme.colors.arrow, 0.9);
+    g.lineBetween(from.x, from.y, to.x, to.y);
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    const head = 22;
+    g.fillStyle(theme.colors.arrow, 0.95);
+    g.fillTriangle(
+      to.x,
+      to.y,
+      to.x - head * Math.cos(angle - 0.45),
+      to.y - head * Math.sin(angle - 0.45),
+      to.x - head * Math.cos(angle + 0.45),
+      to.y - head * Math.sin(angle + 0.45),
+    );
+    this.overlay.add(g);
+  }
+
+  private drawConfirmBar(enabled: boolean, showCancel: boolean, discard: boolean): void {
+    const { hint, confirm, cancel } = this.layout.overlay;
+    const c = theme.colors;
+    this.overlay.add(this.add.rectangle(hint.x, hint.y, hint.w, 80, c.dim, 0.55).setOrigin(0, 0));
+    this.overlay.add(
+      this.add
+        .text(
+          hint.x + hint.w / 2,
+          hint.y + 4,
+          discard ? strings.pickDiscardHint : strings.pickTributeHint,
+          {
+            fontFamily: theme.fonts.ui,
+            fontSize: `${theme.fontSize.body}px`,
+            color: theme.css.gold,
+          },
+        )
+        .setOrigin(0.5, 0),
+    );
+    const button = (r: Rect, label: string, on: boolean): void => {
+      const box = this.add
+        .rectangle(r.x, r.y, r.w, r.h, on ? c.button : c.buttonDisabled)
+        .setOrigin(0, 0);
+      box.setStrokeStyle(2, on ? c.highlight : c.panelLine, on ? 0.9 : 0.4);
+      const text = this.add
+        .text(r.x + r.w / 2, r.y + r.h / 2, label, {
+          fontFamily: theme.fonts.ui,
+          fontSize: `${theme.fontSize.label}px`,
+          color: on ? theme.css.text : theme.css.textDisabled,
+        })
+        .setOrigin(0.5);
+      this.overlay.add([box, text]);
+    };
+    button(confirm, strings.confirm, enabled);
+    if (showCancel) button(cancel, strings.cancel, true);
+  }
+
+  private drawToast(): void {
+    const toast = this.driver.getToast();
+    if (!toast) return;
+    if (toast.seq !== this.toastSeen) {
+      this.toastSeen = toast.seq;
+      this.toastUntil = this.time.now + TOAST_MS;
+      this.time.delayedCall(TOAST_MS + 50, () => this.renderOverlay());
+    }
+    if (this.time.now >= this.toastUntil) return;
+    const w = 520;
+    const x = this.layout.frame.w / 2 - w / 2;
+    const y = 250;
+    this.overlay.add(
+      this.add
+        .rectangle(x, y, w, 48, theme.colors.toastBg, 0.95)
+        .setOrigin(0, 0)
+        .setStrokeStyle(2, theme.colors.target, 0.9),
+    );
+    this.overlay.add(
+      this.add
+        .text(x + w / 2, y + 24, toast.text, {
+          fontFamily: theme.fonts.ui,
+          fontSize: `${theme.fontSize.label}px`,
+          color: theme.css.text,
+        })
+        .setOrigin(0.5),
+    );
   }
 
   private showDetail(detail: CardDetail | null): void {
@@ -113,11 +303,9 @@ export class DuelScene extends Phaser.Scene {
   private drawCards(model: RenderModel): void {
     for (const c of model.cards) {
       const view = createCardView(this, c);
+      // Only the detail panel is handled per object; clicks and drags go through the interaction driver.
       view.on('pointerover', () => this.showDetail(c.detail));
-      view.on('pointerup', () => {
-        this.showDetail(c.detail);
-        if (c.action) void this.controller.submit(c.action);
-      });
+      view.on('pointerup', () => this.showDetail(c.detail));
       this.dynamic.add(view);
     }
   }
@@ -250,7 +438,7 @@ export class DuelScene extends Phaser.Scene {
         box.setInteractive({ useHandCursor: true });
         box.on('pointerover', () => box.setFillStyle(theme.colors.buttonHover));
         box.on('pointerout', () => box.setFillStyle(fill));
-        box.on('pointerup', () => void this.controller.press(b.id));
+        // The press itself is handled by the interaction driver (hit-test on the button rect).
       }
     }
   }

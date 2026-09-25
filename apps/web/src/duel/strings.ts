@@ -37,7 +37,23 @@ export const strings = {
   backToMenu: 'Về menu',
 
   discardPrompt: 'Tay quá giới hạn: bấm 1 lá để bỏ xuống mộ',
-  discardNeedsDrag: 'Cần bỏ nhiều lá: chờ kéo thả (task 2.8)',
+  discardNeedsDrag: 'Cần bỏ nhiều lá: chọn các lá rồi bấm Xác nhận',
+
+  // Interaction (task 2.8)
+  summonOption: 'Triệu hồi',
+  setOption: 'Úp (Set)',
+  toAttackOption: 'Đổi sang Tấn công',
+  toDefenseOption: 'Đổi sang Phòng thủ',
+  confirm: 'Xác nhận',
+  cancel: 'Hủy',
+  pickTributeHint: 'Chọn quái để hiến tế rồi bấm Xác nhận',
+  pickDiscardHint: 'Chọn các lá để bỏ rồi bấm Xác nhận',
+  toastNoZone: 'Không thể đặt lá này vào đây.',
+  toastCardLocked: 'Lá này chưa thể dùng lúc này.',
+  toastBadTarget: 'Không thể tấn công mục tiêu này.',
+  toastNotAllowed: 'Hành động này hiện không hợp lệ.',
+  toastBusy: 'Đang xử lý, chờ một chút…',
+  sendPreview: 'sẽ gửi:',
   promptOther: 'Đang chờ trả lời prompt',
 
   detailEmpty: 'Rê chuột / bấm vào một lá để xem chi tiết',

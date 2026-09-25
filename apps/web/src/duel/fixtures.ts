@@ -50,6 +50,7 @@ interface PlayerParts {
   readonly deckCount: number;
   readonly graveyard?: readonly CardView[];
   readonly monsters?: Five<CardView | null>;
+  readonly normalSummonUsed?: boolean;
 }
 
 function player(p: PlayerParts): PlayerView {
@@ -70,7 +71,7 @@ function player(p: PlayerParts): PlayerView {
       spellTrapZones: emptyFive,
       fieldZone: null,
     },
-    hasNormalSummonedThisTurn: false,
+    hasNormalSummonedThisTurn: p.normalSummonUsed ?? false,
   };
 }
 
@@ -197,8 +198,191 @@ function gameover(): Fixture {
   };
 }
 
+// ---- Interaction fixtures (task 2.8). `legalActions` is written by hand the way the server lists it. ----
+
+type Payload<T extends PlayerAction['type']> = Extract<PlayerAction, { type: T }>['payload'];
+const summonsFor = (
+  cardInstanceId: string,
+  options: readonly { zoneIndex: number; tributes?: readonly string[] }[],
+): PlayerAction[] =>
+  options.flatMap(({ zoneIndex, tributes }): PlayerAction[] => {
+    const payload: Payload<'NormalSummon'> = {
+      playerIndex: 0,
+      cardInstanceId,
+      zoneIndex,
+      ...(tributes ? { tributeInstanceIds: [...tributes] } : {}),
+    };
+    return [
+      { type: 'NormalSummon', payload },
+      { type: 'SetMonster', payload: { ...payload } },
+    ];
+  });
+const attackFrom = (
+  attackerInstanceId: string,
+  targets: readonly (string | null)[],
+): PlayerAction[] =>
+  targets.map((t): PlayerAction => ({
+    type: 'DeclareAttack',
+    payload: {
+      playerIndex: 0,
+      attackerInstanceId,
+      ...(t === null ? {} : { targetInstanceId: t }),
+    },
+  }));
+const toDefense = (cardInstanceId: string): PlayerAction => ({
+  type: 'ChangePosition',
+  payload: { playerIndex: 0, cardInstanceId, toPosition: 'DefenseUp' },
+});
+
+function summonChoice(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [
+      up('p0-1', 'SMP-006', 0, null),
+      up('p0-2', 'SMP-101', 0, null),
+      up('p0-3', 'SMP-007', 0, null),
+    ],
+    deckCount: 30,
+    monsters: five<CardView>([[2, up('p0-10', 'SMP-001', 0, 'Attack')]]),
+  });
+  const opp = player({
+    playerId: 'fixture-ai',
+    lifePoints: 8000,
+    hand: [1, 2, 3, 4, 5].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 30,
+    monsters: five<CardView>([[1, hidden('p1-11', 1)]]),
+  });
+  const free = [0, 1, 3, 4].map((zoneIndex) => ({ zoneIndex }));
+  return {
+    view: view({ turnCount: 3, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [
+      ...summonsFor('p0-1', free),
+      ...summonsFor('p0-3', free),
+      toDefense('p0-10'),
+      endPhase,
+      surrender,
+    ],
+  };
+}
+
+function tribute(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-002', 0, null), up('p0-2', 'SMP-101', 0, null)],
+    deckCount: 30,
+    monsters: five<CardView>([
+      [1, up('p0-10', 'SMP-001', 0, 'Attack')],
+      [3, up('p0-11', 'SMP-005', 0, 'Attack')],
+    ]),
+  });
+  const opp = player({
+    playerId: 'fixture-ai',
+    lifePoints: 8000,
+    hand: [1, 2, 3, 4, 5].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 30,
+  });
+  // Level 6 needs 1 tribute. Empty zones take either tribute; a tribute's own zone is free again once it is gone.
+  const options = [
+    ...[0, 2, 4].flatMap((zoneIndex) =>
+      ['p0-10', 'p0-11'].map((t) => ({ zoneIndex, tributes: [t] })),
+    ),
+    { zoneIndex: 1, tributes: ['p0-10'] },
+    { zoneIndex: 3, tributes: ['p0-11'] },
+  ];
+  return {
+    view: view({ turnCount: 5, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [
+      ...summonsFor('p0-1', options),
+      toDefense('p0-10'),
+      toDefense('p0-11'),
+      endPhase,
+      surrender,
+    ],
+  };
+}
+
+function attackFixture(direct: boolean): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-006', 0, null)],
+    deckCount: 30,
+    normalSummonUsed: true,
+    monsters: five<CardView>([
+      [1, up('p0-10', 'SMP-003', 0, 'Attack')],
+      [3, up('p0-11', 'SMP-001', 0, 'Attack')],
+    ]),
+  });
+  const opp = player({
+    playerId: 'fixture-ai',
+    lifePoints: 8000,
+    hand: [1, 2, 3, 4].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 30,
+    ...(direct
+      ? {}
+      : {
+          monsters: five<CardView>([
+            [0, up('p1-10', 'SMP-009', 1, 'Attack')],
+            [2, hidden('p1-11', 1)],
+            [4, up('p1-12', 'SMP-010', 1, 'DefenseUp')],
+          ]),
+        }),
+  });
+  const targets = direct ? [null] : ['p1-10', 'p1-11', 'p1-12'];
+  return {
+    view: view({ turnCount: 4, turnPlayerIndex: 0, phase: 'Battle' }, self, opp),
+    legalActions: [
+      ...attackFrom('p0-10', targets),
+      ...attackFrom('p0-11', targets),
+      endPhase,
+      surrender,
+    ],
+  };
+}
+
+/** Normal Summon already used and every zone taken: no hand card can go anywhere; only a position change is legal. */
+function dragIllegal(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-006', 0, null), up('p0-2', 'SMP-101', 0, null)],
+    deckCount: 30,
+    normalSummonUsed: true,
+    monsters: five<CardView>([
+      [0, up('p0-10', 'SMP-001', 0, 'Attack')],
+      [1, up('p0-11', 'SMP-005', 0, 'Attack')],
+      [2, up('p0-12', 'SMP-007', 0, 'Attack')],
+      [3, up('p0-13', 'SMP-004', 0, 'DefenseUp')],
+      // SMP-011..013 are reserved as "secret" cards by the leak tests: no fixture may show them.
+      [4, up('p0-14', 'SMP-014', 0, 'Attack')],
+    ]),
+  });
+  const opp = player({
+    playerId: 'fixture-ai',
+    lifePoints: 8000,
+    hand: [1, 2, 3, 4, 5].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 30,
+  });
+  return {
+    view: view({ turnCount: 6, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [toDefense('p0-10'), endPhase, surrender],
+  };
+}
+
 export function loadFixture(name: FixtureName): Fixture {
   switch (name) {
+    case 'summon-choice':
+      return summonChoice();
+    case 'tribute':
+      return tribute();
+    case 'attack':
+      return attackFixture(false);
+    case 'attack-direct':
+      return attackFixture(true);
+    case 'drag-illegal':
+      return dragIllegal();
     case 'midgame':
       return midgame();
     case 'handfull':

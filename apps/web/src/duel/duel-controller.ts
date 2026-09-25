@@ -1,11 +1,21 @@
 import type { EventView, PlayerAction, StateView, ViewResponse } from '@yugi/shared';
-import type { DuelApi } from '../api/duel-api';
+import { DuelApiError, type DuelApi } from '../api/duel-api';
 import { shouldContinueEndTurn } from '../debug/build-actions';
 import { formatApiError, logLinesFor } from '../debug/debug-state';
 import { describeAiAction } from '../debug/describe-ai-action';
 import { describeEvent } from '../debug/describe-event';
+import { messageFor } from './error-messages';
 import { instanceLabelIn } from './labels';
+import { isListed } from './legal-index';
 import type { ButtonId, CardLookup } from './presenter';
+import { strings } from './strings';
+
+/**
+ * What `submit` tells the interaction layer. `sent: false` = fixture mode (nothing was sent, the state is unchanged).
+ * A refusal carries a short Vietnamese sentence; the board is never touched on failure.
+ */
+export type SubmitResult =
+  { readonly ok: true; readonly sent: boolean } | { readonly ok: false; readonly message: string };
 
 /**
  * Glue between the server (through `DuelApi`) and the scene, with no Phaser. It holds only what the server last said
@@ -51,8 +61,11 @@ export interface DuelController {
   showFixture(view: StateView, legalActions: readonly PlayerAction[]): void;
   /** A button of the presenter's model was pressed. */
   press(id: ButtonId): Promise<void>;
-  /** Sends an action the presenter attached to a clicked card (already taken from `legalActions`). */
-  submit(action: PlayerAction): Promise<void>;
+  /**
+   * Sends an action taken from `legalActions` (a card click, a finished drag). Anything not listed is refused here
+   * and never reaches the server. Without a server (fixture) it only logs "sẽ gửi: <action>".
+   */
+  submit(action: PlayerAction): Promise<SubmitResult>;
 }
 
 export interface DuelControllerDeps {
@@ -92,28 +105,30 @@ export function createDuelController({ api, lookup }: DuelControllerDeps): DuelC
     });
   };
 
-  async function sendOne(action: PlayerAction): Promise<boolean> {
+  /** null = accepted (the state now comes from the response); otherwise the Vietnamese refusal, state untouched. */
+  async function sendOne(action: PlayerAction): Promise<string | null> {
     const { duelId, view } = state;
-    if (api === undefined || duelId === null || view === null) return false;
+    if (api === undefined || duelId === null || view === null) return strings.toastNotAllowed;
     try {
       applyResponse(await api.submitAction(duelId, view.viewerIndex, action));
-      return true;
+      return null;
     } catch (err) {
       const text = formatApiError(err);
       set({ error: text, log: addLog([`✗ ${text.replace(/\n/g, ' | ')}`]) });
-      return false;
+      return messageFor(err instanceof DuelApiError ? err : { code: 'UNKNOWN' });
     }
   }
 
-  async function run(action: PlayerAction, isTurnPass: boolean): Promise<void> {
-    if (state.busy) return;
+  async function run(action: PlayerAction, isTurnPass: boolean): Promise<SubmitResult> {
+    if (state.busy) return { ok: false, message: strings.toastBusy };
     set({
       busy: true,
       thinking: isTurnPass,
       surrenderArmed: action.type === 'Surrender' ? state.surrenderArmed : false,
     });
     try {
-      await sendOne(action);
+      const failure = await sendOne(action);
+      return failure === null ? { ok: true, sent: true } : { ok: false, message: failure };
     } finally {
       set({ busy: false, thinking: false, surrenderArmed: false });
     }
@@ -132,7 +147,7 @@ export function createDuelController({ api, lookup }: DuelControllerDeps): DuelC
       for (let i = 0; i < MAX_END_TURN_STEPS; i++) {
         const action = legal('EndPhase');
         if (!action) break;
-        if (!(await sendOne(action))) break;
+        if ((await sendOne(action)) !== null) break;
         if (!state.view || !shouldContinueEndTurn(startTurn, state.view)) break;
       }
     } finally {
@@ -183,11 +198,19 @@ export function createDuelController({ api, lookup }: DuelControllerDeps): DuelC
       if (action) await run(action, true);
     },
     async submit(action) {
-      if (!state.view) return;
+      if (!state.view) return { ok: false, message: strings.toastNotAllowed };
       // Only ever send what the server lists (defence against a stale click target).
-      const listed = state.legalActions.some((a) => JSON.stringify(a) === JSON.stringify(action));
-      if (!listed) return;
-      await run(action, false);
+      if (!isListed(state.legalActions, action)) {
+        return { ok: false, message: strings.toastNotAllowed };
+      }
+      if (state.busy) return { ok: false, message: strings.toastBusy };
+      if (api === undefined || state.duelId === null) {
+        set({
+          log: addLog([`${strings.sendPreview} ${JSON.stringify(action).replace(/,/g, ', ')}`]),
+        });
+        return { ok: true, sent: false };
+      }
+      return run(action, false);
     },
   };
 }

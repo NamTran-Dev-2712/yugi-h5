@@ -38,6 +38,8 @@ export interface BoardLayout {
     readonly endTurn: Rect;
     readonly surrender: Rect;
   };
+  /** Confirm / cancel while choosing tributes or cards to discard (drawn over the phase panel). */
+  readonly overlay: { readonly confirm: Rect; readonly cancel: Rect; readonly hint: Rect };
 }
 
 const { frame, card } = theme;
@@ -105,7 +107,78 @@ export function computeLayout(): BoardLayout {
       endTurn: { x: 1032, y: 544, w: 232, h: 56 },
       surrender: { x: 1032, y: 640, w: 232, h: 56 },
     },
+    overlay: {
+      hint: { x: BOARD_LEFT, y: 322, w: BOARD_RIGHT - BOARD_LEFT, h: 24 },
+      confirm: { x: BOARD_CENTER - 160, y: 350, w: 150, h: 42 },
+      cancel: { x: BOARD_CENTER + 10, y: 350, w: 150, h: 42 },
+    },
   };
+}
+
+// ---- Hit-testing (task 2.8): pure functions, shared by mouse and touch (both arrive as pointer events). ----
+
+export interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** Left/top edge inclusive, right/bottom edge exclusive (so neighbouring rects never both claim a point). */
+export function pointInRect(r: Rect, p: Point): boolean {
+  return p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
+}
+
+/** Index 0..4 of the monster zone of `side` containing `p`, else null. */
+export function zoneIndexAt(layout: BoardLayout, side: Side, p: Point): number | null {
+  const i = layout[side].monsterZones.findIndex((r) => pointInRect(r, p));
+  return i === -1 ? null : i;
+}
+
+const OPTION_W = 160;
+const OPTION_H = 40;
+const OPTION_GAP = 4;
+
+/** Rects of a small option menu opened at `anchor` (one per option, stacked; kept inside the frame). */
+export function optionRects(anchor: Point, count: number): Rect[] {
+  if (count <= 0) return [];
+  const totalH = count * OPTION_H + (count - 1) * OPTION_GAP;
+  const x = Math.max(0, Math.min(anchor.x, frame.width - OPTION_W));
+  const y = Math.max(0, Math.min(anchor.y, frame.height - totalH));
+  return Array.from({ length: count }, (_, i) => ({
+    x,
+    y: y + i * (OPTION_H + OPTION_GAP),
+    w: OPTION_W,
+    h: OPTION_H,
+  }));
+}
+
+export type HitTarget =
+  | { readonly kind: 'card'; readonly id: string }
+  | { readonly kind: 'lp'; readonly side: Side }
+  | { readonly kind: 'button'; readonly id: string }
+  | { readonly kind: 'none' };
+
+export interface Hittable {
+  readonly cards: readonly { readonly id: string; readonly rect: Rect }[];
+  readonly buttons: readonly {
+    readonly id: string;
+    readonly rect: Rect;
+    readonly enabled: boolean;
+  }[];
+}
+
+/** What is under `p`: the topmost card (later = drawn on top), else an LP area, else an enabled button. */
+export function hitTest(layout: BoardLayout, model: Hittable, p: Point): HitTarget {
+  for (let i = model.cards.length - 1; i >= 0; i--) {
+    const c = model.cards[i]!;
+    if (pointInRect(c.rect, p)) return { kind: 'card', id: c.id };
+  }
+  for (const side of ['self', 'opp'] as const) {
+    if (pointInRect(layout[side].lp, p)) return { kind: 'lp', side };
+  }
+  for (const b of model.buttons) {
+    if (b.enabled && pointInRect(b.rect, p)) return { kind: 'button', id: b.id };
+  }
+  return { kind: 'none' };
 }
 
 /**
