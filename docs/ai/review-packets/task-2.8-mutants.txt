@@ -1,0 +1,21 @@
+killed (3 tests)       1 send a forged (unlisted) action
+SURVIVED               2 no pending lock
+killed (2 tests)       3 no busy lock
+killed (2 tests)       4 no restore on server refusal (stays pending)
+killed (2 tests)       5 highlight the wrong zone
+killed (1 tests)       6 allow dragging outside the Main Phase (every hand card draggable)
+killed (1 tests)       7 seat mix-up in pointer-down (viewer fixed to 0)
+killed (2 tests)       8 tribute count not checked (any overlap confirms)
+killed (1 tests)       9 Cancel still sends
+killed (2 tests)       10 drop on an occupied zone falls back to the first option
+killed (1 tests)       11 no drag threshold (any move is a drag)
+killed (1 tests)       12 hit-test picks the bottom card, not the top
+killed (3 tests)       13 controller sends unlisted actions
+killed (1 tests)       14 direct attack falls back to the first monster target
+killed (1 tests)       15 driver ignores a new view (no reset of half-done gesture)
+killed (1 tests)       16 driver presses buttons while busy
+killed (2 tests)       17 message table drops a code
+SURVIVED               18 arrow shown for a monster that cannot attack
+SURVIVED               19 fixture mode really sends
+killed (1 tests)       18 arrow shown for a monster that cannot attack
+killed (1 tests)       19 fixture mode really sends

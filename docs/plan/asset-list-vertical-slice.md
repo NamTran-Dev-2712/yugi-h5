@@ -15,6 +15,10 @@ Kích thước tính theo khung logic 1280×720 (`theme.ts`); ảnh nên xuất 
 | `card-back`          | 84×104           | `ui/card-back.png` 168×208          | placeholder code (nâu + vòng tròn)                | Dùng cho tay/lá úp của đối thủ, Deck                                          |
 | `zone-slot`          | 84×104           | `ui/zone-slot.png` 168×208          | placeholder code (ô xanh bo góc)                  | Ô quái / Spell-Trap / Field / Extra / Mộ; 2 ô EX khóa (C1) là task sau        |
 
+## Task 2.8 (kéo thả) — không thêm asset mới
+
+Mũi tên tấn công, viền ô hợp lệ/mục tiêu/ứng viên tribute, lá "ma" khi kéo, menu chọn, thanh Xác nhận/Hủy và toast đều **vẽ bằng code** (Phaser Graphics/Text, màu ở `theme.ts`: `validZone`, `target`, `arrow`, `selected`, `menuBg`, `toastBg`), không có key mới trong manifest. Khi có ảnh Duel gốc `[REF]` mới cần chốt: mũi tên (sprite hoặc đường vẽ), viền highlight, nút Xác nhận/Hủy, khung toast.
+
 ## Chưa có trong slice (làm sau, cần người dùng cung cấp hoặc duyệt)
 
 - Art từng lá: 1 ảnh vuông 512×512 `<cardId>.webp` (task 5.x); hiện lá chỉ có khung + vùng art xám.

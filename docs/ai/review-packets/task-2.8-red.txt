@@ -1,0 +1,116 @@
+failed 69 passed 78
+{
+ "detail-text.test.ts": {
+  "f": 0,
+  "p": 3
+ },
+ "duel-controller.interaction.test.ts": {
+  "f": 8,
+  "p": 0
+ },
+ "duel-controller.test.ts": {
+  "f": 0,
+  "p": 10
+ },
+ "error-messages.test.ts": {
+  "f": 4,
+  "p": 1
+ },
+ "interaction-driver.test.ts": {
+  "f": 8,
+  "p": 0
+ },
+ "interaction.leak.test.ts": {
+  "f": 1,
+  "p": 6
+ },
+ "interaction.test.ts": {
+  "f": 32,
+  "p": 14
+ },
+ "layout.hit-test.test.ts": {
+  "f": 6,
+  "p": 5
+ },
+ "layout.test.ts": {
+  "f": 0,
+  "p": 9
+ },
+ "legal-index.test.ts": {
+  "f": 9,
+  "p": 5
+ },
+ "presenter.test.ts": {
+  "f": 1,
+  "p": 25
+ }
+}
+duel-controller.interaction.test.ts :: submit result returns ok when the server accepts, and the state comes from the response — AssertionError: expected undefined to deeply equal { ok: true, sent: true }
+duel-controller.interaction.test.ts :: submit result a server rejection returns a Vietnamese message and leaves view/legalActions untouched — TypeError: Cannot read properties of undefined (reading 'ok')
+duel-controller.interaction.test.ts :: submit result an unknown server code becomes a generic sentence that shows the code — TypeError: Cannot read properties of undefined (reading 'ok')
+duel-controller.interaction.test.ts :: submit result an action that is not listed is refused locally and never reaches the server — TypeError: Cannot read properties of undefined (reading 'ok')
+duel-controller.interaction.test.ts :: submit result matches a listed action whatever the key order — TypeError: Cannot read properties of undefined (reading 'ok')
+duel-controller.interaction.test.ts :: submit result refuses while a request is already in flight — TypeError: Cannot read properties of undefined (reading 'ok')
+duel-controller.interaction.test.ts :: fixture mode (no server) "sends" only write a log line and change nothing — AssertionError: expected undefined to deeply equal { ok: true, sent: false }
+duel-controller.interaction.test.ts :: fixture mode (no server) still refuses an unlisted action — TypeError: Cannot read properties of undefined (reading 'ok')
+error-messages.test.ts :: messageFor has a specific Vietnamese sentence for every engine code — AssertionError: NO_STATE: expected '' not to be '' // Object.is equality
+error-messages.test.ts :: messageFor maps API codes and network failures — AssertionError: expected '' not to be '' // Object.is equality
+error-messages.test.ts :: messageFor prefers the engine code over the generic ACTION_REJECTED — AssertionError: expected '' not to be '' // Object.is equality
+error-messages.test.ts :: messageFor unknown codes get a generic sentence that shows the code — AssertionError: expected '' to contain 'SOMETHING_NEW'
+interaction-driver.test.ts :: interaction driver sends the listed action through the controller and goes back to idle when the server accepts — Error: not implemented
+interaction-driver.test.ts :: interaction driver locks input while the request is in flight (no second request, no drag) — Error: not implemented
+interaction-driver.test.ts :: interaction driver when the server refuses: back to idle, the board (view/legalActions) is untouched, the message is shown — Error: not implemented
+interaction-driver.test.ts :: interaction driver a fixture "send" (sent: false) also ends in idle — Error: not implemented
+interaction-driver.test.ts :: interaction driver ignores pointer input while the controller is busy — Error: not implemented
+interaction-driver.test.ts :: interaction driver a toast for an illegal drop, none for a legal one — Error: not implemented
+interaction-driver.test.ts :: interaction driver a button is pressed through the controller only when idle and not busy — Error: not implemented
+interaction-driver.test.ts :: interaction driver a new view from the controller resets a half-finished gesture — Error: not implemented
+interaction.leak.test.ts :: no hidden identity leaks through the interaction layer the fixture "sẽ gửi" log names only instance ids, never an unseen card — AssertionError: expected '' to contain 'p1-11'
+interaction.test.ts :: drag a hand card onto a zone opens a menu with exactly the legal choices (Summon and Set), sending nothing yet — AssertionError: expected 'idle' to be 'choosing-option' // Object.is equality
+interaction.test.ts :: drag a hand card onto a zone picking an option sends that exact listed action and waits for the server — Error: no menu (state idle)
+interaction.test.ts :: drag a hand card onto a zone the second option sends SetMonster — Error: no menu (state idle)
+interaction.test.ts :: drag a hand card onto a zone with a single legal choice it sends at once, no menu — AssertionError: expected [] to have a length of 1 but got +0
+interaction.test.ts :: drag a hand card onto a zone dropping on a zone that holds a monster sends nothing and toasts — AssertionError: expected [] to have a length of 1 but got +0
+interaction.test.ts :: drag a hand card onto a zone dropping outside every zone (or on the opponent side) sends nothing and toasts — AssertionError: expected [] to have a length of 1 but got +0
+interaction.test.ts :: cards that cannot be dragged a spell/other card without a listed action does not follow the pointer or highlight anything — Error: state idle
+interaction.test.ts :: highlights come from legalActions while dragging a card, exactly its legal zones are lit — AssertionError: expected [] to deeply equal [ …(4) ]
+interaction.test.ts :: highlights come from legalActions a tribute card lights every zone the server lists, including occupied ones freed by a tribute — AssertionError: expected [] to deeply equal [ …(5) ]
+interaction.test.ts :: highlights come from legalActions while dragging an attack, exactly the listed targets are lit — AssertionError: expected null not to be null
+interaction.test.ts :: highlights come from legalActions the opponent LP area is lit only when a direct attack is listed — AssertionError: expected null to deeply equal { x: 16, y: 20, w: 228, h: 60 }
+interaction.test.ts :: tribute selection asks to choose tributes after Summon is picked, sending nothing — Error: no menu (state idle)
+interaction.test.ts :: tribute selection Confirm is off with too few, on with exactly the listed number, off again with too many — Error: no menu (state idle)
+interaction.test.ts :: tribute selection Confirm sends the listed action for that zone and tribute, then waits — Error: no menu (state idle)
+interaction.test.ts :: tribute selection Confirm with nothing chosen does nothing — Error: no menu (state idle)
+interaction.test.ts :: tribute selection Cancel goes back to idle without sending anything — Error: no menu (state idle)
+interaction.test.ts :: tribute selection dropping on an occupied zone that the server frees only offers that zone's tribute — Error: no menu (state idle)
+interaction.test.ts :: tribute selection candidates are highlighted, and the chosen ones marked — Error: no menu (state idle)
+interaction.test.ts :: tribute selection clicking something that is not a candidate does nothing — Error: no menu (state idle)
+interaction.test.ts :: position change menu clicking my monster opens the position menu with what the server listed — Error: idle
+interaction.test.ts :: position change menu choosing it sends that ChangePosition — Error: no menu (state idle)
+interaction.test.ts :: attack arrow drop on a face-down opponent monster (by position) sends the listed attack on its instanceId — AssertionError: expected [] to have a length of 1 but got +0
+interaction.test.ts :: attack arrow drop on an empty opponent zone, my own side, or the LP (opponent has monsters) sends nothing and toasts — AssertionError: expected [] to have a length of 1 but got +0
+interaction.test.ts :: attack arrow direct attack: drop on the opponent LP sends the listed direct action — AssertionError: expected [] to have a length of 1 but got +0
+interaction.test.ts :: waiting for the server ignores every pointer event while pending — AssertionError: expected 'idle' to be 'pending-server' // Object.is equality
+interaction.test.ts :: waiting for the server serverRejected returns to idle and shows the server message — AssertionError: expected [] to deeply equal [ 'Ô đã có quái' ]
+interaction.test.ts :: waiting for the server viewChanged while pending does not unlock early; while dragging it resets — AssertionError: expected 'idle' to be 'pending-server' // Object.is equality
+interaction.test.ts :: discard prompt a one-card discard is a click on a highlighted hand card — AssertionError: expected [] to have a length of 1 but got +0
+interaction.test.ts :: discard prompt a multi-card discard opens the selection on its own and cannot be cancelled — Error: idle
+interaction.test.ts :: discard prompt Confirm needs exactly a listed pair — AssertionError: expected false to be true // Object.is equality
+interaction.test.ts :: seat 1 viewer works the same for the other seat and sends actions for that seat — Error: no menu (state idle)
+interaction.test.ts :: invariant: every request is a listed action (seeded random gestures) holds over many random pointer sequences on every fixture — AssertionError: expected 0 to be greater than 20
+layout.hit-test.test.ts :: pointInRect includes the top-left edge and excludes the bottom-right edge — AssertionError: expected false to be true // Object.is equality
+layout.hit-test.test.ts :: zoneIndexAt finds each monster zone of each side by its centre — AssertionError: expected null to be +0 // Object.is equality
+layout.hit-test.test.ts :: hitTest returns the topmost (last drawn) card where cards overlap — AssertionError: expected { kind: 'none' } to deeply equal { kind: 'card', id: 'over' }
+layout.hit-test.test.ts :: hitTest returns the LP area of a side — AssertionError: expected { kind: 'none' } to deeply equal { kind: 'lp', side: 'opp' }
+layout.hit-test.test.ts :: hitTest returns enabled buttons only — AssertionError: expected { kind: 'none' } to deeply equal { kind: 'button', id: 'endTurn' }
+layout.hit-test.test.ts :: optionRects stacks one rect per option without overlap — AssertionError: expected [] to have a length of 3 but got +0
+legal-index.test.ts :: sameAction / isListed (structural) ignores key order but not values — AssertionError: expected false to be true // Object.is equality
+legal-index.test.ts :: sameAction / isListed (structural) isListed finds only what the server listed — AssertionError: expected false to be true // Object.is equality
+legal-index.test.ts :: draggableHandCards lists hand cards that have a summon/set action, and nothing else — AssertionError: expected [] to deeply equal [ 'p0-1', 'p0-3' ]
+legal-index.test.ts :: summonOptions groups Normal Summon and Set per zone, only zones the server listed — AssertionError: expected [] to deeply equal [ +0, 1, 3, 4 ]
+legal-index.test.ts :: summonOptions keeps one action per tribute choice, including a zone freed by its own tribute — AssertionError: expected [] to deeply equal [ +0, 1, 2, 3, 4 ]
+legal-index.test.ts :: attackers / attackTargets lists monsters that can attack and their listed targets — AssertionError: expected [] to deeply equal [ 'p0-10', 'p0-11' ]
+legal-index.test.ts :: attackers / attackTargets represents a direct attack as target null — AssertionError: expected [] to have a length of 1 but got +0
+legal-index.test.ts :: positionOptions / promptAnswers lists the listed position changes of a monster — AssertionError: expected [] to have a length of 1 but got +0
+legal-index.test.ts :: positionOptions / promptAnswers lists prompt answers for the matching prompt only — AssertionError: expected [] to have a length of 7 but got +0
+presenter.test.ts :: information leaks render model of drag-illegal carries no hidden card identity — AssertionError: expected '{"viewerIndex":0,"cards":[{"id":"p0-1…' not to contain 'Rustfang Wolf'
