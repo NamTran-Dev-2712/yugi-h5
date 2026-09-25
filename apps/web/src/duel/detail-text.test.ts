@@ -15,7 +15,7 @@ describe('formatDetail', () => {
     const m = present(f.view, f.legalActions, { lookup });
     const text = formatDetail(m.cards.find((c) => c.id === 'p0-10')!.detail);
     const def = byId.get('SMP-001')!;
-    expect(text).toContain(def.name);
+    expect(text).toContain(def.name.vi);
     expect(text).toContain('Level 3');
     expect(text).toContain('ATK 1200 / DEF 800');
     expect(text).toContain('Thế công');
@@ -33,7 +33,7 @@ describe('formatDetail', () => {
 describe('instanceLabelIn', () => {
   const f = loadFixture('midgame');
   it('names visible cards, and keeps hidden ones anonymous', () => {
-    expect(instanceLabelIn(f.view, 'p0-10', lookup)).toBe(byId.get('SMP-001')!.name);
+    expect(instanceLabelIn(f.view, 'p0-10', lookup)).toBe(byId.get('SMP-001')!.name.vi);
     expect(instanceLabelIn(f.view, 'p1-11', lookup)).toBe('lá ẩn');
     expect(instanceLabelIn(f.view, 'p1-h1', lookup)).toBe('lá ẩn');
     expect(instanceLabelIn(f.view, 'unknown', lookup)).toBe('unknown');

@@ -297,7 +297,7 @@ async function p0Main(turn: number): Promise<void> {
       zoneIndex: firstEmptyZone(view(0), 0),
     });
     check(
-      `turn ${turn}: Normal Summon ${cardDef(pick)?.name} succeeds`,
+      `turn ${turn}: Normal Summon ${cardDef(pick)?.name.en} succeeds`,
       a.status === 200 && a.events.some((e) => e.type === 'NormalSummoned'),
       `${a.status} ${a.engineCode ?? ''}`,
     );
@@ -418,7 +418,7 @@ async function p0Battle(turn: number): Promise<void> {
       targetInstanceId: target ? target.instanceId : null,
     });
     if (a.status !== 200 || !a.view) {
-      check(`attack by ${cardDef(m)?.name} accepted`, false, `${a.status} ${a.engineCode}`);
+      check(`attack by ${cardDef(m)?.name.en} accepted`, false, `${a.status} ${a.engineCode}`);
       continue;
     }
     const flipped = a.events.find((e) => e.type === 'MonsterFlipped');
@@ -444,7 +444,7 @@ async function p0Battle(turn: number): Promise<void> {
     for (const e of a.events.filter((x) => x.type === 'DamageDealt'))
       dmg[e.playerIndex as Seat] += Number(e.amount);
     const lpAfter: [number, number] = [a.view.players[0].lifePoints, a.view.players[1].lifePoints];
-    const label = `attack ${cardDef(m)?.name}(${cardDef(m)?.atk}) → ${target ? `${tDef?.name ?? '?'} (${targetPos})` : 'direct'}`;
+    const label = `attack ${cardDef(m)?.name.en}(${cardDef(m)?.atk}) → ${target ? `${tDef?.name.en ?? '?'} (${targetPos})` : 'direct'}`;
     check(
       `${label}: LP change equals DamageDealt events`,
       lpAfter[0] === Math.max(0, lpBefore[0] - dmg[0]) &&

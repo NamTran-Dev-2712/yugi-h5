@@ -10,7 +10,7 @@ const DEFS: Record<string, CardDefinition> = {
   M1000: {
     id: 'M1000',
     kind: 'Monster',
-    name: 'Test M1000',
+    name: { vi: 'Test M1000', en: 'Test M1000' },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',
@@ -21,7 +21,7 @@ const DEFS: Record<string, CardDefinition> = {
   M2000: {
     id: 'M2000',
     kind: 'Monster',
-    name: 'Test M2000',
+    name: { vi: 'Test M2000', en: 'Test M2000' },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',
@@ -32,7 +32,7 @@ const DEFS: Record<string, CardDefinition> = {
   M500: {
     id: 'M500',
     kind: 'Monster',
-    name: 'Test M500',
+    name: { vi: 'Test M500', en: 'Test M500' },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',
@@ -40,7 +40,12 @@ const DEFS: Record<string, CardDefinition> = {
     atk: 500,
     def: 1500,
   },
-  SPELL: { id: 'SPELL', kind: 'Spell', name: 'Test Spell', subType: 'Normal' },
+  SPELL: {
+    id: 'SPELL',
+    kind: 'Spell',
+    name: { vi: 'Test Spell', en: 'Test Spell' },
+    subType: 'Normal',
+  },
 };
 
 const ctx: ActionContext = { cardDefinitions: (id) => DEFS[id] };

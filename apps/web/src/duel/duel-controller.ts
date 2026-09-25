@@ -7,6 +7,7 @@ import type {
   ViewResponse,
 } from '@yugi/shared';
 import { DuelApiError, type DuelApi } from '../api/duel-api';
+import { cardName } from './card-text';
 import { shouldContinueEndTurn } from '../debug/build-actions';
 import { segmentsFor, type AnimationSegment } from './animation-queue';
 import { formatApiError } from '../debug/debug-state';
@@ -123,7 +124,11 @@ export function createDuelController({
   const describeAll = (events: readonly EventView[], view: StateView): string[] =>
     events.map((e) =>
       describeEvent(e, {
-        cardName: (id) => lookup(id)?.name ?? id,
+        cardName: (id) =>
+          (() => {
+            const d = lookup(id);
+            return d ? cardName(d) : id;
+          })(),
         instanceLabel: (id) => instanceLabelIn(view, id, lookup),
       }),
     );
@@ -142,7 +147,11 @@ export function createDuelController({
             response,
             (e) =>
               describeEvent(e, {
-                cardName: (id) => lookup(id)?.name ?? id,
+                cardName: (id) =>
+                  (() => {
+                    const d = lookup(id);
+                    return d ? cardName(d) : id;
+                  })(),
                 // The board shown is still the old one; a card that is gone from it is looked up in the new one.
                 instanceLabel: (id) => {
                   const old = instanceLabelIn(before, id, lookup);

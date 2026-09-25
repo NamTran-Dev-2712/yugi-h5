@@ -6,7 +6,7 @@ function monster(id: string, level: number, atk: number, def: number): CardDefin
   return {
     id,
     kind: 'Monster',
-    name: `Golden ${id}`,
+    name: { vi: `Golden ${id}`, en: `Golden ${id}` },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',

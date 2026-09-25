@@ -8,6 +8,7 @@ import type {
   ViewPhase,
 } from '@yugi/shared';
 import { computeLayout, handSlots, type BoardLayout, type Rect, type Side } from './layout';
+import { cardName, cardEffectText } from './card-text';
 import { strings } from './strings';
 
 /**
@@ -127,7 +128,7 @@ function describeKnown(
   }
   const monster = def.kind === 'Monster';
   const label: CardLabel = {
-    name: def.name,
+    name: cardName(def),
     level: monster ? def.level : null,
     atk: monster ? def.atk : null,
     def: monster ? def.def : null,
@@ -135,7 +136,7 @@ function describeKnown(
   return {
     frame: frameOf(def),
     label,
-    detail: { ...label, kind: frameOf(def), effectText: def.effectText ?? null, position },
+    detail: { ...label, kind: frameOf(def), effectText: cardEffectText(def), position },
   };
 }
 

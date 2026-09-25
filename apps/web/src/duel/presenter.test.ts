@@ -73,7 +73,7 @@ describe('present: cards', () => {
     const hand = m.cards.filter((c) => c.side === 'self' && c.zone === 'hand');
     expect(hand).toHaveLength(4);
     expect(hand.every((c) => !c.faceDown && c.label !== null)).toBe(true);
-    const monster = hand.find((c) => c.label?.name === byId.get('SMP-004')!.name)!;
+    const monster = hand.find((c) => c.label?.name === byId.get('SMP-004')!.name.vi)!;
     expect(monster.frame).toBe('monster');
     expect(monster.label?.atk).not.toBeNull();
     expect(hand.find((c) => c.frame === 'spell')?.label?.atk).toBeNull();
@@ -89,7 +89,7 @@ describe('present: cards', () => {
     expect(set.defense).toBe(true);
     expect(set.label).toBeNull();
     // the owner knows their own face-down card, so the detail panel can name it
-    expect(set.detail?.name).toBe(byId.get('SMP-003')!.name);
+    expect(set.detail?.name).toBe(byId.get('SMP-003')!.name.vi);
   });
 
   it('draws the opponent face-down monster as a back with no name and no detail', () => {
@@ -137,7 +137,7 @@ describe('present: cards', () => {
     expect(c.faceDown).toBe(true);
     expect(c.label).toBeNull();
     expect(c.detail).toBeNull();
-    expect(JSON.stringify(c)).not.toContain(byId.get('SMP-002')!.name);
+    expect(JSON.stringify(c)).not.toContain(byId.get('SMP-002')!.name.vi);
   });
 });
 

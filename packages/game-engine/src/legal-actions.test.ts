@@ -11,7 +11,7 @@ function monster(id: string, level: number): CardDefinition {
   return {
     id,
     kind: 'Monster',
-    name: `Test ${id}`,
+    name: { vi: `Test ${id}`, en: `Test ${id}` },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',
@@ -25,7 +25,12 @@ const DEFS: Record<string, CardDefinition> = {
   M4: monster('M4', 4),
   M5: monster('M5', 5),
   M7: monster('M7', 7),
-  SPELL: { id: 'SPELL', kind: 'Spell', name: 'Test Spell', subType: 'Normal' },
+  SPELL: {
+    id: 'SPELL',
+    kind: 'Spell',
+    name: { vi: 'Test Spell', en: 'Test Spell' },
+    subType: 'Normal',
+  },
 };
 const ctx: ActionContext = { cardDefinitions: (id) => DEFS[id] };
 

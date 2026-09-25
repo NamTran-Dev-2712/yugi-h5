@@ -10,7 +10,7 @@ function monster(id: string, level: number): CardDefinition {
   return {
     id,
     kind: 'Monster',
-    name: `Test ${id}`,
+    name: { vi: `Test ${id}`, en: `Test ${id}` },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',
@@ -27,7 +27,12 @@ const DEFS: Record<string, CardDefinition> = {
   M6: monster('M6', 6),
   M7: monster('M7', 7),
   M8: monster('M8', 8),
-  SPELL: { id: 'SPELL', kind: 'Spell', name: 'Test Spell', subType: 'Normal' },
+  SPELL: {
+    id: 'SPELL',
+    kind: 'Spell',
+    name: { vi: 'Test Spell', en: 'Test Spell' },
+    subType: 'Normal',
+  },
 };
 
 const ctx: ActionContext = { cardDefinitions: (id) => DEFS[id] };
@@ -103,8 +108,18 @@ function setup({
 }
 
 const MODES = [
-  { name: 'NormalSummon', type: 'NormalSummon', position: 'Attack', event: 'NormalSummoned' },
-  { name: 'SetMonster', type: 'SetMonster', position: 'DefenseDown', event: 'MonsterSet' },
+  {
+    name: { vi: 'NormalSummon', en: 'NormalSummon' },
+    type: 'NormalSummon',
+    position: 'Attack',
+    event: 'NormalSummoned',
+  },
+  {
+    name: { vi: 'SetMonster', en: 'SetMonster' },
+    type: 'SetMonster',
+    position: 'DefenseDown',
+    event: 'MonsterSet',
+  },
 ] as const;
 
 type Mode = (typeof MODES)[number]['type'];

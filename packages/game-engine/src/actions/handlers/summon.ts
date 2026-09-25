@@ -145,6 +145,6 @@ export function resolveMonster(
       `card definition "${card.definitionId}" was not found.`,
     );
   if (definition.kind !== 'Monster')
-    return reject('NOT_A_MONSTER', `"${definition.name}" is not a Monster card.`);
+    return reject('NOT_A_MONSTER', `"${definition.name.en}" is not a Monster card.`);
   return definition;
 }

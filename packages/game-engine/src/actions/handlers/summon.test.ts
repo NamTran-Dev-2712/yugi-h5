@@ -16,7 +16,7 @@ function monster(id: string, level: number): CardDefinition {
   return {
     id,
     kind: 'Monster',
-    name: `Test ${id}`,
+    name: { vi: `Test ${id}`, en: `Test ${id}` },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',
@@ -32,8 +32,13 @@ const DEFS: Record<string, CardDefinition> = {
   M5: monster('M5', 5),
   M6: monster('M6', 6),
   M7: monster('M7', 7),
-  SPELL: { id: 'SPELL', kind: 'Spell', name: 'Test Spell', subType: 'Normal' },
-  TRAP: { id: 'TRAP', kind: 'Trap', name: 'Test Trap', subType: 'Normal' },
+  SPELL: {
+    id: 'SPELL',
+    kind: 'Spell',
+    name: { vi: 'Test Spell', en: 'Test Spell' },
+    subType: 'Normal',
+  },
+  TRAP: { id: 'TRAP', kind: 'Trap', name: { vi: 'Test Trap', en: 'Test Trap' }, subType: 'Normal' },
 };
 
 const ctx: ActionContext = { cardDefinitions: (id) => DEFS[id] };
@@ -89,13 +94,13 @@ const endPhase = (state: GameState): EndPhaseAction => ({
 
 const MODES = [
   {
-    name: 'NormalSummon',
+    name: { vi: 'NormalSummon', en: 'NormalSummon' },
     make: summon,
     position: 'Attack',
     event: 'NormalSummoned',
   },
   {
-    name: 'SetMonster',
+    name: { vi: 'SetMonster', en: 'SetMonster' },
     make: setMonster,
     position: 'DefenseDown',
     event: 'MonsterSet',

@@ -13,7 +13,7 @@ describe('CardDefinitionSchema', () => {
     const result = CardDefinitionSchema.safeParse({
       id: 'BAD-001',
       kind: 'Monster',
-      name: 'Broken Card',
+      name: { vi: 'Lá hỏng', en: 'Broken Card' },
       category: 'Normal',
       attribute: 'DARK',
       race: 'Fiend',

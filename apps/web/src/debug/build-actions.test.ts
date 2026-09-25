@@ -20,7 +20,7 @@ import {
 const DEFS: Record<string, CardDefinition> = {
   MON: {
     id: 'MON',
-    name: 'Monster',
+    name: { vi: 'Monster', en: 'Monster' },
     kind: 'Monster',
     category: 'Normal',
     attribute: 'EARTH',
@@ -29,7 +29,7 @@ const DEFS: Record<string, CardDefinition> = {
     atk: 1000,
     def: 1000,
   },
-  SPL: { id: 'SPL', name: 'Spell', kind: 'Spell', subType: 'Normal' },
+  SPL: { id: 'SPL', name: { vi: 'Spell', en: 'Spell' }, kind: 'Spell', subType: 'Normal' },
 };
 const lookup = (id: string): CardDefinition | undefined => DEFS[id];
 

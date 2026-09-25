@@ -10,7 +10,7 @@ const monster = (id: string, level: number, atk: number, def: number): [string, 
   {
     id,
     kind: 'Monster',
-    name: id,
+    name: { vi: id, en: id },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',

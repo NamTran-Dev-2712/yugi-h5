@@ -17,7 +17,7 @@ function mon(id: string, level: number, atk: number, def: number): CardDefinitio
   return {
     id,
     kind: 'Monster',
-    name: `AI ${id}`,
+    name: { vi: `AI ${id}`, en: `AI ${id}` },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',
@@ -36,7 +36,7 @@ export const AI_DEFS: Readonly<Record<string, CardDefinition>> = {
   T2400: mon('T2400', 5, 2400, 1000),
   T2600: mon('T2600', 6, 2600, 1000),
   H3000: mon('H3000', 7, 3000, 2000),
-  SP: { id: 'SP', kind: 'Spell', name: 'AI Spell', subType: 'Normal' },
+  SP: { id: 'SP', kind: 'Spell', name: { vi: 'AI Spell', en: 'AI Spell' }, subType: 'Normal' },
 };
 export const aiCtx: ActionContext = { cardDefinitions: (id) => AI_DEFS[id] };
 

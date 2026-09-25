@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EffectDefinitionSchema } from '../effects/effect-definition.js';
 
 /**
  * Static, author-time definition of a card. Runtime state (position, zone,
@@ -6,16 +7,8 @@ import { z } from 'zod';
  * CardInstance, never here — CardDefinition is immutable content data.
  */
 
-export const AttributeSchema = z.enum([
-  'DARK',
-  'LIGHT',
-  'EARTH',
-  'WATER',
-  'FIRE',
-  'WIND',
-  'DIVINE',
-]);
-export type Attribute = z.infer<typeof AttributeSchema>;
+export { AttributeSchema, type Attribute } from './attribute.js';
+import { AttributeSchema } from './attribute.js';
 
 export const MonsterCategorySchema = z.enum(['Normal', 'Effect', 'Fusion', 'Ritual']);
 export type MonsterCategory = z.infer<typeof MonsterCategorySchema>;
@@ -33,10 +26,27 @@ export type SpellSubType = z.infer<typeof SpellSubTypeSchema>;
 export const TrapSubTypeSchema = z.enum(['Normal', 'Continuous', 'Counter']);
 export type TrapSubType = z.infer<typeof TrapSubTypeSchema>;
 
+/** User-facing text in both supported languages (no fallback: both are required). */
+export const LocalizedTextSchema = z.object({ vi: z.string().min(1), en: z.string().min(1) });
+export type LocalizedText = z.infer<typeof LocalizedTextSchema>;
+
+export type Lang = keyof LocalizedText;
+
+export function pickText(text: LocalizedText, lang: Lang): string {
+  return text[lang];
+}
+
 const CardDefinitionBaseSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1),
-  effectText: z.string().optional(),
+  name: LocalizedTextSchema,
+  effectText: LocalizedTextSchema.optional(),
+  /** Data-driven effects. See docs/design/effect-dsl.md */
+  effects: z
+    .array(EffectDefinitionSchema)
+    .refine((list) => new Set(list.map((e) => e.id)).size === list.length, {
+      message: 'effect ids must be unique within a card',
+    })
+    .optional(),
   /** Handler key for effects too complex to express via the effect DSL. See docs/design/effect-dsl.md */
   scriptId: z.string().optional(),
 });

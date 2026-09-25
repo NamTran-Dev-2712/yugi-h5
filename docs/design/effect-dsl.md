@@ -1,119 +1,100 @@
-# Effect DSL Spec
+# Effect DSL
 
 Mục tiêu: thêm lá bài mới = thêm data vào `packages/shared`, không sửa `packages/game-engine`
 core cho phần lớn trường hợp. Lá quá phức tạp để mô tả bằng DSL dùng `scriptId` trỏ tới 1
 handler function đăng ký sẵn trong engine.
 
-> Trạng thái: **spec cho M2**, chưa implement (M0 chỉ có card content tĩnh, chưa có effect
-> engine). Khi bắt đầu M2, review lại spec này, chốt schema thật bằng Zod trong
-> `packages/shared`, và cập nhật file này nếu có thay đổi.
+> Trạng thái: **schema Zod đã có (task 3.1, batch 1)** ở `packages/shared/src/effects/`.
+> **Chưa có engine chạy effect**: registry chỉ là metadata (`implemented: false`), handler
+> thật (`effects/operations/<kind>.ts` trong engine) làm ở task 3.2. Thêm kind mới: `/new-effect-type`.
 
-## Schema tổng quát
+## Schema (nguồn thật: `packages/shared/src/effects/*.ts`)
+
+Mỗi `kind` là một `z.object({ kind: z.literal(...), ...field })` `.strict()` gộp bằng
+`z.discriminatedUnion('kind', …)`; **params phẳng theo kind** (không còn `params: Record<string, unknown>`),
+nên gõ sai kind/field là lỗi `tsc`/parse. `[DECISION]`
 
 ```ts
 interface EffectDefinition {
-  id: string; // unique trong phạm vi 1 CardDefinition
-  trigger: TriggerSpec;
-  condition?: ConditionSpec[]; // AND — tất cả phải đúng mới activate/resolve được
-  cost?: CostSpec[]; // trả trước khi effect lên chain (vd discard, tribute)
-  target?: TargetSpec; // chọn target lúc activate (không phải lúc resolve)
-  operations: OperationSpec[]; // thực thi tuần tự khi effect resolve
-}
-
-type TriggerSpec =
-  | { kind: 'OnSummon' }
-  | { kind: 'OnDraw' }
-  | { kind: 'OnDestroyed'; by?: 'Battle' | 'Effect' | 'Any' }
-  | { kind: 'OnPhaseStart'; phase: Phase }
-  | { kind: 'Continuous' } // không lên chain
-  | { kind: 'Ignition' } // chủ động activate ở Main Phase
-  | { kind: 'Quick' }; // activate bất kỳ lúc nào có priority
-
-interface ConditionSpec {
-  kind: string;
-  params: Record<string, unknown>;
-}
-interface CostSpec {
-  kind: 'Discard' | 'Tribute' | 'PayLP' | 'Banish';
-  params: Record<string, unknown>;
-}
-interface TargetSpec {
-  kind: 'Card' | 'Player';
-  count: number;
-  filter: Record<string, unknown>;
-}
-interface OperationSpec {
-  kind: string;
-  params: Record<string, unknown>;
+  id: string; // unique trong 1 CardDefinition (CardDefinition.effects refine)
+  trigger: Trigger;
+  condition?: Condition[]; // AND; không được rỗng nếu có
+  cost?: Cost[]; // trả khi activate; không được rỗng nếu có
+  target?: Target; // chọn lúc activate
+  operations: Operation[]; // thực thi tuần tự khi resolve; KHÔNG được rỗng
 }
 ```
 
-`condition`/`cost`/`target`/`operations` dùng danh sách `kind` mở rộng dần — mỗi `kind` mới
-implement bằng 1 handler nhỏ trong engine (`effects/operations/<kind>.ts`), không phải
-if/else khổng lồ. Effect quá đặc thù (không map được vào operation có sẵn) dùng `scriptId`
-thay vì cố nhét vào DSL:
+Ràng buộc (`.refine`): `operations` ≥ 1; `condition`/`cost` không rỗng nếu có; `Continuous` không có
+`cost`/`target` (không lên chain); `ZoneCount` cần `min` và/hoặc `max`, `min ≤ max`; `filter` cần ≥ 1
+tiêu chí, `level.min ≤ level.max`.
 
-```ts
-interface CardDefinitionWithScript {
-  // ...CardDefinition base
-  scriptId: string; // vd 'wandering-squire-on-summon'
-}
-```
+`CardDefinition` có thêm `effects?: EffectDefinition[]` (id không trùng), `name`/`effectText?` là
+`{ vi, en }` (cả hai bắt buộc, không fallback; helper `pickText(text, lang)`).
 
-Engine giữ 1 registry `Record<scriptId, EffectScriptHandler>` — handler nhận `(state, ctx)`,
-trả `{ state, events }` giống `applyAction`, nhưng chỉ chạy trong scope resolve của effect đó.
+## Kind đã có (batch 1)
 
-## 5 ví dụ mẫu
+| Loại      | Kind → field                                                                                                               |
+| --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Trigger   | `OnSummon`, `OnFlip`, `Continuous`, `Ignition`, `Quick`                                                                    |
+| Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                          |
+| Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                      |
+| Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                          |
+| Operation | `Damage{amount, target}`, `Heal{amount, target}`, `Draw{count, target}`, `Destroy` (tác động lên `target` Card của effect) |
+| Filter    | `kind` (Monster/Spell/Trap), `level{min?,max?}`, `attribute`, `race`                                                       |
 
-**1. Trigger** — "Khi lá này được Summon, rút 1 lá":
+`zone`: `Hand|Deck|Graveyard|MonsterZone|SpellTrapZone`; `side`/`who`/operation `target`: `self|opponent`;
+`phase`: `Draw|Standby|Main1|Battle|Main2|End`.
+
+## Kind CHƯA có (thêm qua `/new-effect-type`, theo `docs/plan/card-and-effect-plan.md`)
+
+- **Trigger**: `OnDraw`, `OnDestroyed(by)`, `OnSentToGY`, `OnPhaseStart`, `OnDamage`, `OnAttackDeclared`, `OnActivate`.
+- **Condition**: `LPCompare`, `HasCardIn(zone, filter)`, `ChainLength`, `PositionIs`, `OncePerTurn`.
+- **Cost**: `Banish`, `SendToGY`, `Reveal`.
+- **Target**: `AllMatching(filter)`.
+- **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `SpecialSummon`, `ModifyStat`/`ModifyAtk`, `ChangePosition`, `Negate`/`NegateAttack`, `Shuffle`, `Search`, `Equip`, `SkipPhase`.
+- **Filter**: `atk(min/max)`, `position`, `nameContains`, `tag`.
+- **Duration**: `ThisTurn`, `UntilEndPhase`, `WhileOnField`, `Permanent` (batch 3).
+
+Ví dụ trong bản spec cũ dùng tên `DrawCard`/`DealDamage`/`ModifyAtk`/`NegateAttack`: batch 1 dùng `Draw`/`Damage`
+(theo bảng plan); các kind còn lại đổi tên/định hình khi được thêm.
+
+## Ví dụ (parse được ở batch 1)
+
+**Trigger** — "Khi lá này được Summon, rút 1 lá":
 
 ```json
 {
   "id": "on-summon-draw",
   "trigger": { "kind": "OnSummon" },
-  "operations": [{ "kind": "DrawCard", "params": { "count": 1, "target": "self" } }]
+  "operations": [{ "kind": "Draw", "count": 1, "target": "self" }]
 }
 ```
 
-**2. Continuous** — "Trong khi lá này trên sân, các monster Warrior khác +200 ATK":
-
-```json
-{
-  "id": "warrior-buff",
-  "trigger": { "kind": "Continuous" },
-  "operations": [
-    {
-      "kind": "ModifyAtk",
-      "params": { "amount": 200, "filter": { "race": "Warrior" }, "scope": "otherOwnedMonsters" }
-    }
-  ]
-}
-```
-
-**3. Ignition** — "1 lần/turn, trả 500 LP: gây 500 damage cho đối thủ":
+**Ignition** — "Trả 500 LP: gây 500 damage cho đối thủ" (chưa có `OncePerTurn`):
 
 ```json
 {
   "id": "ignition-burn",
   "trigger": { "kind": "Ignition" },
-  "condition": [{ "kind": "OncePerTurn", "params": { "scopeId": "ignition-burn" } }],
-  "cost": [{ "kind": "PayLP", "params": { "amount": 500 } }],
-  "operations": [{ "kind": "DealDamage", "params": { "amount": 500, "target": "opponent" } }]
+  "condition": [{ "kind": "IsMyTurn" }, { "kind": "PhaseIs", "phase": "Main1" }],
+  "cost": [{ "kind": "PayLP", "amount": 500 }],
+  "operations": [{ "kind": "Damage", "amount": 500, "target": "opponent" }]
 }
 ```
 
-**4. Quick** — "Trap thường: Negate 1 lần tấn công":
+**Quick + target** — "Phá huỷ 1 quái của đối thủ":
 
 ```json
 {
-  "id": "negate-attack",
+  "id": "destroy-one",
   "trigger": { "kind": "Quick" },
-  "target": { "kind": "Card", "count": 1, "filter": { "state": "attackingMonster" } },
-  "operations": [{ "kind": "NegateAttack", "params": {} }]
+  "target": { "kind": "Card", "zone": "MonsterZone", "side": "opponent", "count": 1 },
+  "operations": [{ "kind": "Destroy" }]
 }
 ```
 
-**5. scriptId** — effect quá đặc thù (vd tương tác nhiều bước, tùy chọn phức tạp):
+**scriptId** — effect quá đặc thù (không map được vào operation catalog):
 
 ```json
 {
@@ -123,18 +104,17 @@ trả `{ state, events }` giống `applyAction`, nhưng chỉ chạy trong scope
 }
 ```
 
-```ts
-// engine/effects/scripts/ashfall-wyrm-on-summon.ts
-export const ashfallWyrmOnSummon: EffectScriptHandler = (state, ctx) => {
-  // logic tùy chỉnh không map được vào operation catalog hiện có
-};
-```
+> Ví dụ `scriptId` chưa hợp lệ với `EffectDefinitionSchema` (chưa có trường `scriptId` trong effect; hiện `scriptId` chỉ ở mức
+> `CardDefinition`). Quyết định vị trí `scriptId` khi làm task có script đầu tiên.
+
+Engine giữ 1 registry `Record<scriptId, EffectScriptHandler>` — handler nhận `(state, ctx)`,
+trả `{ state, events }` giống `applyAction`, chỉ chạy trong scope resolve của effect đó.
 
 ## Nguyên tắc thêm operation/condition/cost mới
 
-1. Kiểm tra operation catalog hiện có (`packages/game-engine/src/effects/operations/`) trước
-   khi thêm — tránh trùng lặp.
-2. Operation mới phải pure + deterministic, nhận `(state, params, ctx)` trả `{state, events}`.
-3. Nếu > 1 lá cần cùng 1 hành vi đặc thù, ưu tiên khái quát hóa thành operation thay vì
-   copy-paste `scriptId` nhiều lần.
-4. Xem `.claude/commands/new-effect-type.md` cho quy trình cụ thể.
+1. Kiểm tra catalog hiện có (bảng trên) trước khi thêm — tránh trùng lặp.
+2. Thêm schema kind ở `packages/shared/src/effects/`, thêm vào danh sách `*_KINDS` + `OPERATION_REGISTRY` ở
+   `registry.ts` (thiếu = `tsc` đỏ), test parse hợp lệ + reject.
+3. Operation mới phải pure + deterministic, nhận `(state, params, ctx)` trả `{state, events}` (handler ở engine, task 3.2+).
+4. Nếu > 1 lá cần cùng 1 hành vi đặc thù, ưu tiên khái quát hoá thành operation thay vì copy-paste `scriptId`.
+5. Xem `.claude/commands/new-effect-type.md` cho quy trình cụ thể.

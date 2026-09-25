@@ -25,7 +25,7 @@ function secretsOf(name: FixtureName): { ids: string[]; names: string[] } {
   const f = loadFixture(name);
   const shown = new Set(JSON.stringify(f.view).match(/SMP-\d+/g) ?? []);
   const secret = SAMPLE_CARDS.filter((c) => !shown.has(c.id));
-  return { ids: secret.map((c) => c.id), names: secret.map((c) => c.name) };
+  return { ids: secret.map((c) => c.id), names: secret.flatMap((c) => [c.name.vi, c.name.en]) };
 }
 
 const names: FixtureName[] = ['summon-choice', 'tribute', 'attack', 'attack-direct', 'midgame'];

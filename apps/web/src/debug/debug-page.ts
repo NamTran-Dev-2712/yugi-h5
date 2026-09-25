@@ -62,7 +62,7 @@ function cardText(card: CardView | null): { text: string; cls: string } {
   const def = lookup(card.definitionId);
   const stats = def?.kind === 'Monster' ? ` Lv${def.level} ${def.atk}/${def.def}` : '';
   return {
-    text: `${def?.name ?? card.definitionId}${stats}\n${card.position ?? ''} [${card.instanceId}]`,
+    text: `${def?.name.vi ?? card.definitionId}${stats}\n${card.position ?? ''} [${card.instanceId}]`,
     cls: 'zone up',
   };
 }
@@ -97,7 +97,7 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
   const describeAll = (events: readonly EventView[], view: StateView): string[] =>
     events.map((e) =>
       describeEvent(e, {
-        cardName: (id) => lookup(id)?.name ?? id,
+        cardName: (id) => lookup(id)?.name.vi ?? id,
         instanceLabel: (id) => instanceLabelIn(view, id),
       }),
     );

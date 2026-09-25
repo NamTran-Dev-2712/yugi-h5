@@ -27,7 +27,7 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
   M4: monster('M4', 4, 1600, 900),
   M5: monster('M5', 5, 2100, 1500),
   M7: monster('M7', 7, 2800, 2000),
-  SP: { id: 'SP', kind: 'Spell', name: 'Fuzz Spell', subType: 'Normal' },
+  SP: { id: 'SP', kind: 'Spell', name: { vi: 'Fuzz Spell', en: 'Fuzz Spell' }, subType: 'Normal' },
 };
 const DECK_POOL = Object.keys(FUZZ_DEFS);
 const PHASES: readonly Phase[] = ['Draw', 'Standby', 'Main1', 'Battle', 'Main2', 'End'];
@@ -36,7 +36,7 @@ function monster(id: string, level: number, atk: number, def: number): CardDefin
   return {
     id,
     kind: 'Monster',
-    name: `Fuzz ${id}`,
+    name: { vi: `Fuzz ${id}`, en: `Fuzz ${id}` },
     category: 'Normal',
     attribute: 'EARTH',
     race: 'Warrior',

@@ -1,4 +1,5 @@
 import type { CardView, StateView } from '@yugi/shared';
+import { cardName } from './card-text';
 import { t } from '../i18n/i18n';
 import type { CardLookup } from './presenter';
 
@@ -18,7 +19,8 @@ export function instanceLabelIn(view: StateView, instanceId: string, lookup: Car
     if (found.hidden) return t('label.hiddenCard');
     if (found.ownerIndex !== view.viewerIndex && found.position === 'DefenseDown')
       return t('label.faceDownCard');
-    return lookup(found.definitionId)?.name ?? found.definitionId;
+    const d = lookup(found.definitionId);
+    return d ? cardName(d) : found.definitionId;
   }
   return instanceId;
 }
