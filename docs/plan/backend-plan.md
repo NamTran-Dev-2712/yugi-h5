@@ -5,36 +5,47 @@ Contract chi tiết: `docs/design/protocol.md`.
 
 ## Làm sớm vs sau
 
-| Hạng mục                                           | Phase | Vì sao                                    |
-| -------------------------------------------------- | ----- | ----------------------------------------- |
-| `StateView` filter + DuelService + action log/seed | P2    | Cốt lõi vertical slice; anti-cheat từ đầu |
-| Guest token tối thiểu                              | P2    | Cần định danh player; JWT đầy đủ ở P7     |
-| Dev-endpoint (scenario/replay/anim)                | P2–P6 | Chỉ bật khi `NODE_ENV!=production`        |
-| Auth đầy đủ, Deck/Collection                       | P7    | Cần sau khi có card + art + UI            |
-| AI rule-based                                      | P8    | Cần effect (P3) xong                      |
-| Rooms, Socket.io, reconnect                        | P9    | Phụ thuộc engine ổn định                  |
-| Redis adapter, metrics nâng cao, backup tự động    | P9+   | Chỉ khi cần scale/deploy                  |
+| Hạng mục                                           | Phase   | Vì sao                                       |
+| -------------------------------------------------- | ------- | -------------------------------------------- |
+| `StateView` filter + DuelService + action log/seed | P2      | Cốt lõi vertical slice; anti-cheat từ đầu    |
+| Guest token tối thiểu                              | P2      | Cần định danh player; JWT đầy đủ ở P7        |
+| Dev-endpoint (scenario/replay/anim)                | P2–P6   | Chỉ bật khi `NODE_ENV!=production`           |
+| Auth đầy đủ, Deck/Collection                       | P7      | Cần sau khi có card + art + UI               |
+| AI rule-based                                      | P8      | Cần effect (P3) xong                         |
+| Rooms, Socket.io, reconnect                        | P9      | Phụ thuộc engine ổn định                     |
+| Economy & Inventory (ví, kho, ledger)              | P10     | Sau P7 (cần tài khoản thật); nền cho P11–P15 |
+| Gacha, Shop                                        | P11–P12 | Sau P10; Gacha trước Shop (Shop bán pack)    |
+| Adventure (tiến độ, thưởng)                        | P13     | Sau P8 (AI) + P10                            |
+| Arena (rating, mùa, Leaderboard, matchmaking)      | P14     | Sau P9 (Realtime); khác Room private         |
+| Live-ops (điểm danh, quest, đua top)               | P15     | Sau P10/P12/P14                              |
+| Redis adapter, metrics nâng cao, backup tự động    | P9+     | Chỉ khi cần scale/deploy                     |
 
 ## Thành phần
 
-| Mảng              | Kế hoạch                                                                                                                           | Phase |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| Auth              | Guest → JWT access+refresh; register/login/upgrade giữ userId; refresh rotation; hash mật khẩu (argon2/bcrypt — hỏi trước khi cài) | P2/P7 |
-| Decks/Collections | CRUD deck, validate dùng Zod chung (`packages/shared`); starter collection; không lưu card content trong DB                        | P7    |
-| Duel session      | `DuelService`: create → load state → validate action (engine) → apply → persist log → trả `events + StateView`                     | P2    |
-| Replay            | Lưu `seed, playerIds, deckLists, actionLog, rulesetConfig`; endpoint replay dev-only; xác minh deterministic                       | P2    |
-| AI player         | `AIPlayer` interface (`chooseAction(view) → Action`); Dummy (P2) → Easy/Normal (P8) → dùng DSL-aware (P8.3)                        | P2/P8 |
-| Matchmaking/Rooms | Room private bằng mã; không ranked/matchmaking công khai v1                                                                        | P9    |
-| Realtime          | Socket.io namespace `/realtime`; `duel:join`, `duel:action`, `duel:state` (StateView + events + version)                           | P9    |
-| Version/desync    | Mỗi StateView có `version`; client lệch → `duel:resync` full; server từ chối action sai `expectedVersion`                          | P9    |
-| Reconnect         | Giữ session theo token; join lại nhận full StateView (không replay animation)                                                      | P9    |
-| Timeout/AFK       | Turn timer `[GUESS]` (G7); hết giờ → auto `EndPhase`/thua theo config                                                              | P9    |
-| Anti-cheat        | Validate toàn bộ ở server; `PendingPrompt` chỉ trả lời bởi đúng player; rate limit (throttler đã có); ẩn hand/deck/face-down       | P2+   |
-| Observability     | Pino log có `matchId/userId/requestId`; metrics cơ bản (duels active, action latency) khi lên deploy                               | P7+   |
-| Migration         | Prisma 6.x migrate; migration nhỏ theo task; seed script (starter deck/collection)                                                 | P7    |
-| Seed card data    | Card ở `packages/shared` (không vào DB); DB chỉ tham chiếu `definitionId`                                                          | —     |
-| CI/CD & deploy    | GitHub Actions: lint/typecheck/test/build; Dockerfile api + web (nginx); docker compose prod cho self-host                         | P9    |
-| Backup            | `pg_dump` định kỳ (script + cron) khi có deploy thật                                                                               | P9+   |
+| Mảng              | Kế hoạch                                                                                                                                              | Phase  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Auth              | Guest → JWT access+refresh; register/login/upgrade giữ userId; refresh rotation; hash mật khẩu (argon2/bcrypt — hỏi trước khi cài)                    | P2/P7  |
+| Decks/Collections | CRUD deck, validate dùng Zod chung (`packages/shared`); starter collection; không lưu card content trong DB                                           | P7     |
+| Duel session      | `DuelService`: create → load state → validate action (engine) → apply → persist log → trả `events + StateView`                                        | P2     |
+| Replay            | Lưu `seed, playerIds, deckLists, actionLog, rulesetConfig`; endpoint replay dev-only; xác minh deterministic                                          | P2     |
+| AI player         | `AIPlayer` interface (`chooseAction(view) → Action`); Dummy (P2) → Easy/Normal (P8) → dùng DSL-aware (P8.3)                                           | P2/P8  |
+| Matchmaking/Rooms | Room private bằng mã (P9, giữ nguyên, không rating). ~~Không ranked/matchmaking công khai v1~~ → Arena (ladder/rating/mùa) ở **P14** (ADR 2026-09-25) | P9/P14 |
+| Realtime          | Socket.io namespace `/realtime`; `duel:join`, `duel:action`, `duel:state` (StateView + events + version)                                              | P9     |
+| Version/desync    | Mỗi StateView có `version`; client lệch → `duel:resync` full; server từ chối action sai `expectedVersion`                                             | P9     |
+| Reconnect         | Giữ session theo token; join lại nhận full StateView (không replay animation)                                                                         | P9     |
+| Timeout/AFK       | Turn timer `[GUESS]` (G7); hết giờ → auto `EndPhase`/thua theo config                                                                                 | P9     |
+| Anti-cheat        | Validate toàn bộ ở server; `PendingPrompt` chỉ trả lời bởi đúng player; rate limit (throttler đã có); ẩn hand/deck/face-down                          | P2+    |
+| Observability     | Pino log có `matchId/userId/requestId`; metrics cơ bản (duels active, action latency) khi lên deploy                                                  | P7+    |
+| Migration         | Prisma 6.x migrate; migration nhỏ theo task; seed script (starter deck/collection)                                                                    | P7     |
+| Seed card data    | Card ở `packages/shared` (không vào DB); DB chỉ tham chiếu `definitionId`                                                                             | —      |
+| CI/CD & deploy    | GitHub Actions: lint/typecheck/test/build; Dockerfile api + web (nginx); docker compose prod cho self-host                                            | P9     |
+| Backup            | `pg_dump` định kỳ (script + cron) khi có deploy thật                                                                                                  | P9+    |
+
+## Mở rộng scope (P10–P15, ADR 2026-09-25)
+
+- **DB đề xuất mở rộng** (chờ chủ dự án duyệt sửa CLAUDE.md #5, hiện ghi "DB chỉ lưu User/Collection/Deck/MatchHistory/Progress"): Wallet, InventoryItem, Transaction (ledger append-only), PackOpening (log roll); sau đó QuestProgress, LoginStreak, AdventureProgress, ArenaRating, SeasonResult. Nội dung định nghĩa (pack, shop catalog, ải, quest, lịch sự kiện) vẫn ở `packages/shared`, DB chỉ giữ dữ liệu người chơi.
+- Mọi ghi tiền/item đi qua một Economy service: idempotency key, DB transaction, không nhận số dư/giá/kết quả roll từ client. Chi tiết: `economy-plan.md`, `modes-and-liveops-plan.md`.
+- Leaderboard/Season có thể cần hạ tầng riêng (cache/sorted set — Redis đã có trong docker-compose nhưng chưa dùng); quyết khi breakdown P14, hỏi trước khi thêm dependency.
 
 ## Thay đổi contract dự kiến (cập nhật `protocol.md` khi làm)
 
