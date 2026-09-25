@@ -24,26 +24,28 @@ export type StepKind =
   | 'aiLabel';
 
 /**
- * How long each step lasts at speed 1 (ms). One place to tune the feel. `[DECISION]`-pending: deliberately 2–5× SHORTER
- * than the original measured in `docs/reference/notes/animation-durations.md` (summon ~2.6 s, tribute ~2.2 s, attack
- * ~0.7 s, turn banner ~1.7 s) so play-testing stays quick; Set/Flip/Position have no footage at all (`[GUESS]`).
+ * How long each step lasts at speed 1 (ms). One place to tune the feel (`?fast=1` = ×3, `?anim=off` = none).
+ * `[REF]` = midpoint of a single measurement in `docs/reference/notes/animation-durations.md` (video #2, ±0.13–0.5 s,
+ * measured once — estimates, not exact). `[GUESS]` = no footage. `[SIMPLIFIED]` = deliberately not the original.
+ * Note `summon` is also used by Tribute Summon (tributes + summon add up longer than the original ~2.2 s chain), and
+ * `aiLabel`/`phase` play once per AI action, so they stay short.
  */
 export const DURATION_MS: Readonly<Record<StepKind, number>> = {
-  draw: 250,
-  summon: 400,
-  set: 300,
-  tribute: 350,
-  flip: 400,
-  changePosition: 300,
-  attack: 500,
-  destroy: 450,
-  damage: 600,
-  discard: 300,
-  phase: 250,
-  turn: 400,
-  duelEnd: 500,
-  deckOut: 400,
-  aiLabel: 250,
+  draw: 450, // [SIMPLIFIED] one value for both players; original: opponent draw ~1.3–1.8 s, own draw not measured
+  summon: 2600, // [REF] Normal Summon ~2.6 s
+  set: 500, // [GUESS]
+  tribute: 375, // [REF] ~0.3–0.4 s per tribute
+  flip: 400, // [GUESS] same group as tribute/destroy
+  changePosition: 350, // [GUESS] same group
+  attack: 700, // [REF] release → hit ~0.7 s
+  destroy: 375, // [REF] ~0.3–0.4 s per monster
+  damage: 500, // [REF] floating damage number ~0.5 s
+  discard: 350, // [GUESS] same group
+  phase: 270, // [REF] hex label change ~0.27 s
+  turn: 1750, // [REF] "Lượt đối thủ" banner ~1.7–1.8 s
+  duelEnd: 1500, // [SIMPLIFIED] original LP 0 → result ~4.6 s is a whole sequence; ours is one caption
+  deckOut: 400, // [GUESS]
+  aiLabel: 250, // [GUESS] once per AI action
 };
 /** Several cards drawn in a row (the opening hand) play as one longer step instead of N short ones. */
 const DRAW_MANY_MS = 600;
