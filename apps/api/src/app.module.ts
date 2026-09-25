@@ -15,6 +15,7 @@ import { DuelsModule } from './modules/duels/duels.module';
 import { MatchmakingModule } from './modules/matchmaking/matchmaking.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { HealthModule } from './modules/health/health.module';
+import { devOnlyModules } from './modules/dev-sandbox/dev-modules';
 
 @Module({
   imports: [
@@ -47,6 +48,8 @@ import { HealthModule } from './modules/health/health.module';
     MatchmakingModule,
     RealtimeModule,
     HealthModule,
+    // Dev tools (Duel Sandbox): absent in production, so their routes 404.
+    ...devOnlyModules(process.env['NODE_ENV']),
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

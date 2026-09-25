@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yugi H5 — Duel Sandbox (DEV)</title>
+    <style>
+      body { font: 14px/1.4 system-ui, sans-serif; margin: 0; padding: 12px; background: #14141c; color: #e6e6ee; }
+      h1 { font-size: 16px; margin: 0 0 8px; }
+      .hint { color: #9aa; margin: 0 0 8px; }
+      .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
+      button, select { font: inherit; padding: 3px 10px; }
+      button:disabled { opacity: .5; }
+      textarea { width: 100%; box-sizing: border-box; font: 12px/1.4 ui-monospace, Consolas, monospace; background: #1b1b26; color: #e6e6ee; border: 1px solid #333a4a; }
+      .errors { color: #f99; white-space: pre-wrap; margin: 6px 0; }
+      .status { color: #9c9; }
+      #sandbox-game { margin-top: 8px; max-width: 1280px; }
+    </style>
+  </head>
+  <body>
+    <h1>Yugi H5 — Duel Sandbox (chỉ DEV, không có trong bản production)</h1>
+    <div id="sandbox-root"></div>
+    <script type="module" src="/src/dev/main.ts"></script>
+  </body>
+</html>

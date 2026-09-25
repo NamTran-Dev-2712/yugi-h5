@@ -1,0 +1,47 @@
+
+[31m[1mCaused by: Error[22m: Failed to load url ./scenario-schema.js (resolved id: ./scenario-schema.js) in E:/code/game/turn_battle/yugi-h5/packages/shared/src/scenario/scenario-schema.test.ts. Does the file exist?[39m
+[90m [2m❯[22m loadAndTransform ../../node_modules/.pnpm/vite@7.3.6_@types+node@22.2_194e501776750d489097a3705aac3374/node_modules/vite/dist/node/chunks/config.js:[2m22739:33[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m5 passed[39m[22m[90m (6)[39m
+[2m      Tests [22m [1m[32m58 passed[39m[22m[90m (58)[39m
+[2m   Start at [22m 12:30:04
+[2m   Duration [22m 769ms[2m (transform 198ms, setup 0ms, collect 548ms, tests 34ms, environment 1ms, prepare 1.57s)[22m
+
+E:\code\game\turn_battle\yugi-h5\packages\shared:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @yugi/shared@0.1.0 test: `vitest run`
+Exit status 1
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m7 failed[39m[22m[90m (7)[39m
+[2m   Start at [22m 12:33:16
+[2m   Duration [22m 1.57s[2m (transform 327ms, setup 0ms, collect 1.12s, tests 18ms, environment 0ms, prepare 150ms)[22m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [2mno tests[22m
+[2m   Start at [22m 12:36:18
+[2m   Duration [22m 2.50s[2m (transform 366ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 150ms)[22m
+
+[31m   [31m×[31m duel calls[2m > [22mcreateSandbox posts the scenario to the dev endpoint with the mode in the query[39m[32m 6[2mms[22m[39m
+   [32m✓[39m errors[2m > [22mturns a 409 into a DuelApiError with status, code and engineCode[32m 2[2mms[22m[39m
+[31m   [31m×[31m startScenario (Sandbox)[2m > [22mloads the scenario on the server and shows its view and legalActions like start() does[39m[32m 4[2mms[22m[39m
+[31m   [31m×[31m startScenario (Sandbox)[2m > [22ma duel loaded from a scenario is played through the normal submit path[39m[32m 1[2mms[22m[39m
+[31m   [31m×[31m startScenario (Sandbox)[2m > [22mshows the server refusal (e.g. INVALID_SCENARIO) and keeps no duel[39m[32m 0[2mms[22m[39m
+[31m   [31m×[31m startScenario (Sandbox)[2m > [22mignores a second load while one is in flight[39m[32m 0[2mms[22m[39m
+[31m   [31m×[31m startScenario (Sandbox)[2m > [22ma controller without an api reports it instead of throwing[39m[32m 0[2mms[22m[39m
+[41m[1m FAIL [22m[49m src/dev/sandbox-load.test.ts[2m [ src/dev/sandbox-load.test.ts ][22m
+[31m[1mError[22m: Failed to resolve import "./sandbox-load" from "src/dev/sandbox-load.test.ts". Does the file exist?[39m
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 6 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+[41m[1m FAIL [22m[49m src/api/duel-api.test.ts[2m > [22mduel calls[2m > [22mcreateSandbox posts the scenario to the dev endpoint with the mode in the query
+[31m[1mTypeError[22m: api.createSandbox is not a function[39m
+[41m[1m FAIL [22m[49m src/duel/duel-controller.test.ts[2m > [22mstartScenario (Sandbox)[2m > [22mloads the scenario on the server and shows its view and legalActions like start() does
+[31m[1mTypeError[22m: c.startScenario is not a function[39m
+[41m[1m FAIL [22m[49m src/duel/duel-controller.test.ts[2m > [22mstartScenario (Sandbox)[2m > [22ma duel loaded from a scenario is played through the normal submit path
+[31m[1mTypeError[22m: c.startScenario is not a function[39m
+[41m[1m FAIL [22m[49m src/duel/duel-controller.test.ts[2m > [22mstartScenario (Sandbox)[2m > [22mshows the server refusal (e.g. INVALID_SCENARIO) and keeps no duel
+[31m[1mTypeError[22m: c.startScenario is not a function[39m
+[41m[1m FAIL [22m[49m src/duel/duel-controller.test.ts[2m > [22mstartScenario (Sandbox)[2m > [22mignores a second load while one is in flight
+[31m[1mTypeError[22m: c.startScenario is not a function[39m

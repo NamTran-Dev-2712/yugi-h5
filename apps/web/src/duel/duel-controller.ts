@@ -1,4 +1,11 @@
-import type { EventView, PlayerAction, StateView, ViewResponse } from '@yugi/shared';
+import type {
+  CreateSoloResponse,
+  EventView,
+  PlayerAction,
+  Scenario,
+  StateView,
+  ViewResponse,
+} from '@yugi/shared';
 import { DuelApiError, type DuelApi } from '../api/duel-api';
 import { shouldContinueEndTurn } from '../debug/build-actions';
 import { segmentsFor, type AnimationSegment } from './animation-queue';
@@ -65,6 +72,8 @@ export interface DuelController {
   subscribe(listener: (state: DuelUiState) => void): () => void;
   /** Creates a solo-vs-ai duel on the server and shows its first view. */
   start(): Promise<void>;
+  /** DEV Sandbox: creates a duel from a scenario (same duel afterwards: buttons, drag, animation, log all unchanged). */
+  startScenario(scenario: Scenario): Promise<void>;
   /** Shows a fixed view without a server; nothing can be sent afterwards. */
   showFixture(view: StateView, legalActions: readonly PlayerAction[]): void;
   /** A button of the presenter's model was pressed. */
@@ -211,26 +220,30 @@ export function createDuelController({
     }
   }
 
+  /** Creates a duel with `create` and shows its first view; a failure leaves no duel and an error line. */
+  async function startWith(create: (api: DuelApi) => Promise<CreateSoloResponse>): Promise<void> {
+    if (state.busy) return;
+    set({ ...initialUiState, busy: true });
+    try {
+      if (!api) throw new Error('Không có API');
+      await api.ensureGuest();
+      const res = await create(api);
+      await applyResponse(res, { duelId: res.duelId });
+    } catch (err) {
+      set({ error: formatApiError(err), ...addLog([errorEntry(`✗ ${formatApiError(err)}`)]) });
+    } finally {
+      set({ busy: false });
+    }
+  }
+
   return {
     getState: () => state,
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    async start() {
-      if (state.busy) return;
-      set({ ...initialUiState, busy: true });
-      try {
-        if (!api) throw new Error('Không có API');
-        await api.ensureGuest();
-        const res = await api.createSolo({ mode: 'solo-vs-ai' });
-        await applyResponse(res, { duelId: res.duelId });
-      } catch (err) {
-        set({ error: formatApiError(err), ...addLog([errorEntry(`✗ ${formatApiError(err)}`)]) });
-      } finally {
-        set({ busy: false });
-      }
-    },
+    start: () => startWith((a) => a.createSolo({ mode: 'solo-vs-ai' })),
+    startScenario: (scenario) => startWith((a) => a.createSandbox(scenario)),
     showFixture(view, legalActions) {
       set({ ...initialUiState, view, legalActions });
     },

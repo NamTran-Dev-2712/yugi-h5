@@ -7,3 +7,4 @@ export * from './duel/state-view.js';
 export * from './duel/event-view.js';
 export * from './duel/action-schema.js';
 export * from './duel/http-types.js';
+export * from './scenario/scenario-schema.js';

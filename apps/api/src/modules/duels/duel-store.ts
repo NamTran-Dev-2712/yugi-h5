@@ -1,4 +1,4 @@
-import type { Action, GameState, StartDuelAction } from '@yugi/game-engine';
+import { applyAction, type Action, type GameState, type StartDuelAction } from '@yugi/game-engine';
 
 /** `solo-debug`: one guest drives both seats. `solo-vs-ai`: the guest plays one seat, the server plays the other. `pvp` comes later. */
 export type DuelMode = 'solo-debug' | 'solo-vs-ai';
@@ -23,9 +23,19 @@ export interface DuelSession {
   /** `solo-vs-ai` only: the seat the server plays. Missing in that mode = nobody may act (fail closed). */
   readonly aiSeat?: 0 | 1;
   readonly seed: string;
-  readonly startAction: StartDuelAction;
+  /** How a normal duel began. Absent for a Sandbox scenario, which begins at `initialState` instead. */
+  readonly startAction?: StartDuelAction;
+  /** Sandbox scenario only (dev tool): the state the duel was loaded with; replay starts here. */
+  readonly initialState?: GameState;
   readonly state: GameState;
   readonly actionLog: readonly LoggedAction[];
+}
+
+/** The state a replay of `actionLog` starts from: the loaded scenario state, or the result of `StartDuel`. */
+export function initialStateOf(session: DuelSession): GameState {
+  if (session.initialState) return session.initialState;
+  if (session.startAction) return applyAction(null, session.startAction).state;
+  throw new Error(`Duel ${session.duelId} has no starting point`);
 }
 
 /** Persistence seam: swap the in-memory Map for a DB/Redis implementation without touching DuelManager. */

@@ -32,6 +32,7 @@ function fake(name: FixtureName, submitImpl: (a: PlayerAction) => Promise<Submit
       return () => listeners.delete(l);
     },
     start: async () => undefined,
+    startScenario: async () => undefined,
     showFixture: () => undefined,
     press,
     submit,

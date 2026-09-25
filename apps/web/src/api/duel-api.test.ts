@@ -95,6 +95,32 @@ describe('duel calls', () => {
     expect(JSON.parse(init?.body as string)).toEqual({ viewer: 1 });
   });
 
+  it('createSandbox posts the scenario to the dev endpoint with the mode in the query', async () => {
+    const created = {
+      duelId: 'd-9',
+      mode: 'solo-vs-ai',
+      viewer: 0,
+      view: {},
+      events: [],
+      legalActions: [],
+    };
+    const fetch = fakeFetch(
+      guestReply(),
+      { status: 201, body: created },
+      { status: 201, body: created },
+    );
+    const api = createDuelApi({ baseUrl: BASE, fetch, storage: memoryStorage() });
+    const scenario = { name: 'x' } as never;
+    expect(await api.createSandbox(scenario)).toEqual(created);
+    const [url, init] = fetch.mock.calls[1]!;
+    expect(url).toBe(`${BASE}/dev/sandbox/duels?mode=solo-vs-ai`);
+    expect(init?.method).toBe('POST');
+    expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok-1');
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'x' });
+    await api.createSandbox(scenario, 'solo-debug');
+    expect(fetch.mock.calls[2]![0]).toBe(`${BASE}/dev/sandbox/duels?mode=solo-debug`);
+  });
+
   it('getView asks for the requested seat', async () => {
     const fetch = fakeFetch(guestReply(), { body: { view: { viewerIndex: 1 } } });
     const api = createDuelApi({ baseUrl: BASE, fetch, storage: memoryStorage() });

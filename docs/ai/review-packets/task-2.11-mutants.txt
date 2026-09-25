@@ -1,0 +1,22 @@
+killed   zone index ignored
+killed   duplicate monster zone allowed
+killed   duplicate spell zone allowed
+killed   instance id of seat 1 uses p0
+killed   turn player ignored
+killed   owner always 0
+killed   unknown card accepted
+killed   summonedTurn dropped
+killed   spell in monsters accepted
+killed   failed script leaves session behind
+killed   scenario session loses initialState
+killed   script ignored
+killed   default mode solo-debug
+killed   sandbox mounted in production
+killed   owner not recorded
+killed   web startScenario uses createSolo
+killed   web api posts to /duels/solo
+killed   web api ignores mode
+killed   web accepts empty text
+killed   web samples unsorted
+
+20/20 mutants killed

@@ -40,6 +40,17 @@ export interface CreateDuelConfig {
   readonly aiSeat?: 0 | 1;
 }
 
+/** Sandbox load (dev tool): a state built by `scenarioToState` plus how to reach it over HTTP. */
+export interface CreateDuelFromStateConfig {
+  readonly state: GameState;
+  readonly seed: string;
+  readonly mode?: DuelMode;
+  readonly ownerId?: string;
+  readonly aiSeat?: 0 | 1;
+  /** Applied in order (each action's own `playerIndex`) right after loading. */
+  readonly script?: readonly PlayerAction[];
+}
+
 export interface CreateDuelResult {
   readonly duelId: string;
   /** Opening state per seat (already filtered: index i is what player i may see). */
@@ -154,29 +165,81 @@ export class DuelManager {
     };
     await this.store.save(session);
     // The AI may hold the first seat: let it play before anyone sees the duel. Same lock as any other change.
+    return this.runExclusive(duelId, () => this.openingResult(session, events));
+  }
+
+  /**
+   * Sandbox (dev tool): opens a duel on a state built elsewhere (`scenarioToState`) instead of `StartDuel`; the duel
+   * id is the state's `matchId`. The optional `script` is applied in order through `applyAndSave` (the normal engine
+   * path); one refused step fails the whole load and removes the session. Replay starts from `initialState`.
+   */
+  async createDuelFromState(config: CreateDuelFromStateConfig): Promise<CreateDuelResult> {
+    const duelId = config.state.matchId;
+    const loaded: DuelSession = {
+      duelId,
+      ...(config.mode !== undefined ? { mode: config.mode } : {}),
+      ...(config.ownerId !== undefined ? { ownerId: config.ownerId } : {}),
+      ...(config.aiSeat !== undefined ? { aiSeat: config.aiSeat } : {}),
+      seed: config.seed,
+      initialState: config.state,
+      state: config.state,
+      actionLog: [],
+    };
+    await this.store.save(loaded);
     return this.runExclusive(duelId, async () => {
-      const driven = await this.driveAi(session);
-      const finalState = driven.session.state;
-      const eventsByViewer: [EventView[], EventView[]] = [
-        toEventViews(events, 0),
-        toEventViews(events, 1),
-      ];
-      let aiActions: AiActionView[] | undefined;
-      if (driven.steps.length > 0 && session.aiSeat !== undefined) {
-        const human = session.aiSeat === 0 ? 1 : 0;
-        aiActions = this.appendAiSteps(eventsByViewer, driven.steps, human);
+      let session = loaded;
+      const events: GameEvent[] = [];
+      for (const [i, action] of (config.script ?? []).entries()) {
+        try {
+          const applied = await this.applyAndSave(
+            session,
+            action.payload.playerIndex,
+            action as unknown as Action,
+          );
+          session = applied.session;
+          events.push(...applied.events);
+        } catch (e) {
+          await this.store.delete(duelId);
+          if (e instanceof DuelServiceError && e.code === 'ACTION_REJECTED') {
+            throw new DuelServiceError(
+              'ACTION_REJECTED',
+              `Script step ${i + 1} (${action.type}) was refused: ${e.message}`,
+              e.engineCode,
+            );
+          }
+          throw e;
+        }
       }
-      return {
-        duelId,
-        views: [toStateView(finalState, 0), toStateView(finalState, 1)],
-        eventsByViewer,
-        legalActionsByViewer: [
-          this.legalActionsOf(finalState, 0),
-          this.legalActionsOf(finalState, 1),
-        ],
-        ...(aiActions ? { aiActions } : {}),
-      };
+      return this.openingResult(session, events);
     });
+  }
+
+  /** Lets the AI move first when it holds the first seat, then builds what a new duel returns. Caller holds the lock. */
+  private async openingResult(
+    session: DuelSession,
+    events: readonly GameEvent[],
+  ): Promise<CreateDuelResult> {
+    const driven = await this.driveAi(session);
+    const finalState = driven.session.state;
+    const eventsByViewer: [EventView[], EventView[]] = [
+      toEventViews(events, 0),
+      toEventViews(events, 1),
+    ];
+    let aiActions: AiActionView[] | undefined;
+    if (driven.steps.length > 0 && session.aiSeat !== undefined) {
+      const human = session.aiSeat === 0 ? 1 : 0;
+      aiActions = this.appendAiSteps(eventsByViewer, driven.steps, human);
+    }
+    return {
+      duelId: session.duelId,
+      views: [toStateView(finalState, 0), toStateView(finalState, 1)],
+      eventsByViewer,
+      legalActionsByViewer: [
+        this.legalActionsOf(finalState, 0),
+        this.legalActionsOf(finalState, 1),
+      ],
+      ...(aiActions ? { aiActions } : {}),
+    };
   }
 
   /**

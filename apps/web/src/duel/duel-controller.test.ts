@@ -33,6 +33,13 @@ function fakeApi(replies: (ViewResponse | Error)[]) {
       viewer: 0 as const,
       aiSeat: 1 as const,
     })),
+    createSandbox: vi.fn(async () => ({
+      ...(await next()),
+      duelId: 'sb-1',
+      mode: 'solo-vs-ai' as const,
+      viewer: 0 as const,
+      aiSeat: 1 as const,
+    })),
     getView: vi.fn(),
     submitAction: vi.fn(async () => next()),
   };
@@ -58,6 +65,64 @@ describe('start', () => {
     expect(c.getState().duelId).toBeNull();
     expect(c.getState().error).toContain('NETWORK_ERROR');
     expect(c.getState().busy).toBe(false);
+  });
+});
+
+describe('startScenario (Sandbox)', () => {
+  const scenario = { name: 'demo' } as unknown as Parameters<
+    ReturnType<typeof createDuelController>['startScenario']
+  >[0];
+
+  it('loads the scenario on the server and shows its view and legalActions like start() does', async () => {
+    const { api } = fakeApi([response()]);
+    const c = createDuelController({ api, lookup });
+    await c.startScenario(scenario);
+    expect(api.createSandbox).toHaveBeenCalledWith(scenario);
+    expect(api.createSolo).not.toHaveBeenCalled();
+    expect(c.getState().duelId).toBe('sb-1');
+    expect(c.getState().legalActions).toHaveLength(2);
+    expect(c.getState().busy).toBe(false);
+    expect(c.getState().error).toBeNull();
+  });
+
+  it('a duel loaded from a scenario is played through the normal submit path', async () => {
+    const { api } = fakeApi([response(), response()]);
+    const c = createDuelController({ api, lookup });
+    await c.startScenario(scenario);
+    await c.submit(endPhase);
+    expect(api.submitAction).toHaveBeenCalledWith('sb-1', 0, endPhase);
+  });
+
+  it('shows the server refusal (e.g. INVALID_SCENARIO) and keeps no duel', async () => {
+    const { api } = fakeApi([
+      new DuelApiError(
+        400,
+        { code: 'INVALID_SCENARIO', message: 'unknown card "X"' },
+        'HTTP_ERROR',
+      ),
+    ]);
+    const c = createDuelController({ api, lookup });
+    await c.startScenario(scenario);
+    expect(c.getState().duelId).toBeNull();
+    expect(c.getState().error).toContain('INVALID_SCENARIO');
+    expect(c.getState().entries.some((e) => e.category === 'error')).toBe(true);
+    expect(c.getState().busy).toBe(false);
+  });
+
+  it('ignores a second load while one is in flight', async () => {
+    const { api } = fakeApi([response()]);
+    const c = createDuelController({ api, lookup });
+    const first = c.startScenario(scenario);
+    await c.startScenario(scenario);
+    await first;
+    expect(api.createSandbox).toHaveBeenCalledTimes(1);
+  });
+
+  it('a controller without an api reports it instead of throwing', async () => {
+    const c = createDuelController({ lookup });
+    await c.startScenario(scenario);
+    expect(c.getState().duelId).toBeNull();
+    expect(c.getState().error).not.toBeNull();
   });
 });
 

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { chooseAction, type AiPolicy } from './ai/choose-action';
 import { DuelServiceError } from './duel-errors';
 import { DuelManager, type CreateDuelConfig } from './duel-manager';
-import { InMemoryDuelStore, type DuelStore } from './duel-store';
+import { InMemoryDuelStore, type DuelStore, initialStateOf } from './duel-store';
 
 const defs = new Map<string, CardDefinition>(SAMPLE_CARDS.map((c) => [c.id, c]));
 const resolver = (id: string): CardDefinition | undefined => defs.get(id);
@@ -98,7 +98,7 @@ describe('DuelManager solo-vs-ai driver', () => {
     expect(versions).toEqual([...versions].sort((a, b) => a - b));
     expect(new Set(versions).size).toBe(versions.length);
 
-    let replayed = applyAction(null, session.startAction).state;
+    let replayed = initialStateOf(session);
     for (const entry of session.actionLog) {
       replayed = applyAction(replayed, entry.action, { cardDefinitions: resolver }).state;
     }
@@ -165,7 +165,7 @@ describe('DuelManager solo-vs-ai driver', () => {
     const session = await manager.getDuel(duelId);
     expect(session.actionLog.filter((e) => e.playerIndex === 1)).toHaveLength(3);
     // still consistent: replay reproduces the stored state
-    let replayed = applyAction(null, session.startAction).state;
+    let replayed = initialStateOf(session);
     for (const entry of session.actionLog) {
       replayed = applyAction(replayed, entry.action, { cardDefinitions: resolver }).state;
     }

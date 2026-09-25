@@ -13,6 +13,7 @@ import { validateEnv } from '../../config/env.schema';
 import { configureApp } from '../../configure-app';
 import { AuthModule } from '../auth/auth.module';
 import { lookupCard } from './card-pool';
+import { initialStateOf } from './duel-store';
 import { DuelService } from './duel.service';
 import { DuelsModule } from './duels.module';
 
@@ -185,7 +186,7 @@ describe('solo-vs-ai turn over HTTP', () => {
     for (let i = 0; i < 6; i++) await endPhase(d).expect(200);
     const session = await service.getDuel(d.duelId);
     expect(session.actionLog.some((e) => e.playerIndex === 1)).toBe(true);
-    let replayed = applyAction(null, session.startAction).state;
+    let replayed = initialStateOf(session);
     for (const e of session.actionLog) {
       replayed = applyAction(replayed, e.action, { cardDefinitions: lookupCard }).state;
     }

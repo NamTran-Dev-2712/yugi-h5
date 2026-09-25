@@ -5,6 +5,7 @@ import type {
   GuestResponse,
   PlayerAction,
   PlayerIndex,
+  Scenario,
   SoloMode,
   ValidationIssue,
   ViewResponse,
@@ -59,6 +60,8 @@ export interface DuelApi {
   /** Returns the guest access token, creating a guest the first time. */
   ensureGuest(): Promise<string>;
   createSolo(body?: CreateSoloBody): Promise<CreateSoloResponse>;
+  /** DEV only (the endpoint does not exist in production): loads a Sandbox scenario as a duel. Default `solo-vs-ai`. */
+  createSandbox(scenario: Scenario, mode?: SoloMode): Promise<CreateSoloResponse>;
   getView(duelId: string, viewer: PlayerIndex): Promise<GetViewResponse>;
   submitAction(
     duelId: string,
@@ -137,6 +140,8 @@ export function createDuelApi(deps: DuelApiDeps): DuelApi {
   return {
     ensureGuest,
     createSolo: (body = {}) => authed('/duels/solo', { method: 'POST', json: body }),
+    createSandbox: (scenario, mode = 'solo-vs-ai') =>
+      authed(`/dev/sandbox/duels?mode=${mode}`, { method: 'POST', json: scenario }),
     getView: (duelId, viewer) =>
       authed(`/duels/${encodeURIComponent(duelId)}?viewer=${viewer}`, { method: 'GET' }),
     submitAction: (duelId, playerIndex, action) =>

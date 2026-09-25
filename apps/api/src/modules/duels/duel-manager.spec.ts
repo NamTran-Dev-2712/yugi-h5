@@ -3,7 +3,7 @@ import { SAMPLE_CARDS, type CardDefinition } from '@yugi/shared';
 import { describe, expect, it } from 'vitest';
 import { DuelServiceError } from './duel-errors';
 import { DuelManager, type CreateDuelConfig } from './duel-manager';
-import { InMemoryDuelStore, type DuelSession, type DuelStore } from './duel-store';
+import { InMemoryDuelStore, type DuelSession, type DuelStore, initialStateOf } from './duel-store';
 
 const defs = new Map<string, CardDefinition>(SAMPLE_CARDS.map((c) => [c.id, c]));
 const resolver = (id: string): CardDefinition | undefined => defs.get(id);
@@ -326,12 +326,12 @@ describe('DuelManager replay + close', () => {
     await manager.submitAction(duelId, 1, { type: 'Surrender', payload: { playerIndex: 1 } });
 
     const session = await manager.getDuel(duelId);
-    let replayed = applyAction(null, session.startAction).state;
+    let replayed = initialStateOf(session);
     for (const entry of session.actionLog) {
       replayed = applyAction(replayed, entry.action, { cardDefinitions: resolver }).state;
     }
     expect(replayed).toEqual(session.state);
-    expect(session.startAction.payload.seed).toBe(session.seed);
+    expect(session.startAction?.payload.seed).toBe(session.seed);
   });
 
   it('closeDuel removes the session', async () => {

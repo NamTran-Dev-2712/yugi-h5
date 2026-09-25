@@ -1,0 +1,35 @@
+{
+  "name": "attack-defense",
+  "seed": "sandbox-attack-defense",
+  "players": [
+    {
+      "lp": 8000,
+      "hand": ["SMP-001"],
+      "deck": ["SMP-004", "SMP-005", "SMP-006", "SMP-007", "SMP-008", "SMP-009"],
+      "field": {
+        "monsters": [
+          { "card": "SMP-006", "zone": 0, "position": "Attack", "summonedTurn": 1 },
+          { "card": "SMP-017", "zone": 2, "position": "Attack", "summonedTurn": 1 },
+          { "card": "SMP-013", "zone": 4, "position": "Attack", "summonedTurn": 1 }
+        ],
+        "spellTraps": []
+      },
+      "gy": []
+    },
+    {
+      "lp": 8000,
+      "hand": ["SMP-007"],
+      "deck": ["SMP-004", "SMP-005", "SMP-006", "SMP-009", "SMP-010", "SMP-012"],
+      "field": {
+        "monsters": [
+          { "card": "SMP-002", "zone": 1, "position": "DefenseUp", "summonedTurn": 1 },
+          { "card": "SMP-016", "zone": 3, "position": "DefenseDown", "summonedTurn": 1 }
+        ],
+        "spellTraps": []
+      },
+      "gy": []
+    }
+  ],
+  "turn": { "count": 3, "player": 0 },
+  "phase": "Battle"
+}

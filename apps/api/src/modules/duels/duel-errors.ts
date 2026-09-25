@@ -5,6 +5,7 @@ export type DuelErrorCode =
   | 'DUEL_NOT_FOUND'
   | 'INVALID_CONFIG'
   | 'UNKNOWN_CARD'
+  | 'INVALID_SCENARIO'
   | 'PLAYER_MISMATCH'
   | 'FORBIDDEN_ACTION'
   | 'NOT_OWNER'

@@ -1,0 +1,28 @@
+{
+  "name": "chain-basic",
+  "seed": "sandbox-chain-basic",
+  "players": [
+    {
+      "lp": 8000,
+      "hand": ["SMP-101", "SMP-001", "SMP-004"],
+      "deck": ["SMP-005", "SMP-006", "SMP-007", "SMP-008", "SMP-009", "SMP-010"],
+      "field": {
+        "monsters": [{ "card": "SMP-006", "zone": 2, "position": "Attack", "summonedTurn": 1 }],
+        "spellTraps": [{ "card": "SMP-201", "zone": 2, "position": "DefenseDown" }]
+      },
+      "gy": []
+    },
+    {
+      "lp": 8000,
+      "hand": ["SMP-101", "SMP-007"],
+      "deck": ["SMP-004", "SMP-005", "SMP-009", "SMP-010", "SMP-012", "SMP-011"],
+      "field": {
+        "monsters": [{ "card": "SMP-008", "zone": 2, "position": "Attack", "summonedTurn": 1 }],
+        "spellTraps": [{ "card": "SMP-201", "zone": 1, "position": "DefenseDown" }]
+      },
+      "gy": []
+    }
+  ],
+  "turn": { "count": 3, "player": 0 },
+  "phase": "Main1"
+}
