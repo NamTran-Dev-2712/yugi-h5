@@ -160,3 +160,19 @@ describe('interaction driver', () => {
     expect(d.getState().kind).toBe('idle');
   });
 });
+
+describe('a view already there when the driver starts (task 3.2b)', () => {
+  it('a SelectEffectTarget prompt of mine opens the target selection at once', () => {
+    const f = fake('effect-target', async () => ({ ok: true, sent: false }));
+    const d = createInteractionDriver(f.controller, { lookup, layout });
+    const s = d.getState();
+    expect(s.kind).toBe('selecting-tribute');
+    if (s.kind === 'selecting-tribute') expect(s.purpose).toBe('target');
+    expect(d.getOverlay()?.confirm).toMatchObject({ enabled: false, showCancel: false });
+  });
+
+  it('a board without a prompt starts idle', () => {
+    const f = fake('spell', async () => ({ ok: true, sent: false }));
+    expect(createInteractionDriver(f.controller, { lookup, layout }).getState().kind).toBe('idle');
+  });
+});

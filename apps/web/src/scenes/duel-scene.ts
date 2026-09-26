@@ -8,6 +8,7 @@ import {
 } from '../duel/animation-player';
 import type { AnimationStep } from '../duel/animation-queue';
 import { formatDetail } from '../duel/detail-text';
+import type { SelectionPurpose } from '../duel/interaction';
 import { createInteractionDriver, type InteractionDriver } from '../duel/interaction-driver';
 import { computeLayout, staticRects, type Rect } from '../duel/layout';
 import { filterEntries } from '../duel/log-entries';
@@ -33,6 +34,14 @@ export interface DuelSceneData {
 
 const LOG_LINES = 24;
 const TOAST_MS = 2500;
+
+/** Hint above Confirm, per what the card selection is for (read at draw time: the language may change). */
+const CONFIRM_HINT: Record<SelectionPurpose, () => string> = {
+  tribute: () => strings.pickTributeHint,
+  discard: () => strings.pickDiscardHint,
+  cost: () => strings.pickCostHint,
+  target: () => strings.pickTargetHint,
+};
 
 /** localStorage may be missing or throw (private window); the panel then just uses its defaults. */
 function browserStorage(): LogStorage | null {
@@ -308,8 +317,7 @@ export class DuelScene extends Phaser.Scene {
       });
     }
 
-    if (o.confirm)
-      this.drawConfirmBar(o.confirm.enabled, o.confirm.showCancel, ctx.view.pendingPrompt !== null);
+    if (o.confirm) this.drawConfirmBar(o.confirm.enabled, o.confirm.showCancel, o.confirm.purpose);
 
     this.drawToast();
   }
@@ -332,22 +340,17 @@ export class DuelScene extends Phaser.Scene {
     this.overlay.add(g);
   }
 
-  private drawConfirmBar(enabled: boolean, showCancel: boolean, discard: boolean): void {
+  private drawConfirmBar(enabled: boolean, showCancel: boolean, purpose: SelectionPurpose): void {
     const { hint, confirm, cancel } = this.layout.overlay;
     const c = theme.colors;
     this.overlay.add(this.add.rectangle(hint.x, hint.y, hint.w, 80, c.dim, 0.55).setOrigin(0, 0));
     this.overlay.add(
       this.add
-        .text(
-          hint.x + hint.w / 2,
-          hint.y + 4,
-          discard ? strings.pickDiscardHint : strings.pickTributeHint,
-          {
-            fontFamily: theme.fonts.ui,
-            fontSize: `${theme.fontSize.body}px`,
-            color: theme.css.gold,
-          },
-        )
+        .text(hint.x + hint.w / 2, hint.y + 4, CONFIRM_HINT[purpose](), {
+          fontFamily: theme.fonts.ui,
+          fontSize: `${theme.fontSize.body}px`,
+          color: theme.css.gold,
+        })
         .setOrigin(0.5, 0),
     );
     const button = (r: Rect, label: string, on: boolean): void => {
@@ -434,6 +437,8 @@ export class DuelScene extends Phaser.Scene {
       this.lastModel?.cards.find((c) => c.id === id)?.rect;
     const zoneRect = (playerIndex: number, zone: number): Rect | undefined =>
       this.layout[sideOf(playerIndex)].monsterZones[zone];
+    const spellZoneRect = (playerIndex: number, zone: number): Rect | undefined =>
+      this.layout[sideOf(playerIndex)].spellTrapZones[zone];
     const centre = (r: Rect): { x: number; y: number } => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
     const c = theme.colors;
 
@@ -487,28 +492,36 @@ export class DuelScene extends Phaser.Scene {
         }
         break;
       }
-      case 'damage': {
-        const lp = this.layout[sideOf(step.playerIndex)].lp;
-        const t = this.add
-          .text(lp.x + lp.w / 2, lp.y + lp.h / 2, `-${step.amount}`, {
-            fontFamily: theme.fonts.ui,
-            fontStyle: 'bold',
-            fontSize: '40px',
-            color: theme.css.danger,
-            stroke: '#000000',
-            strokeThickness: 5,
-          })
-          .setOrigin(0.5);
-        this.fx.add(t);
-        this.tweens.add({
-          targets: t,
-          y: t.y - 50,
-          alpha: 0,
-          duration: step.durationMs,
-          ease: 'Quad.easeOut',
-        });
+      case 'damage':
+      case 'lpPay':
+        this.floatLpNumber(sideOf(step.playerIndex), `-${step.amount}`, theme.css.danger, step);
+        break;
+      case 'lpGain':
+        this.floatLpNumber(sideOf(step.playerIndex), `+${step.amount}`, theme.css.gold, step);
+        break;
+      case 'spellSet':
+        flash(spellZoneRect(step.playerIndex, step.zoneIndex), c.dim);
+        pop(spellZoneRect(step.playerIndex, step.zoneIndex), 'card-back');
+        break;
+      case 'spellDestroy':
+        flash(
+          cardRect(step.instanceId) ?? spellZoneRect(step.playerIndex, step.zoneIndex),
+          c.danger,
+        );
+        break;
+      case 'activate': {
+        // A large Spell frame in the middle of the board; the caption names the (now public) card.
+        const r = this.layout.frame;
+        const w = 180;
+        const h = 262;
+        pop({ x: r.w / 2 - w / 2, y: r.h / 2 - h / 2 - 40, w, h }, 'card-frame-spell');
+        flash(cardRect(step.instanceId), c.highlight);
         break;
       }
+      case 'resolve':
+      case 'toGraveyard':
+        flash(cardRect(step.instanceId), c.dim);
+        break;
       case 'discard':
       case 'deckOut':
       case 'phase':
@@ -531,6 +544,34 @@ export class DuelScene extends Phaser.Scene {
         })
         .setOrigin(0.5),
     );
+  }
+
+  /** A number that floats up from a side's LP box and fades (damage, LP paid or gained). */
+  private floatLpNumber(
+    side: 'self' | 'opp',
+    text: string,
+    color: string,
+    step: AnimationStep,
+  ): void {
+    const lp = this.layout[side].lp;
+    const t = this.add
+      .text(lp.x + lp.w / 2, lp.y + lp.h / 2, text, {
+        fontFamily: theme.fonts.ui,
+        fontStyle: 'bold',
+        fontSize: '40px',
+        color,
+        stroke: '#000000',
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5);
+    this.fx.add(t);
+    this.tweens.add({
+      targets: t,
+      y: t.y - 50,
+      alpha: 0,
+      duration: step.durationMs,
+      ease: 'Quad.easeOut',
+    });
   }
 
   private drawFxArrow(

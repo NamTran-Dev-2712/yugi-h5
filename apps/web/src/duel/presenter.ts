@@ -169,7 +169,8 @@ function renderCard(
     ...base,
     faceDown,
     frame: faceDown ? null : known.frame,
-    defense: card.position === 'DefenseUp' || faceDown,
+    // Only monsters have a battle position; a Set Spell/Trap is face-down but upright.
+    defense: zone === 'monster' && (card.position === 'DefenseUp' || faceDown),
     label: faceDown ? null : known.label,
     // The owner knows their own face-down card, so the panel may name it.
     detail: known.detail,
@@ -313,7 +314,9 @@ export function present(
           ? anySingle
             ? strings.discardPrompt
             : strings.discardNeedsDrag
-          : strings.promptOther,
+          : prompt.kind === 'SelectEffectTarget'
+            ? strings.targetPrompt
+            : strings.promptOther,
     };
   }
 

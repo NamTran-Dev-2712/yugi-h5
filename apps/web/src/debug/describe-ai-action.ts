@@ -49,6 +49,13 @@ export function describeAiAction(action: PlayerAction, ctx: DescribeAiContext): 
       return t('ai.discard', { cards: action.payload.cardInstanceIds.map(label).join(', ') });
     case 'Surrender':
       return t('ai.surrender');
+    case 'SetSpellTrap':
+      return t('ai.setSpellTrap', {
+        card: label(action.payload.cardInstanceId),
+        zone: action.payload.zoneIndex,
+      });
+    case 'ActivateEffect':
+      return t('ai.activateEffect', { card: label(action.payload.cardInstanceId) });
     default: {
       const unhandled: never = action;
       return t('ai.unknown', { json: JSON.stringify(unhandled) });

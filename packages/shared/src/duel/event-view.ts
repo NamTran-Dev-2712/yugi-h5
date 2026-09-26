@@ -108,6 +108,61 @@ export interface DamageDealtEventView {
   readonly amount: number;
 }
 
+/** No definitionId, for both viewers: the Spell/Trap is Set face-down. */
+export interface SpellTrapSetEventView {
+  readonly type: 'SpellTrapSet';
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly zoneIndex: number;
+}
+
+/** Activating a card reveals it, so `definitionId` is public. */
+export interface EffectActivatedEventView {
+  readonly type: 'EffectActivated';
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+}
+
+export interface EffectResolvedEventView {
+  readonly type: 'EffectResolved';
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+}
+
+/** A used (already revealed) Spell went to its owner's graveyard. */
+export interface CardSentToGraveyardEventView {
+  readonly type: 'CardSentToGraveyard';
+  readonly ownerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly from: 'Hand';
+}
+
+export interface LifePointsRecoveredEventView {
+  readonly type: 'LifePointsRecovered';
+  readonly playerIndex: PlayerIndex;
+  readonly amount: number;
+}
+
+export interface LifePointsPaidEventView {
+  readonly type: 'LifePointsPaid';
+  readonly playerIndex: PlayerIndex;
+  readonly amount: number;
+}
+
+/** The destroyed Spell/Trap goes to the (public) graveyard, so `definitionId` is shown even if it was Set. */
+export interface SpellTrapDestroyedEventView {
+  readonly type: 'SpellTrapDestroyed';
+  readonly ownerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
 export interface DuelEndedEventView {
   readonly type: 'DuelEnded';
   readonly winnerIndex: PlayerIndex | null;
@@ -129,4 +184,11 @@ export type EventView =
   | AttackDeclaredEventView
   | MonsterDestroyedEventView
   | DamageDealtEventView
+  | SpellTrapSetEventView
+  | EffectActivatedEventView
+  | EffectResolvedEventView
+  | CardSentToGraveyardEventView
+  | LifePointsRecoveredEventView
+  | LifePointsPaidEventView
+  | SpellTrapDestroyedEventView
   | DuelEndedEventView;

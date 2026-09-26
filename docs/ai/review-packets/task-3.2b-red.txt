@@ -1,0 +1,152 @@
+# Task 3.2b — test đỏ trước khi code (bước 1: shared action-schema)
+ ✓ src/deck/validate-deck.test.ts (13 tests) 10ms
+ ✓ src/deck/starter-deck.test.ts (2 tests) 4ms
+ ✓ src/rules/ruleset-config.test.ts (8 tests) 8ms
+ ✓ src/scenario/scenario-schema.test.ts (19 tests) 9ms
+ ❯ src/duel/action-schema.test.ts (42 tests | 3 failed) 25ms
+   ✓ PlayerActionSchema — well-formed actions > accepts EndPhase 2ms
+   ✓ PlayerActionSchema — well-formed actions > accepts NormalSummon 1ms
+   ✓ PlayerActionSchema — well-formed actions > accepts NormalSummon with tributes 1ms
+   ✓ PlayerActionSchema — well-formed actions > accepts SetMonster 0ms
+   ✓ PlayerActionSchema — well-formed actions > accepts ChangePosition 0ms
+   ✓ PlayerActionSchema — well-formed actions > accepts DeclareAttack (monster) 0ms
+   ✓ PlayerActionSchema — well-formed actions > accepts DeclareAttack (direct, null) 0ms
+   ✓ PlayerActionSchema — well-formed actions > accepts DeclareAttack (direct, omitted) 0ms
+   ✓ PlayerActionSchema — well-formed actions > accepts Surrender 0ms
+   × PlayerActionSchema — well-formed actions > accepts SetSpellTrap 10ms
+   × PlayerActionSchema — well-formed actions > accepts ActivateEffect (no cost) 2ms
+   × PlayerActionSchema — well-formed actions > accepts ActivateEffect (with cost) 1ms
+   ✓ PlayerActionSchema — well-formed actions > accepts ResolvePendingPrompt 0ms
+   ✓ PlayerActionSchema — malformed payloads are rejected > rejects unknown type 0ms
+   ✓ PlayerActionSchema — malformed payloads are rejected > rejects missing payload 0ms
+   × toEventView > passes public event SpellTrapSet through unchanged to both viewers 15ms
+   × toEventView > passes public event EffectActivated through unchanged to both viewers 6ms
+   × toEventView > passes public event EffectResolved through unchanged to both viewers 1ms
+   × toEventView > passes public event CardSentToGraveyard through unchanged to both viewers 1ms
+   × toEventView > passes public event LifePointsRecovered through unchanged to both viewers 3ms
+   × toEventView > passes public event LifePointsPaid through unchanged to both viewers 1ms
+   × toEventView > passes public event SpellTrapDestroyed through unchanged to both viewers 1ms
+   × toEventView > forwards task 3.2 event SpellTrapSet unchanged to both viewers 1ms
+   × toEventView > forwards task 3.2 event EffectActivated unchanged to both viewers 1ms
+   × toEventView > forwards task 3.2 event EffectResolved unchanged to both viewers 1ms
+   × toEventView > forwards task 3.2 event CardSentToGraveyard unchanged to both viewers 1ms
+   × toEventView > forwards task 3.2 event LifePointsRecovered unchanged to both viewers 1ms
+   × toEventView > forwards task 3.2 event LifePointsPaid unchanged to both viewers 1ms
+   × toEventView > forwards task 3.2 event SpellTrapDestroyed unchanged to both viewers 0ms
+   × toEventView > never leaks a definitionId through the face-down Set event SpellTrapSet 3ms
+   × toStateView > pending prompt payload (deny by default for the player who is not asked) > hides the SelectEffectTarget payload (which hand card is being activated) from the other player 32ms
+   × toStateView > pending prompt payload (deny by default for the player who is not asked) > hides the payload of an unknown prompt kind from the other player 4ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event SpellTrapSet through unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event EffectActivated through unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event EffectResolved through unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event CardSentToGraveyard through unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event LifePointsRecovered through unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event LifePointsPaid through unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event SpellTrapDestroyed through unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards task 3.2 event SpellTrapSet unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards task 3.2 event EffectActivated unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards task 3.2 event EffectResolved unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards task 3.2 event CardSentToGraveyard unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards task 3.2 event LifePointsRecovered unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards task 3.2 event LifePointsPaid unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards task 3.2 event SpellTrapDestroyed unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > never leaks a definitionId through the face-down Set event SpellTrapSet
+ FAIL  src/modules/duels/state-view.spec.ts > toStateView > pending prompt payload (deny by default for the player who is not asked) > hides the SelectEffectTarget payload (which hand card is being activated) from the other player
+ FAIL  src/modules/duels/state-view.spec.ts > toStateView > pending prompt payload (deny by default for the player who is not asked) > hides the payload of an unknown prompt kind from the other player
+      Tests  17 failed | 36 passed (53)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/modules/duels/event-view.spec.ts src/modules/duels/state-view.spec.ts
+   × Spell/Trap actions over the manager (SetSpellTrap / ActivateEffect) > are listed in legalActions of the player who may use them, never of the other seat 25ms
+   × Spell/Trap actions over the manager (SetSpellTrap / ActivateEffect) > SetSpellTrap is accepted: the card is face-down for the opponent, the event has no definitionId 4ms
+   × Spell/Trap actions over the manager (SetSpellTrap / ActivateEffect) > ActivateEffect is accepted: both players see the activation, the Spell goes to the graveyard 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  3 failed (3)
+   × Spell/Trap (task 3.2b): spellSetOptions / activations / draggable > hand Spells/Traps with a listed Set or activation are draggable, next to summonable monsters 7ms
+   × Spell/Trap (task 3.2b): spellSetOptions / activations / draggable > lists the Spell/Trap Zones the server allows for a Set, with the listed action 1ms
+   × Spell/Trap (task 3.2b): spellSetOptions / activations / draggable > lists the activations of a hand card (the Trap has none: Set only until task 3.4) 1ms
+   × Spell/Trap (task 3.2b): spellSetOptions / activations / draggable > never returns actions of the other seat 1ms
+   × drag a Spell/Trap from the hand onto my Spell/Trap Zone > a Normal Spell offers exactly "Activate" and "Set", sending nothing yet 18ms
+   × drag a Spell/Trap from the hand onto my Spell/Trap Zone > "Activate" sends the listed ActivateEffect 1ms
+   × drag a Spell/Trap from the hand onto my Spell/Trap Zone > "Set" sends SetSpellTrap for the zone it was dropped on 1ms
+   × drag a Spell/Trap from the hand onto my Spell/Trap Zone > a Trap (Set only) is Set at once, no menu 6ms
+   × drag a Spell/Trap from the hand onto my Spell/Trap Zone > dropping a Trap on an occupied Spell/Trap Zone sends nothing and toasts 2ms
+   × drag a Spell/Trap from the hand onto my Spell/Trap Zone > while dragging, exactly the listed Spell/Trap Zones are lit (and no Monster Zone) 1ms
+   × drag a Spell/Trap from the hand onto my Spell/Trap Zone > with only an activation listed (no free zone), dropping on any own Spell/Trap Zone activates 1ms
+   × activation with a cost to choose (Discard 1) > "Activate" opens the cost selection among the listed cost cards (cancellable) 0ms
+   × activation with a cost to choose (Discard 1) > Confirm sends the listed activation whose cost equals the choice 0ms
+   × SelectEffectTarget prompt > opens the target selection on its own; it cannot be cancelled 0ms
+   × SelectEffectTarget prompt > choosing a face-down opposing monster and confirming sends that listed answer 0ms
+   × SelectEffectTarget prompt > a card that is not a candidate cannot be chosen; two choices for count 1 cannot be confirmed 0ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected 'idle' to be 'choosing-option' // Object.is equality
+     47|     if (r.state.kind !== 'choosing-option') throw new Error();
+Error: no menu (state idle)
+     33|   if (run.state.kind !== 'choosing-option') throw new Error(`no menu (…
+Error: no menu (state idle)
+     33|   if (run.state.kind !== 'choosing-option') throw new Error(`no menu (…
+AssertionError: expected [] to deeply equal [ { type: 'SetSpellTrap', …(1) } ]
+AssertionError: expected [ 'Lá này chưa thể dùng lúc này.' ] to deeply equal [ 'Không thể đặt lá này vào đây.' ]
+AssertionError: expected [] to deeply equal [ …(4) ]
+AssertionError: expected [] to deeply equal [ 'ActivateEffect' ]
+Error: no menu (state idle)
+     33|   if (run.state.kind !== 'choosing-option') throw new Error(`no menu (…
+Error: no menu (state idle)
+     33|   if (run.state.kind !== 'choosing-option') throw new Error(`no menu (…
+Error: idle
+    161|     if (r.state.kind !== 'selecting-tribute') throw new Error(r.state.…
+AssertionError: expected false to be true // Object.is equality
+Error: idle
+    188|     if (r.state.kind !== 'selecting-tribute') throw new Error(r.state.…
+AssertionError: expected [ 'p0-1' ] to deeply equal [ 'p0-1', 'p0-2', 'p0-4' ]
+TypeError: (0 , spellSetOptions) is not a function
+TypeError: (0 , activations) is not a function
+TypeError: (0 , spellSetOptions) is not a function
+      Tests  16 failed | 18 passed (34)
+   × present: Spell/Trap Zones (task 3.2b) > my Set Trap is face-down and upright (a Spell/Trap is never drawn sideways), and I may read it 13ms
+     → expected [ true, true, null, null ] to deeply equal [ true, false, null, null ]
+   × present: Spell/Trap Zones (task 3.2b) > a face-up Spell/Trap shows its frame and is not sideways even in DefenseUp 2ms
+     → expected [ false, true, 'spell' ] to deeply equal [ false, false, 'spell' ]
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 29 passed (31)
+⎯⎯⎯⎯⎯⎯ Failed Tests 35 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/debug/describe-ai-action.test.ts > describeAiAction > words every player action, always naming the AI
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes SpellTrapSet
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes EffectActivated
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes EffectResolved
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes CardSentToGraveyard
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes LifePointsRecovered
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes LifePointsPaid
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes SpellTrapDestroyed
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > SpellTrapSet → spellSet
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > EffectActivated → activate
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > EffectResolved → resolve
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > CardSentToGraveyard → toGraveyard
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > LifePointsRecovered → lpGain
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > LifePointsPaid → lpPay
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > SpellTrapDestroyed → spellDestroy
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > Spell/Trap steps carry only what the (public) event carries
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > a Spell activation plays in event order: activate, draw, resolve, to graveyard
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > never puts a hidden card name into a step (captions come from the injected describer only)
+ FAIL  src/duel/log-entries.test.ts > category tables > event SpellTrapSet -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event EffectActivated -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event EffectResolved -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event CardSentToGraveyard -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event LifePointsRecovered -> combat
+ FAIL  src/duel/log-entries.test.ts > category tables > event LifePointsPaid -> combat
+ FAIL  src/duel/log-entries.test.ts > category tables > event SpellTrapDestroyed -> combat
+ FAIL  src/duel/log-entries.test.ts > category tables > AI action SetSpellTrap -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > AI action ActivateEffect -> field
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent SpellTrapSet
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent EffectActivated
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent EffectResolved
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent CardSentToGraveyard
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent LifePointsRecovered
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent LifePointsPaid
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent SpellTrapDestroyed
+ FAIL  src/i18n/translated.test.ts > English wording > describeAiAction
+      Tests  35 failed | 156 passed (191)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/duel/animation-queue.test.ts src/duel/log-entries.test.ts src/debug src/i18n
+   × a view already there when the driver starts (task 3.2b) > a SelectEffectTarget prompt of mine opens the target selection at once 6ms
+     → expected 'idle' to be 'selecting-tribute' // Object.is equality
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 9 passed (10)

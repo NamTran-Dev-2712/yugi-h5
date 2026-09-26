@@ -107,6 +107,9 @@ export function createInteractionDriver(
   // A new view/legalActions from the controller (our own answer, or the AI's turn) ends any half-done gesture.
   let lastView = controller.getState().view;
   let lastLegal = controller.getState().legalActions;
+  // A view that is already there (a fixture, or a scene that starts mid-duel) is settled like a new one, so a prompt
+  // addressed to the viewer opens its selection without waiting for the next change.
+  if (lastView) apply({ type: 'viewChanged' });
   controller.subscribe((s) => {
     if (s.view !== lastView || s.legalActions !== lastLegal) {
       lastView = s.view;

@@ -74,6 +74,38 @@ const ResolvePendingPrompt = z
   })
   .strict();
 
+/** Sets a Spell/Trap from the hand face-down into Spell/Trap Zone `zoneIndex`. */
+const SetSpellTrap = z
+  .object({
+    type: z.literal('SetSpellTrap'),
+    payload: z
+      .object({
+        playerIndex: Seat,
+        cardInstanceId: InstanceId,
+        zoneIndex: z.number().int().min(0).max(4),
+      })
+      .strict(),
+  })
+  .strict();
+
+/**
+ * Activates effect `effectId` of a card. `costInstanceIds` pays the effect's Discard/Tribute costs in order. Targets are
+ * never in the payload: when there is a choice the engine opens a `SelectEffectTarget` prompt.
+ */
+const ActivateEffect = z
+  .object({
+    type: z.literal('ActivateEffect'),
+    payload: z
+      .object({
+        playerIndex: Seat,
+        cardInstanceId: InstanceId,
+        effectId: z.string().min(1).max(64),
+        costInstanceIds: InstanceIds.optional(),
+      })
+      .strict(),
+  })
+  .strict();
+
 /** The actions a player may send. */
 export const PlayerActionSchema = z.discriminatedUnion('type', [
   EndPhase,
@@ -83,6 +115,8 @@ export const PlayerActionSchema = z.discriminatedUnion('type', [
   DeclareAttack,
   Surrender,
   ResolvePendingPrompt,
+  SetSpellTrap,
+  ActivateEffect,
 ]);
 export type PlayerAction = z.infer<typeof PlayerActionSchema>;
 

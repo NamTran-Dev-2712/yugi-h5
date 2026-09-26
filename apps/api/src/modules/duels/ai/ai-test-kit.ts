@@ -37,6 +37,21 @@ export const AI_DEFS: Readonly<Record<string, CardDefinition>> = {
   T2600: mon('T2600', 6, 2600, 1000),
   H3000: mon('H3000', 7, 3000, 2000),
   SP: { id: 'SP', kind: 'Spell', name: { vi: 'AI Spell', en: 'AI Spell' }, subType: 'Normal' },
+  /** A Normal Spell the engine lets the AI activate (Draw 1): used to check the AI ignores Spell/Trap actions. */
+  SPD: {
+    id: 'SPD',
+    kind: 'Spell',
+    name: { vi: 'AI Draw Spell', en: 'AI Draw Spell' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+      },
+    ],
+  },
+  TR: { id: 'TR', kind: 'Trap', name: { vi: 'AI Trap', en: 'AI Trap' }, subType: 'Normal' },
 };
 export const aiCtx: ActionContext = { cardDefinitions: (id) => AI_DEFS[id] };
 

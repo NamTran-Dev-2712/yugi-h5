@@ -10,6 +10,13 @@ export type SummonAction = Extract<PlayerAction, { type: 'NormalSummon' | 'SetMo
 export type ChangePositionAction = Extract<PlayerAction, { type: 'ChangePosition' }>;
 export type ResolvePromptAction = Extract<PlayerAction, { type: 'ResolvePendingPrompt' }>;
 export type AttackAction = Extract<PlayerAction, { type: 'DeclareAttack' }>;
+export type SetSpellTrapAction = Extract<PlayerAction, { type: 'SetSpellTrap' }>;
+export type ActivateEffectAction = Extract<PlayerAction, { type: 'ActivateEffect' }>;
+
+export interface SpellZoneOption {
+  readonly zoneIndex: number;
+  readonly action: SetSpellTrapAction;
+}
 
 export interface ZoneOption {
   readonly zoneIndex: number;
@@ -58,12 +65,44 @@ function unique(values: readonly string[]): string[] {
   return [...new Set(values)];
 }
 
-/** Hand cards for which the server lists at least one Summon/Set. */
+/** An action that takes a hand card to the field: Summon/Set a monster, Set a Spell/Trap, activate a Spell. */
+type FromHandAction = SummonAction | SetSpellTrapAction | ActivateEffectAction;
+const isFromHand = (a: PlayerAction): a is FromHandAction =>
+  isSummon(a) || a.type === 'SetSpellTrap' || a.type === 'ActivateEffect';
+
+/** Hand cards for which the server lists at least one Summon/Set, Spell/Trap Set or activation. */
 export function draggableHandCards(legal: readonly PlayerAction[], viewer: PlayerIndex): string[] {
   return unique(
     legal
-      .filter((a): a is SummonAction => isSummon(a) && mine(a, viewer))
+      .filter((a): a is FromHandAction => isFromHand(a) && mine(a, viewer))
       .map((a) => a.payload.cardInstanceId),
+  );
+}
+
+/** Spell/Trap Zones the server lists a `SetSpellTrap` of this card for, in zone order. */
+export function spellSetOptions(
+  legal: readonly PlayerAction[],
+  viewer: PlayerIndex,
+  cardId: string,
+): SpellZoneOption[] {
+  return legal
+    .filter(
+      (a): a is SetSpellTrapAction =>
+        a.type === 'SetSpellTrap' && mine(a, viewer) && a.payload.cardInstanceId === cardId,
+    )
+    .map((action) => ({ zoneIndex: action.payload.zoneIndex, action }))
+    .sort((x, y) => x.zoneIndex - y.zoneIndex);
+}
+
+/** The listed activations of this card (one per effect and per cost choice). */
+export function activations(
+  legal: readonly PlayerAction[],
+  viewer: PlayerIndex,
+  cardId: string,
+): ActivateEffectAction[] {
+  return legal.filter(
+    (a): a is ActivateEffectAction =>
+      a.type === 'ActivateEffect' && mine(a, viewer) && a.payload.cardInstanceId === cardId,
   );
 }
 

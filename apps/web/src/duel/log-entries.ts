@@ -22,11 +22,19 @@ export function categoryOfEvent(type: EventView['type']): LogCategory {
     case 'MonsterFlipped':
     case 'PositionChanged':
     case 'CardDiscarded':
+    case 'SpellTrapSet':
+    case 'EffectActivated':
+    case 'EffectResolved':
+    case 'CardSentToGraveyard':
       return 'field';
     case 'AttackDeclared':
     case 'MonsterDestroyed':
     case 'DamageDealt':
     case 'DuelEnded':
+    // LP changes and destruction by an effect sit with the battle results.
+    case 'LifePointsRecovered':
+    case 'LifePointsPaid':
+    case 'SpellTrapDestroyed':
       return 'combat';
     case 'TurnChanged':
     case 'PhaseChanged':
@@ -48,6 +56,8 @@ export function categoryOfAiAction(type: PlayerAction['type']): LogCategory {
     case 'SetMonster':
     case 'ChangePosition':
     case 'ResolvePendingPrompt':
+    case 'SetSpellTrap':
+    case 'ActivateEffect':
       return 'field';
     case 'DeclareAttack':
     case 'Surrender':

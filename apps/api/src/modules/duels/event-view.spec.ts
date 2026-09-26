@@ -5,8 +5,8 @@ import { toEventView, toEventViews } from './event-view';
 
 const SECRET = 'SECRET-CARD';
 
-/** Task 3.2 events: classified but NOT forwarded yet (shared `EventView` + web support arrive in task 3.2b). */
-const NOT_FORWARDED_TYPES = [
+/** Task 3.2 events, forwarded since task 3.2b (all PUBLIC, see docs/design/event-visibility.md). */
+const SPELL_TRAP_TYPES = [
   'SpellTrapSet',
   'EffectActivated',
   'EffectResolved',
@@ -15,9 +15,8 @@ const NOT_FORWARDED_TYPES = [
   'LifePointsPaid',
   'SpellTrapDestroyed',
 ] as const satisfies readonly GameEvent['type'][];
-type NotForwarded = Extract<GameEvent, { type: (typeof NOT_FORWARDED_TYPES)[number] }>;
 
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent | NotForwarded>;
+type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
 
 /** One fixture per GameEvent type: adding a type to the engine makes this Record fail to typecheck. */
 const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = {
@@ -115,7 +114,7 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
 const asView = (e: PublicEvent): EventView => e;
 
 const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
-  (t) => t !== 'CardDrawn' && !(NOT_FORWARDED_TYPES as readonly string[]).includes(t),
+  (t) => t !== 'CardDrawn',
 );
 
 describe('toEventView', () => {
@@ -130,9 +129,10 @@ describe('toEventView', () => {
     }
   });
 
-  it.each(NOT_FORWARDED_TYPES)('does not forward %s yet (deny until 3.2b wires it)', (type) => {
-    for (const viewer of [0, 1] as const) {
-      expect(toEventView(FIXTURES[type], viewer)).toBeNull();
+  it('forwards every task 3.2 Spell/Trap event (none is dropped any more)', () => {
+    for (const type of SPELL_TRAP_TYPES) {
+      expect(PUBLIC_TYPES, type).toContain(type);
+      expect(toEventView(FIXTURES[type], 1), type).not.toBeNull();
     }
   });
 
@@ -167,12 +167,16 @@ describe('toEventView', () => {
     expect(JSON.stringify(toEventView(drawn, 1))).toContain(SECRET);
   });
 
-  it('never leaks a definitionId through the face-down Set event', () => {
-    const set = FIXTURES.MonsterSet;
-    for (const viewer of [0, 1] as const) {
-      expect(JSON.stringify(toEventView(set, viewer))).not.toContain('definitionId');
-    }
-  });
+  it.each(['MonsterSet', 'SpellTrapSet'] as const)(
+    'never leaks a definitionId through the face-down Set event %s',
+    (type) => {
+      for (const viewer of [0, 1] as const) {
+        const view = toEventView(FIXTURES[type], viewer);
+        expect(view).not.toBeNull();
+        expect(JSON.stringify(view)).not.toContain('definitionId');
+      }
+    },
+  );
 
   it('denies by default: an unclassified event type yields null', () => {
     const unknown = { type: 'FutureEvent', definitionId: SECRET } as unknown as GameEvent;

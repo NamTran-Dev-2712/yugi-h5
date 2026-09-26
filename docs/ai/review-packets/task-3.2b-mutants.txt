@@ -1,0 +1,33 @@
+# Task 3.2b — mutation test thủ công (tools/mutants-3.2b.mjs)
+# Mỗi mutant sửa 1 đoạn nguồn, chạy test tương ứng, mong đợi test ĐỎ (= mutant bị bắt), rồi khôi phục file.
+# Nhóm "gate" chỉ chạy RIÊNG fuzz gate (event-visibility.fuzz.spec.ts): chứng minh fuzz một mình bắt được rò rỉ.
+
+## node tools/mutants-3.2b.mjs api
+KILLED   gate: opponent Set Spell/Trap shown face-up
+KILLED   gate: opponent hand shown
+KILLED   gate: opponent Set monster shown
+KILLED   gate: SelectEffectTarget payload sent to the other player
+KILLED   gate: opponent draw revealed
+KILLED   oracle: opponent hand allowed (leak-check self-test must catch it)
+KILLED   SpellTrapSet no longer forwarded (typecheck)
+KILLED   SetSpellTrap hidden from legalActions again
+KILLED   ActivateEffect refused again
+
+9/9 mutants killed
+
+## node tools/mutants-3.2b.mjs web
+KILLED   Spells/Traps cannot be dragged
+KILLED   spellSetOptions takes the other seat actions
+KILLED   activations of another card offered
+KILLED   Set offered for a zone other than the drop zone
+KILLED   target prompt can be cancelled
+KILLED   activation cost never asked (first listed cost sent)
+KILLED   target prompt never opens the selection
+KILLED   drop on a Spell/Trap Zone ignored
+KILLED   Set Spell/Trap drawn sideways
+KILLED   SpellTrapSet has no log group (typecheck)
+KILLED   Spell/Trap Set animated as a monster Set
+
+11/11 mutants killed
+
+Tổng: 20/20 bị bắt, 0 sống, 0 tương đương.

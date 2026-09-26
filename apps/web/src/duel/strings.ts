@@ -125,6 +125,19 @@ export const strings = {
   get setOption() {
     return t('duel.setOption');
   },
+  // Spell/Trap (task 3.2b)
+  get activateOption() {
+    return t('duel.activateOption');
+  },
+  get setSpellOption() {
+    return t('duel.setSpellOption');
+  },
+  get pickCostHint() {
+    return t('duel.pickCostHint');
+  },
+  get pickTargetHint() {
+    return t('duel.pickTargetHint');
+  },
   get toAttackOption() {
     return t('duel.toAttackOption');
   },
@@ -163,6 +176,9 @@ export const strings = {
   },
   get promptOther() {
     return t('duel.promptOther');
+  },
+  get targetPrompt() {
+    return t('duel.targetPrompt');
   },
 
   get detailEmpty() {

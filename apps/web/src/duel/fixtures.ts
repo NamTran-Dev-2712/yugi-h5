@@ -50,6 +50,7 @@ interface PlayerParts {
   readonly deckCount: number;
   readonly graveyard?: readonly CardView[];
   readonly monsters?: Five<CardView | null>;
+  readonly spellTraps?: Five<CardView | null>;
   readonly normalSummonUsed?: boolean;
 }
 
@@ -68,7 +69,7 @@ function player(p: PlayerParts): PlayerView {
     banished: [],
     board: {
       monsterZones: p.monsters ?? emptyFive,
-      spellTrapZones: emptyFive,
+      spellTrapZones: p.spellTraps ?? emptyFive,
       fieldZone: null,
     },
     hasNormalSummonedThisTurn: p.normalSummonUsed ?? false,
@@ -303,6 +304,109 @@ function tribute(): Fixture {
   };
 }
 
+/**
+ * Main1 with Spell/Trap: SMP-101 (Normal Spell, Draw 1: may be activated or Set) and SMP-201 (Trap: Set only) in hand,
+ * one own Set Trap in zone 0, one opponent Set card (hidden) in zone 1.
+ */
+function spellFixture(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [
+      up('p0-1', 'SMP-006', 0, null),
+      up('p0-2', 'SMP-101', 0, null),
+      up('p0-4', 'SMP-201', 0, null),
+    ],
+    deckCount: 30,
+    spellTraps: five<CardView>([[0, up('p0-20', 'SMP-201', 0, 'DefenseDown')]]),
+  });
+  const opp = player({
+    playerId: 'fixture-ai',
+    lifePoints: 8000,
+    hand: [1, 2, 3, 4].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 30,
+    monsters: five<CardView>([[2, up('p1-11', 'SMP-004', 1, 'Attack')]]),
+    spellTraps: five<CardView>([[1, hidden('p1-21', 1)]]),
+  });
+  const freeSpellZones = [1, 2, 3, 4];
+  const setSpell = (cardInstanceId: string): PlayerAction[] =>
+    freeSpellZones.map((zoneIndex) => ({
+      type: 'SetSpellTrap',
+      payload: { playerIndex: 0, cardInstanceId, zoneIndex },
+    }));
+  return {
+    view: view({ turnCount: 3, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [
+      ...summonsFor(
+        'p0-1',
+        [0, 1, 2, 3, 4].map((zoneIndex) => ({ zoneIndex })),
+      ),
+      ...setSpell('p0-2'),
+      ...setSpell('p0-4'),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-2', effectId: 'draw-one' },
+      },
+      endPhase,
+      surrender,
+    ],
+  };
+}
+
+/**
+ * A `SelectEffectTarget` prompt for viewer 0 (no real sample card opens one yet: this is what a "destroy 1 monster"
+ * Spell would look like): two opposing monsters are candidates, one of them face-down.
+ */
+function effectTarget(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-006', 0, null), up('p0-2', 'SMP-101', 0, null)],
+    deckCount: 30,
+  });
+  const opp = player({
+    playerId: 'fixture-ai',
+    lifePoints: 8000,
+    hand: [1, 2, 3].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 30,
+    monsters: five<CardView>([
+      [1, up('p1-11', 'SMP-004', 1, 'Attack')],
+      [3, hidden('p1-12', 1)],
+    ]),
+  });
+  const promptId = 'effect-3-7';
+  return {
+    view: view(
+      {
+        turnCount: 3,
+        turnPlayerIndex: 0,
+        phase: 'Main1',
+        pendingPrompt: {
+          promptId,
+          playerIndex: 0,
+          kind: 'SelectEffectTarget',
+          payload: {
+            cardInstanceId: 'p0-2',
+            effectId: 'e1',
+            costInstanceIds: [],
+            candidateInstanceIds: ['p1-11', 'p1-12'],
+            count: 1,
+          },
+        },
+      },
+      self,
+      opp,
+    ),
+    legalActions: [
+      ...['p1-11', 'p1-12'].map((id): PlayerAction => ({
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 0, promptId, cardInstanceIds: [id] },
+      })),
+      surrender,
+    ],
+  };
+}
+
 function attackFixture(direct: boolean): Fixture {
   const self = player({
     playerId: 'fixture-you',
@@ -389,5 +493,9 @@ export function loadFixture(name: FixtureName): Fixture {
       return handfull();
     case 'gameover':
       return gameover();
+    case 'spell':
+      return spellFixture();
+    case 'effect-target':
+      return effectTarget();
   }
 }

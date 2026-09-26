@@ -8,6 +8,8 @@ export const FIXTURE_NAMES = [
   'attack',
   'attack-direct',
   'drag-illegal',
+  'spell',
+  'effect-target',
 ] as const;
 export type FixtureName = (typeof FIXTURE_NAMES)[number];
 

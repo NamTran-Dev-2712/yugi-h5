@@ -17,6 +17,39 @@ const pick = (s: Scenario, opts: { seed?: string } = {}): PlayerAction => {
 const summonedCard = (a: PlayerAction) =>
   a.type === 'NormalSummon' || a.type === 'SetMonster' ? a.payload.cardInstanceId : undefined;
 
+describe('chooseAction — Spell/Trap actions (task 3.2b: listed, but the AI does not use them yet)', () => {
+  const spellTypes = new Set(['SetSpellTrap', 'ActivateEffect']);
+
+  it('the scenario really lists SetSpellTrap and ActivateEffect for the AI', () => {
+    const sit = scenario({ hand: ['SPD', 'TR', 'A1500'] });
+    const types = new Set(sit.legalActions.map((a) => a.type));
+    expect(types.has('SetSpellTrap')).toBe(true);
+    expect(types.has('ActivateEffect')).toBe(true);
+  });
+
+  it.each([
+    ['only Spell/Trap in hand', { hand: ['SPD', 'TR', 'SP'] }],
+    ['Spell/Trap next to a monster', { hand: ['SPD', 'TR', 'A1500'] }],
+    ['Main2 with Spell/Trap', { hand: ['SPD', 'TR'], phase: 'Main2' as const }],
+    [
+      'Spell/Trap while an attacker faces a monster',
+      { hand: ['SPD'], mine: [{ def: 'A2000' }], theirs: [{ def: 'A1000' }] },
+    ],
+  ])('never picks a Spell/Trap action (%s), always a listed one', (_n, s) => {
+    for (const seed of ['a', 'b', 'c', 'd']) {
+      const sit = scenario(s);
+      const a = chooseAction({
+        view: sit.view,
+        legalActions: sit.legalActions,
+        cardDefinitions: (id) => AI_DEFS[id],
+        rng: createAiRng(seed),
+      });
+      expect(spellTypes.has(a.type)).toBe(false);
+      expect(sit.legalActions).toContainEqual(a);
+    }
+  });
+});
+
 describe('chooseAction — pending prompt', () => {
   it('discards the lowest-value cards (spell first, then the weakest monster)', () => {
     const a = pick({

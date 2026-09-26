@@ -21,7 +21,15 @@ export type StepKind =
   | 'turn'
   | 'duelEnd'
   | 'deckOut'
-  | 'aiLabel';
+  | 'aiLabel'
+  // Spell/Trap (task 3.2b)
+  | 'spellSet'
+  | 'activate'
+  | 'resolve'
+  | 'toGraveyard'
+  | 'lpGain'
+  | 'lpPay'
+  | 'spellDestroy';
 
 /**
  * How long each step lasts at speed 1 (ms). One place to tune the feel (`?fast=1` = ×3, `?anim=off` = none).
@@ -46,6 +54,13 @@ export const DURATION_MS: Readonly<Record<StepKind, number>> = {
   duelEnd: 1500, // [SIMPLIFIED] original LP 0 → result ~4.6 s is a whole sequence; ours is one caption
   deckOut: 400, // [GUESS]
   aiLabel: 250, // [GUESS] once per AI action
+  spellSet: 500, // [GUESS] same as a monster Set
+  activate: 1300, // [REF] video #2: large Spell card shown ≥1.3 s (≤2.4 s) on activation
+  resolve: 250, // [GUESS] short caption; the operations already had their own steps
+  toGraveyard: 350, // [GUESS] same group as discard
+  lpGain: 500, // [GUESS] floating number, same as damage
+  lpPay: 500, // [GUESS] floating number, same as damage
+  spellDestroy: 375, // [REF] same as destroying a monster (~0.3–0.4 s)
 };
 /** Several cards drawn in a row (the opening hand) play as one longer step instead of N short ones. */
 const DRAW_MANY_MS = 600;
@@ -100,7 +115,28 @@ export type AnimationStep =
   | (StepBase & { readonly kind: 'turn'; readonly playerIndex: PlayerIndex })
   | (StepBase & { readonly kind: 'duelEnd'; readonly winnerIndex: PlayerIndex | null })
   | (StepBase & { readonly kind: 'deckOut'; readonly playerIndex: PlayerIndex })
-  | (StepBase & { readonly kind: 'aiLabel' });
+  | (StepBase & { readonly kind: 'aiLabel' })
+  | (StepBase & {
+      readonly kind: 'spellSet' | 'spellDestroy';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+      /** Spell/Trap Zone index. */
+      readonly zoneIndex: number;
+    })
+  | (StepBase & {
+      /**
+       * `activate` shows a large Spell frame; the card is named by the caption only (like every step, no
+       * definitionId is copied into a step).
+       */
+      readonly kind: 'activate' | 'resolve' | 'toGraveyard';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+    })
+  | (StepBase & {
+      readonly kind: 'lpGain' | 'lpPay';
+      readonly playerIndex: PlayerIndex;
+      readonly amount: number;
+    });
 
 export interface AnimationSegment {
   /** true = the AI's move (starts with an `aiLabel` step). */
@@ -193,6 +229,47 @@ function stepFor(e: EventView, text: string): AnimationStep | null {
       return { kind: 'damage', ...d('damage'), playerIndex: e.playerIndex, amount: e.amount };
     case 'DuelEnded':
       return { kind: 'duelEnd', ...d('duelEnd'), winnerIndex: e.winnerIndex };
+    case 'SpellTrapSet':
+      return {
+        kind: 'spellSet',
+        ...d('spellSet'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+        zoneIndex: e.zoneIndex,
+      };
+    case 'EffectActivated':
+      return {
+        kind: 'activate',
+        ...d('activate'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+      };
+    case 'EffectResolved':
+      return {
+        kind: 'resolve',
+        ...d('resolve'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+      };
+    case 'CardSentToGraveyard':
+      return {
+        kind: 'toGraveyard',
+        ...d('toGraveyard'),
+        playerIndex: e.ownerIndex,
+        instanceId: e.instanceId,
+      };
+    case 'LifePointsRecovered':
+      return { kind: 'lpGain', ...d('lpGain'), playerIndex: e.playerIndex, amount: e.amount };
+    case 'LifePointsPaid':
+      return { kind: 'lpPay', ...d('lpPay'), playerIndex: e.playerIndex, amount: e.amount };
+    case 'SpellTrapDestroyed':
+      return {
+        kind: 'spellDestroy',
+        ...d('spellDestroy'),
+        playerIndex: e.ownerIndex,
+        instanceId: e.instanceId,
+        zoneIndex: e.zoneIndex,
+      };
     default: {
       const exhaustive: never = e;
       return exhaustive;

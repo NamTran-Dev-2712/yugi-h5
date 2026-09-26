@@ -53,6 +53,18 @@ describe('describeAiAction', () => {
       }),
     ).toBe('🤖 AI bỏ «p1-1», «p1-2» xuống mộ');
     expect(say({ type: 'Surrender', payload: { playerIndex: 1 } })).toBe('🤖 AI đầu hàng');
+    expect(
+      say({
+        type: 'SetSpellTrap',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-8', zoneIndex: 3 },
+      }),
+    ).toBe('🤖 AI úp «p1-8» vào ô Phép/Bẫy 3');
+    expect(
+      say({
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-9', effectId: 'e1' },
+      }),
+    ).toBe('🤖 AI kích hoạt «p1-9»');
   });
 
   it('treats a null target as a direct attack', () => {

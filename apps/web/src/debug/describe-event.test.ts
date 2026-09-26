@@ -113,6 +113,58 @@ const EXAMPLES: Record<EventView['type'], { event: EventView; text: string }> = 
     event: { type: 'DuelEnded', winnerIndex: 0, reason: 'SURRENDER' },
     text: 'Trận kết thúc: P0 thắng (SURRENDER)',
   },
+  SpellTrapSet: {
+    event: { type: 'SpellTrapSet', playerIndex: 1, instanceId: 'p1-8', zoneIndex: 2 },
+    text: 'P1 úp 1 lá Phép/Bẫy ở ô 2',
+  },
+  EffectActivated: {
+    event: {
+      type: 'EffectActivated',
+      playerIndex: 0,
+      instanceId: 'p0-7',
+      definitionId: 'SMP-101',
+      effectId: 'draw-one',
+    },
+    text: 'P0 kích hoạt Name(SMP-101)',
+  },
+  EffectResolved: {
+    event: {
+      type: 'EffectResolved',
+      playerIndex: 0,
+      instanceId: 'p0-7',
+      definitionId: 'SMP-101',
+      effectId: 'draw-one',
+    },
+    text: 'Hiệu ứng Name(SMP-101) của P0 đã xử lý xong',
+  },
+  CardSentToGraveyard: {
+    event: {
+      type: 'CardSentToGraveyard',
+      ownerIndex: 0,
+      instanceId: 'p0-7',
+      definitionId: 'SMP-101',
+      from: 'Hand',
+    },
+    text: 'Name(SMP-101) của P0 vào mộ',
+  },
+  LifePointsRecovered: {
+    event: { type: 'LifePointsRecovered', playerIndex: 0, amount: 500 },
+    text: 'P0 hồi 500 LP',
+  },
+  LifePointsPaid: {
+    event: { type: 'LifePointsPaid', playerIndex: 1, amount: 300 },
+    text: 'P1 trả 300 LP',
+  },
+  SpellTrapDestroyed: {
+    event: {
+      type: 'SpellTrapDestroyed',
+      ownerIndex: 1,
+      instanceId: 'p1-8',
+      definitionId: 'SMP-201',
+      zoneIndex: 2,
+    },
+    text: 'P1 mất lá Phép/Bẫy Name(SMP-201) (ô 2) do bị phá hủy',
+  },
 };
 
 describe('describeEvent', () => {

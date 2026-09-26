@@ -117,6 +117,58 @@ const EVENTS: Record<EventView['type'], { event: EventView; en: string }> = {
     event: { type: 'DuelEnded', winnerIndex: 0, reason: 'SURRENDER' },
     en: 'Duel over: P0 wins (SURRENDER)',
   },
+  SpellTrapSet: {
+    event: { type: 'SpellTrapSet', playerIndex: 1, instanceId: 'p1-8', zoneIndex: 2 },
+    en: 'P1 sets a Spell/Trap in zone 2',
+  },
+  EffectActivated: {
+    event: {
+      type: 'EffectActivated',
+      playerIndex: 0,
+      instanceId: 'p0-7',
+      definitionId: 'SMP-101',
+      effectId: 'draw-one',
+    },
+    en: 'P0 activates Name(SMP-101)',
+  },
+  EffectResolved: {
+    event: {
+      type: 'EffectResolved',
+      playerIndex: 0,
+      instanceId: 'p0-7',
+      definitionId: 'SMP-101',
+      effectId: 'draw-one',
+    },
+    en: "P0's Name(SMP-101) finished resolving",
+  },
+  CardSentToGraveyard: {
+    event: {
+      type: 'CardSentToGraveyard',
+      ownerIndex: 0,
+      instanceId: 'p0-7',
+      definitionId: 'SMP-101',
+      from: 'Hand',
+    },
+    en: "P0's Name(SMP-101) goes to the Graveyard",
+  },
+  LifePointsRecovered: {
+    event: { type: 'LifePointsRecovered', playerIndex: 0, amount: 500 },
+    en: 'P0 gains 500 LP',
+  },
+  LifePointsPaid: {
+    event: { type: 'LifePointsPaid', playerIndex: 1, amount: 300 },
+    en: 'P1 pays 300 LP',
+  },
+  SpellTrapDestroyed: {
+    event: {
+      type: 'SpellTrapDestroyed',
+      ownerIndex: 1,
+      instanceId: 'p1-8',
+      definitionId: 'SMP-201',
+      zoneIndex: 2,
+    },
+    en: 'P1 loses Spell/Trap Name(SMP-201) (zone 2), destroyed',
+  },
 };
 
 describe('English wording', () => {
@@ -195,6 +247,18 @@ describe('English wording', () => {
       }),
     ).toBe('🤖 AI discards «a», «b» to the Graveyard');
     expect(say({ type: 'Surrender', payload: { playerIndex: 1 } })).toBe('🤖 AI surrenders');
+    expect(
+      say({
+        type: 'SetSpellTrap',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-8', zoneIndex: 3 },
+      }),
+    ).toBe('🤖 AI Sets «p1-8» in Spell/Trap zone 3');
+    expect(
+      say({
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-9', effectId: 'e1' },
+      }),
+    ).toBe('🤖 AI activates «p1-9»');
   });
 
   it('messageFor', () => {

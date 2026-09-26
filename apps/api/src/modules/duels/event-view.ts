@@ -47,10 +47,9 @@ export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | n
     case 'MonsterDestroyed':
     case 'DamageDealt':
     case 'DuelEnded':
-      return event;
-
-    // CLASSIFIED (PUBLIC: SpellTrapSet has no definitionId; the rest concern face-up/graveyard cards) but NOT FORWARDED
-    // yet: the shared `EventView` union and the web client do not know them until task 3.2b. Dropped, never leaked.
+    // Spell/Trap (task 3.2, forwarded since 3.2b): SpellTrapSet carries no definitionId (Set face-down); activating a
+    // card reveals it (EffectActivated/EffectResolved/CardSentToGraveyard); SpellTrapDestroyed sends the card to the
+    // public graveyard; the LP events carry no card data.
     case 'SpellTrapSet':
     case 'EffectActivated':
     case 'EffectResolved':
@@ -58,7 +57,7 @@ export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | n
     case 'LifePointsRecovered':
     case 'LifePointsPaid':
     case 'SpellTrapDestroyed':
-      return null;
+      return event;
 
     default: {
       const unclassified: never = event;

@@ -53,6 +53,29 @@ describe('PlayerActionSchema — well-formed actions', () => {
     ],
     ['Surrender', { type: 'Surrender', payload: { playerIndex: 1 } }],
     [
+      'SetSpellTrap',
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-7', zoneIndex: 4 } },
+    ],
+    [
+      'ActivateEffect (no cost)',
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-7', effectId: 'e1' },
+      },
+    ],
+    [
+      'ActivateEffect (with cost)',
+      {
+        type: 'ActivateEffect',
+        payload: {
+          playerIndex: 0,
+          cardInstanceId: 'p0-7',
+          effectId: 'e1',
+          costInstanceIds: ['p0-2'],
+        },
+      },
+    ],
+    [
       'ResolvePendingPrompt',
       {
         type: 'ResolvePendingPrompt',
@@ -136,6 +159,53 @@ describe('PlayerActionSchema — malformed payloads are rejected', () => {
     [
       'prompt without promptId',
       { type: 'ResolvePendingPrompt', payload: { playerIndex: 0, cardInstanceIds: [] } },
+    ],
+    [
+      'SetSpellTrap zone 5',
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-7', zoneIndex: 5 } },
+    ],
+    [
+      'SetSpellTrap without card',
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, zoneIndex: 0 } },
+    ],
+    [
+      'SetSpellTrap with an extra key',
+      {
+        type: 'SetSpellTrap',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-7', zoneIndex: 0, position: 'DefenseDown' },
+      },
+    ],
+    [
+      'ActivateEffect without effectId',
+      { type: 'ActivateEffect', payload: { playerIndex: 0, cardInstanceId: 'p0-7' } },
+    ],
+    [
+      'ActivateEffect with an empty effectId',
+      { type: 'ActivateEffect', payload: { playerIndex: 0, cardInstanceId: 'p0-7', effectId: '' } },
+    ],
+    [
+      'ActivateEffect cost not an array',
+      {
+        type: 'ActivateEffect',
+        payload: {
+          playerIndex: 0,
+          cardInstanceId: 'p0-7',
+          effectId: 'e1',
+          costInstanceIds: 'p0-2',
+        },
+      },
+    ],
+    [
+      'ActivateEffect with target ids in the payload (targets go through the prompt)',
+      {
+        type: 'ActivateEffect',
+        payload: {
+          playerIndex: 0,
+          cardInstanceId: 'p0-7',
+          effectId: 'e1',
+          targetInstanceIds: ['p1-1'],
+        },
+      },
     ],
     [
       'prompt answer not an array',

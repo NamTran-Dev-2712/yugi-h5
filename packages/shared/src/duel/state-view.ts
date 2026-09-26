@@ -49,11 +49,30 @@ export interface PlayerView {
   readonly hasNormalSummonedThisTurn: boolean;
 }
 
+/**
+ * `payload` is the engine's prompt payload for the prompted player. The other player only gets the payload of a kind
+ * classified public (today `DiscardToHandLimit`); for every other kind it is `null` (see docs/design/protocol.md).
+ */
 export interface PendingPromptView {
   readonly promptId: string;
   readonly playerIndex: PlayerIndex;
   readonly kind: string;
   readonly payload: unknown;
+}
+
+/** `payload` of a `DiscardToHandLimit` prompt. */
+export interface DiscardToHandLimitPromptPayload {
+  readonly count: number;
+}
+
+/** `payload` of a `SelectEffectTarget` prompt (only the prompted player receives it). */
+export interface SelectEffectTargetPromptPayload {
+  readonly cardInstanceId: string;
+  readonly effectId: string;
+  readonly costInstanceIds: readonly string[];
+  /** Ids the player may choose from; the answer is `ResolvePendingPrompt` with exactly `count` of them. */
+  readonly candidateInstanceIds: readonly string[];
+  readonly count: number;
 }
 
 export interface StateView {

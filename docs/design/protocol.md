@@ -12,7 +12,9 @@
 
 ## Event gửi cho client (`EventView`)
 
-Client chỉ nhận `EventView` (`packages/shared/src/duel/event-view.ts`), không bao giờ `GameEvent` thô. Gửi `eventsByViewer[i]` cho người chơi `i` (không gửi chéo). Event PUBLIC giữ nguyên shape engine; `CardDrawn` có dạng `{type, playerIndex, card: CardView}` — đối thủ nhận lá ẩn `{hidden:true, instanceId, ownerIndex}`. Bảng phân loại, bất biến engine và cách thêm event mới: [`event-visibility.md`](./event-visibility.md). Loại event chưa phân loại bị bỏ (deny by default).
+Client chỉ nhận `EventView` (`packages/shared/src/duel/event-view.ts`), không bao giờ `GameEvent` thô. Gửi `eventsByViewer[i]` cho người chơi `i` (không gửi chéo). Event PUBLIC giữ nguyên shape engine; `CardDrawn` có dạng `{type, playerIndex, card: CardView}` — đối thủ nhận lá ẩn `{hidden:true, instanceId, ownerIndex}`. Bảng phân loại, bất biến engine và cách thêm event mới: [`event-visibility.md`](./event-visibility.md). Loại event chưa phân loại bị bỏ (deny by default). Từ task 3.2b có thêm 7 event Spell/Trap (`SpellTrapSet` không có `definitionId`; `EffectActivated`/`EffectResolved`/`CardSentToGraveyard`/`SpellTrapDestroyed` có `definitionId` vì lá đã công khai; `LifePointsRecovered`/`LifePointsPaid` không có dữ liệu lá), đều PUBLIC.
+
+**`pendingPrompt` trong `StateView` (task 3.2b):** người được hỏi nhận nguyên `payload`; người kia vẫn thấy prompt (`promptId`, `playerIndex`, `kind`) nhưng `payload` chỉ giữ với kind công khai (`DiscardToHandLimit` → `{count}`), mọi kind khác (`SelectEffectTarget`, kind tương lai) → `payload: null` (deny by default). Payload `SelectEffectTarget` = `{cardInstanceId, effectId, costInstanceIds, candidateInstanceIds, count}` (type `SelectEffectTargetPromptPayload` ở shared); trả lời bằng `ResolvePendingPrompt` với đúng `count` id trong `candidateInstanceIds` (engine không có huỷ prompt).
 
 ## Lỗi tầng service (`DuelService`, task 2.2)
 
@@ -72,7 +74,7 @@ Type body phản hồi (`ViewResponse`, `CreateSoloResponse`, `GetViewResponse`,
 - Duel đã kết thúc → `[]`. Ghế không đến lượt (và không phải người phải trả lời prompt) → chỉ `Surrender` (nếu `allowSurrender`). Có `pendingPrompt` → người phải trả lời có các `ResolvePendingPrompt` hợp lệ (+ `Surrender`), ghế kia chỉ `Surrender`. `Surrender` luôn hợp lệ theo engine (ADR 1.9), nên có mặt trong mọi trường hợp trên.
 - Không bao giờ chứa `Draw`/`StartDuel`. Danh sách phản ánh trạng thái **sau** action vừa gửi (POST) hoặc hiện tại (GET); luôn của đúng ghế trong response, không trả ghế kia.
 - Client dùng để làm mờ/tắt nút và (Phaser sau này) highlight ô hợp lệ; **server vẫn validate mọi action** — danh sách chỉ là gợi ý, không phải quyền.
-- `legalActions` cho Spell/Trap (P3) sẽ đi theo cùng cơ chế: thêm bộ sinh ứng viên mới, validator vẫn là engine.
+- Spell/Trap (task 3.2b): `SetSpellTrap {playerIndex, cardInstanceId, zoneIndex 0–4}` và `ActivateEffect {playerIndex, cardInstanceId, effectId, costInstanceIds?}` nằm trong `PlayerActionSchema` và `legalActions` (một phần tử cho mỗi ô trống / mỗi effect × lựa chọn cost). Target KHÔNG nằm trong payload: nhiều ứng viên → engine mở prompt `SelectEffectTarget`. Trap trên tay chỉ có `SetSpellTrap` (C11); Trap đã Set chưa kích hoạt được tới task 3.4.
 
 Ví dụ:
 

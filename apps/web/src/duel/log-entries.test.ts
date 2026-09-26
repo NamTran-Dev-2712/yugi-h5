@@ -28,6 +28,13 @@ const EVENT_CATEGORY: Record<EventView['type'], LogCategory> = {
   MonsterDestroyed: 'combat',
   DamageDealt: 'combat',
   DuelEnded: 'combat',
+  SpellTrapSet: 'field',
+  EffectActivated: 'field',
+  EffectResolved: 'field',
+  CardSentToGraveyard: 'field',
+  LifePointsRecovered: 'combat',
+  LifePointsPaid: 'combat',
+  SpellTrapDestroyed: 'combat',
 };
 
 const AI_CATEGORY: Record<PlayerAction['type'], LogCategory> = {
@@ -38,6 +45,8 @@ const AI_CATEGORY: Record<PlayerAction['type'], LogCategory> = {
   ResolvePendingPrompt: 'field',
   DeclareAttack: 'combat',
   Surrender: 'combat',
+  SetSpellTrap: 'field',
+  ActivateEffect: 'field',
 };
 
 describe('category tables', () => {

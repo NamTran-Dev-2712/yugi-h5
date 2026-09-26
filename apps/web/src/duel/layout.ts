@@ -133,6 +133,12 @@ export function zoneIndexAt(layout: BoardLayout, side: Side, p: Point): number |
   return i === -1 ? null : i;
 }
 
+/** Index 0..4 of the Spell/Trap Zone of `side` containing `p`, else null. */
+export function spellZoneIndexAt(layout: BoardLayout, side: Side, p: Point): number | null {
+  const i = layout[side].spellTrapZones.findIndex((r) => pointInRect(r, p));
+  return i === -1 ? null : i;
+}
+
 const OPTION_W = 160;
 const OPTION_H = 40;
 const OPTION_GAP = 4;

@@ -67,6 +67,37 @@ const SAMPLES: Record<EventView['type'], EventView> = {
   },
   DamageDealt: { type: 'DamageDealt', playerIndex: 1, amount: 700 },
   DuelEnded: { type: 'DuelEnded', winnerIndex: 0, reason: 'LP_ZERO' },
+  SpellTrapSet: { type: 'SpellTrapSet', playerIndex: 1, instanceId: 'p1-8', zoneIndex: 3 },
+  EffectActivated: {
+    type: 'EffectActivated',
+    playerIndex: 0,
+    instanceId: 'p0-7',
+    definitionId: 'SMP-101',
+    effectId: 'draw-one',
+  },
+  EffectResolved: {
+    type: 'EffectResolved',
+    playerIndex: 0,
+    instanceId: 'p0-7',
+    definitionId: 'SMP-101',
+    effectId: 'draw-one',
+  },
+  CardSentToGraveyard: {
+    type: 'CardSentToGraveyard',
+    ownerIndex: 0,
+    instanceId: 'p0-7',
+    definitionId: 'SMP-101',
+    from: 'Hand',
+  },
+  LifePointsRecovered: { type: 'LifePointsRecovered', playerIndex: 0, amount: 500 },
+  LifePointsPaid: { type: 'LifePointsPaid', playerIndex: 1, amount: 300 },
+  SpellTrapDestroyed: {
+    type: 'SpellTrapDestroyed',
+    ownerIndex: 1,
+    instanceId: 'p1-8',
+    definitionId: 'SMP-201',
+    zoneIndex: 3,
+  },
 };
 
 const KIND_OF: Record<EventView['type'], StepKind | null> = {
@@ -85,6 +116,13 @@ const KIND_OF: Record<EventView['type'], StepKind | null> = {
   MonsterDestroyed: 'destroy',
   DamageDealt: 'damage',
   DuelEnded: 'duelEnd',
+  SpellTrapSet: 'spellSet',
+  EffectActivated: 'activate',
+  EffectResolved: 'resolve',
+  CardSentToGraveyard: 'toGraveyard',
+  LifePointsRecovered: 'lpGain',
+  LifePointsPaid: 'lpPay',
+  SpellTrapDestroyed: 'spellDestroy',
 };
 
 describe('stepsFor', () => {
@@ -111,6 +149,33 @@ describe('stepsFor', () => {
     expect(attack).toMatchObject({ instanceId: 'p0-2', targetInstanceId: 'p1-4' });
     const [damage] = stepsFor([SAMPLES.DamageDealt], describe1);
     expect(damage).toMatchObject({ playerIndex: 1, amount: 700 });
+  });
+
+  it('Spell/Trap steps carry only what the (public) event carries', () => {
+    const [set] = stepsFor([SAMPLES.SpellTrapSet], describe1);
+    expect(set).toMatchObject({ playerIndex: 1, instanceId: 'p1-8', zoneIndex: 3 });
+    expect(JSON.stringify(set)).not.toContain('definitionId'); // Set face-down: nothing to show
+    const [activate] = stepsFor([SAMPLES.EffectActivated], describe1);
+    expect(activate).toMatchObject({ playerIndex: 0, instanceId: 'p0-7' });
+    const [gain] = stepsFor([SAMPLES.LifePointsRecovered], describe1);
+    expect(gain).toMatchObject({ playerIndex: 0, amount: 500 });
+    const [pay] = stepsFor([SAMPLES.LifePointsPaid], describe1);
+    expect(pay).toMatchObject({ playerIndex: 1, amount: 300 });
+    const [gone] = stepsFor([SAMPLES.SpellTrapDestroyed], describe1);
+    expect(gone).toMatchObject({ playerIndex: 1, instanceId: 'p1-8', zoneIndex: 3 });
+  });
+
+  it('a Spell activation plays in event order: activate, draw, resolve, to graveyard', () => {
+    const steps = stepsFor(
+      [
+        SAMPLES.EffectActivated,
+        { type: 'CardDrawn', playerIndex: 0, card: hidden },
+        SAMPLES.EffectResolved,
+        SAMPLES.CardSentToGraveyard,
+      ],
+      describe1,
+    );
+    expect(steps.map((s) => s.kind)).toEqual(['activate', 'draw', 'resolve', 'toGraveyard']);
   });
 
   it('keeps the order of the events', () => {

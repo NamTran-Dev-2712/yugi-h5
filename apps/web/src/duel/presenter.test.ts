@@ -248,3 +248,67 @@ describe('information leaks', () => {
     }
   });
 });
+
+describe('present: Spell/Trap Zones (task 3.2b)', () => {
+  const m = model('spell');
+  const card = (id: string) => m.cards.find((c) => c.id === id)!;
+
+  it('my Set Trap is face-down and upright (a Spell/Trap is never drawn sideways), and I may read it', () => {
+    const c = card('p0-20');
+    expect(c.zone).toBe('spellTrap');
+    expect(c.side).toBe('self');
+    expect([c.faceDown, c.defense, c.label, c.frame]).toEqual([true, false, null, null]);
+    expect(c.detail?.name).toBeTruthy();
+    expect(c.detail?.kind).toBe('trap');
+  });
+
+  it("the opponent's Set card is anonymous and upright", () => {
+    const c = card('p1-21');
+    expect([c.zone, c.side]).toEqual(['spellTrap', 'opp']);
+    expect([c.faceDown, c.defense, c.label, c.detail, c.frame]).toEqual([
+      true,
+      false,
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it('a face-up Spell/Trap shows its frame and is not sideways even in DefenseUp', () => {
+    const f = loadFixture('spell');
+    const self = f.view.players[0];
+    const faceUp = {
+      ...f.view,
+      players: [
+        {
+          ...self,
+          board: {
+            ...self.board,
+            spellTrapZones: [
+              {
+                hidden: false,
+                instanceId: 'p0-30',
+                definitionId: 'SMP-101',
+                ownerIndex: 0,
+                position: 'DefenseUp',
+              },
+              null,
+              null,
+              null,
+              null,
+            ],
+          },
+        },
+        f.view.players[1],
+      ],
+    } as StateView;
+    const c = present(faceUp, f.legalActions, { lookup }).cards.find((x) => x.id === 'p0-30')!;
+    expect([c.faceDown, c.defense, c.frame]).toEqual([false, false, 'spell']);
+  });
+});
+
+describe('present: SelectEffectTarget prompt (task 3.2b)', () => {
+  it('asks me to choose the effect target (not the generic prompt text)', () => {
+    expect(model('effect-target').prompt?.text).toBe(strings.targetPrompt);
+  });
+});

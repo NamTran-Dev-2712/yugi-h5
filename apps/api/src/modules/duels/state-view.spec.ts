@@ -236,6 +236,52 @@ describe('toStateView', () => {
     expect(toStateView(s, 1).pendingPrompt).toEqual(s.pendingPrompt);
   });
 
+  describe('pending prompt payload (deny by default for the player who is not asked)', () => {
+    const targetPrompt = {
+      promptId: 'effect-3-9',
+      playerIndex: 0 as const,
+      kind: 'SelectEffectTarget',
+      payload: {
+        cardInstanceId: 'p0-7',
+        effectId: 'e1',
+        costInstanceIds: ['p0-8'],
+        candidateInstanceIds: ['p1-3', 'p1-4'],
+        count: 1,
+      },
+    };
+
+    it('gives the prompted player the full SelectEffectTarget payload', () => {
+      const s: GameState = { ...richState(), pendingPrompt: targetPrompt };
+      expect(toStateView(s, 0).pendingPrompt).toEqual(targetPrompt);
+    });
+
+    it('hides the SelectEffectTarget payload (which hand card is being activated) from the other player', () => {
+      const s: GameState = { ...richState(), pendingPrompt: targetPrompt };
+      const seen = toStateView(s, 1).pendingPrompt;
+      expect(seen).toEqual({
+        promptId: 'effect-3-9',
+        playerIndex: 0,
+        kind: 'SelectEffectTarget',
+        payload: null,
+      });
+      expect(JSON.stringify(seen)).not.toContain('p0-7');
+    });
+
+    it('hides the payload of an unknown prompt kind from the other player', () => {
+      const s: GameState = {
+        ...richState(),
+        pendingPrompt: {
+          promptId: 'x',
+          playerIndex: 1,
+          kind: 'FutureKind',
+          payload: { secret: 1 },
+        },
+      };
+      expect(toStateView(s, 0).pendingPrompt?.payload).toBeNull();
+      expect(toStateView(s, 1).pendingPrompt?.payload).toEqual({ secret: 1 });
+    });
+  });
+
   it('hides the opponent field zone card when it has no face-up marker', () => {
     const s = richState();
     const [p0, p1] = s.players;

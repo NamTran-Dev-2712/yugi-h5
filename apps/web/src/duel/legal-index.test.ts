@@ -8,7 +8,9 @@ import {
   isListed,
   positionOptions,
   promptAnswers,
+  activations,
   sameAction,
+  spellSetOptions,
   summonOptions,
 } from './legal-index';
 
@@ -94,6 +96,43 @@ describe('attackers / attackTargets', () => {
   });
   it('is empty outside the Battle phase (no DeclareAttack listed)', () => {
     expect(attackers(legalOf('midgame'), 0)).toEqual([]);
+  });
+});
+
+describe('Spell/Trap (task 3.2b): spellSetOptions / activations / draggable', () => {
+  const legal = legalOf('spell');
+
+  it('hand Spells/Traps with a listed Set or activation are draggable, next to summonable monsters', () => {
+    expect(draggableHandCards(legal, 0).sort()).toEqual(['p0-1', 'p0-2', 'p0-4']);
+  });
+
+  it('lists the Spell/Trap Zones the server allows for a Set, with the listed action', () => {
+    const o = spellSetOptions(legal, 0, 'p0-4');
+    expect(o.map((x) => x.zoneIndex)).toEqual([1, 2, 3, 4]);
+    expect(o[0]!.action).toEqual({
+      type: 'SetSpellTrap',
+      payload: { playerIndex: 0, cardInstanceId: 'p0-4', zoneIndex: 1 },
+    });
+    expect(spellSetOptions(legal, 0, 'p0-1')).toEqual([]);
+  });
+
+  it('lists the activations of a hand card (the Trap has none: Set only until task 3.4)', () => {
+    expect(activations(legal, 0, 'p0-2')).toEqual([
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-2', effectId: 'draw-one' },
+      },
+    ]);
+    expect(activations(legal, 0, 'p0-4')).toEqual([]);
+  });
+
+  it('never returns actions of the other seat', () => {
+    const other = legal.map(
+      (a) => ({ ...a, payload: { ...a.payload, playerIndex: 1 } }) as PlayerAction,
+    );
+    expect(spellSetOptions(other, 0, 'p0-4')).toEqual([]);
+    expect(activations(other, 0, 'p0-2')).toEqual([]);
+    expect(draggableHandCards(other, 0)).toEqual([]);
   });
 });
 

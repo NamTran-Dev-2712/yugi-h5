@@ -86,6 +86,37 @@ export function describeEvent(event: EventView, ctx: DescribeContext): string {
       return event.winnerIndex === null
         ? t('event.duelEndedDraw', { reason: event.reason })
         : t('event.duelEndedWin', { winner: p(event.winnerIndex), reason: event.reason });
+    case 'SpellTrapSet':
+      // Set face-down: the event has no definitionId, so the line cannot name the card.
+      return t('event.spellTrapSet', { player: p(event.playerIndex), zone: event.zoneIndex });
+    case 'EffectActivated':
+      return t('event.effectActivated', {
+        player: p(event.playerIndex),
+        card: ctx.cardName(event.definitionId),
+      });
+    case 'EffectResolved':
+      return t('event.effectResolved', {
+        player: p(event.playerIndex),
+        card: ctx.cardName(event.definitionId),
+      });
+    case 'CardSentToGraveyard':
+      return t('event.cardSentToGraveyard', {
+        player: p(event.ownerIndex),
+        card: ctx.cardName(event.definitionId),
+      });
+    case 'LifePointsRecovered':
+      return t('event.lifePointsRecovered', {
+        player: p(event.playerIndex),
+        amount: event.amount,
+      });
+    case 'LifePointsPaid':
+      return t('event.lifePointsPaid', { player: p(event.playerIndex), amount: event.amount });
+    case 'SpellTrapDestroyed':
+      return t('event.spellTrapDestroyed', {
+        player: p(event.ownerIndex),
+        card: ctx.cardName(event.definitionId),
+        zone: event.zoneIndex,
+      });
     default: {
       const unhandled: never = event;
       return t('event.unknown', { json: JSON.stringify(unhandled) });

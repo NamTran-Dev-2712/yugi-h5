@@ -226,7 +226,11 @@ describe('tribute selection', () => {
     if (r.state.kind !== 'selecting-tribute') throw new Error();
     expect([...r.state.candidates].sort()).toEqual(['p0-10', 'p0-11']);
     expect(canConfirm(r.state)).toBe(false);
-    expect(overlayFor(r.state, ctx).confirm).toEqual({ enabled: false, showCancel: true });
+    expect(overlayFor(r.state, ctx).confirm).toEqual({
+      enabled: false,
+      showCancel: true,
+      purpose: 'tribute',
+    });
   });
 
   it('Confirm is off with too few, on with exactly the listed number, off again with too many', () => {

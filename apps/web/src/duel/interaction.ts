@@ -1,11 +1,13 @@
 import type { PlayerAction, StateView } from '@yugi/shared';
 import {
+  activations,
   attackers,
   attackTargets,
   draggableHandCards,
   isListed,
   positionOptions,
   promptAnswers,
+  spellSetOptions,
   summonOptions,
   type ZoneOption,
 } from './legal-index';
@@ -13,6 +15,7 @@ import {
   hitTest,
   optionRects,
   pointInRect,
+  spellZoneIndexAt,
   zoneIndexAt,
   type BoardLayout,
   type Point,
@@ -28,6 +31,15 @@ import { strings } from './strings';
  * elements of that list (`emit` re-checks). The board is never changed here: it changes only when the server answers
  * (no optimistic update), so a refusal just returns the machine to `idle`.
  */
+
+/**
+ * What a card selection is for. `tribute`/`cost` come from the person's own gesture and can be cancelled;
+ * `discard`/`target` answer a server prompt and cannot (the engine has no way back out of a prompt).
+ */
+export type SelectionPurpose = 'tribute' | 'discard' | 'cost' | 'target';
+
+const cancellable = (purpose: SelectionPurpose): boolean =>
+  purpose === 'tribute' || purpose === 'cost';
 
 export type InteractionState =
   | { readonly kind: 'idle' }
@@ -56,9 +68,9 @@ export type InteractionState =
       }[];
     }
   | {
-      /** Tributes for a Summon/Set, or the cards of a multi-card discard (`purpose`). */
+      /** Cards to choose (`purpose`): Summon/Set tributes, a multi-card discard, an activation cost or effect targets. */
       readonly kind: 'selecting-tribute';
-      readonly purpose: 'tribute' | 'discard';
+      readonly purpose: SelectionPurpose;
       /** Listed actions this selection can end in; Confirm sends the one whose card set equals `selected`. */
       readonly actions: readonly PlayerAction[];
       readonly candidates: readonly string[];
@@ -112,12 +124,13 @@ function emit(action: PlayerAction, ctx: InteractionContext): Transition {
   return { state: { kind: 'pending-server' }, effects: [{ type: 'send', action }] };
 }
 
-/** Card ids an action asks the person to choose (tributes, or the cards to discard). */
+/** Card ids an action asks the person to choose (tributes, cards to discard, cost cards, or targets). */
 function chosenIds(action: PlayerAction): readonly string[] {
   if (action.type === 'ResolvePendingPrompt') return action.payload.cardInstanceIds;
   if (action.type === 'NormalSummon' || action.type === 'SetMonster') {
     return action.payload.tributeInstanceIds ?? [];
   }
+  if (action.type === 'ActivateEffect') return action.payload.costInstanceIds ?? [];
   return [];
 }
 
@@ -135,6 +148,15 @@ export function canConfirm(state: InteractionState): boolean {
   return state.kind === 'selecting-tribute' && matchingAction(state) !== undefined;
 }
 
+interface OptionGroup {
+  readonly label: string;
+  readonly actions: readonly PlayerAction[];
+}
+
+/** What choosing cards is for, for a group of listed actions (only activations have costs; the rest are tributes). */
+const purposeOf = (actions: readonly PlayerAction[]): SelectionPurpose =>
+  actions.some((a) => a.type === 'ActivateEffect') ? 'cost' : 'tribute';
+
 /** A group of listed actions the person just picked (e.g. all "Summon" actions for one zone). */
 function resolveGroup(actions: readonly PlayerAction[], ctx: InteractionContext): Transition {
   const direct = actions.find((a) => chosenIds(a).length === 0);
@@ -142,9 +164,47 @@ function resolveGroup(actions: readonly PlayerAction[], ctx: InteractionContext)
   if (actions.length === 0) return toIdle(toast(strings.toastNotAllowed));
   const candidates = [...new Set(actions.flatMap((a) => chosenIds(a)))];
   return {
-    state: { kind: 'selecting-tribute', purpose: 'tribute', actions, candidates, selected: [] },
+    state: {
+      kind: 'selecting-tribute',
+      purpose: purposeOf(actions),
+      actions,
+      candidates,
+      selected: [],
+    },
     effects: [],
   };
+}
+
+/** One group sends (or asks for cards) at once; several open the option menu at the drop point. */
+function offer(groups: readonly OptionGroup[], point: Point, ctx: InteractionContext): Transition {
+  const usable = groups.filter((g) => g.actions.length > 0);
+  if (usable.length === 0) return toIdle(toast(strings.toastNoZone));
+  if (usable.length === 1) return resolveGroup(usable[0]!.actions, ctx);
+  return { state: { kind: 'choosing-option', anchor: point, options: usable }, effects: [] };
+}
+
+/**
+ * A hand card dropped on my Spell/Trap Zone `zoneIndex`: "Activate" (any of my Spell/Trap Zones: the card resolves
+ * from the hand) and "Set" (only a zone the server lists for this card).
+ */
+function dropSpell(
+  cardId: string,
+  zoneIndex: number,
+  point: Point,
+  ctx: InteractionContext,
+): Transition {
+  const viewer = ctx.view.viewerIndex;
+  const set = spellSetOptions(ctx.legalActions, viewer, cardId)
+    .filter((o) => o.zoneIndex === zoneIndex)
+    .map((o) => o.action);
+  return offer(
+    [
+      { label: strings.activateOption, actions: activations(ctx.legalActions, viewer, cardId) },
+      { label: strings.setSpellOption, actions: set },
+    ],
+    point,
+    ctx,
+  );
 }
 
 function dropCard(
@@ -153,39 +213,45 @@ function dropCard(
   ctx: InteractionContext,
 ): Transition {
   if (!option) return toIdle(toast(strings.toastNoZone));
-  const groups = [
-    { label: strings.summonOption, actions: option.normal },
-    { label: strings.setOption, actions: option.set },
-  ].filter((g) => g.actions.length > 0);
-  if (groups.length === 0) return toIdle(toast(strings.toastNoZone));
-  if (groups.length === 1) return resolveGroup(groups[0]!.actions, ctx);
-  return { state: { kind: 'choosing-option', anchor: point, options: groups }, effects: [] };
+  return offer(
+    [
+      { label: strings.summonOption, actions: option.normal },
+      { label: strings.setOption, actions: option.set },
+    ],
+    point,
+    ctx,
+  );
 }
 
-/** After returning to idle: a multi-card discard prompt opens its own selection (a one-card one is a plain click). */
+/**
+ * After returning to idle, a prompt addressed to me opens its own selection: a multi-card discard (a one-card one is a
+ * plain click on the hand card) or the targets of an effect (always the selection, the targets are on the field).
+ */
 function settle(ctx: InteractionContext, effects: InteractionEffect[]): Transition {
   const prompt = ctx.view.pendingPrompt;
-  if (
-    prompt &&
-    prompt.playerIndex === ctx.view.viewerIndex &&
-    prompt.kind === 'DiscardToHandLimit' &&
-    ctx.view.winnerIndex === null
-  ) {
-    const answers = promptAnswers(ctx.legalActions, ctx.view.viewerIndex, prompt.promptId);
-    if (answers.length > 0 && answers.every((a) => a.payload.cardInstanceIds.length > 1)) {
-      return {
-        state: {
-          kind: 'selecting-tribute',
-          purpose: 'discard',
-          actions: answers,
-          candidates: [...new Set(answers.flatMap((a) => a.payload.cardInstanceIds))],
-          selected: [],
-        },
-        effects,
-      };
-    }
+  if (!prompt || prompt.playerIndex !== ctx.view.viewerIndex || ctx.view.winnerIndex !== null) {
+    return { state: IDLE, effects };
   }
-  return { state: IDLE, effects };
+  const answers = promptAnswers(ctx.legalActions, ctx.view.viewerIndex, prompt.promptId);
+  const purpose: SelectionPurpose | null =
+    prompt.kind === 'DiscardToHandLimit' &&
+    answers.length > 0 &&
+    answers.every((a) => a.payload.cardInstanceIds.length > 1)
+      ? 'discard'
+      : prompt.kind === 'SelectEffectTarget' && answers.length > 0
+        ? 'target'
+        : null;
+  if (purpose === null) return { state: IDLE, effects };
+  return {
+    state: {
+      kind: 'selecting-tribute',
+      purpose,
+      actions: answers,
+      candidates: [...new Set(answers.flatMap((a) => a.payload.cardInstanceIds))],
+      selected: [],
+    },
+    effects,
+  };
 }
 
 function onDown(point: Point, ctx: InteractionContext): Transition {
@@ -248,6 +314,8 @@ function onUpDraggingCard(
     return card?.action ? emit(card.action, ctx) : stay(IDLE);
   }
   if (!state.draggable) return toIdle(toast(strings.toastCardLocked));
+  const spellZone = spellZoneIndexAt(ctx.layout, 'self', point);
+  if (spellZone !== null) return dropSpell(state.cardId, spellZone, point, ctx);
   const zone = zoneIndexAt(ctx.layout, 'self', point);
   const option =
     zone === null
@@ -316,7 +384,7 @@ function onUpSelecting(
     const action = matchingAction(state);
     return action ? emit(action, ctx) : stay(state);
   }
-  if (state.purpose === 'tribute' && pointInRect(ctx.layout.overlay.cancel, point))
+  if (cancellable(state.purpose) && pointInRect(ctx.layout.overlay.cancel, point))
     return stay(IDLE);
   const hit = hitTest(ctx.layout, ctx.model, point);
   if (hit.kind === 'card' && state.candidates.includes(hit.id)) {
@@ -342,7 +410,7 @@ export function reduce(
       return state.kind === 'pending-server' ? stay(state) : settle(ctx, []);
     case 'cancel':
       if (state.kind === 'pending-server') return stay(state);
-      if (state.kind === 'selecting-tribute' && state.purpose === 'discard') return stay(state);
+      if (state.kind === 'selecting-tribute' && !cancellable(state.purpose)) return stay(state);
       return settle(ctx, []);
     default:
       break;
@@ -388,7 +456,12 @@ export interface OverlayModel {
   readonly ghost: { readonly cardId: string; readonly at: Point } | null;
   readonly arrow: { readonly from: Point; readonly to: Point } | null;
   readonly menu: { readonly rects: readonly Rect[]; readonly labels: readonly string[] } | null;
-  readonly confirm: { readonly enabled: boolean; readonly showCancel: boolean } | null;
+  readonly confirm: {
+    readonly enabled: boolean;
+    readonly showCancel: boolean;
+    /** Picks the hint text of the confirm bar. */
+    readonly purpose: SelectionPurpose;
+  } | null;
 }
 
 const EMPTY_OVERLAY: OverlayModel = {
@@ -410,10 +483,21 @@ export function overlayFor(state: InteractionState, ctx: InteractionContext): Ov
   switch (state.kind) {
     case 'dragging-card': {
       if (!state.draggable || !state.moved) return EMPTY_OVERLAY;
-      const zones = summonOptions(ctx.legalActions, viewer, state.cardId).map(
+      const monsterZones = summonOptions(ctx.legalActions, viewer, state.cardId).map(
         (o) => ctx.layout.self.monsterZones[o.zoneIndex]!,
       );
-      return { ...EMPTY_OVERLAY, zones, ghost: { cardId: state.cardId, at: state.pointer } };
+      // An activation may be dropped on any of my Spell/Trap Zones; a Set only on the zones listed for it.
+      const spellZones =
+        activations(ctx.legalActions, viewer, state.cardId).length > 0
+          ? [...ctx.layout.self.spellTrapZones]
+          : spellSetOptions(ctx.legalActions, viewer, state.cardId).map(
+              (o) => ctx.layout.self.spellTrapZones[o.zoneIndex]!,
+            );
+      return {
+        ...EMPTY_OVERLAY,
+        zones: [...monsterZones, ...spellZones],
+        ghost: { cardId: state.cardId, at: state.pointer },
+      };
     }
     case 'dragging-attack': {
       if (!state.moved || !attackers(ctx.legalActions, viewer).includes(state.attackerId)) {
@@ -447,7 +531,11 @@ export function overlayFor(state: InteractionState, ctx: InteractionContext): Ov
         ...EMPTY_OVERLAY,
         candidates: state.candidates,
         selected: state.selected,
-        confirm: { enabled: canConfirm(state), showCancel: state.purpose === 'tribute' },
+        confirm: {
+          enabled: canConfirm(state),
+          showCancel: cancellable(state.purpose),
+          purpose: state.purpose,
+        },
       };
     default:
       return EMPTY_OVERLAY;

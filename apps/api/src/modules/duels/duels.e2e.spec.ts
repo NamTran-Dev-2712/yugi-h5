@@ -4,7 +4,14 @@ import { APP_FILTER } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
-import { PlayerActionSchema, SAMPLE_CARDS, STARTER_DECK, type StateView } from '@yugi/shared';
+import { createRng, nextInt } from '@yugi/game-engine';
+import {
+  PlayerActionSchema,
+  SAMPLE_CARDS,
+  STARTER_DECK,
+  type PlayerAction,
+  type StateView,
+} from '@yugi/shared';
 import { LoggerModule } from 'nestjs-pino';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -12,7 +19,10 @@ import { AllExceptionsFilter } from '../../common/filters/all-exceptions.filter'
 import { validateEnv } from '../../config/env.schema';
 import { configureApp } from '../../configure-app';
 import { AuthModule } from '../auth/auth.module';
+import { DUEL_STORE, DuelService } from './duel.service';
+import type { DuelStore } from './duel-store';
 import { DuelsModule } from './duels.module';
+import { findLeaks } from './testing/leak-check';
 
 const SECRET = 'e2e-secret-e2e-secret-1234';
 const ALLOWED_ORIGIN = 'http://localhost:5173';
@@ -573,6 +583,138 @@ describe('a short duel over HTTP never leaks hidden information', () => {
     expect(r.events.map((e) => e.type)).toContain('DuelEnded');
 
     expect(problems).toEqual([]);
+  });
+});
+
+describe('Spell/Trap over HTTP (task 3.2b gate): no hidden definitionId in any response', () => {
+  let httpSpellTrapActions = 0;
+  /** Legal decks with the sample Spell (SMP-101, Draw 1) and Trap (SMP-201, Set only until task 3.4). */
+  const spellDeck = (): string[] => {
+    const monsters = SAMPLE_CARDS.filter((c) => c.kind === 'Monster').map((c) => c.id);
+    const deck = ['SMP-101', 'SMP-101', 'SMP-101', 'SMP-201', 'SMP-201', 'SMP-201'];
+    for (let i = 0; deck.length < 40; i++) deck.push(monsters[i % monsters.length]!);
+    return deck;
+  };
+  const rawState = async (duelId: string) => (await app.get(DuelService).getDuel(duelId)).state;
+
+  /** Oracle on everything the HTTP layer sent to `viewer` (bodies of GET and of the sender's POST). */
+  async function audit(
+    d: Duel,
+    problems: string[],
+    label: string,
+    posted?: object,
+    sender?: 0 | 1,
+  ) {
+    const state = await rawState(d.duelId);
+    for (const viewer of [0, 1] as const) {
+      const got = (
+        await http().get(`/duels/${d.duelId}?viewer=${viewer}`).set(d.guest.auth).expect(200)
+      ).body;
+      const body = viewer === sender && posted ? { got, posted } : { got };
+      for (const v of findLeaks(state, viewer, body))
+        problems.push(`${label} viewer ${viewer}: ${v.path} ${v.instanceId} ${v.reason}`);
+    }
+  }
+
+  it('golden: Set SMP-201 then activate SMP-101 — the opponent never identifies the Set card', async () => {
+    const d = await newDuel({ decks: [spellDeck(), spellDeck()] });
+    // The deal is shuffled: make seat 0's first two opening cards SMP-201 and SMP-101 (same instance ids), the way
+    // other specs patch the store. Everything after that goes over HTTP.
+    const store = app.get<DuelStore>(DUEL_STORE);
+    const session = (await store.get(d.duelId))!;
+    const [p0, p1] = session.state.players;
+    const [h0, h1, ...rest] = p0.hand;
+    const trap = h0!.instanceId;
+    const draw = h1!.instanceId;
+    await store.save({
+      ...session,
+      state: {
+        ...session.state,
+        players: [
+          {
+            ...p0,
+            hand: [
+              { ...h0!, definitionId: 'SMP-201' },
+              { ...h1!, definitionId: 'SMP-101' },
+              ...rest,
+            ],
+          },
+          p1,
+        ],
+      },
+    });
+    const problems: string[] = [];
+    const send = async (seat: 0 | 1, type: string, extra: object = {}) => {
+      const res = await act(d, seat, type, extra).expect(200);
+      await audit(d, problems, type, res.body, seat);
+      return res.body as { view: StateView; events: { type: string }[] };
+    };
+    let phase = (await send(0, 'EndPhase')).view.phase; // Draw -> Standby (no draw on turn 1)
+    while (phase !== 'Main1') phase = (await send(0, 'EndPhase')).view.phase;
+
+    const set = await send(0, 'SetSpellTrap', { cardInstanceId: trap, zoneIndex: 1 });
+    expect(set.events.map((e) => e.type)).toEqual(['SpellTrapSet']);
+    const opp = await viewOf(d, 1);
+    expect(opp.players[0].board.spellTrapZones[1]).toEqual({
+      hidden: true,
+      instanceId: trap,
+      ownerIndex: 0,
+    });
+
+    const used = await send(0, 'ActivateEffect', { cardInstanceId: draw, effectId: 'draw-one' });
+    expect(used.events.map((e) => e.type)).toEqual([
+      'EffectActivated',
+      'CardDrawn',
+      'EffectResolved',
+      'CardSentToGraveyard',
+    ]);
+    // The opponent sees the activated Spell (public) but still not the Set Trap.
+    const after = await viewOf(d, 1);
+    expect(after.players[0].graveyard.map((c) => c.definitionId)).toContain('SMP-101');
+    // Seat 1 may hold its own SMP-201; what matters is seat 0's side of seat 1's view.
+    expect(JSON.stringify(after.players[0])).not.toContain('SMP-201');
+    expect(problems).toEqual([]);
+  });
+
+  it.each([1, 2, 3])(
+    'fuzz over HTTP, run %i: random legal actions (Spell/Trap favoured) never leak to either viewer',
+    async (run) => {
+      const d = await newDuel({ decks: [spellDeck(), spellDeck()] });
+      const problems: string[] = [];
+      let rng = createRng(`http-fuzz-${run}`);
+      await audit(d, problems, 'open');
+
+      for (let step = 0; step < 100; step++) {
+        const state = await rawState(d.duelId);
+        if (state.winnerIndex !== null) break;
+        const actor = (state.pendingPrompt?.playerIndex ?? state.turnPlayerIndex) as 0 | 1;
+        const legal = ((await legalOf(d, actor)) as PlayerAction[]).filter(
+          (a) => a.type !== 'Surrender',
+        );
+        const spells = legal.filter(
+          (a) => a.type === 'SetSpellTrap' || a.type === 'ActivateEffect',
+        );
+        const [roll, r1] = nextInt(rng, 100);
+        const pool = spells.length > 0 && roll < 50 ? spells : legal;
+        const [i, r2] = nextInt(r1, pool.length);
+        rng = r2;
+        const action = pool[i]!;
+        if (action.type === 'SetSpellTrap' || action.type === 'ActivateEffect')
+          httpSpellTrapActions++;
+        const res = await http()
+          .post(`/duels/${d.duelId}/actions`)
+          .set(d.guest.auth)
+          .send({ playerIndex: actor, action })
+          .expect(200);
+        await audit(d, problems, `${run}.${step} ${action.type}`, res.body, actor);
+      }
+      expect(problems).toEqual([]);
+    },
+    60_000,
+  );
+
+  it('the HTTP fuzz runs above really sent Spell/Trap actions', () => {
+    expect(httpSpellTrapActions).toBeGreaterThan(0);
   });
 });
 

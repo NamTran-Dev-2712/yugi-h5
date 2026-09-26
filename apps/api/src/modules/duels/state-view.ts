@@ -1,8 +1,9 @@
-import type { CardInstance, GameState, PlayerState } from '@yugi/game-engine';
+import type { CardInstance, GameState, PendingPrompt, PlayerState } from '@yugi/game-engine';
 import type {
   BoardView,
   CardView,
   HiddenCardView,
+  PendingPromptView,
   PlayerView,
   StateView,
   VisibleCardView,
@@ -29,9 +30,9 @@ const monsterView = (c: CardInstance | null, isOwner: boolean): CardView | null 
 };
 
 /**
- * Spell/Trap/Field: the engine has no face-up marker for them yet (no handler places them, P3),
- * so fail closed — the opponent only sees one when it carries an explicit face-up position.
- * [ASSUMED] revisit at task 3.4 when Set Spell/Trap exists.
+ * Spell/Trap/Field: `SetSpellTrap` (task 3.2) places them as `DefenseDown` = face-down; an activated Normal Spell goes
+ * straight to the graveyard and never sits face-up. Fail closed: the opponent only sees one when it carries an
+ * explicit face-up position. [ASSUMED] revisit at task 3.4 (face-up Continuous/activated Traps).
  */
 const backrowView = (c: CardInstance | null, isOwner: boolean): CardView | null => {
   if (c === null) return null;
@@ -64,6 +65,20 @@ function toPlayerView(p: PlayerState, isOwner: boolean): PlayerView {
   };
 }
 
+/** Prompt kinds whose payload the NON-prompted player may see. Anything else (incl. future kinds) is denied. */
+const PUBLIC_PROMPT_KINDS: ReadonlySet<string> = new Set(['DiscardToHandLimit']);
+
+/**
+ * The prompted player gets the prompt as is. The other player gets it too (so a client can say "the opponent is
+ * choosing"), but its payload only for a kind classified public: e.g. a `SelectEffectTarget` payload would tell which
+ * hand card is being activated before it is revealed.
+ */
+function promptView(prompt: PendingPrompt | null, viewerIndex: 0 | 1): PendingPromptView | null {
+  if (prompt === null) return null;
+  if (prompt.playerIndex === viewerIndex || PUBLIC_PROMPT_KINDS.has(prompt.kind)) return prompt;
+  return { ...prompt, payload: null };
+}
+
 /**
  * Filters the full server-side GameState down to what `viewerIndex` may see. Pure. Every payload
  * sent to a client must go through this (never the raw GameState). Deliberately omits `rng` and
@@ -79,7 +94,7 @@ export function toStateView(state: GameState, viewerIndex: 0 | 1): StateView {
     turnPlayerIndex: state.turnPlayerIndex,
     phase: state.phase,
     winnerIndex: state.winnerIndex,
-    pendingPrompt: state.pendingPrompt,
+    pendingPrompt: promptView(state.pendingPrompt, viewerIndex),
     players: [
       toPlayerView(state.players[0], viewerIndex === 0),
       toPlayerView(state.players[1], viewerIndex === 1),
