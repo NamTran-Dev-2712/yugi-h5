@@ -47,3 +47,57 @@ Nhãn đề xuất chỉ là **đề xuất**; `[DECISION]` không bị đổi �
 ## Backlog & ngoài phạm vi (2026-09-21)
 
 - **Backlog (chỉ ghi):** điều kiện "Chiến thắng trong 20 lượt" (PvE); bong bóng "Đang suy nghĩ N" (timer PvP); Link monster (sau P4). **Ngoài phạm vi:** gacha/shop/guild/sự kiện/skill hệ thống riêng.
+
+## Video #3/#4 — chain / phản ứng (ingest 2026-09-26)
+
+Nguồn chi tiết: `timestamps-video3.md`, `timestamps-video4.md`. Chỉ ghi điều nhìn thấy; không dùng âm thanh (không phụ đề). Mốc có
+"(±2.5)" lấy từ sheet 5 s; còn lại từ ảnh đào sâu 2–4 fps (±0.25 s).
+
+### Mọi đoạn Set Spell/Trap và phản ứng ngoài lượt chủ động
+
+| #   | Video / thời điểm                                | Ai phản ứng                              | Kích hoạt bởi                          | Lá                                                    | Diễn biến nhìn thấy                                                                                                                                       |
+| --- | ------------------------------------------------ | ---------------------------------------- | -------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | #3 5:45.6–5:49.4                                 | **Mình** (lượt đối thủ)                  | Đối thủ tuyên bố tấn công              | Bẫy úp "Lá Chắn Phản Đòn"                             | Mũi tên tấn công 5:45.6 → bảng Thông tin (không nút) → ô Bẫy sáng 5:46.7 → lá lớn 5:47.77 → quái tấn công bị phá 5:48.3 → không damage → hết lượt đối thủ |
+| R2  | #3 10:49.5–10:53.5                               | **Đối thủ** (lượt mình)                  | Mình Normal Summon                     | Bẫy "Kìm Bẫy"                                         | Quái mình lên sân → ô Bẫy đối thủ sáng 10:51.0 → lá lớn 10:52.0 → quái mình vừa triệu hồi bị phá                                                          |
+| R3  | #3 12:47.9–12:50.6                               | **Mình** (lượt đối thủ)                  | Đối thủ tấn công                       | Bẫy úp "Vòng Lục Vong Tinh" (có 2 Bẫy hợp lệ, dùng 1) | Mũi tên 12:47.9 → bảng Thông tin 12:48.7–12:50.0 (ô sáng phía sau) → lá lớn 12:49.5 → "khoá" quái tấn công → banner "Lượt của bạn" 12:50.57               |
+| R4  | #3 18:00–18:05 (±2.5)                            | **Đối thủ** (lượt mình)                  | Mình tấn công                          | Bẫy "Vòng Lục Mang Tinh"                              | Lá lớn, quái mình có vòng khoá → lượt đối thủ 18:10                                                                                                       |
+| R5  | #4 14:13.6–14:17.0                               | **Mình** (lượt đối thủ)                  | Đối thủ tấn công                       | Bẫy úp "Lá Chắn Phản Đòn"                             | Như R1: mũi tên → bảng Thông tin 14:14.4–14:14.8 → ô sáng 14:15.0 → lá lớn → phá quái tấn công 14:16.5                                                    |
+| R6  | #4 16:35.5–16:42.4                               | Đối thủ (**lượt của đối thủ**, đầu lượt) | Không có hành động của mình ngay trước | Bẫy "Ý Chí Amazon" rồi Bẫy "Lựa Chọn Nữ Hoàng"        | Hai Bẫy nối tiếp, mỗi lá xử lý xong (triệu hồi quái) rồi lá sau mới hiện; không thấy số chain                                                             |
+| S1  | #3 11:46.5–11:49.5                               | —                                        | —                                      | Set "Tường Thành"                                     | Lá lớn → bay vào ô úp cột phải                                                                                                                            |
+| S2  | #4 15:44–15:49, 16:20.5–16:24.5, 16:53.0–16:55.0 | —                                        | —                                      | Set "Bumerang Cô Xích"                                | Overlay "**Chọn kỹ năng muốn nhận**" (2 chế độ: "Xiềng Xích" / "Boomerang Thép") **lúc Set**, rồi lá vào ô úp                                             |
+| X1  | #4 15:52.5–15:54.5                               | —                                        | —                                      | Phép từ tay                                           | Toast "Hiện tại Phép không có hiệu lực", lá quay về tay                                                                                                   |
+| X2  | #3 19:45 (±2.5)                                  | —                                        | —                                      | —                                                     | Toast "Không thể tấn công, hãy chọn mục tiêu khác"                                                                                                        |
+
+### Trả lời câu hỏi chain (chuẩn bị task 3.3)
+
+- **(a) Prompt "Kích hoạt?" / auto-pass:** **Không thấy** hộp thoại "Kích hoạt?" hay nút Kích hoạt/Bỏ qua trong 3 lần mình phản ứng (R1, R3, R5).
+  Thứ thấy được: sau khi đối thủ tuyên bố tấn công, người chơi trỏ/chạm vào lá Bẫy úp → bảng "Thông tin" (không có nút) → ô Bẫy sáng xanh → Bẫy kích hoạt.
+  Bảng "Thông tin" **không phải prompt**: nó cũng hiện khi chưa có tấn công (#3 11:57.5, 12:46.3) và ở lượt mình (#3 14:00). Có một **khoảng chờ**
+  giữa tuyên bố tấn công và damage: đòn tấn công chưa được tính trong ~1.1–2.2 s (R1: 5:45.6 → 5:47.77; R3: 12:47.9 → 12:49.5; R5: 14:13.6 → 14:15.0)
+  và bị huỷ bởi Bẫy. **Không xác định được** game chờ vô hạn, có đếm ngược, hay tự bỏ qua sau X giây (không thấy đồng hồ/thanh thời gian; không có lần nào
+  mình có Bẫy úp hợp lệ mà **không** dùng để đo thời gian tự bỏ qua). Phía đối thủ (AI) phản ứng tự động (R2, R4).
+- **(b) Hai lá lên chain cùng lúc / LIFO:** **Không thấy trong video.** Chỉ có R6: hai Bẫy của đối thủ nối tiếp, lá 1 xử lý xong hoàn toàn trước khi lá 2
+  hiện — đó là hai lần kích hoạt riêng, không phải chain 2 link. Không thấy UI số thứ tự chain/ngăn xếp. R3: có 2 Bẫy hợp lệ nhưng chỉ dùng 1.
+- **(c) Priority sau khi resolve:** **Không thấy trong video** (không có lần nào có phản ứng chồng lên phản ứng). Sau R1/R3/R5, lượt đối thủ kết thúc ngay
+  (banner "Lượt của bạn") — _(suy luận)_ AI không còn hành động, không chứng minh gì về priority.
+- **(d) Trap vừa Set kích hoạt cùng lượt? (C11):** **Không thấy lần thử kích hoạt Bẫy trong lượt vừa Set.** Mọi lần Bẫy của mình kích hoạt (R1, R3, R5)
+  đều ở lượt đối thủ, lá đã úp từ lượt mình trước đó → **khớp** C11, nhưng không kiểm chứng được vế "chưa kích hoạt trong lượt Set". Không thấy Bẫy
+  kích hoạt từ tay: "Bumerang Cô Xích" đi từ tay qua bước "Chọn kỹ năng muốn nhận" rồi **vào ô úp** (S2), không có hiệu ứng ngay. → **Không mâu thuẫn C11.**
+  (Backlog 15:17 của video #2 vẫn chưa giải thích được.) R6: hai Bẫy của đối thủ kích hoạt ở đầu lượt của chính đối thủ; không thấy lúc Set.
+- **(e) Speed 2 xen giữa lúc tấn công (trước damage):** **Có — Bẫy thường** (R1, R3, R5 của mình; R4 của đối thủ): kích hoạt sau khi tuyên bố tấn công,
+  trước khi tính damage, và huỷ/khoá đòn tấn công. **Không thấy Quick-Play Spell** nào kích hoạt ở lượt đối thủ. Bẫy cũng phản ứng với **triệu hồi** (R2).
+
+### Điểm mới (không nằm trong 5 câu)
+
+- **Bẫy có chế độ chọn lúc Set** ("Chọn kỹ năng muốn nhận", S2). Chưa thấy lá này kích hoạt nên không biết chế độ áp dụng lúc nào. Liên quan hệ "Kỹ năng Tăng"
+  (ngoài phạm vi v1, ADR 2026-09-21).
+- **Mô tả lá Bẫy nói điều kiện kích hoạt rõ ràng** ("Có thể dùng khi đối phương tấn công…", "Quái đối phương tấn công sẽ kích hoạt…") — _(suy luận)_ gợi ý
+  game chỉ mở cửa sổ phản ứng khi có lá thoả điều kiện.
+- Toast từ chối thao tác: "Hiện tại Phép không có hiệu lực" (X1), "Không thể tấn công, hãy chọn mục tiêu khác" (X2).
+
+### Mâu thuẫn / căng thẳng với `[DECISION]` (chờ chủ dự án — không tự đổi)
+
+| #   | Nội dung video #3/#4                                                                                                           | `[DECISION]` hiện tại                                          | Ghi chú                                                                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C13 | Phản ứng bằng cách **chạm vào lá Bẫy úp** trong khoảng chờ sau khi đối thủ tấn công; không thấy hộp thoại "Kích hoạt?" (3 lần) | G5/C12: hỏi "Kích hoạt?" khi có bài hợp lệ + setting auto-pass | Video không loại trừ auto-pass/timeout; chỉ không thấy dialog. Cần quyết: giữ dialog, hay "cửa sổ phản ứng + chạm lá úp" (có thể kèm highlight lá hợp lệ) |
+| C14 | Bẫy có bước **chọn chế độ lúc Set** ("Chọn kỹ năng muốn nhận")                                                                 | Chưa có trong `SetSpellTrap` (task 3.2)                        | Chỉ ghi nhận; liên quan "Kỹ năng" (ngoài phạm vi)                                                                                                         |

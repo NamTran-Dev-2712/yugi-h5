@@ -79,3 +79,16 @@ Nguồn: `sources.md`; bằng chứng chi tiết `rules-observed.md`, `timestamp
 | Overlay bỏ bài                     | Không thấy                           | "Kéo bài trên tay đến khu này" + "Bài trên tay đã đầy, cần bỏ bớt 1 lá bài" (18:36)                                                                                                                                             |
 | Màn kết quả                        | Không thấy                           | Nền cam + nhân vật, thanh EXP, "Phần Thưởng" (3 icon), nút "Trở về" / "Chia sẻ", popup nhiệm vụ (27:03.5)                                                                                                                       |
 | Màn chọn đối thủ                   | Không thấy                           | Danh sách nhân vật + tab "Thường / Tinh Anh / Ác Mộng", panel "Bộ bài phòng thủ", "Điều kiện: Chiến thắng trong 20 lượt", VS (hai bàn tay, hai lá úp)                                                                           |
+
+## Bổ sung từ video #3/#4 (2026-09-26) — UI quanh Phép/Bẫy
+
+Tỉ lệ % theo khung 1920×1080 (đo trên frame 1280×720).
+
+- **Bảng "Thông tin" lá** (xem lá, kể cả lá úp của mình): nền tối phủ toàn màn; khung mô tả x ≈ 23–66%, y ≈ 12–95% (mục "Miêu tả", "Hạn chế",
+  "Kỹ năng Tăng"); tab "Thông tin" bên trái x ≈ 14–23%, y ≈ 21–31%; ảnh lá lớn x ≈ 67–86%, y ≈ 12–62%, nhãn loại ("Bài Bẫy"). **Không có nút** hành động.
+- **Lá lớn khi kích hoạt Bẫy**: bên phải x ≈ 76–89%, y ≈ 24–58% (khung tím "Bài Bẫy"); ô Bẫy trên sân sáng viền xanh lá trước đó.
+- **Cột Phép/Bẫy**: lưới 2 cột bên phải sân, x ≈ 81–93%; 3 hàng trên (y ≈ 8–38%) của đối thủ, 3 hàng dưới (y ≈ 44–75%) của mình. Lá úp = ô cam vân xoáy.
+- **Overlay "Chọn kỹ năng muốn nhận"**: nền tối, tiêu đề giữa trên (y ≈ 11%), 2 thẻ lựa chọn ngang hàng (x ≈ 17–43% và 57–83%, y ≈ 35–50%), mỗi thẻ có
+  biểu tượng tím + tên đỏ + mô tả.
+- **Toast** ("Hiện tại Phép không có hiệu lực", "Không thể tấn công, hãy chọn mục tiêu khác"): bong bóng trắng nhỏ gần giữa-phải sân.
+- **Không thấy**: hộp thoại "Kích hoạt?", nút Bỏ qua/Pass, đồng hồ đếm ngược phản ứng, số thứ tự chain.
