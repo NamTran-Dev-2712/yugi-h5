@@ -22,12 +22,14 @@ describe('fuzz: engine invariants hold', () => {
     let accepted = 0;
     let rejected = 0;
     let duelsEnded = 0;
+    let maxChainLength = 0;
     const byType: Record<string, number> = {};
     for (const seed of SEEDS.slice(0, 10)) {
       const result = runFuzz({ seed, steps: STEPS });
       if (!result.ok) throw new Error(formatFuzzFailure(result));
       rejected += result.stats.rejected;
       duelsEnded += result.stats.duelsEnded;
+      maxChainLength = Math.max(maxChainLength, result.stats.maxChainLength);
       for (const [type, n] of Object.entries(result.stats.accepted)) {
         accepted += n;
         byType[type] = (byType[type] ?? 0) + n;
@@ -42,9 +44,12 @@ describe('fuzz: engine invariants hold', () => {
       'DeclareAttack',
       'SetSpellTrap',
       'ActivateEffect',
+      'PassPriority',
     ]) {
       expect(byType[type] ?? 0, `${type} never accepted`).toBeGreaterThan(0);
     }
+    // Chains with a window left open (≥ 1 link waiting) and multi-link chains are reached.
+    expect(maxChainLength).toBeGreaterThanOrEqual(2);
   });
 
   it('is deterministic: same seed → identical action log and stats', () => {
@@ -128,6 +133,41 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
     );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.violation).toMatch(/version/);
+  });
+
+  it('flags a chain link that loses its card (the Spell vanishes while on the chain)', () => {
+    const r = detect(
+      broken('ActivateEffect', ({ state, events }) => ({
+        events,
+        state: {
+          ...state,
+          chainStack: [],
+        },
+      })),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/chain|card/);
+  });
+
+  it('flags a chain window left open for a player who cannot respond', () => {
+    const r = detect(
+      broken('ActivateEffect', ({ state, events }) =>
+        state.chainWindow
+          ? {
+              events,
+              state: {
+                ...state,
+                chainWindow: {
+                  ...state.chainWindow,
+                  priorityPlayer: state.chainWindow.priorityPlayer === 0 ? 1 : 0,
+                },
+              },
+            }
+          : { state, events },
+      ),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/cannot respond/);
   });
 
   it('flags an uncontrolled exception', () => {

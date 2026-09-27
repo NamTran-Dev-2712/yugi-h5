@@ -17,6 +17,20 @@ export function spell(id: string, effect: Omit<EffectDefinition, 'id'>): CardDef
   };
 }
 
+/** Test-only Quick-Play Spell (Spell Speed 2): the only way to build a multi-link chain until task 3.4. */
+export function quickPlay(
+  id: string,
+  effect: Omit<EffectDefinition, 'id' | 'trigger'>,
+): CardDefinition {
+  return {
+    id,
+    kind: 'Spell',
+    name: text(id),
+    subType: 'QuickPlay',
+    effects: [{ id: 'e1', trigger: { kind: 'Quick' }, ...effect } as EffectDefinition],
+  };
+}
+
 export function monster(id: string, level = 4, race = 'Warrior'): CardDefinition {
   return {
     id,
@@ -137,6 +151,32 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
     trigger: { kind: 'Quick' },
     operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
   }),
+  QP_HEAL: quickPlay('QP_HEAL', { operations: [{ kind: 'Heal', amount: 300, target: 'self' }] }),
+  QP_BURN: quickPlay('QP_BURN', {
+    operations: [{ kind: 'Damage', amount: 200, target: 'opponent' }],
+  }),
+  QP_KILL: quickPlay('QP_KILL', {
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  QP_PAY: quickPlay('QP_PAY', {
+    cost: [{ kind: 'PayLP', amount: 400 }],
+    operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+  }),
+  QP_IGNITION: {
+    // A Quick-Play whose effect is not a Quick trigger: malformed, never activatable.
+    id: 'QP_IGNITION',
+    kind: 'Spell',
+    name: text('QP_IGNITION'),
+    subType: 'QuickPlay',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+      },
+    ],
+  },
   NO_EFFECT: { id: 'NO_EFFECT', kind: 'Spell', name: text('NO_EFFECT'), subType: 'Normal' },
   CONT: {
     id: 'CONT',

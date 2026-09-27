@@ -127,8 +127,9 @@ export interface SetSpellTrapAction {
 }
 
 /**
- * Activates an effect of a Normal Spell in the caller's hand (Ignition trigger, Main Phase). Task 3.2 resolves it
- * immediately (no chain yet). `costInstanceIds` feeds the effect's `cost[]` in order: each `Discard`/`Tribute` cost takes
+ * Activates an effect of a Spell in the caller's hand: a Normal Spell (Ignition trigger, Speed 1, empty chain only) or
+ * a Quick-Play Spell (Quick trigger, Speed 2, may respond on a chain). Main Phase of the caller's own turn. Task 3.3:
+ * cost is paid and targets are chosen now, the effect becomes a chain link and resolves when both players pass. `costInstanceIds` feeds the effect's `cost[]` in order: each `Discard`/`Tribute` cost takes
  * `count` ids from the front; `PayLP` takes none. A `Card` target is chosen automatically when the candidates are exactly
  * `count`, otherwise a `SelectEffectTarget` prompt is opened.
  */
@@ -144,8 +145,18 @@ export interface ActivateEffectAction {
 }
 
 /**
- * Skeleton union — grows through M1/M2 with
- * PassPriority, etc.
+ * Gives up the right to respond in the open chain window (task 3.3). Only `chainWindow.priorityPlayer` may send it.
+ * The second consecutive pass resolves the whole chain (LIFO).
+ */
+export interface PassPriorityAction {
+  readonly type: 'PassPriority';
+  readonly payload: {
+    readonly playerIndex: 0 | 1;
+  };
+}
+
+/**
+ * Skeleton union — grows through M2+.
  * See docs/design/engine.md for the full target list.
  */
 export type Action =
@@ -159,7 +170,8 @@ export type Action =
   | SurrenderAction
   | ResolvePendingPromptAction
   | SetSpellTrapAction
-  | ActivateEffectAction;
+  | ActivateEffectAction
+  | PassPriorityAction;
 
 export interface ActionContext {
   /** Reserved for cross-cutting concerns injected by the caller (e.g. logging hooks). Never a source of nondeterminism. */

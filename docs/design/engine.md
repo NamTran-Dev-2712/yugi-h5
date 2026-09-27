@@ -27,7 +27,8 @@ interface GameState {
   turnPlayerIndex: 0 | 1;
   phase: Phase;                         // Draw|Standby|Main1|Battle|Main2|End
   players: [PlayerState, PlayerState];
-  chainStack: ChainLink[];              // M2
+  chainStack: ChainLink[];              // task 3.3: đáy (link 1) → đỉnh
+  chainWindow: { priorityPlayer: 0 | 1; passCount: 0 | 1 } | null; // task 3.3: null ⇔ chainStack rỗng
   pendingPrompt: PendingPrompt | null;
   winnerIndex: 0 | 1 | 'draw' | null; // null = đang đấu; 'draw' = cả hai LP về 0 cùng lúc (task 1.7)
   version: number;                      // bump mỗi applyAction — dùng cho desync detection
@@ -86,9 +87,9 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 | `DeclareAttack`        | M1 (task 1.6 ✅)                                           | `{playerIndex, attackerInstanceId, targetInstanceId?}` (null = direct attack); xem chi tiết bên dưới                                                                                                                    |
 | `Surrender`            | M1 (task 1.9 ✅)                                           | `{playerIndex}`; mọi phase, cả hai bên; reject `DUEL_ENDED`/`SURRENDER_DISABLED`; xem chi tiết bên dưới                                                                                                                 |
 | `SetSpellTrap`         | M2 (task 3.2 ✅)                                           | `{playerIndex, cardInstanceId, zoneIndex}`; Spell/Trap từ tay vào ô 0–4, úp (`DefenseDown`), ghi `setTurn`; không giới hạn/lượt, không tốn Normal Summon; Main1/Main2; Field Spell chưa hỗ trợ                          |
-| `ActivateEffect`       | M2 (task 3.2 ✅, resolve ngay; chain ở 3.3)                | `{playerIndex, cardInstanceId, effectId, costInstanceIds?}`; **Normal Spell ở tay** + trigger `Ignition`; target chọn qua prompt `SelectEffectTarget` (không có `targetInstanceIds` trong payload); xem `effect-dsl.md` |
+| `ActivateEffect`       | M2 (task 3.2 ✅; lên chain từ 3.3)                         | `{playerIndex, cardInstanceId, effectId, costInstanceIds?}`; **Normal Spell ở tay** + trigger `Ignition`; target chọn qua prompt `SelectEffectTarget` (không có `targetInstanceIds` trong payload); xem `effect-dsl.md` |
 | `ResolvePendingPrompt` | M1 (task 1.11 ✅, hand limit) / M2 (target/chain response) | `{playerIndex, promptId, cardInstanceIds}`; trả lời `PendingPrompt` hiện tại; xem mục PendingPrompt                                                                                                                     |
-| `PassPriority`         | M2                                                         | Dùng trong chain window                                                                                                                                                                                                 |
+| `PassPriority`         | M2 (task 3.3 ✅, engine-only)                              | `{playerIndex}`; chỉ `chainWindow.priorityPlayer`; pass thứ 2 liên tiếp resolve cả chain; xem mục Chain stack                                                                                                           |
 
 ### Kích hoạt Trap/Spell — hợp đồng C11 (implement ở P3, task 3.4)
 
@@ -109,7 +110,7 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 
 Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `definitionId`, lá úp), `EffectActivated`/`EffectResolved {playerIndex,instanceId,definitionId,effectId}`, `CardSentToGraveyard {ownerIndex,instanceId,definitionId,from:'Hand'}` (Spell dùng xong), `LifePointsRecovered {playerIndex,amount}` (Heal), `LifePointsPaid {playerIndex,amount}` (cost PayLP), `SpellTrapDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (Destroy lên Spell/Trap; quái vẫn dùng `MonsterDestroyed`). Thứ tự khi kích hoạt: `EffectActivated` → event của cost (`LifePointsPaid`/`CardDiscarded`/`MonsterTributed`) → event của từng operation (`CardDrawn`, `DamageDealt`, `LifePointsRecovered`, `MonsterDestroyed`…) → `EffectResolved` → `CardSentToGraveyard` → `DuelEnded` (nếu có, luôn cuối). Damage/Heal/Draw dùng lại `DamageDealt`/`CardDrawn`/`DeckOut`+`DuelEnded` sẵn có. **Các event này chưa được API forward** (xem `event-visibility.md`).
 
-Sẽ thêm dần: `ChainLinkAdded`, `ChainResolved`.
+Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
 
 Event là **fact đã xảy ra**, không phải instruction cho FE — FE tự quyết định animate thế nào
 từ fact đó.
@@ -132,19 +133,72 @@ interface PendingPrompt {
 
 **Prompt thứ hai (task 3.2): `SelectEffectTarget`.** `ActivateEffect` mà effect có target `Card` với **nhiều hơn `count` ứng viên** không đổi gì ngoài `pendingPrompt = { promptId: 'effect-<turnCount>-<version>', playerIndex: người kích hoạt, kind: 'SelectEffectTarget', payload: { cardInstanceId, effectId, costInstanceIds, candidateInstanceIds, count } }` (`version` +1). `ResolvePendingPrompt.cardInstanceIds` = đúng `count` id khác nhau nằm trong ứng viên (sai → `INVALID_EFFECT_TARGET`); engine **kiểm lại toàn bộ** activation trên state chưa đổi rồi mới trả cost + resolve (một bước, `version` +1). Đúng `count` ứng viên → tự chọn, không prompt; ít hơn → `NO_VALID_TARGET`. `ResolvePendingPrompt` giờ cần `ctx` cho kind này.
 
-Khi `pendingPrompt != null`, `EndPhase`, `Draw`, `NormalSummon`/`SetMonster`, `SetSpellTrap`, `ActivateEffect`, `ChangePosition`, `DeclareAttack` đều bị **engine** reject `PENDING_PROMPT`. `Surrender` cố ý bỏ qua prompt (task 1.9). Chỉ `ResolvePendingPrompt` đi tiếp được.
+Khi `pendingPrompt != null`, `EndPhase`, `Draw`, `NormalSummon`/`SetMonster`, `SetSpellTrap`, `ActivateEffect`, `ChangePosition`, `DeclareAttack`, `PassPriority` đều bị **engine** reject `PENDING_PROMPT` (hoặc `CHAIN_WINDOW_OPEN` nếu cửa sổ chain cũng đang mở — kiểm ở `applyAction` trước handler). `Surrender` cố ý bỏ qua prompt (task 1.9). Chỉ `ResolvePendingPrompt` đi tiếp được. Prompt `SelectEffectTarget` có thể mở **trong lúc** cửa sổ chain đang mở (kích hoạt đáp trả có target): trả lời xong mới thêm link.
 
-## Chain stack (M2)
+## Chain stack (task 3.3)
 
-Mỗi effect activate được push vào `chainStack` (LIFO). Resolve theo thứ tự ngược (activate
-sau cùng resolve trước). Spell Speed quyết định effect nào được phép activate để đáp trả:
+`[RULE]` YGO chuẩn, chủ dự án chốt 2026-09-26 (ADR "Chain stack"). Engine-only: API chưa forward (task 3.3b sau C13).
 
-- Speed 1 (Normal Spell/Trap): chỉ activate khi chain rỗng.
-- Speed 2 (Quick-Play, most Trigger/Ignition): activate được để đáp Speed 1 hoặc 2.
-- Speed 3 (Counter Trap): activate được để đáp bất kỳ speed nào.
+```ts
+interface ChainLink {
+  linkId: string;            // `link-<turnCount>-<version của state lúc kích hoạt>` — tất định, không RNG/đồng hồ
+  playerIndex: 0 | 1;
+  card: CardInstance;        // lá Phép đã rời tay (position null), nằm TRONG link tới khi vào mộ; công khai
+  effectId: string;
+  spellSpeed: 1 | 2 | 3;     // Normal Spell 1, Quick-Play 2, (Counter Trap 3 ở task 3.4)
+  costInstanceIds: string[]; // cost Discard/Tribute đã trả lúc kích hoạt
+  lpPaid: number;            // cost PayLP đã trả lúc kích hoạt
+  targetInstanceIds: string[]; // target chọn lúc kích hoạt
+}
+GameState.chainStack: ChainLink[];        // [0] = link 1 (đáy)
+GameState.chainWindow: { priorityPlayer: 0 | 1; passCount: 0 | 1 } | null;  // null ⇔ chainStack rỗng
+```
 
-Chi tiết cấu trúc `ChainLink` + resolve algorithm sẽ chốt khi bắt đầu implement M2 (ghi ADR
-tương ứng vào `docs/ai/DECISIONS.md` lúc đó).
+**Kích hoạt** (`ActivateEffect`): validate (`prepare`, không đổi state) → nếu cần chọn target nhiều hơn `count` thì
+mở `SelectEffectTarget` (chưa đổi gì) → lá rời tay → trả cost → đẩy link (`EffectActivated`, event cost,
+`ChainLinkAdded`) → ưu tiên sang **đối thủ của người kích hoạt**, `passCount = 0` → _settle_. Operations **chỉ chạy
+lúc resolve**. `version` +1 một lần cho cả action.
+
+**Spell Speed** `[RULE]`: chain rỗng → Speed 1 hoặc 2 đều mở chain được (Normal Spell ở Main Phase của mình). Chain
+không rỗng → chỉ `priorityPlayer` được kích hoạt (`NOT_PRIORITY_HOLDER`), và speed ≥ 2 và ≥ speed của link trên cùng
+(`SPELL_SPEED_TOO_LOW`). Quick-Play **từ tay** chỉ ở lượt của mình (`NOT_TURN_PLAYER`), task 3.3 giới hạn ở Main1/Main2
+`[ASSUMED]`; Quick-Play úp/ngoài lượt, Trap, Counter Trap là task 3.4. Dữ liệu thật chưa có lá Speed 2 (chỉ lá test).
+
+**Settle / auto-pass** `[ASSUMED]` (video #3/#4 gợi ý game chỉ dừng khi có lá thoả điều kiện): trong khi người giữ ưu tiên
+**không có** activation hợp lệ nào (dry-run `prepare` trên ứng viên của `effects/activation-candidates.ts`, không chép
+luật), engine pass thay họ. Không ai phản ứng được ⇒ chain resolve ngay trong cùng lần gọi (luồng HTTP 3.2b giữ nguyên).
+Cửa sổ chỉ còn mở khi người giữ ưu tiên thật sự có thể đáp trả. `ruleset.chainPrompt` không được engine đọc (chuyện UI, C13).
+
+**`PassPriority {playerIndex}`**: guard `DUEL_ENDED` → `NO_CHAIN_WINDOW` → `PENDING_PROMPT` → `NOT_PRIORITY_HOLDER`.
+`passCount` 0 → 1 và ưu tiên sang người kia (rồi settle); `passCount` 1 (pass thứ hai liên tiếp) → **resolve cả chain**.
+Thêm link mới đặt lại `passCount = 0`. Không phát event cho bản thân việc pass.
+
+**Resolve** (`effects/chain.ts` `resolveChain`) `[RULE]`: từ link trên cùng xuống đáy (LIFO), không ai chen link mới
+giữa chừng. Mỗi link: target = target đã chọn ∩ `targetCandidates` trên state hiện tại (tái dùng `effects/targets.ts`);
+effect có target `Card` mà không còn target nào ⇒ `ChainLinkFizzled` (không throw); còn ít nhất 1 ⇒ chạy operations
+trên target còn lại `[ASSUMED]` → `EffectResolved`. Sau mỗi link lá vào mộ chủ sở hữu (`CardSentToGraveyard`,
+`from: 'Hand'`). Hết chain: `ChainResolved {linkCount}`, `chainStack = []`, `chainWindow = null`, người chơi của lượt
+hành động tiếp. Duel kết thúc giữa chain ⇒ link còn lại **không** resolve, lá của chúng vẫn vào mộ, không có
+`ChainResolved`, `DuelEnded` luôn là event cuối.
+
+**Thứ tự event 1 link, không ai đáp trả**: `EffectActivated` → cost → `ChainLinkAdded` → event operation →
+`EffectResolved` → `CardSentToGraveyard` → `ChainResolved` → `DuelEnded?`. Sau khi API bỏ 3 event chain, giống hệt 3.2b.
+
+**Bảng guard khi `chainWindow != null`** (kiểm ở `applyAction` trước handler, chỉ khi duel đang chạy):
+
+| Action                                                                                              | Khi cửa sổ mở                                        |
+| --------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `ActivateEffect`                                                                                    | Chỉ `priorityPlayer`, Speed ≥ 2 và ≥ link trên cùng  |
+| `PassPriority`                                                                                      | Chỉ `priorityPlayer` (và không có prompt)            |
+| `ResolvePendingPrompt`                                                                              | Như thường (prompt target của lần kích hoạt đáp trả) |
+| `Surrender`                                                                                         | Luôn được (ADR 1.9)                                  |
+| `EndPhase`, `Draw`, `NormalSummon`, `SetMonster`, `ChangePosition`, `DeclareAttack`, `SetSpellTrap` | `CHAIN_WINDOW_OPEN`                                  |
+
+**Kết thúc**: mỗi link tiêu thụ một lá trên tay ⇒ độ dài chain ≤ số lá trên tay; settle lặp tối đa 2 lần. Không cần
+trần độ sâu. Fuzz kiểm `chainWindow === null ⇔ chainStack rỗng`, lá trong chain được đếm (bảo toàn lá), và cửa sổ mở
+⇒ người giữ ưu tiên có activation hợp lệ.
+
+Mã lỗi mới: `NO_CHAIN_WINDOW`, `NOT_PRIORITY_HOLDER`, `CHAIN_WINDOW_OPEN`, `SPELL_SPEED_TOO_LOW`.
 
 ## Replay
 

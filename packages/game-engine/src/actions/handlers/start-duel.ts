@@ -81,6 +81,7 @@ export function applyStartDuel(action: StartDuelAction): { state: GameState; eve
     phase: 'Draw',
     players: [players[0]!, players[1]!],
     chainStack: [],
+    chainWindow: null,
     pendingPrompt: null,
     winnerIndex: null,
     version: 1,

@@ -10,15 +10,18 @@ handler function đăng ký sẵn trong engine.
 > `packages/game-engine/src/effects/operations/<kind>.ts` (`OPERATION_HANDLERS`, thiếu kind = `tsc` đỏ; test đối chiếu
 > hai phía). Resolve **ngay lập tức**, chưa có chain (task 3.3). Thêm kind mới: `/new-effect-type`.
 
-## Engine chạy effect thế nào (task 3.2)
+## Engine chạy effect thế nào (task 3.2, chain từ task 3.3)
 
-- `ActivateEffect {playerIndex, cardInstanceId, effectId, costInstanceIds?}`: chỉ **Spell `Normal` ở TAY**, Main1/Main2,
-  turn player, effect có `trigger.kind === 'Ignition'` `[DECISION]` (Normal Spell "kích hoạt chủ động" map vào `Ignition`,
-  không thêm trigger kind). Trap ở tay → `TRAP_NOT_SET`; Spell khác subType / trigger khác → `NOT_ACTIVATABLE`; lá đã Set
-  trên sân chưa kích hoạt được (task 3.4).
-- Thứ tự: kiểm tra (phase, condition, cost trả được, target) → **không đổi state** cho tới bước cuối → trả cost →
-  chạy `operations[]` tuần tự (dừng nếu duel kết thúc giữa chừng) → Spell vào mộ. Event: `EffectActivated`, (event của
-  cost/operation), `EffectResolved`, `CardSentToGraveyard`; `DuelEnded` luôn cuối.
+- `ActivateEffect {playerIndex, cardInstanceId, effectId, costInstanceIds?}`: Spell **ở TAY**, Main1/Main2, turn player.
+  **Normal Spell** ↔ `trigger.kind === 'Ignition'`, Spell Speed 1 `[DECISION]` (map vào `Ignition`, không thêm trigger kind).
+  **Quick-Play Spell** (`subType: 'QuickPlay'`) ↔ `trigger.kind === 'Quick'`, Spell Speed 2 `[RULE]` (task 3.3, bản tối thiểu:
+  chỉ từ tay ở lượt mình; hiện chỉ lá test dùng). Trap ở tay → `TRAP_NOT_SET`; Spell khác subType / trigger không khớp →
+  `NOT_ACTIVATABLE`; lá đã Set trên sân chưa kích hoạt được (task 3.4).
+- Thứ tự (task 3.3): kiểm tra (phase, condition, cost trả được, target, Spell Speed) → **không đổi state** tới lúc kích hoạt →
+  lá rời tay, **trả cost, chốt target** → đẩy `ChainLink` (`ChainLinkAdded`) → cửa sổ ưu tiên (auto-pass người không đáp trả được).
+  `operations[]` chỉ chạy **lúc chain resolve** (LIFO), trên target còn hợp lệ (hết target → `ChainLinkFizzled`), dừng nếu duel
+  kết thúc giữa chừng → Spell vào mộ. Event: `EffectActivated`, (cost), `ChainLinkAdded`, (operation), `EffectResolved`,
+  `CardSentToGraveyard`, `ChainResolved`; `DuelEnded` luôn cuối. Chi tiết: `engine.md` mục "Chain stack".
 - `costInstanceIds` tiêu thụ tuần tự theo `cost[]`: mỗi `Discard`/`Tribute` lấy `count` id; `PayLP` không id (cần LP **lớn hơn**
   số trả `[ASSUMED]`). `Discard` từ tay (không phải chính lá kích hoạt), `Tribute` từ quái của mình.
 - `target` kiểu `Card` (chỉ `MonsterZone`/`SpellTrapZone` ở 3.2): đúng `count` ứng viên → tự chọn; ít hơn → `NO_VALID_TARGET`;

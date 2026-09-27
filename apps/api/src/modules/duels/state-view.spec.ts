@@ -183,6 +183,7 @@ describe('toStateView', () => {
     for (const secret of secrets) expect(json).not.toContain(secret);
     expect(json).not.toContain('"rng"');
     expect(json).not.toContain('chainStack');
+    expect(json).not.toContain('chainWindow');
     const json1 = JSON.stringify(toStateView(s, 1));
     expect(json1).not.toContain('A-FACEDOWN');
     expect(json1).not.toContain('A-SETSPELL');

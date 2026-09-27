@@ -114,6 +114,7 @@ export function scenarioToState(
     phase: scenario.phase,
     players: [players[0]!, players[1]!],
     chainStack: [],
+    chainWindow: null,
     pendingPrompt: null,
     winnerIndex: null,
     version: 1,

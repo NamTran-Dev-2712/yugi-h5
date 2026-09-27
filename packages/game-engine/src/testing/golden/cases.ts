@@ -34,9 +34,41 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  G_QP_HEAL: {
+    id: 'G_QP_HEAL',
+    kind: 'Spell',
+    name: { vi: 'Golden G_QP_HEAL', en: 'Golden G_QP_HEAL' },
+    subType: 'QuickPlay',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Heal', amount: 300, target: 'self' }],
+      },
+    ],
+  },
+  G_QP_BURN: {
+    id: 'G_QP_BURN',
+    kind: 'Spell',
+    name: { vi: 'Golden G_QP_BURN', en: 'Golden G_QP_BURN' },
+    subType: 'QuickPlay',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Damage', amount: 200, target: 'opponent' }],
+      },
+    ],
+  },
 };
 
 const SPELL_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5', 'G_DRAW'][i % 4]!);
+
+/** Test-only Quick-Play Spells (Speed 2) so a multi-link chain can be recorded (task 3.3). */
+const CHAIN_DECK = Array.from(
+  { length: 40 },
+  (_, i) => ['G_DRAW', 'G_QP_HEAL', 'G_QP_BURN', 'M1000'][i % 4]!,
+);
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
 
@@ -237,6 +269,48 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
         payload: { playerIndex: 1, cardInstanceId: 'p1-19', effectId: 'e1' },
       },
       ...endPhase(1, 4),
+    ],
+  },
+  {
+    name: 'chain-three-links',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-chain-3',
+        playerIds: ['alice', 'bob'],
+        deckLists: [CHAIN_DECK, CHAIN_DECK],
+      },
+    },
+    actions: [
+      ...endPhase(0, 2),
+      // T1 (P0) hand: p0-36 G_DRAW, p0-9 G_QP_HEAL, p0-22 G_QP_BURN, p0-12 G_DRAW, p0-8 G_DRAW.
+      // Link 1 (Speed 1). P1 cannot respond (auto-pass); P0 still holds Quick-Plays, so the window stays open.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-36', effectId: 'e1' },
+      },
+      // Rejects while the window is open: wrong player passes, other actions, a Speed 1 response.
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      { type: 'EndPhase', payload: { playerIndex: 0 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-12', effectId: 'e1' },
+      },
+      // Link 2 (Speed 2); P0 can still respond with the last Quick-Play.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-9', effectId: 'e1' },
+      },
+      // Link 3: nobody can respond any more → the chain resolves LIFO (BURN, HEAL, DRAW) in this call.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-22', effectId: 'e1' },
+      },
+      // No window left.
+      { type: 'PassPriority', payload: { playerIndex: 0 } },
+      ...endPhase(0, 4),
     ],
   },
 ];

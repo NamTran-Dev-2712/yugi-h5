@@ -78,6 +78,37 @@ export interface PendingPrompt {
   readonly payload: unknown;
 }
 
+/**
+ * One activation waiting on the chain (task 3.3). Cost was paid and targets were chosen when it was added; its
+ * operations run only when the chain resolves (LIFO). The activated Spell lives here (face-up, public: activating it
+ * revealed it) from the moment it leaves the hand until it is sent to the graveyard.
+ */
+export interface ChainLink {
+  /** Deterministic: `link-<turnCount>-<version of the state it was activated in>`. */
+  readonly linkId: string;
+  readonly playerIndex: 0 | 1;
+  readonly card: CardInstance;
+  readonly effectId: string;
+  /** 1 = Normal Spell, 2 = Quick-Play; 3 (Counter Trap) arrives with task 3.4. */
+  readonly spellSpeed: 1 | 2 | 3;
+  /** Cards already paid as cost (Discard/Tribute), in cost order. */
+  readonly costInstanceIds: readonly string[];
+  /** LP already paid as cost. */
+  readonly lpPaid: number;
+  /** Targets chosen at activation; re-checked at resolution. */
+  readonly targetInstanceIds: readonly string[];
+}
+
+/**
+ * Open response window: `priorityPlayer` may activate a chainable effect or `PassPriority`. `passCount` counts
+ * consecutive passes since the last link was added; the second one resolves the whole chain. Non-null ⇔ chainStack
+ * is non-empty.
+ */
+export interface ChainWindow {
+  readonly priorityPlayer: 0 | 1;
+  readonly passCount: 0 | 1;
+}
+
 export interface GameState {
   readonly matchId: string;
   readonly rng: RngState;
@@ -87,7 +118,10 @@ export interface GameState {
   readonly turnPlayerIndex: 0 | 1;
   readonly phase: Phase;
   readonly players: readonly [PlayerState, PlayerState];
-  readonly chainStack: readonly unknown[];
+  /** Bottom (index 0, chain link 1) → top. Empty outside a chain. */
+  readonly chainStack: readonly ChainLink[];
+  /** null = no chain in progress. */
+  readonly chainWindow: ChainWindow | null;
   readonly pendingPrompt: PendingPrompt | null;
   /** null = duel ongoing; 'draw' = both players' life points hit 0 in the same action. */
   readonly winnerIndex: 0 | 1 | 'draw' | null;

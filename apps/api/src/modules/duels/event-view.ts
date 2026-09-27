@@ -59,6 +59,14 @@ export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | n
     case 'SpellTrapDestroyed':
       return event;
 
+    // Chain (task 3.3): all PUBLIC by nature (the linked card was revealed by EffectActivated; ChainResolved carries no
+    // card data) but NOT forwarded yet — EventView/web have no chain shape until task 3.3b (after C13). Dropping them
+    // leaves every HTTP batch identical to task 3.2b.
+    case 'ChainLinkAdded':
+    case 'ChainLinkFizzled':
+    case 'ChainResolved':
+      return null;
+
     default: {
       const unclassified: never = event;
       void unclassified;

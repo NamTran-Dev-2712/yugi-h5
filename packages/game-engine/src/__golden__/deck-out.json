@@ -351,6 +351,7 @@
       }
     ],
     "chainStack": [],
+    "chainWindow": null,
     "pendingPrompt": null,
     "winnerIndex": 0,
     "version": 8

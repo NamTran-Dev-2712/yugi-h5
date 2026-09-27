@@ -39,9 +39,11 @@ describe('ActivateEffect — Draw (Normal Spell from hand)', () => {
     expect(state.pendingPrompt).toBeNull();
     expect(types(events)).toEqual([
       'EffectActivated',
+      'ChainLinkAdded',
       'CardDrawn',
       'EffectResolved',
       'CardSentToGraveyard',
+      'ChainResolved',
     ]);
     expect(events[0]).toEqual({
       type: 'EffectActivated',
@@ -50,7 +52,7 @@ describe('ActivateEffect — Draw (Normal Spell from hand)', () => {
       definitionId: 'DRAW',
       effectId: 'e1',
     });
-    expect(events[3]).toEqual({
+    expect(events[4]).toEqual({
       type: 'CardSentToGraveyard',
       ownerIndex: 0,
       instanceId: 'h0',
@@ -163,9 +165,11 @@ describe('ActivateEffect — Destroy and targets', () => {
     expect(state.version).toBe(opened.version + 1);
     expect(types(events)).toEqual([
       'EffectActivated',
+      'ChainLinkAdded',
       'MonsterDestroyed',
       'EffectResolved',
       'CardSentToGraveyard',
+      'ChainResolved',
     ]);
   });
 
@@ -271,9 +275,11 @@ describe('ActivateEffect — costs', () => {
     expect(types(events)).toEqual([
       'EffectActivated',
       'LifePointsPaid',
+      'ChainLinkAdded',
       'DamageDealt',
       'EffectResolved',
       'CardSentToGraveyard',
+      'ChainResolved',
     ]);
     expect(events[1]).toEqual({ type: 'LifePointsPaid', playerIndex: 0, amount: 500 });
   });
@@ -293,10 +299,12 @@ describe('ActivateEffect — costs', () => {
     expect(types(events)).toEqual([
       'EffectActivated',
       'CardDiscarded',
+      'ChainLinkAdded',
       'CardDrawn',
       'CardDrawn',
       'EffectResolved',
       'CardSentToGraveyard',
+      'ChainResolved',
     ]);
   });
 

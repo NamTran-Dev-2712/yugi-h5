@@ -162,6 +162,10 @@
   "error.engine.INVALID_COST": "Không trả được chi phí của hiệu ứng.",
   "error.engine.NO_VALID_TARGET": "Không có mục tiêu hợp lệ cho hiệu ứng này.",
   "error.engine.INVALID_EFFECT_TARGET": "Mục tiêu đã chọn không hợp lệ.",
+  "error.engine.NO_CHAIN_WINDOW": "Không có chuỗi hiệu ứng nào đang chờ phản ứng.",
+  "error.engine.NOT_PRIORITY_HOLDER": "Chưa đến lượt bạn phản ứng trong chuỗi.",
+  "error.engine.CHAIN_WINDOW_OPEN": "Đang có chuỗi hiệu ứng chờ xử lý: hãy kích hoạt hoặc bỏ qua trước.",
+  "error.engine.SPELL_SPEED_TOO_LOW": "Lá này không đủ tốc độ để nối vào chuỗi.",
 
   "error.api.NOT_OWNER": "Bạn không có quyền điều khiển trận này.",
   "error.api.PLAYER_MISMATCH": "Hành động không thuộc về người chơi này.",

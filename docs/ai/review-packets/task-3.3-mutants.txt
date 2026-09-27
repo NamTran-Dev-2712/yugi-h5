@@ -1,0 +1,45 @@
+# Task 3.3 — mutation test thủ công (node tools/mutants-3.3.mjs), 2026-09-26
+# Lần 1: 35/37 — 2 mutant sống ở pass-priority.ts:
+#   'pass while a prompt is pending': test dùng DRAW làm link 1, nên applyDraw (guard PENDING_PROMPT riêng của 1.11) ném cùng mã -> che mutant. Sửa test: link 1 = HEAL.
+#   'no auto-pass after a manual pass': chưa có test holder passCount 0 -> người kia không đáp trả được. Thêm test 'after a manual pass, a new holder who cannot respond auto-passes'.
+# Lần 2 (sau khi sửa test, code không đổi):
+KILLED   activator keeps priority after a new link
+KILLED   new link does not reset consecutive passes
+KILLED   chainIndex off by one
+KILLED   first pass resolves the chain
+KILLED   a pass keeps priority with the same player
+KILLED   settle auto-passes at most once
+KILLED   settle auto-passes the player who CAN respond
+KILLED   chain resolves FIFO instead of LIFO
+KILLED   links keep resolving after the duel ended
+KILLED   ChainResolved emitted after the duel ended
+KILLED   DuelEnded not last
+KILLED   resolved Spell never reaches the graveyard
+KILLED   targets not re-checked at resolution
+KILLED   no fizzle when every target is gone
+KILLED   chain not cleared after resolution
+KILLED   non-holder may activate in a window
+KILLED   Speed 1 may respond to Speed 1
+KILLED   no Spell Speed check at all
+KILLED   Quick-Play is Speed 1
+KILLED   Quick-Play expects an Ignition trigger
+KILLED   LP cost not recorded on the link
+KILLED   card cost not recorded on the link
+KILLED   targets not recorded on the link
+KILLED   no auto-pass after an activation
+KILLED   nobody can ever respond
+KILLED   everybody can always respond
+KILLED   linkId not unique per activation
+KILLED   pass after the duel ended
+KILLED   pass while a prompt is pending
+KILLED   anyone may pass
+KILLED   no auto-pass after a manual pass
+KILLED   window does not block other actions
+KILLED   Surrender blocked by the window
+KILLED   responses blocked by the window
+KILLED   PassPriority never listed
+KILLED   chain events forwarded
+KILLED   PassPriority on the wire
+
+37/37 mutants killed
+EXIT=0

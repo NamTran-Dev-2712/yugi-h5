@@ -40,7 +40,11 @@ export type EngineErrorCode =
   | 'CONDITION_NOT_MET'
   | 'INVALID_COST'
   | 'NO_VALID_TARGET'
-  | 'INVALID_EFFECT_TARGET';
+  | 'INVALID_EFFECT_TARGET'
+  | 'NO_CHAIN_WINDOW'
+  | 'NOT_PRIORITY_HOLDER'
+  | 'CHAIN_WINDOW_OPEN'
+  | 'SPELL_SPEED_TOO_LOW';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */
 export class EngineError extends Error {

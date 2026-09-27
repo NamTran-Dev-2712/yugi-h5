@@ -1,18 +1,24 @@
 import type { EffectDefinition } from '@yugi/shared';
 import { EngineError, type EngineErrorCode } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
-import type { CardInstance, GameState, PendingPrompt, PlayerState } from '../../state/types.js';
+import type {
+  CardInstance,
+  ChainLink,
+  GameState,
+  PendingPrompt,
+  PlayerState,
+} from '../../state/types.js';
+import { activationCandidates } from '../../effects/activation-candidates.js';
+import { pushLink, settle } from '../../effects/chain.js';
 import { conditionsHold } from '../../effects/conditions.js';
 import { payCosts, planCosts, type CostStep } from '../../effects/costs.js';
-import { OPERATION_HANDLERS } from '../../effects/operations/index.js';
-import type { OperationContext } from '../../effects/operations/types.js';
 import { targetCandidates } from '../../effects/targets.js';
 import type { ActionContext, ActivateEffectAction, ResolvePendingPromptAction } from '../types.js';
 
-/**
- * Task 3.2: activating a Normal Spell from the hand resolves IMMEDIATELY (no chain / priority window yet — task 3.3
- * wraps this in a chain without changing the action's payload). Nothing in `state` changes until every check passed:
- * validation and the target prompt are side-effect free; costs are paid and operations run in one final step.
+/*
+ * Activating a Spell from the hand (task 3.2, chained in task 3.3). Validation (`prepare`) and the target prompt are
+ * side-effect free. `activate` pays the cost, fixes the targets and pushes a chain link; the operations only run when
+ * the chain resolves (`effects/chain.ts`). With nobody able to respond, the chain resolves in the same call.
  */
 
 type Result = { state: GameState; events: GameEvent[] };
@@ -39,6 +45,7 @@ interface Prepared {
   readonly request: Request;
   readonly card: CardInstance;
   readonly effect: EffectDefinition;
+  readonly spellSpeed: 1 | 2;
   readonly costPlan: readonly CostStep[];
   /** Candidate ids for the effect's `Card` target; null when the effect has no Card target. */
   readonly candidates: readonly string[] | null;
@@ -55,6 +62,9 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
 
   if (state.winnerIndex !== null) fail('DUEL_ENDED', 'the duel has already ended.');
   if (state.pendingPrompt !== null) fail('PENDING_PROMPT', 'a prompt is pending.');
+  if (state.chainWindow !== null && state.chainWindow.priorityPlayer !== playerIndex)
+    fail('NOT_PRIORITY_HOLDER', 'the other player holds priority in the chain window.');
+  // [RULE] Spells in the hand are activated on your own turn only (Quick-Play included).
   if (playerIndex !== state.turnPlayerIndex)
     fail('NOT_TURN_PLAYER', 'only the turn player may act.');
   if (state.phase !== 'Main1' && state.phase !== 'Main2') {
@@ -79,20 +89,36 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
       ? fail('NOT_ACTIVATABLE', 'Trap activation is not supported yet.')
       : fail('TRAP_NOT_SET', `"${definition.name.en}" is a Trap: Set it first.`);
   }
-  // Task 3.2 maps "a Normal Spell activated from the hand" onto the `Ignition` trigger.
-  if (definition.subType !== 'Normal')
+  // Normal Spell = Ignition trigger, Spell Speed 1. Quick-Play Spell = Quick trigger, Spell Speed 2 [RULE].
+  const kinds = {
+    Normal: { trigger: 'Ignition', speed: 1 },
+    QuickPlay: { trigger: 'Quick', speed: 2 },
+  } as const;
+  const kind =
+    definition.subType === 'Normal' || definition.subType === 'QuickPlay'
+      ? kinds[definition.subType]
+      : null;
+  if (!kind)
     return fail(
       'NOT_ACTIVATABLE',
-      `only Normal Spells can be activated for now (got ${definition.subType}).`,
+      `only Normal and Quick-Play Spells can be activated for now (got ${definition.subType}).`,
     );
 
   const effect = definition.effects?.find((e) => e.id === effectId);
   if (!effect)
     return fail('EFFECT_NOT_FOUND', `"${definition.name.en}" has no effect "${effectId}".`);
-  if (effect.trigger.kind !== 'Ignition')
+  if (effect.trigger.kind !== kind.trigger)
     return fail(
       'NOT_ACTIVATABLE',
-      `a ${effect.trigger.kind} effect cannot be activated from the hand.`,
+      `a ${effect.trigger.kind} effect cannot be activated from the hand as a ${definition.subType} Spell.`,
+    );
+
+  // [RULE] a chain link must be Spell Speed 2+ and at least the speed of the link it responds to.
+  const top = state.chainStack.at(-1);
+  if (top && (kind.speed < 2 || kind.speed < top.spellSpeed))
+    fail(
+      'SPELL_SPEED_TOO_LOW',
+      `Spell Speed ${kind.speed} cannot respond to Spell Speed ${top.spellSpeed}.`,
     );
 
   const needsCardTarget = effect.operations.some((o) => o.kind === 'Destroy');
@@ -115,16 +141,42 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
         `needs ${targetCount} target(s), only ${candidates.length} available.`,
       );
   }
-  return { request, card, effect, costPlan, candidates, targetCount };
+  return { request, card, effect, spellSpeed: kind.speed, costPlan, candidates, targetCount };
 }
 
-/** Pays costs, moves the Spell out of the hand, runs the operations, then sends the Spell to the graveyard. */
-function execute(
+/** True when `seat` has at least one activation the engine would accept right now (dry run over the candidates). */
+export function hasLegalActivation(state: GameState, seat: 0 | 1, ctx: ActionContext): boolean {
+  for (const candidate of activationCandidates(state, seat, ctx)) {
+    try {
+      prepare(
+        state,
+        {
+          playerIndex: seat,
+          cardInstanceId: candidate.payload.cardInstanceId,
+          effectId: candidate.payload.effectId,
+          costInstanceIds: candidate.payload.costInstanceIds ?? [],
+        },
+        ctx,
+      );
+      return true;
+    } catch (error) {
+      if (!(error instanceof EngineError)) throw error;
+    }
+  }
+  return false;
+}
+
+/**
+ * The Spell leaves the hand, the cost is paid, the link (with its targets) goes on the chain, then priority is settled
+ * (auto-passes; the chain resolves right away when nobody can respond). `version` +1 once.
+ */
+function activate(
   state: GameState,
   prepared: Prepared,
   targetInstanceIds: readonly string[],
+  ctx: ActionContext,
 ): Result {
-  const { request, card, effect, costPlan } = prepared;
+  const { request, card, effect, costPlan, spellSpeed } = prepared;
   const { playerIndex } = request;
   const events: GameEvent[] = [
     {
@@ -136,7 +188,6 @@ function execute(
     },
   ];
 
-  // The Spell leaves the hand on activation; it reaches the graveyard once the effect is done.
   const player = state.players[playerIndex];
   const withoutSpell: PlayerState = {
     ...player,
@@ -152,60 +203,33 @@ function execute(
   current = paid.state;
   events.push(...paid.events);
 
-  const opCtx: OperationContext = { controller: playerIndex, targetInstanceIds };
-  for (const op of effect.operations) {
-    if (current.winnerIndex !== null) break; // the duel ended mid-effect: later operations never run
-    const handler = OPERATION_HANDLERS[op.kind] as (
-      s: GameState,
-      o: typeof op,
-      c: OperationContext,
-    ) => { state: GameState; events: GameEvent[] };
-    const out = handler(current, op, opCtx);
-    current = out.state;
-    events.push(...out.events);
-  }
-
-  const owner = current.players[playerIndex];
-  const spent: PlayerState = {
-    ...owner,
-    graveyard: [
-      ...owner.graveyard,
-      {
-        instanceId: card.instanceId,
-        definitionId: card.definitionId,
-        ownerIndex: card.ownerIndex,
-        position: null,
-      },
-    ],
-  };
-  current = {
-    ...current,
-    players: playerIndex === 0 ? [spent, current.players[1]] : [current.players[0], spent],
-    version: state.version + 1,
-  };
-  events.push(
-    {
-      type: 'EffectResolved',
-      playerIndex,
+  const link: ChainLink = {
+    linkId: `link-${state.turnCount}-${state.version}`,
+    playerIndex,
+    card: {
       instanceId: card.instanceId,
       definitionId: card.definitionId,
-      effectId: effect.id,
-    },
-    {
-      type: 'CardSentToGraveyard',
       ownerIndex: card.ownerIndex,
-      instanceId: card.instanceId,
-      definitionId: card.definitionId,
-      from: 'Hand',
+      position: null,
     },
-  );
+    effectId: effect.id,
+    spellSpeed,
+    costInstanceIds: costPlan.flatMap((step) =>
+      step.kind === 'Discard'
+        ? step.cards.map((c) => c.instanceId)
+        : step.kind === 'Tribute'
+          ? step.cards.map((t) => t.card.instanceId)
+          : [],
+    ),
+    lpPaid: costPlan.reduce((sum, step) => (step.kind === 'PayLP' ? sum + step.amount : sum), 0),
+    targetInstanceIds,
+  };
+  const pushed = pushLink(current, link);
+  events.push(...pushed.events);
 
-  // Keep "the duel is over" as the final word of the batch.
-  const ordered = [
-    ...events.filter((e) => e.type !== 'DuelEnded'),
-    ...events.filter((e) => e.type === 'DuelEnded'),
-  ];
-  return { state: current, events: ordered };
+  const settled = settle(pushed.state, ctx, (s, seat) => hasLegalActivation(s, seat, ctx));
+  events.push(...settled.events);
+  return { state: { ...settled.state, version: state.version + 1 }, events };
 }
 
 export function applyActivateEffect(
@@ -222,8 +246,8 @@ export function applyActivateEffect(
   const prepared = prepare(state, request, ctx);
   const { candidates, targetCount } = prepared;
 
-  if (candidates === null) return execute(state, prepared, []);
-  if (candidates.length === targetCount) return execute(state, prepared, candidates);
+  if (candidates === null) return activate(state, prepared, [], ctx);
+  if (candidates.length === targetCount) return activate(state, prepared, candidates, ctx);
 
   const payload: SelectEffectTargetPayload = {
     cardInstanceId: request.cardInstanceId,
@@ -276,5 +300,5 @@ export function resolveSelectEffectTarget(
   if (new Set(chosen).size !== chosen.length) bad('duplicate target ids.');
   for (const id of chosen) if (!allowed.has(id)) bad(`${id} is not a legal target.`);
 
-  return execute(base, prepared, chosen);
+  return activate(base, prepared, chosen, ctx);
 }

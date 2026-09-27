@@ -128,6 +128,7 @@ function junk(seat: 0 | 1, ids: string[], int: (n: number) => number): Action[] 
   return [
     { type: 'EndPhase', payload: { playerIndex: seat } },
     { type: 'Surrender', payload: { playerIndex: seat } },
+    { type: 'PassPriority', payload: { playerIndex: seat } },
     {
       type: 'NormalSummon',
       payload: { playerIndex: seat, cardInstanceId: pick(), zoneIndex: int(5) },
@@ -220,15 +221,17 @@ describe('getLegalActions — property (fuzzed duels)', () => {
           if (state.winnerIndex === null) {
             const actor = state.pendingPrompt
               ? state.pendingPrompt.playerIndex
-              : state.turnPlayerIndex;
+              : (state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex);
             const list = getLegalActions(state, actor, ctx);
             const canMove = list.some(
               (a) =>
                 a.type === 'EndPhase' ||
                 a.type === 'Surrender' ||
-                a.type === 'ResolvePendingPrompt',
+                a.type === 'ResolvePendingPrompt' ||
+                a.type === 'PassPriority',
             );
-            if (!canMove) return `seat ${actor} is stuck: no EndPhase/Surrender/prompt answer`;
+            if (!canMove)
+              return `seat ${actor} is stuck: no EndPhase/Surrender/prompt answer/PassPriority`;
           }
           return null;
         },

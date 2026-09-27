@@ -16,7 +16,15 @@ const SPELL_TRAP_TYPES = [
   'SpellTrapDestroyed',
 ] as const satisfies readonly GameEvent['type'][];
 
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
+/** Task 3.3 chain events: classified (PUBLIC by nature) but not forwarded until task 3.3b. */
+const CHAIN_TYPES = [
+  'ChainLinkAdded',
+  'ChainLinkFizzled',
+  'ChainResolved',
+] as const satisfies readonly GameEvent['type'][];
+type ChainEvent = Extract<GameEvent, { type: (typeof CHAIN_TYPES)[number] }>;
+
+type PublicEvent = Exclude<GameEvent, CardDrawnEvent | ChainEvent>;
 
 /** One fixture per GameEvent type: adding a type to the engine makes this Record fail to typecheck. */
 const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = {
@@ -107,6 +115,27 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
     definitionId: SECRET,
     zoneIndex: 2,
   },
+  ChainLinkAdded: {
+    type: 'ChainLinkAdded',
+    linkId: 'link-1-5',
+    chainIndex: 1,
+    playerIndex: 0,
+    instanceId: 'p0-9',
+    definitionId: SECRET,
+    effectId: 'e1',
+    spellSpeed: 1,
+    targetInstanceIds: ['p1-3'],
+  },
+  ChainLinkFizzled: {
+    type: 'ChainLinkFizzled',
+    linkId: 'link-1-5',
+    playerIndex: 0,
+    instanceId: 'p0-9',
+    definitionId: SECRET,
+    effectId: 'e1',
+    reason: 'TARGET_GONE',
+  },
+  ChainResolved: { type: 'ChainResolved', linkCount: 2 },
   DuelEnded: { type: 'DuelEnded', winnerIndex: 0, reason: 'LP_ZERO' },
 };
 
@@ -114,13 +143,20 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
 const asView = (e: PublicEvent): EventView => e;
 
 const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
-  (t) => t !== 'CardDrawn',
+  (t) => t !== 'CardDrawn' && !(CHAIN_TYPES as readonly string[]).includes(t),
 );
 
 describe('toEventView', () => {
   it('covers every engine event type', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(22);
+    expect(Object.keys(FIXTURES)).toHaveLength(25);
   });
+
+  it.each(CHAIN_TYPES)(
+    'drops chain event %s for both viewers (engine-only until task 3.3b)',
+    (type) => {
+      for (const viewer of [0, 1] as const) expect(toEventView(FIXTURES[type], viewer)).toBeNull();
+    },
+  );
 
   it.each(PUBLIC_TYPES)('passes public event %s through unchanged to both viewers', (type) => {
     const event = FIXTURES[type] as PublicEvent;

@@ -166,6 +166,37 @@ export interface SpellTrapDestroyedEvent {
   readonly zoneIndex: number;
 }
 
+/** An activation became a chain link (cost already paid, targets fixed). The card is public from activation on. */
+export interface ChainLinkAddedEvent {
+  readonly type: 'ChainLinkAdded';
+  readonly linkId: string;
+  /** 1-based position on the chain (1 = first activated, resolves last). */
+  readonly chainIndex: number;
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+  readonly spellSpeed: 1 | 2 | 3;
+  readonly targetInstanceIds: readonly string[];
+}
+
+/** A chain link resolved with no effect (all of its targets left their zone before it resolved). No throw. */
+export interface ChainLinkFizzledEvent {
+  readonly type: 'ChainLinkFizzled';
+  readonly linkId: string;
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+  readonly reason: 'TARGET_GONE';
+}
+
+/** Every link of the chain resolved (LIFO); the response window is closed. Not emitted when the duel ended mid-chain. */
+export interface ChainResolvedEvent {
+  readonly type: 'ChainResolved';
+  readonly linkCount: number;
+}
+
 /**
  * The duel is over. `winnerIndex: null` means a draw (both players' LP hit 0 in the same action).
  * `SURRENDER` and `DECK_OUT` always have a winner: the opponent of the player who conceded / could not draw.
@@ -177,8 +208,7 @@ export interface DuelEndedEvent {
 }
 
 /**
- * Skeleton union — grows through M1/M2 with
- * ChainLinkAdded, etc. FE animates purely from
+ * Skeleton union — grows through M2+. FE animates purely from
  * this stream; it never re-derives game logic client-side.
  */
 export type GameEvent =
@@ -203,4 +233,7 @@ export type GameEvent =
   | LifePointsRecoveredEvent
   | LifePointsPaidEvent
   | SpellTrapDestroyedEvent
+  | ChainLinkAddedEvent
+  | ChainLinkFizzledEvent
+  | ChainResolvedEvent
   | DuelEndedEvent;

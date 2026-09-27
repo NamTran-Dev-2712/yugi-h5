@@ -1,0 +1,71 @@
+# Task 3.3 — test đỏ trước khi implement (2026-09-26)
+# lệnh: pnpm --filter @yugi/game-engine exec vitest run --reporter=verbose (NO_COLOR)
+ × src/actions/handlers/activate-effect.test.ts > ActivateEffect — Draw (Normal Spell from hand) > draws, sends the spell to the graveyard and emits Activated → CardDrawn → Resolved → SentToGY 18ms
+ × src/actions/handlers/activate-effect.test.ts > ActivateEffect — Destroy and targets > answering the prompt destroys the chosen card and finishes the activation 3ms
+ × src/actions/handlers/activate-effect.test.ts > ActivateEffect — costs > PayLP pays first, then resolves 2ms
+ × src/actions/handlers/activate-effect.test.ts > ActivateEffect — costs > Discard cost sends the chosen hand card to the graveyard (CardDiscarded) before the effect 2ms
+ × src/effects/chain.test.ts > Chain — single link, nobody can respond > resolves in the same call and leaves no chain behind 14ms
+ × src/effects/chain.test.ts > Chain — single link, nobody can respond > a Quick-Play can start a chain on its own (Speed 2 on an empty chain) 2ms
+ × src/effects/chain.test.ts > Chain — response window > stays open for the activator when they can still respond (opponent auto-passed) 5ms
+ × src/effects/chain.test.ts > Chain — response window > pass by the holder after the auto-pass = two consecutive passes → the chain resolves 2ms
+ × src/effects/chain.test.ts > Chain — response window > 2 links: Normal Spell then Quick-Play resolve LIFO 1ms
+ × src/effects/chain.test.ts > Chain — response window > 3 links resolve LIFO; the window stays open while the holder has another response 1ms
+ × src/effects/chain.test.ts > Chain — response window > after a new link the opponent gets priority first; their pass hands it back 1ms
+ × src/effects/chain.test.ts > Chain — response window > a pass after an activation does not count the older pass (consecutive passes only) 1ms
+ × src/effects/chain.test.ts > Chain — response window > a target prompt can open while the window is open; answering adds the link 1ms
+ × src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > cost is paid when the link is added, before anything resolves 3ms
+ × src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > PayLP is paid at activation and recorded on the link 2ms
+ × src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > targets are chosen at activation and recorded on the link 5ms
+ × src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > a link whose only target is gone at resolution has no effect (ChainLinkFizzled, no throw) 1ms
+ × src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > a link that keeps some of its targets applies to the remaining ones 1ms
+ × src/effects/chain.test.ts > Chain — duel ends mid-chain > stops resolving, sends the unresolved Spells to the graveyard, DuelEnded is last 1ms
+ × src/effects/chain.test.ts > PassPriority — guards > rejects when no window is open 4ms
+ × src/effects/chain.test.ts > PassPriority — guards > rejects the player who does not hold priority 1ms
+ × src/effects/chain.test.ts > PassPriority — guards > rejects after the duel ended (DUEL_ENDED first) 2ms
+ × src/effects/chain.test.ts > PassPriority — guards > rejects an activation by the player without priority 2ms
+ × src/effects/chain.test.ts > PassPriority — guards > a Speed 1 Normal Spell cannot be chained 2ms
+ × src/effects/chain.test.ts > Chain window blocks other actions > EndPhase → CHAIN_WINDOW_OPEN 2ms
+ × src/effects/chain.test.ts > Chain window blocks other actions > Draw → CHAIN_WINDOW_OPEN 1ms
+ × src/effects/chain.test.ts > Chain window blocks other actions > DeclareAttack → CHAIN_WINDOW_OPEN 2ms
+ × src/effects/chain.test.ts > Chain window blocks other actions > NormalSummon → CHAIN_WINDOW_OPEN 1ms
+ × src/effects/chain.test.ts > Chain window blocks other actions > SetMonster → CHAIN_WINDOW_OPEN 1ms
+ × src/effects/chain.test.ts > Chain window blocks other actions > ChangePosition → CHAIN_WINDOW_OPEN 1ms
+ × src/effects/chain.test.ts > Chain window blocks other actions > SetSpellTrap → CHAIN_WINDOW_OPEN 2ms
+ × src/effects/chain.test.ts > Chain — determinism > replaying the same actions gives the same state and events (JSON round-trip safe) 1ms
+stdout | src/legal-actions.property.test.ts > getLegalActions — property (fuzzed duels) > agrees with applyAction on 8 seeds × 200 steps
+⎯⎯⎯⎯⎯⎯ Failed Tests 32 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/effects/chain.test.ts > Chain — single link, nobody can respond > resolves in the same call and leaves no chain behind
+ FAIL  src/effects/chain.test.ts > Chain — single link, nobody can respond > a Quick-Play can start a chain on its own (Speed 2 on an empty chain)
+ FAIL  src/effects/chain.test.ts > Chain — response window > stays open for the activator when they can still respond (opponent auto-passed)
+ FAIL  src/effects/chain.test.ts > Chain — response window > pass by the holder after the auto-pass = two consecutive passes → the chain resolves
+ FAIL  src/effects/chain.test.ts > Chain — response window > 2 links: Normal Spell then Quick-Play resolve LIFO
+ FAIL  src/effects/chain.test.ts > Chain — response window > 3 links resolve LIFO; the window stays open while the holder has another response
+ FAIL  src/effects/chain.test.ts > Chain — response window > after a new link the opponent gets priority first; their pass hands it back
+ FAIL  src/effects/chain.test.ts > Chain — response window > a pass after an activation does not count the older pass (consecutive passes only)
+ FAIL  src/effects/chain.test.ts > Chain — response window > a target prompt can open while the window is open; answering adds the link
+ FAIL  src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > cost is paid when the link is added, before anything resolves
+ FAIL  src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > PayLP is paid at activation and recorded on the link
+ FAIL  src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > targets are chosen at activation and recorded on the link
+ FAIL  src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > a link whose only target is gone at resolution has no effect (ChainLinkFizzled, no throw)
+ FAIL  src/effects/chain.test.ts > Chain — cost and targets are fixed at activation > a link that keeps some of its targets applies to the remaining ones
+ FAIL  src/effects/chain.test.ts > Chain — duel ends mid-chain > stops resolving, sends the unresolved Spells to the graveyard, DuelEnded is last
+ FAIL  src/effects/chain.test.ts > PassPriority — guards > rejects when no window is open
+ FAIL  src/effects/chain.test.ts > PassPriority — guards > rejects the player who does not hold priority
+ FAIL  src/effects/chain.test.ts > PassPriority — guards > rejects after the duel ended (DUEL_ENDED first)
+ FAIL  src/effects/chain.test.ts > PassPriority — guards > rejects an activation by the player without priority
+ FAIL  src/effects/chain.test.ts > PassPriority — guards > a Speed 1 Normal Spell cannot be chained
+ FAIL  src/effects/chain.test.ts > Chain window blocks other actions > EndPhase → CHAIN_WINDOW_OPEN
+ FAIL  src/effects/chain.test.ts > Chain window blocks other actions > Draw → CHAIN_WINDOW_OPEN
+ FAIL  src/effects/chain.test.ts > Chain window blocks other actions > NormalSummon → CHAIN_WINDOW_OPEN
+ FAIL  src/effects/chain.test.ts > Chain window blocks other actions > SetMonster → CHAIN_WINDOW_OPEN
+ FAIL  src/effects/chain.test.ts > Chain window blocks other actions > ChangePosition → CHAIN_WINDOW_OPEN
+ FAIL  src/effects/chain.test.ts > Chain window blocks other actions > SetSpellTrap → CHAIN_WINDOW_OPEN
+ FAIL  src/effects/chain.test.ts > Chain window blocks other actions > DeclareAttack → CHAIN_WINDOW_OPEN
+ FAIL  src/effects/chain.test.ts > Chain — determinism > replaying the same actions gives the same state and events (JSON round-trip safe)
+ FAIL  src/actions/handlers/activate-effect.test.ts > ActivateEffect — Draw (Normal Spell from hand) > draws, sends the spell to the graveyard and emits Activated → CardDrawn → Resolved → SentToGY
+ FAIL  src/actions/handlers/activate-effect.test.ts > ActivateEffect — Destroy and targets > answering the prompt destroys the chosen card and finishes the activation
+ FAIL  src/actions/handlers/activate-effect.test.ts > ActivateEffect — costs > PayLP pays first, then resolves
+ FAIL  src/actions/handlers/activate-effect.test.ts > ActivateEffect — costs > Discard cost sends the chosen hand card to the graveyard (CardDiscarded) before the effect
+ Test Files  2 failed | 18 passed (20)
+      Tests  32 failed | 435 passed | 3 todo (470)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run "--reporter=verbose"

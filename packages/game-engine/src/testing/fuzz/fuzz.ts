@@ -2,6 +2,7 @@ import type { CardDefinition, EffectDefinition } from '@yugi/shared';
 import type { Action, ActionContext, StartDuelAction } from '../../actions/types.js';
 import type { ApplyActionResult } from '../../apply-action.js';
 import { applyAction } from '../../apply-action.js';
+import { hasLegalActivation } from '../../actions/handlers/activate-effect.js';
 import { EngineError } from '../../errors.js';
 import { createRng, nextInt } from '../../rng/seeded-rng.js';
 import type { RngState } from '../../rng/seeded-rng.js';
@@ -46,6 +47,14 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
     cost: [{ kind: 'Discard', count: 1 }],
     operations: [{ kind: 'Heal', amount: 300, target: 'self' }],
   }),
+  // Test-only Quick-Play Spells (Speed 2): the only way to build multi-link chains until task 3.4.
+  QPH: quickPlay('QPH', {
+    operations: [{ kind: 'Heal', amount: 200, target: 'self' }],
+  }),
+  QPK: quickPlay('QPK', {
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
 };
 const DECK_POOL = Object.keys(FUZZ_DEFS);
 const PHASES: readonly Phase[] = ['Draw', 'Standby', 'Main1', 'Battle', 'Main2', 'End'];
@@ -57,6 +66,16 @@ function spell(id: string, effect: Omit<EffectDefinition, 'id'>): CardDefinition
     name: { vi: `Fuzz ${id}`, en: `Fuzz ${id}` },
     subType: 'Normal',
     effects: [{ id: 'e1', ...effect } as EffectDefinition],
+  };
+}
+
+function quickPlay(id: string, effect: Omit<EffectDefinition, 'id' | 'trigger'>): CardDefinition {
+  return {
+    id,
+    kind: 'Spell',
+    name: { vi: `Fuzz ${id}`, en: `Fuzz ${id}` },
+    subType: 'QuickPlay',
+    effects: [{ id: 'e1', trigger: { kind: 'Quick' }, ...effect } as EffectDefinition],
   };
 }
 
@@ -89,6 +108,8 @@ export interface FuzzStats {
   readonly rejected: number;
   readonly duelsStarted: number;
   readonly duelsEnded: number;
+  /** Longest chain seen in a state between actions (a chain that resolves within one action is not counted). */
+  readonly maxChainLength: number;
 }
 
 export type FuzzResult =
@@ -150,6 +171,8 @@ function allCards(state: GameState): CardInstance[] {
       if (c) cards.push(c);
     }
   }
+  // Spells activated and waiting on the chain (task 3.3) are neither in the hand nor in the graveyard.
+  cards.push(...state.chainStack.map((link) => link.card));
   return cards;
 }
 
@@ -229,7 +252,7 @@ function plausibleSetSpellTrap(state: GameState, rand: Rand): Action | null {
 
 /** A hand card + its first effect; cost ids are drawn from the matching pools (may still be wrong: engine decides). */
 function plausibleActivate(state: GameState, rand: Rand): Action | null {
-  const p = state.turnPlayerIndex;
+  const p = state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex;
   const hand = state.players[p].hand;
   if (hand.length === 0) return null;
   const card = rand.pick(hand);
@@ -275,7 +298,9 @@ function garbageAction(state: GameState, rand: Rand): Action {
   const wrong = other(state.turnPlayerIndex);
   const anyPlayer = rand.pick<0 | 1>([0, 1]);
   const anyCard = rand.pick([...allCards(state).map((c) => c.instanceId), 'bogus-id', '']);
-  switch (rand.int(10)) {
+  switch (rand.int(11)) {
+    case 10:
+      return { type: 'PassPriority', payload: { playerIndex: anyPlayer } };
     case 8:
       return {
         type: 'SetSpellTrap',
@@ -360,6 +385,14 @@ function nextAction(state: GameState, rand: Rand): Action {
         cardInstanceIds: shuffledPrefix(pool, count, rand),
       },
     };
+  }
+
+  // Chain window (task 3.3): the holder mostly passes or chains a response; other picks must be rejected.
+  if (state.chainWindow && !state.pendingPrompt && rand.chance(0.8)) {
+    const holder = state.chainWindow.priorityPlayer;
+    if (rand.chance(0.5)) return { type: 'PassPriority', payload: { playerIndex: holder } };
+    const response = plausibleActivate(state, rand);
+    if (response) return response;
   }
 
   if (rand.chance(0.15)) return garbageAction(state, rand);
@@ -462,6 +495,13 @@ export function checkStateInvariants(
   ) {
     return 'pendingPrompt.playerIndex out of range';
   }
+  if ((state.chainWindow === null) !== (state.chainStack.length === 0))
+    return `chainWindow ${JSON.stringify(state.chainWindow)} with ${state.chainStack.length} chain link(s)`;
+  if (state.chainWindow && state.chainWindow.passCount !== 0 && state.chainWindow.passCount !== 1)
+    return `chainWindow.passCount is ${state.chainWindow.passCount}`;
+  for (const link of state.chainStack) {
+    if (link.card.position !== null) return `chain link ${link.linkId} card has a position`;
+  }
 
   for (const i of [0, 1] as const) {
     const p = state.players[i];
@@ -521,6 +561,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let rejected = 0;
   let duelsStarted = 0;
   let duelsEnded = 0;
+  let maxChainLength = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -573,10 +614,25 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
     }
     const broken = checkStateInvariants(next, initialIds);
     if (broken) return fail(step, broken);
+    // [ASSUMED] auto-pass: a window only stays open for a holder who can actually respond.
+    const window = next.chainWindow;
+    if (window && next.winnerIndex === null && next.pendingPrompt === null) {
+      if (!hasLegalActivation(next, window.priorityPlayer, ctx))
+        return fail(
+          step,
+          `chain window open for player ${window.priorityPlayer} who cannot respond`,
+        );
+    }
+    maxChainLength = Math.max(maxChainLength, next.chainStack.length);
     const custom = options.onState?.(next, ctx, step);
     if (custom) return fail(step, custom);
     state = next;
   }
 
-  return { ok: true, seed, log, stats: { accepted, rejected, duelsStarted, duelsEnded } };
+  return {
+    ok: true,
+    seed,
+    log,
+    stats: { accepted, rejected, duelsStarted, duelsEnded, maxChainLength },
+  };
 }

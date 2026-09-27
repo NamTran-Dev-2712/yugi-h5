@@ -40,6 +40,22 @@ const DEFS = new Map<string, CardDefinition>([
       ],
     },
   ],
+  [
+    'TST-QP',
+    {
+      id: 'TST-QP',
+      kind: 'Spell',
+      name: { vi: 'TST-QP', en: 'TST-QP' },
+      subType: 'QuickPlay',
+      effects: [
+        {
+          id: 'e1',
+          trigger: { kind: 'Quick' },
+          operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+        },
+      ],
+    },
+  ],
 ]);
 
 async function setup() {
@@ -71,7 +87,7 @@ async function setup() {
       players: [{ ...p0, hand: [...p0.hand, spell] }, session.state.players[1]],
     },
   });
-  return { manager, duelId };
+  return { manager, duelId, store };
 }
 
 describe('Spell/Trap actions over the manager (SetSpellTrap / ActivateEffect)', () => {
@@ -132,5 +148,55 @@ describe('Spell/Trap actions over the manager (SetSpellTrap / ActivateEffect)', 
     // The spell left the hand and one card was drawn.
     expect(result.view.players[0].handCount).toBe(handBefore);
     expect(result.view.players[0].graveyard.map((c) => c.definitionId)).toEqual(['TST-SPELL']);
+  });
+});
+
+describe('Chain containment (task 3.3): PassPriority is engine-only', () => {
+  it('a normal activation still resolves in one call and chain events are not forwarded', async () => {
+    const { manager, duelId } = await setup();
+    const result = await manager.submitAction(duelId, 0, {
+      type: 'ActivateEffect',
+      payload: { playerIndex: 0, cardInstanceId: 'sp-1', effectId: 'e1' },
+    });
+    for (const viewer of [0, 1] as const) {
+      const types = result.eventsByViewer[viewer].map((e) => e.type as string);
+      expect(types).not.toContain('ChainLinkAdded');
+      expect(types).not.toContain('ChainResolved');
+    }
+    expect(result.legalActions.map((a) => a.type as string)).not.toContain('PassPriority');
+  });
+
+  it('is never listed and is refused with FORBIDDEN_ACTION, even with an engine chain window open', async () => {
+    const { manager, duelId, store } = await setup();
+    // Engine-side only: a Quick-Play in hand lets the activation leave a window open for player 0.
+    const session = (await store.get(duelId))!;
+    const qp: CardInstance = {
+      instanceId: 'qp-1',
+      definitionId: 'TST-QP',
+      ownerIndex: 0,
+      position: null,
+    };
+    const p0 = session.state.players[0];
+    await store.save({
+      ...session,
+      state: {
+        ...session.state,
+        players: [{ ...p0, hand: [...p0.hand, qp] }, session.state.players[1]],
+      },
+    });
+    const opened = await manager.submitAction(duelId, 0, {
+      type: 'ActivateEffect',
+      payload: { playerIndex: 0, cardInstanceId: 'sp-1', effectId: 'e1' },
+    });
+    expect((await store.get(duelId))!.state.chainWindow).toEqual({
+      priorityPlayer: 0,
+      passCount: 1,
+    });
+    expect(opened.legalActions.map((a) => a.type as string)).not.toContain('PassPriority');
+    expect(JSON.stringify(opened.view)).not.toContain('chainStack');
+    expect(JSON.stringify(opened.view)).not.toContain('chainWindow');
+    await expect(
+      manager.submitAction(duelId, 0, { type: 'PassPriority', payload: { playerIndex: 0 } }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN_ACTION' });
   });
 });

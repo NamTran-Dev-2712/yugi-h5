@@ -451,3 +451,52 @@ Chỉ đổi bảng số + comment ở `animation-queue.ts`; không đổi logic
 - **Web — tái dùng máy trạng thái, không thêm kind**: thả lá tay vào ô Phép/Bẫy của mình → nhóm "Kích hoạt" (mọi `ActivateEffect` của lá; thả vào ô Phép/Bẫy nào của mình cũng được vì Normal Spell resolve từ tay) + "Úp" (`SetSpellTrap` đúng ô thả); một nhóm thì gửi ngay (Trap chỉ có Úp). `selecting-tribute` thêm `purpose: 'cost' | 'target'`: cost (Hủy được) chọn `costInstanceIds` khớp đúng một action liệt kê; `SelectEffectTarget` mở tự động qua `settle` (không Hủy — engine không có huỷ prompt). `interaction-driver` settle cả view có sẵn lúc khởi tạo (lỗi tìm ra khi chụp ảnh: prompt có sẵn ở fixture/tải lại trang không mở overlay).
 - **Hiển thị**: lá ở ô Phép/Bẫy không bao giờ xoay ngang (`defense` chỉ cho quái). Animation: step mới `spellSet` 500 `[GUESS]`, `activate` 1300 `[REF]` (video #2: lá Phép lớn ≥1.3 s), `resolve` 250, `toGraveyard` 350, `lpGain`/`lpPay` 500 `[GUESS]`, `spellDestroy` 375 `[REF]`; step KHÔNG chép `definitionId` (giữ bất biến cũ; caption đã nêu tên lá công khai). Log: Set/kích hoạt/resolve/vào mộ → Sân; LP + phá Phép/Bẫy → Đánh (không thêm nhóm).
 - **Hệ quả:** 3.3 (chain) dùng lại wire này; 3.4 (kích hoạt Trap đã Set) cần thêm nhóm hành động cho lá úp trên sân (click lá úp) + mở rộng fuzz; thêm kind prompt mới = quyết có vào `PUBLIC_PROMPT_KINDS` không. Mutation test: 20/20 bị bắt (`task-3.2b-mutants.txt`), trong đó 5 mutant rò rỉ bị bắt chỉ bằng fuzz gate.
+
+## 2026-09-26 — Chain stack (task 3.3): cả chain resolve một mạch, lá nằm trong ChainLink, auto-pass, engine-only
+
+- **Luật chuẩn, chủ dự án chốt trong phiên**: brief ghi "hai pass → resolve link trên cùng, ưu tiên về người chơi của
+  lượt"; luật YGO `[RULE]` là hai bên pass liên tiếp thì **cả chain** resolve LIFO một mạch, không ai chen link mới giữa
+  lúc resolve, xong thì người chơi của lượt đi tiếp. Chủ dự án chọn luật chuẩn. Sau mỗi link mới, ưu tiên sang **đối thủ
+  của người kích hoạt**, `passCount` về 0.
+- **State**: `ChainLink {linkId, playerIndex, card, effectId, spellSpeed, costInstanceIds, lpPaid, targetInstanceIds}`,
+  `GameState.chainStack: ChainLink[]` (thay `unknown[]`) + trường mới `chainWindow: {priorityPlayer, passCount: 0|1} | null`
+  (null ⇔ chain rỗng). `linkId = link-<turnCount>-<version lúc kích hoạt>` (tất định). Tách `chainWindow` khỏi
+  `pendingPrompt` vì một kích hoạt đáp trả có thể cần prompt `SelectEffectTarget` **trong lúc** cửa sổ đang mở.
+  `scenario-to-state.ts` (api) thêm `chainWindow: null` (test drift bắt được).
+- **Lá Phép đang trên chain nằm TRONG ChainLink** (chủ dự án chọn; phương án kia: đặt ngửa vào ô Phép/Bẫy). Lý do: không
+  thêm luật mới (5 ô đầy vẫn kích hoạt được như 3.2), `CardSentToGraveyard.from` vẫn `'Hand'` nên wire 3.2b không đổi;
+  lá đã công khai từ lúc kích hoạt nên không lộ gì. Resolve xong lá vào mộ y như 3.2 (kể cả link bị vô hiệu và link chưa
+  kịp resolve khi duel kết thúc). **Hệ quả cho 3.3b**: `StateView` phải có danh sách chain công khai trước khi cửa sổ
+  được phép kéo dài qua nhiều request — hiện lá biến khỏi tay mà chưa ở đâu trong view (đã thấy trong test containment
+  với state dựng tay; qua HTTP không xảy ra, xem dưới). Khi P4 có Continuous/Equip (ở lại sân) sẽ cần luật ô Phép/Bẫy.
+- **Cost + target lúc kích hoạt** (sửa lệch luật ADR 3.2): `prepare` (validate, không đổi state) giữ nguyên; `execute`
+  cũ tách thành `activate` (lá rời tay → trả cost → đẩy link → settle) và `resolveChain` (`effects/chain.ts`). Lúc
+  resolve target = target đã chọn ∩ `targetCandidates` trên state hiện tại (tái dùng `targets.ts`, không chép luật);
+  hết target → `ChainLinkFizzled {reason:'TARGET_GONE'}` (không throw); còn một phần → áp dụng cho phần còn lại `[ASSUMED]`.
+- **Auto-pass `[ASSUMED]`** (brief đã chốt: chỉ mở cửa sổ khi bên kia có activation hợp lệ): `settle` pass thay người
+  giữ ưu tiên khi họ không có activation nào mà engine chấp nhận (dry-run `prepare` trên ứng viên
+  `effects/activation-candidates.ts` — tách từ `legal-actions.ts` để hai nơi dùng chung, không import vòng). Không ai đáp trả
+  được ⇒ resolve trong cùng lần gọi ⇒ luồng HTTP 3.2b giữ nguyên. **Trade-off lộ thông tin (ghi cho 3.3b/3.7)**: cửa sổ còn
+  mở cho người kia biết "người giữ ưu tiên có lá đáp trả được"; ngược lại cửa sổ luôn mở thì mọi kích hoạt đều phải chờ
+  người kia bấm (chậm, và cũng khác video #3/#4). Có thể che bằng "cửa sổ giả" ở UI sau này mà không đổi engine. Engine
+  **không đọc** `ruleset.chainPrompt` (auto-pass theo lựa chọn người chơi là chuyện client/C13).
+- **Spell Speed tối thiểu**: Normal Spell = Speed 1 (chỉ mở chain), Quick-Play = Speed 2 `[RULE]` với trigger `Quick`;
+  nối chain cần Speed ≥ 2 và ≥ link trên cùng (`SPELL_SPEED_TOO_LOW`); trong cửa sổ chỉ người giữ ưu tiên kích hoạt được
+  (`NOT_PRIORITY_HOLDER`). **Lệch brief (nhỏ)**: để có link 2 phải cho engine nhận Quick-Play từ tay (lượt mình, Main1/Main2
+  `[ASSUMED]` thu hẹp) — Quick-Play úp/ngoài lượt, Trap, Counter Trap (Speed 3) vẫn là 3.4. Không thêm lá nào vào
+  `SAMPLE_CARDS`; chỉ lá test (`effect-fixtures.ts`, `FUZZ_DEFS`, golden `G_QP_*`).
+- **`PassPriority {playerIndex}`**: guard `DUEL_ENDED` → `NO_CHAIN_WINDOW` → `PENDING_PROMPT` → `NOT_PRIORITY_HOLDER` (brief nêu 3
+  bước; thêm `PENDING_PROMPT` vì prompt target có thể treo trong cửa sổ). Không phát event cho việc pass (3.3b thêm nếu UI cần).
+- **Chặn action khác bằng một chỗ**: `applyAction` ném `CHAIN_WINDOW_OPEN` cho EndPhase/Draw/Summon/Set/ChangePosition/
+  DeclareAttack/SetSpellTrap khi cửa sổ mở (duel đang chạy); chỉ `ActivateEffect`/`PassPriority`/`ResolvePendingPrompt`/
+  `Surrender` đi qua — thay vì thêm guard vào 7 handler.
+- **Không có trần độ sâu**: mỗi link tiêu thụ một lá trên tay nên chain hữu hạn; `settle` lặp tối đa 2 lần. Fuzz kiểm
+  bảo toàn lá (đếm cả lá trong chain), `chainWindow === null ⇔ chainStack rỗng`, và "cửa sổ mở ⇒ người giữ ưu tiên có
+  activation hợp lệ".
+- **Containment giống 3.2**: API trả `null` cho 3 event chain ở `toEventView`, `PassPriority` là `ENGINE_ONLY_ACTIONS` ở
+  `DuelManager` (không vào `legalActions`, `submitAction` → `FORBIDDEN_ACTION`), `PlayerActionSchema` không đổi; web chỉ thêm
+  4 câu i18n. Card pool thật không có lá Speed 2 nên qua HTTP cửa sổ không bao giờ sống qua request đã mở nó.
+- **Golden**: 5 case cũ chỉ thêm `"chainWindow": null` ở state cuối; `spell-set-and-activate` thêm `ChainLinkAdded`/`ChainResolved`
+  ở bước kích hoạt; case mới `chain-three-links`.
+  **Hệ quả:** 3.3b nối wire (EventView cho 3 event, `PassPriority` vào schema, chain công khai trong StateView, mở rộng
+  cổng fuzz leak với lá Speed 2); 3.4 thêm Trap đã Set + Quick-Play úp + Speed 3; 3.7 UI chain sau C13.

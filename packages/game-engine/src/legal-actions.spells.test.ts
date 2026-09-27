@@ -63,3 +63,35 @@ describe('getLegalActions — Spell/Trap (task 3.2)', () => {
     ).toEqual(['ResolvePendingPrompt', 'ResolvePendingPrompt', 'Surrender']);
   });
 });
+
+describe('getLegalActions — chain window (task 3.3)', () => {
+  const opened = () =>
+    applyAction(
+      fixtureState({ hand: ['DRAW', 'QP_HEAL', 'HEAL', 'M1'] }),
+      { type: 'ActivateEffect', payload: { playerIndex: 0, cardInstanceId: 'h0', effectId: 'e1' } },
+      fixtureCtx,
+    ).state;
+
+  it('the holder may only chain a Speed 2+ response, pass, or surrender', () => {
+    const state = opened();
+    expect(state.chainWindow?.priorityPlayer).toBe(0);
+    expect(getLegalActions(state, 0, fixtureCtx)).toEqual([
+      { type: 'PassPriority', payload: { playerIndex: 0 } },
+      { type: 'Surrender', payload: { playerIndex: 0 } },
+      { type: 'ActivateEffect', payload: { playerIndex: 0, cardInstanceId: 'h1', effectId: 'e1' } },
+    ]);
+  });
+
+  it('the other seat can only surrender', () => {
+    expect(getLegalActions(opened(), 1, fixtureCtx)).toEqual([
+      { type: 'Surrender', payload: { playerIndex: 1 } },
+    ]);
+  });
+
+  it('PassPriority is never listed without a window', () => {
+    const state = fixtureState({ hand: ['DRAW', 'QP_HEAL'] });
+    expect(ofType(getLegalActions(state, 0, fixtureCtx), 'PassPriority')).toEqual([]);
+    // Normal Spell and Quick-Play both start a chain on an empty stack.
+    expect(ofType(getLegalActions(state, 0, fixtureCtx), 'ActivateEffect')).toHaveLength(2);
+  });
+});

@@ -103,6 +103,13 @@ interface AiStep {
   readonly events: readonly GameEvent[];
 }
 
+/**
+ * Engine actions not on the wire yet (task 3.3: chain PassPriority — task 3.3b wires it with the chain UI, after C13).
+ * Never listed in `legalActions`, refused if submitted. Over HTTP a chain window never stays open: the card pool has
+ * no Speed 2 card, so every activation resolves in the same call (the engine auto-passes a player who cannot respond).
+ */
+const ENGINE_ONLY_ACTIONS: ReadonlySet<Action['type']> = new Set(['PassPriority']);
+
 /** Who has to act now: the prompted player if a prompt is pending, else the turn player. */
 const actorOf = (state: GameState): 0 | 1 =>
   state.pendingPrompt?.playerIndex ?? state.turnPlayerIndex;
@@ -263,7 +270,11 @@ export class DuelManager {
 
   submitAction(duelId: string, playerIndex: 0 | 1, action: Action): Promise<SubmitActionResult> {
     // State-independent checks first: they must not queue behind other work.
-    if (action.type === 'StartDuel' || action.type === 'Draw') {
+    if (
+      action.type === 'StartDuel' ||
+      action.type === 'Draw' ||
+      ENGINE_ONLY_ACTIONS.has(action.type)
+    ) {
       return Promise.reject(
         new DuelServiceError(
           'FORBIDDEN_ACTION',
@@ -391,9 +402,10 @@ export class DuelManager {
 
   private legalActionsOf(state: GameState, seat: 0 | 1): PlayerAction[] {
     const actions = getLegalActions(state, seat, { cardDefinitions: this.cardDefinitions });
-    // The engine never lists StartDuel/Draw; the filter narrows the type to the wire shape (PlayerActionSchema).
+    // The engine never lists StartDuel/Draw; the filter narrows the type to the wire shape (PlayerActionSchema) and
+    // hides engine-only actions (PassPriority, task 3.3).
     return actions.filter(
-      (a) => a.type !== 'StartDuel' && a.type !== 'Draw',
+      (a) => a.type !== 'StartDuel' && a.type !== 'Draw' && !ENGINE_ONLY_ACTIONS.has(a.type),
     ) as unknown as PlayerAction[];
   }
 

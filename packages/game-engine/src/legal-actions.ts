@@ -1,12 +1,16 @@
-import type { Cost } from '@yugi/shared';
 import type { Action, ActionContext } from './actions/types.js';
 import { applyAction } from './apply-action.js';
 import { EngineError } from './errors.js';
+import {
+  activationCandidates,
+  combinations,
+  MAX_ANSWER_COMBINATIONS,
+} from './effects/activation-candidates.js';
 import type { CardInstance, GameState } from './state/types.js';
 
 /*
  * `getLegalActions` never re-implements a rule. It (1) enumerates CANDIDATES purely by structure (every hand card ×
- * Summon/Set × zone × tribute subset, every own monster × position / attack target, EndPhase, Surrender, prompt
+ * Summon/Set × zone × tribute subset, every own monster × position / attack target, EndPhase, Surrender, PassPriority, prompt
  * answers) and (2) keeps the candidates that `applyAction` itself accepts (dry run: handlers are pure and throw
  * `EngineError` on rejection). A rule added to the engine is therefore reflected here for free; only a genuinely new
  * KIND of action needs a new candidate generator. Draw/StartDuel are never candidates (server-internal / forbidden).
@@ -14,59 +18,8 @@ import type { CardInstance, GameState } from './state/types.js';
 
 /** Largest tribute set any card needs (level 7+ → 2, see summon.ts). Candidates are subsets of size 0..this. */
 const MAX_TRIBUTES = 2;
-/** Upper bound on generated prompt-answer combinations (C(n, k) can explode for big hands). */
-const MAX_ANSWER_COMBINATIONS = 200;
 
 type Seat = 0 | 1;
-
-function combinations<T>(items: readonly T[], size: number, limit: number): T[][] {
-  const out: T[][] = [];
-  const pick = (start: number, chosen: T[]): void => {
-    if (out.length >= limit) return;
-    if (chosen.length === size) {
-      out.push([...chosen]);
-      return;
-    }
-    for (let i = start; i < items.length; i++) {
-      chosen.push(items[i]!);
-      pick(i + 1, chosen);
-      chosen.pop();
-    }
-  };
-  pick(0, []);
-  return out;
-}
-
-/**
- * Candidate cost-id lists for an effect: the cartesian product, per cost, of every way to pick `count` cards from the
- * pool that kind of cost draws on (hand without the activating card / own monsters). PayLP contributes no ids.
- * Structure only — whether a selection is actually payable is decided by the engine (dry run).
- */
-function costSelections(
-  costs: readonly Cost[] | undefined,
-  source: CardInstance,
-  hand: readonly CardInstance[],
-  monsters: readonly CardInstance[],
-): string[][] {
-  let selections: string[][] = [[]];
-  for (const cost of costs ?? []) {
-    if (cost.kind === 'PayLP') continue;
-    const pool =
-      cost.kind === 'Discard' ? hand.filter((c) => c.instanceId !== source.instanceId) : monsters;
-    const picks = combinations(pool, cost.count, MAX_ANSWER_COMBINATIONS).map((c) =>
-      c.map((x) => x.instanceId),
-    );
-    const next: string[][] = [];
-    for (const base of selections) {
-      for (const pick of picks) {
-        if (next.length >= MAX_ANSWER_COMBINATIONS) break;
-        next.push([...base, ...pick]);
-      }
-    }
-    selections = next;
-  }
-  return selections;
-}
 
 function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] {
   const me = state.players[seat];
@@ -116,6 +69,7 @@ function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] 
     }
   }
 
+  out.push({ type: 'PassPriority', payload: { playerIndex: seat } });
   out.push({ type: 'EndPhase', payload: { playerIndex: seat } });
   out.push({ type: 'Surrender', payload: { playerIndex: seat } });
 
@@ -152,22 +106,8 @@ function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] 
         payload: { playerIndex: seat, cardInstanceId: handCard.instanceId, zoneIndex },
       });
     }
-    const def = ctx.cardDefinitions(handCard.definitionId);
-    if (!def || def.kind === 'Monster') continue;
-    for (const effect of def.effects ?? []) {
-      for (const costInstanceIds of costSelections(effect.cost, handCard, me.hand, ownMonsters)) {
-        out.push({
-          type: 'ActivateEffect',
-          payload: {
-            playerIndex: seat,
-            cardInstanceId: handCard.instanceId,
-            effectId: effect.id,
-            ...(costInstanceIds.length > 0 ? { costInstanceIds } : {}),
-          },
-        });
-      }
-    }
   }
+  out.push(...activationCandidates(state, seat, ctx));
 
   for (const monster of ownMonsters) {
     for (const toPosition of ['Attack', 'DefenseUp'] as const) {
