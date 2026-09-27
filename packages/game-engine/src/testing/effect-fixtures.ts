@@ -31,6 +31,21 @@ export function quickPlay(
   };
 }
 
+/** Test-only Trap (Normal by default: Spell Speed 2; Counter: Spell Speed 3). Activatable only once Set (task 3.4). */
+export function trap(
+  id: string,
+  effect: Omit<EffectDefinition, 'id' | 'trigger'> & { trigger?: EffectDefinition['trigger'] },
+  subType: 'Normal' | 'Continuous' | 'Counter' = 'Normal',
+): CardDefinition {
+  return {
+    id,
+    kind: 'Trap',
+    name: text(id),
+    subType,
+    effects: [{ id: 'e1', trigger: { kind: 'Quick' }, ...effect } as EffectDefinition],
+  };
+}
+
 export function monster(id: string, level = 4, race = 'Warrior'): CardDefinition {
   return {
     id,
@@ -159,6 +174,10 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
     target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
     operations: [{ kind: 'Destroy' }],
   }),
+  QP_KILL_ST: quickPlay('QP_KILL_ST', {
+    target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
   QP_PAY: quickPlay('QP_PAY', {
     cost: [{ kind: 'PayLP', amount: 400 }],
     operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
@@ -204,6 +223,34 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
       },
     ],
   },
+  /** A Trap with no effect yet (like the SMP-201 placeholder): never activatable, never opens a window. */
+  TRAP_PLAIN: { id: 'TRAP_PLAIN', kind: 'Trap', name: text('TRAP_PLAIN'), subType: 'Normal' },
+  TRAP_BURN: trap('TRAP_BURN', {
+    operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+  }),
+  TRAP_KILL_ST: trap('TRAP_KILL_ST', {
+    target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  TRAP_IGNITION: trap('TRAP_IGNITION', {
+    trigger: { kind: 'Ignition' },
+    operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+  }),
+  CONT_TRAP: trap(
+    'CONT_TRAP',
+    { operations: [{ kind: 'Heal', amount: 100, target: 'self' }] },
+    'Continuous',
+  ),
+  COUNTER: trap(
+    'COUNTER',
+    { operations: [{ kind: 'Heal', amount: 50, target: 'self' }] },
+    'Counter',
+  ),
+  /** Normal Trap declared Speed 3 explicitly: `spellSpeed` overrides the default. */
+  TRAP_SPEED3: trap('TRAP_SPEED3', {
+    spellSpeed: 3,
+    operations: [{ kind: 'Heal', amount: 10, target: 'self' }],
+  }),
 };
 
 export const fixtureCtx: ActionContext = { cardDefinitions: (id) => FIXTURE_DEFS[id] };
@@ -224,8 +271,10 @@ export interface FixtureSetup {
   myMonsters?: [number, string][];
   /** Player 1 monsters; instance ids o0-<zone>. `DefenseDown` = face-down. */
   oppMonsters?: [number, string, ('Attack' | 'DefenseUp' | 'DefenseDown')?][];
-  /** Player 1 Spell/Trap Zone cards; instance ids os-<zone>. */
-  oppSpellTraps?: [number, string][];
+  /** Player 1 Spell/Trap Zone cards (face-down); instance ids os-<zone>. Third item = `setTurn` (omitted = long ago). */
+  oppSpellTraps?: [number, string, number?][];
+  /** Player 0 Spell/Trap Zone cards (face-down); instance ids ms-<zone>. Third item = `setTurn` (omitted = long ago). */
+  mySpellTraps?: [number, string, number?][];
   /** Player 0 deck (definition ids) — defaults to 40 × D. */
   deck?: string[];
   myLp?: number;
@@ -255,7 +304,18 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
   ];
   const mine = new Map(s.myMonsters ?? []);
   const theirs = new Map((s.oppMonsters ?? []).map(([z, d, p]) => [z, { d, p: p ?? 'Attack' }]));
-  const theirST = new Map(s.oppSpellTraps ?? []);
+  const backrow = (list: [number, string, number?][] | undefined, prefix: string, owner: 0 | 1) => {
+    const byZone = new Map((list ?? []).map(([z, d, t]) => [z, { d, t }]));
+    return zones((i) => {
+      const c = byZone.get(i);
+      if (!c) return null;
+      const placed: CardInstance = {
+        ...inst(`${prefix}-${i}`, c.d, owner),
+        position: 'DefenseDown',
+      };
+      return c.t === undefined ? placed : { ...placed, setTurn: c.t };
+    });
+  };
   const p0 = started.players[0];
   const p1 = started.players[1];
   const hand = (s.hand ?? []).map((d, i) => inst(`h${i}`, d));
@@ -266,11 +326,8 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
     const t = theirs.get(i);
     return t ? ({ ...inst(`o0-${i}`, t.d, 1), position: t.p } as CardInstance) : null;
   });
-  const spellTrapZones1 = zones((i) =>
-    theirST.has(i)
-      ? ({ ...inst(`os-${i}`, theirST.get(i)!, 1), position: 'DefenseDown' } as CardInstance)
-      : null,
-  );
+  const spellTrapZones0 = backrow(s.mySpellTraps, 'ms', 0);
+  const spellTrapZones1 = backrow(s.oppSpellTraps, 'os', 1);
   return {
     ...started,
     phase: s.phase ?? 'Main1',
@@ -279,7 +336,7 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
         ...p0,
         hand,
         lifePoints: s.myLp ?? p0.lifePoints,
-        board: { ...p0.board, monsterZones: monsterZones0 },
+        board: { ...p0.board, monsterZones: monsterZones0, spellTrapZones: spellTrapZones0 },
       },
       {
         ...p1,

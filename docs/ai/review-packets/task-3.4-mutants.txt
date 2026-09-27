@@ -1,0 +1,29 @@
+KILLED   explicit spellSpeed ignored
+KILLED   Counter Trap is Speed 2
+KILLED   Normal Trap is Speed 1
+KILLED   Quick-Play is Speed 1
+KILLED   non-turn player activates a Set card outside a window
+KILLED   hand Quick-Play on the opponent's turn
+KILLED   Normal Spell from hand in any phase
+KILLED   Quick-Play from hand limited to Main Phase (3.3 behaviour)
+KILLED   face-up card on the chain activated again
+KILLED   Continuous Trap activatable
+KILLED   Set Normal Spell activatable from the field
+KILLED   Set Quick-Play not activatable
+KILLED   Set-turn check off by one
+KILLED   trapSetTurnDelay ignored
+KILLED   Set Quick-Play activatable the turn it was Set
+KILLED   Set Quick-Play delay follows trapSetTurnDelay
+KILLED   equal speed may not respond (Counter vs Counter)
+KILLED   lower speed may respond to higher
+KILLED   activated Set card stays face-down
+KILLED   activated Set card leaves its zone
+KILLED   link records the hand as source
+KILLED   Set cards are never found
+KILLED   destroyed Set card sent to the graveyard again
+KILLED   zone not cleared after resolution
+KILLED   graveyard event says 'Hand'
+KILLED   Set cards never listed / never keep a window open
+KILLED   schema rejects spellSpeed 3
+
+27/27 mutants killed

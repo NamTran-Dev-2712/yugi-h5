@@ -250,14 +250,14 @@ describe('ActivateEffect — Destroy and targets', () => {
   });
 
   it('destroys a Spell/Trap on the field with SpellTrapDestroyed', () => {
-    const { state, events } = run({ hand: ['KILL_ST'], oppSpellTraps: [[4, 'TRAP']] });
+    const { state, events } = run({ hand: ['KILL_ST'], oppSpellTraps: [[4, 'TRAP_PLAIN']] });
     expect(state.players[1].board.spellTrapZones[4]).toBeNull();
-    expect(state.players[1].graveyard.map((c) => c.definitionId)).toEqual(['TRAP']);
+    expect(state.players[1].graveyard.map((c) => c.definitionId)).toEqual(['TRAP_PLAIN']);
     expect(events).toContainEqual({
       type: 'SpellTrapDestroyed',
       ownerIndex: 1,
       instanceId: 'os-4',
-      definitionId: 'TRAP',
+      definitionId: 'TRAP_PLAIN',
       zoneIndex: 4,
     });
   });
@@ -486,14 +486,14 @@ describe('ActivateEffect — validation', () => {
     );
   });
 
-  it('a Spell already Set on the field cannot be activated yet (3.4): it is not in the hand', () => {
+  it('a Normal Spell already Set on the field is not activatable yet: NOT_ACTIVATABLE (was CARD_NOT_IN_HAND before 3.4)', () => {
     const s = fixtureState({ hand: ['DRAW'] });
     const set = applyAction(
       s,
       { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'h0', zoneIndex: 0 } },
       fixtureCtx,
     ).state;
-    expectEngineError(() => applyAction(set, activate('h0'), fixtureCtx), 'CARD_NOT_IN_HAND');
+    expectEngineError(() => applyAction(set, activate('h0'), fixtureCtx), 'NOT_ACTIVATABLE');
   });
 
   it('is deterministic and never mutates its input', () => {

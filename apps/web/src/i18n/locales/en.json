@@ -158,6 +158,8 @@
   "error.engine.EFFECT_NOT_FOUND": "That card has no such effect.",
   "error.engine.NOT_ACTIVATABLE": "This effect cannot be activated yet.",
   "error.engine.TRAP_NOT_SET": "A Trap must be Set face-down before it can be activated.",
+  "error.engine.TRAP_SET_THIS_TURN": "This Trap was Set this turn and cannot be activated yet.",
+  "error.engine.SPELL_SET_THIS_TURN": "This Quick-Play Spell was Set this turn and cannot be activated yet.",
   "error.engine.CONDITION_NOT_MET": "The conditions to activate this effect are not met.",
   "error.engine.INVALID_COST": "The effect's cost cannot be paid.",
   "error.engine.NO_VALID_TARGET": "There is no valid target for this effect.",

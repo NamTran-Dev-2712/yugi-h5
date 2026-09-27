@@ -133,13 +133,16 @@ export interface EffectResolvedEventView {
   readonly effectId: string;
 }
 
-/** A used (already revealed) Spell went to its owner's graveyard. */
+/**
+ * A used (already revealed) Spell/Trap went to its owner's graveyard: `Hand` = activated from the hand, `SpellTrapZone`
+ * = a Set card that was flipped face-up to activate (task 3.4).
+ */
 export interface CardSentToGraveyardEventView {
   readonly type: 'CardSentToGraveyard';
   readonly ownerIndex: PlayerIndex;
   readonly instanceId: string;
   readonly definitionId: string;
-  readonly from: 'Hand';
+  readonly from: 'Hand' | 'SpellTrapZone';
 }
 
 export interface LifePointsRecoveredEventView {

@@ -12,15 +12,23 @@ handler function đăng ký sẵn trong engine.
 
 ## Engine chạy effect thế nào (task 3.2, chain từ task 3.3)
 
-- `ActivateEffect {playerIndex, cardInstanceId, effectId, costInstanceIds?}`: Spell **ở TAY**, Main1/Main2, turn player.
-  **Normal Spell** ↔ `trigger.kind === 'Ignition'`, Spell Speed 1 `[DECISION]` (map vào `Ignition`, không thêm trigger kind).
-  **Quick-Play Spell** (`subType: 'QuickPlay'`) ↔ `trigger.kind === 'Quick'`, Spell Speed 2 `[RULE]` (task 3.3, bản tối thiểu:
-  chỉ từ tay ở lượt mình; hiện chỉ lá test dùng). Trap ở tay → `TRAP_NOT_SET`; Spell khác subType / trigger không khớp →
-  `NOT_ACTIVATABLE`; lá đã Set trên sân chưa kích hoạt được (task 3.4).
+- `ActivateEffect {playerIndex, cardInstanceId, effectId, costInstanceIds?}`: lá ở **TAY** hoặc **đã Set** trong ô Phép/Bẫy
+  của mình (task 3.4) `[RULE]`:
+  - **Normal Spell** từ tay ↔ `trigger.kind === 'Ignition'`, Main1/Main2 của mình `[DECISION]` (map vào `Ignition`).
+  - **Quick-Play Spell** (`subType: 'QuickPlay'`) ↔ `trigger.kind === 'Quick'`: từ tay ở **lượt mình, mọi phase**; đã Set thì
+    kích hoạt được ở cả lượt đối thủ (qua cửa sổ chain), **trừ lượt vừa Set** (`SPELL_SET_THIS_TURN`).
+  - **Trap** Normal/Counter đã Set ↔ `trigger.kind === 'Quick'`; trên tay → `TRAP_NOT_SET` (C11); Set trong lượt này →
+    `TRAP_SET_THIS_TURN` (nếu `ruleset.trapSetTurnDelay`).
+  - Lá Set được kích hoạt **lật ngửa và ở lại ô** tới khi link resolve rồi vào mộ (`CardSentToGraveyard.from: 'SpellTrapZone'`).
+  - Ngoài cửa sổ chain chỉ người chơi của lượt kích hoạt (mọi phase với lá Set); trong cửa sổ chỉ người giữ ưu tiên.
+  - Continuous Spell/Trap, Normal Spell đã Set, Field → `NOT_ACTIVATABLE` (chưa làm); trigger không khớp → `NOT_ACTIVATABLE`.
+- **Spell Speed** (task 3.4): `EffectDefinition.spellSpeed?: 1 | 2 | 3`; bỏ trống = engine suy ra (`effects/spell-speed.ts`):
+  Counter Trap 3, Trap khác 2, Quick-Play 2, còn lại 1 `[RULE]`. Chỉ khai báo tường minh cho lá lệch mặc định. Nối chain cần
+  Speed ≥ 2 và ≥ link trên cùng (`SPELL_SPEED_TOO_LOW`).
 - Thứ tự (task 3.3): kiểm tra (phase, condition, cost trả được, target, Spell Speed) → **không đổi state** tới lúc kích hoạt →
-  lá rời tay, **trả cost, chốt target** → đẩy `ChainLink` (`ChainLinkAdded`) → cửa sổ ưu tiên (auto-pass người không đáp trả được).
+  lá rời tay (lá Set: lật ngửa tại ô), **trả cost, chốt target** → đẩy `ChainLink` (`ChainLinkAdded`) → cửa sổ ưu tiên (auto-pass người không đáp trả được).
   `operations[]` chỉ chạy **lúc chain resolve** (LIFO), trên target còn hợp lệ (hết target → `ChainLinkFizzled`), dừng nếu duel
-  kết thúc giữa chừng → Spell vào mộ. Event: `EffectActivated`, (cost), `ChainLinkAdded`, (operation), `EffectResolved`,
+  kết thúc giữa chừng → lá vào mộ. Event: `EffectActivated`, (cost), `ChainLinkAdded`, (operation), `EffectResolved`,
   `CardSentToGraveyard`, `ChainResolved`; `DuelEnded` luôn cuối. Chi tiết: `engine.md` mục "Chain stack".
 - `costInstanceIds` tiêu thụ tuần tự theo `cost[]`: mỗi `Discard`/`Tribute` lấy `count` id; `PayLP` không id (cần LP **lớn hơn**
   số trả `[ASSUMED]`). `Discard` từ tay (không phải chính lá kích hoạt), `Tribute` từ quái của mình.
@@ -38,6 +46,7 @@ nên gõ sai kind/field là lỗi `tsc`/parse. `[DECISION]`
 interface EffectDefinition {
   id: string; // unique trong 1 CardDefinition (CardDefinition.effects refine)
   trigger: Trigger;
+  spellSpeed?: 1 | 2 | 3; // task 3.4; bỏ trống = suy ra từ lá (Counter Trap 3, Trap/Quick-Play 2, còn lại 1)
   condition?: Condition[]; // AND; không được rỗng nếu có
   cost?: Cost[]; // trả khi activate; không được rỗng nếu có
   target?: Target; // chọn lúc activate

@@ -158,6 +158,8 @@
   "error.engine.EFFECT_NOT_FOUND": "Lá này không có hiệu ứng đó.",
   "error.engine.NOT_ACTIVATABLE": "Chưa thể kích hoạt hiệu ứng này.",
   "error.engine.TRAP_NOT_SET": "Bài Bẫy phải được úp xuống trước khi kích hoạt.",
+  "error.engine.TRAP_SET_THIS_TURN": "Bài Bẫy vừa úp lượt này, chưa kích hoạt được.",
+  "error.engine.SPELL_SET_THIS_TURN": "Bài Phép Nhanh vừa úp lượt này, chưa kích hoạt được.",
   "error.engine.CONDITION_NOT_MET": "Chưa đủ điều kiện kích hoạt hiệu ứng.",
   "error.engine.INVALID_COST": "Không trả được chi phí của hiệu ứng.",
   "error.engine.NO_VALID_TARGET": "Không có mục tiêu hợp lệ cho hiệu ứng này.",

@@ -159,6 +159,12 @@ describe('EffectDefinition', () => {
     bad(EffectDefinitionSchema, { ...base, cost: [{ kind: 'PayLP', amount: 100 }] });
     bad(EffectDefinitionSchema, { ...base, target: { kind: 'Player', who: 'self' } });
   });
+  it('accepts an optional explicit spellSpeed 1|2|3 (task 3.4), nothing else', () => {
+    const base = { id: 'x', trigger: { kind: 'Quick' }, operations: [draw] };
+    for (const spellSpeed of [1, 2, 3]) ok(EffectDefinitionSchema, { ...base, spellSpeed });
+    for (const spellSpeed of [0, 4, 2.5, '2', null])
+      bad(EffectDefinitionSchema, { ...base, spellSpeed });
+  });
 });
 
 describe('registry (metadata only: no functions)', () => {

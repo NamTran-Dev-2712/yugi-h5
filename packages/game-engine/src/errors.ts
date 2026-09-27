@@ -37,6 +37,8 @@ export type EngineErrorCode =
   | 'EFFECT_NOT_FOUND'
   | 'NOT_ACTIVATABLE'
   | 'TRAP_NOT_SET'
+  | 'TRAP_SET_THIS_TURN'
+  | 'SPELL_SET_THIS_TURN'
   | 'CONDITION_NOT_MET'
   | 'INVALID_COST'
   | 'NO_VALID_TARGET'

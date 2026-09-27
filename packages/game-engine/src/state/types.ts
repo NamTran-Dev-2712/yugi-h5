@@ -78,18 +78,24 @@ export interface PendingPrompt {
   readonly payload: unknown;
 }
 
+/** Where the activated card was (task 3.4). */
+export type ChainLinkSource =
+  { readonly zone: 'Hand' } | { readonly zone: 'SpellTrapZone'; readonly zoneIndex: number };
+
 /**
  * One activation waiting on the chain (task 3.3). Cost was paid and targets were chosen when it was added; its
- * operations run only when the chain resolves (LIFO). The activated Spell lives here (face-up, public: activating it
- * revealed it) from the moment it leaves the hand until it is sent to the graveyard.
+ * operations run only when the chain resolves (LIFO). A card activated from the HAND lives here (public: activating it
+ * revealed it) until it is sent to the graveyard. A Set card activated from the field (task 3.4) stays face-up in its
+ * Spell/Trap Zone instead; `card` is then only a copy (not counted as a separate card).
  */
 export interface ChainLink {
   /** Deterministic: `link-<turnCount>-<version of the state it was activated in>`. */
   readonly linkId: string;
   readonly playerIndex: 0 | 1;
   readonly card: CardInstance;
+  readonly source: ChainLinkSource;
   readonly effectId: string;
-  /** 1 = Normal Spell, 2 = Quick-Play; 3 (Counter Trap) arrives with task 3.4. */
+  /** Normal Spell 1; Quick-Play and Traps 2; Counter Trap 3; or the effect's explicit `spellSpeed`. */
   readonly spellSpeed: 1 | 2 | 3;
   /** Cards already paid as cost (Discard/Tribute), in cost order. */
   readonly costInstanceIds: readonly string[];

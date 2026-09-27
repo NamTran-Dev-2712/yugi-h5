@@ -4,6 +4,7 @@ import type { GameEvent } from '../../events/types.js';
 import type {
   CardInstance,
   ChainLink,
+  ChainLinkSource,
   GameState,
   PendingPrompt,
   PlayerState,
@@ -12,12 +13,14 @@ import { activationCandidates } from '../../effects/activation-candidates.js';
 import { pushLink, settle } from '../../effects/chain.js';
 import { conditionsHold } from '../../effects/conditions.js';
 import { payCosts, planCosts, type CostStep } from '../../effects/costs.js';
+import { spellSpeedOf } from '../../effects/spell-speed.js';
 import { targetCandidates } from '../../effects/targets.js';
 import type { ActionContext, ActivateEffectAction, ResolvePendingPromptAction } from '../types.js';
 
 /*
- * Activating a Spell from the hand (task 3.2, chained in task 3.3). Validation (`prepare`) and the target prompt are
- * side-effect free. `activate` pays the cost, fixes the targets and pushes a chain link; the operations only run when
+ * Activating a Spell from the hand (task 3.2, chained in task 3.3) or a Set Trap / Quick-Play from the Spell/Trap Zone
+ * (task 3.4; the card flips face-up and stays there until its link resolves). Validation (`prepare`) and the target
+ * prompt are side-effect free. `activate` pays the cost, fixes the targets and pushes a chain link; the operations only run when
  * the chain resolves (`effects/chain.ts`). With nobody able to respond, the chain resolves in the same call.
  */
 
@@ -44,8 +47,9 @@ interface Request {
 interface Prepared {
   readonly request: Request;
   readonly card: CardInstance;
+  readonly source: ChainLinkSource;
   readonly effect: EffectDefinition;
-  readonly spellSpeed: 1 | 2;
+  readonly spellSpeed: 1 | 2 | 3;
   readonly costPlan: readonly CostStep[];
   /** Candidate ids for the effect's `Card` target; null when the effect has no Card target. */
   readonly candidates: readonly string[] | null;
@@ -64,16 +68,17 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
   if (state.pendingPrompt !== null) fail('PENDING_PROMPT', 'a prompt is pending.');
   if (state.chainWindow !== null && state.chainWindow.priorityPlayer !== playerIndex)
     fail('NOT_PRIORITY_HOLDER', 'the other player holds priority in the chain window.');
-  // [RULE] Spells in the hand are activated on your own turn only (Quick-Play included).
-  if (playerIndex !== state.turnPlayerIndex)
+  // [RULE] outside a chain window only the turn player acts; inside one, the priority holder (checked above).
+  if (state.chainWindow === null && playerIndex !== state.turnPlayerIndex)
     fail('NOT_TURN_PLAYER', 'only the turn player may act.');
-  if (state.phase !== 'Main1' && state.phase !== 'Main2') {
-    fail('WRONG_PHASE', `only allowed in a Main Phase (current phase: ${state.phase}).`);
-  }
 
-  const player = state.players[playerIndex];
-  const card = player.hand.find((c) => c.instanceId === cardInstanceId);
-  if (!card) return fail('CARD_NOT_IN_HAND', `card ${cardInstanceId} is not in your hand.`);
+  const found = locate(state.players[playerIndex], cardInstanceId);
+  if (!found)
+    return fail(
+      'CARD_NOT_IN_HAND',
+      `card ${cardInstanceId} is neither in your hand nor Set in your Spell/Trap Zone.`,
+    );
+  const { card, source } = found;
 
   const definition = ctx.cardDefinitions(card.definitionId);
   if (!definition)
@@ -83,42 +88,72 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
     );
   if (definition.kind === 'Monster')
     return fail('NOT_A_SPELL_TRAP', `"${definition.name.en}" is not a Spell/Trap card.`);
-  if (definition.kind === 'Trap') {
-    // [DECISION] C11: a Trap must be Set first. Activating a Set Trap is task 3.4.
-    return state.ruleset.allowTrapActivationFromHand
-      ? fail('NOT_ACTIVATABLE', 'Trap activation is not supported yet.')
-      : fail('TRAP_NOT_SET', `"${definition.name.en}" is a Trap: Set it first.`);
+
+  // Which trigger this card may activate from where it is [RULE]; null = not activatable from there (yet).
+  let trigger: 'Ignition' | 'Quick' | null;
+  if (source.zone === 'Hand') {
+    // [RULE] a Spell in the hand is activated on your own turn only (Quick-Play included), even in a window.
+    if (playerIndex !== state.turnPlayerIndex)
+      fail('NOT_TURN_PLAYER', 'a card in the hand may only be activated on your own turn.');
+    if (definition.kind === 'Trap') {
+      // [DECISION] C11: a Trap must be Set first.
+      return state.ruleset.allowTrapActivationFromHand
+        ? fail('NOT_ACTIVATABLE', 'Trap activation from the hand is not supported.')
+        : fail('TRAP_NOT_SET', `"${definition.name.en}" is a Trap: Set it first.`);
+    }
+    // Normal Spell: Ignition, Main Phase only. Quick-Play Spell: Quick, any phase of your turn.
+    trigger =
+      definition.subType === 'Normal'
+        ? 'Ignition'
+        : definition.subType === 'QuickPlay'
+          ? 'Quick'
+          : null;
+    if (definition.subType === 'Normal' && state.phase !== 'Main1' && state.phase !== 'Main2')
+      fail('WRONG_PHASE', `only allowed in a Main Phase (current phase: ${state.phase}).`);
+  } else {
+    // A face-up card is already on the chain (or resolving): it cannot be activated again.
+    if (card.position !== 'DefenseDown')
+      fail('NOT_ACTIVATABLE', `"${definition.name.en}" is already face-up.`);
+    // Set Normal/Counter Trap and Set Quick-Play: Quick trigger, any phase. Continuous cards / Set Normal Spell: later.
+    trigger =
+      definition.kind === 'Trap'
+        ? definition.subType === 'Continuous'
+          ? null
+          : 'Quick'
+        : definition.subType === 'QuickPlay'
+          ? 'Quick'
+          : null;
   }
-  // Normal Spell = Ignition trigger, Spell Speed 1. Quick-Play Spell = Quick trigger, Spell Speed 2 [RULE].
-  const kinds = {
-    Normal: { trigger: 'Ignition', speed: 1 },
-    QuickPlay: { trigger: 'Quick', speed: 2 },
-  } as const;
-  const kind =
-    definition.subType === 'Normal' || definition.subType === 'QuickPlay'
-      ? kinds[definition.subType]
-      : null;
-  if (!kind)
+  if (trigger === null)
     return fail(
       'NOT_ACTIVATABLE',
-      `only Normal and Quick-Play Spells can be activated for now (got ${definition.subType}).`,
+      `a ${definition.subType} ${definition.kind} cannot be activated from the ${source.zone} yet.`,
     );
 
   const effect = definition.effects?.find((e) => e.id === effectId);
   if (!effect)
     return fail('EFFECT_NOT_FOUND', `"${definition.name.en}" has no effect "${effectId}".`);
-  if (effect.trigger.kind !== kind.trigger)
+  if (effect.trigger.kind !== trigger)
     return fail(
       'NOT_ACTIVATABLE',
-      `a ${effect.trigger.kind} effect cannot be activated from the hand as a ${definition.subType} Spell.`,
+      `a ${effect.trigger.kind} effect cannot be activated as a ${definition.subType} ${definition.kind}.`,
     );
 
+  if (source.zone === 'SpellTrapZone' && card.setTurn === state.turnCount) {
+    // [RULE] not on the turn it was Set: Traps per `ruleset.trapSetTurnDelay`, Quick-Play Spells always.
+    if (definition.kind === 'Trap' && state.ruleset.trapSetTurnDelay)
+      fail('TRAP_SET_THIS_TURN', `"${definition.name.en}" was Set this turn.`);
+    if (definition.kind === 'Spell')
+      fail('SPELL_SET_THIS_TURN', `"${definition.name.en}" was Set this turn.`);
+  }
+
   // [RULE] a chain link must be Spell Speed 2+ and at least the speed of the link it responds to.
+  const spellSpeed = spellSpeedOf(definition, effect);
   const top = state.chainStack.at(-1);
-  if (top && (kind.speed < 2 || kind.speed < top.spellSpeed))
+  if (top && (spellSpeed < 2 || spellSpeed < top.spellSpeed))
     fail(
       'SPELL_SPEED_TOO_LOW',
-      `Spell Speed ${kind.speed} cannot respond to Spell Speed ${top.spellSpeed}.`,
+      `Spell Speed ${spellSpeed} cannot respond to Spell Speed ${top.spellSpeed}.`,
     );
 
   const needsCardTarget = effect.operations.some((o) => o.kind === 'Destroy');
@@ -141,7 +176,19 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
         `needs ${targetCount} target(s), only ${candidates.length} available.`,
       );
   }
-  return { request, card, effect, spellSpeed: kind.speed, costPlan, candidates, targetCount };
+  return { request, card, source, effect, spellSpeed, costPlan, candidates, targetCount };
+}
+
+/** The card in `player`'s hand, or Set in their Spell/Trap Zone. */
+function locate(
+  player: PlayerState,
+  instanceId: string,
+): { card: CardInstance; source: ChainLinkSource } | null {
+  const inHand = player.hand.find((c) => c.instanceId === instanceId);
+  if (inHand) return { card: inHand, source: { zone: 'Hand' } };
+  const zoneIndex = player.board.spellTrapZones.findIndex((c) => c?.instanceId === instanceId);
+  const onField = player.board.spellTrapZones[zoneIndex];
+  return onField ? { card: onField, source: { zone: 'SpellTrapZone', zoneIndex } } : null;
 }
 
 /** True when `seat` has at least one activation the engine would accept right now (dry run over the candidates). */
@@ -176,7 +223,7 @@ function activate(
   targetInstanceIds: readonly string[],
   ctx: ActionContext,
 ): Result {
-  const { request, card, effect, costPlan, spellSpeed } = prepared;
+  const { request, card, source, effect, costPlan, spellSpeed } = prepared;
   const { playerIndex } = request;
   const events: GameEvent[] = [
     {
@@ -188,15 +235,23 @@ function activate(
     },
   ];
 
+  // From the hand the card leaves it (it lives in the link); a Set card flips face-up and stays in its zone [RULE].
   const player = state.players[playerIndex];
-  const withoutSpell: PlayerState = {
-    ...player,
-    hand: player.hand.filter((c) => c.instanceId !== card.instanceId),
-  };
+  const activated: PlayerState =
+    source.zone === 'Hand'
+      ? { ...player, hand: player.hand.filter((c) => c.instanceId !== card.instanceId) }
+      : {
+          ...player,
+          board: {
+            ...player.board,
+            spellTrapZones: player.board.spellTrapZones.map((slot, i) =>
+              i === source.zoneIndex ? { ...card, position: 'Attack' } : slot,
+            ) as unknown as PlayerState['board']['spellTrapZones'],
+          },
+        };
   let current: GameState = {
     ...state,
-    players:
-      playerIndex === 0 ? [withoutSpell, state.players[1]] : [state.players[0], withoutSpell],
+    players: playerIndex === 0 ? [activated, state.players[1]] : [state.players[0], activated],
   };
 
   const paid = payCosts(current, playerIndex, costPlan);
@@ -212,6 +267,7 @@ function activate(
       ownerIndex: card.ownerIndex,
       position: null,
     },
+    source,
     effectId: effect.id,
     spellSpeed,
     costInstanceIds: costPlan.flatMap((step) =>

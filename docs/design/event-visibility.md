@@ -36,7 +36,7 @@ raw events never leave the class.
 | SpellTrapSet        | — (no definitionId)      | PUBLIC               | Task 3.2 (forwarded since 3.2b). Like `MonsterSet`: face-down Set, only the hand `instanceId` and the zone.   |
 | EffectActivated     | definitionId             | PUBLIC               | Activating a Spell from the hand reveals it `[RULE]`.                                                         |
 | EffectResolved      | definitionId             | PUBLIC               | Same card as `EffectActivated` (already revealed).                                                            |
-| CardSentToGraveyard | definitionId             | PUBLIC               | Used Spell → graveyard (public).                                                                              |
+| CardSentToGraveyard | definitionId             | PUBLIC               | Used Spell/Trap → graveyard (public); `from` may be `SpellTrapZone` since 3.4.                                |
 | LifePointsRecovered | —                        | PUBLIC               | No card data.                                                                                                 |
 | LifePointsPaid      | —                        | PUBLIC               | No card data (LP cost).                                                                                       |
 | SpellTrapDestroyed  | definitionId             | PUBLIC               | `[ASSUMED]` Destroyed face-down Spell/Trap is revealed by the graveyard (like `MonsterDestroyed`).            |

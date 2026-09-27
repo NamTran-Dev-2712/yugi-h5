@@ -82,6 +82,47 @@ const toGraveyard = (c: CardInstance): CardInstance => ({
   position: null,
 });
 
+/**
+ * After its link, the activated card goes to its owner's graveyard: from the link itself (activated from the hand), or
+ * out of its Spell/Trap Zone. A Set card that already left its zone mid-chain (destroyed) is not sent again.
+ */
+function sendToGraveyard(state: GameState, link: ChainLink): Result {
+  const { source, card } = link;
+  const owner = state.players[card.ownerIndex];
+  let next: PlayerState;
+  if (source.zone === 'Hand') {
+    next = { ...owner, graveyard: [...owner.graveyard, toGraveyard(card)] };
+  } else {
+    const inZone = owner.board.spellTrapZones[source.zoneIndex];
+    if (inZone?.instanceId !== card.instanceId) return { state, events: [] };
+    next = {
+      ...owner,
+      graveyard: [...owner.graveyard, toGraveyard(inZone)],
+      board: {
+        ...owner.board,
+        spellTrapZones: owner.board.spellTrapZones.map((slot, i) =>
+          i === source.zoneIndex ? null : slot,
+        ) as unknown as PlayerState['board']['spellTrapZones'],
+      },
+    };
+  }
+  return {
+    state: {
+      ...state,
+      players: card.ownerIndex === 0 ? [next, state.players[1]] : [state.players[0], next],
+    },
+    events: [
+      {
+        type: 'CardSentToGraveyard',
+        ownerIndex: card.ownerIndex,
+        instanceId: card.instanceId,
+        definitionId: card.definitionId,
+        from: source.zone,
+      },
+    ],
+  };
+}
+
 /** Runs one link's operations against its still-valid targets (or fizzles it). */
 function resolveLink(state: GameState, link: ChainLink, ctx: ActionContext): Result {
   const base = {
@@ -130,8 +171,8 @@ function resolveLink(state: GameState, link: ChainLink, ctx: ActionContext): Res
 }
 
 /**
- * Resolves every link, top (last activated) first. Each Spell goes to its owner's graveyard after its link. If the duel
- * ends mid-chain the remaining links do not resolve (their Spells still go to the graveyard) and `DuelEnded` is last.
+ * Resolves every link, top (last activated) first. Each card goes to its owner's graveyard after its link. If the duel
+ * ends mid-chain the remaining links do not resolve (their cards still go to the graveyard) and `DuelEnded` is last.
  */
 export function resolveChain(state: GameState, ctx: ActionContext): Result {
   const links = state.chainStack;
@@ -145,23 +186,9 @@ export function resolveChain(state: GameState, ctx: ActionContext): Result {
       current = out.state;
       events.push(...out.events);
     }
-    const owner = current.players[link.card.ownerIndex];
-    const spent: PlayerState = {
-      ...owner,
-      graveyard: [...owner.graveyard, toGraveyard(link.card)],
-    };
-    current = {
-      ...current,
-      players:
-        link.card.ownerIndex === 0 ? [spent, current.players[1]] : [current.players[0], spent],
-    };
-    events.push({
-      type: 'CardSentToGraveyard',
-      ownerIndex: link.card.ownerIndex,
-      instanceId: link.card.instanceId,
-      definitionId: link.card.definitionId,
-      from: 'Hand',
-    });
+    const spent = sendToGraveyard(current, link);
+    current = spent.state;
+    events.push(...spent.events);
   }
   if (current.winnerIndex === null) events.push({ type: 'ChainResolved', linkCount: links.length });
 

@@ -60,6 +60,32 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  G_TRAP_BURN: {
+    id: 'G_TRAP_BURN',
+    kind: 'Trap',
+    name: { vi: 'Golden G_TRAP_BURN', en: 'Golden G_TRAP_BURN' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+      },
+    ],
+  },
+  G_COUNTER: {
+    id: 'G_COUNTER',
+    kind: 'Trap',
+    name: { vi: 'Golden G_COUNTER', en: 'Golden G_COUNTER' },
+    subType: 'Counter',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+      },
+    ],
+  },
 };
 
 const SPELL_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5', 'G_DRAW'][i % 4]!);
@@ -68,6 +94,12 @@ const SPELL_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5',
 const CHAIN_DECK = Array.from(
   { length: 40 },
   (_, i) => ['G_DRAW', 'G_QP_HEAL', 'G_QP_BURN', 'M1000'][i % 4]!,
+);
+
+/** Set Trap / Set Quick-Play / Counter Trap chain (task 3.4). */
+const TRAP_DECK = Array.from(
+  { length: 40 },
+  (_, i) => ['G_DRAW', 'G_QP_BURN', 'G_TRAP_BURN', 'G_COUNTER', 'M1000'][i % 5]!,
 );
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
@@ -261,7 +293,7 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
         payload: { playerIndex: 0, cardInstanceId: 'p0-3', effectId: 'e1' },
       },
       ...endPhase(0, 4),
-      // T2 (P1) hand after its draw includes p1-19 G_DRAW: Set it face-down; it can no longer be activated from the hand.
+      // T2 (P1) hand after its draw includes p1-19 G_DRAW: Set it face-down; a Set Normal Spell is not activatable (3.4: NOT_ACTIVATABLE).
       ...endPhase(1, 2),
       { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-19', zoneIndex: 2 } },
       {
@@ -311,6 +343,67 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
       // No window left.
       { type: 'PassPriority', payload: { playerIndex: 0 } },
       ...endPhase(0, 4),
+    ],
+  },
+  {
+    name: 'set-trap-quickplay-counter-chain',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-trap-qp',
+        playerIds: ['alice', 'bob'],
+        deckLists: [TRAP_DECK, TRAP_DECK],
+      },
+    },
+    actions: [
+      ...endPhase(0, 2),
+      // T1 (P0) hand: p0-2 G_TRAP_BURN, p0-14 M1000, p0-36 G_QP_BURN, p0-38 G_COUNTER, p0-19 M1000.
+      // Set a Trap, a Quick-Play and a Counter Trap; neither Set card may be activated the turn it was Set.
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-2', zoneIndex: 0 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-2', effectId: 'e1' },
+      },
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-36', zoneIndex: 1 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-36', effectId: 'e1' },
+      },
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-38', zoneIndex: 2 } },
+      ...endPhase(0, 4),
+      // T2 (P1) hand: p1-26 G_QP_BURN, p1-18 G_COUNTER, p1-0 G_DRAW, p1-4 M1000, p1-19 M1000 (+ draws p1-38).
+      ...endPhase(1, 2),
+      // Link 1 (Speed 1): P0 holds Set cards from an earlier turn, so the window opens for P0.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-0', effectId: 'e1' },
+      },
+      // Link 2: P0's Set Quick-Play on the opponent's turn. P1 could answer with its hand Quick-Play (own turn).
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-36', effectId: 'e1' },
+      },
+      // Reject: a Counter Trap in the hand is not Set.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-18', effectId: 'e1' },
+      },
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      // Link 3: P0's Set Normal Trap (Speed 2).
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-2', effectId: 'e1' },
+      },
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      // Link 4: Counter Trap (Speed 3). P1 has nothing at Speed 3 → the chain resolves LIFO in this call.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-38', effectId: 'e1' },
+      },
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      ...endPhase(1, 4),
     ],
   },
 ];

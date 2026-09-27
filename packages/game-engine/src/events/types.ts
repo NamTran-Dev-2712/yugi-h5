@@ -135,13 +135,13 @@ export interface EffectResolvedEvent {
   readonly effectId: string;
 }
 
-/** A used Normal Spell went from where it was activated to its owner's graveyard. */
+/** A used Spell/Trap went to its owner's graveyard: from the hand, or from the Spell/Trap Zone it was flipped in (3.4). */
 export interface CardSentToGraveyardEvent {
   readonly type: 'CardSentToGraveyard';
   readonly ownerIndex: 0 | 1;
   readonly instanceId: string;
   readonly definitionId: string;
-  readonly from: 'Hand';
+  readonly from: 'Hand' | 'SpellTrapZone';
 }
 
 export interface LifePointsRecoveredEvent {

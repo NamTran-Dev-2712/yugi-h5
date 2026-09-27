@@ -47,13 +47,23 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
     cost: [{ kind: 'Discard', count: 1 }],
     operations: [{ kind: 'Heal', amount: 300, target: 'self' }],
   }),
-  // Test-only Quick-Play Spells (Speed 2): the only way to build multi-link chains until task 3.4.
+  // Test-only Quick-Play Spells (Speed 2): from the hand on your turn, or Set (task 3.4) on either turn.
   QPH: quickPlay('QPH', {
     operations: [{ kind: 'Heal', amount: 200, target: 'self' }],
   }),
   QPK: quickPlay('QPK', {
     target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
     operations: [{ kind: 'Destroy' }],
+  }),
+  // Test-only Traps (task 3.4): Set, then activated from a later turn. Normal = Speed 2, Counter = Speed 3.
+  TRB: trap('TRB', 'Normal', { operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }] }),
+  TRK: trap('TRK', 'Normal', {
+    target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  TRC: trap('TRC', 'Counter', {
+    cost: [{ kind: 'PayLP', amount: 300 }],
+    operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
   }),
 };
 const DECK_POOL = Object.keys(FUZZ_DEFS);
@@ -75,6 +85,20 @@ function quickPlay(id: string, effect: Omit<EffectDefinition, 'id' | 'trigger'>)
     kind: 'Spell',
     name: { vi: `Fuzz ${id}`, en: `Fuzz ${id}` },
     subType: 'QuickPlay',
+    effects: [{ id: 'e1', trigger: { kind: 'Quick' }, ...effect } as EffectDefinition],
+  };
+}
+
+function trap(
+  id: string,
+  subType: 'Normal' | 'Counter',
+  effect: Omit<EffectDefinition, 'id' | 'trigger'>,
+): CardDefinition {
+  return {
+    id,
+    kind: 'Trap',
+    name: { vi: `Fuzz ${id}`, en: `Fuzz ${id}` },
+    subType,
     effects: [{ id: 'e1', trigger: { kind: 'Quick' }, ...effect } as EffectDefinition],
   };
 }
@@ -110,6 +134,9 @@ export interface FuzzStats {
   readonly duelsEnded: number;
   /** Longest chain seen in a state between actions (a chain that resolves within one action is not counted). */
   readonly maxChainLength: number;
+  /** Links added from a Set card in the Spell/Trap Zone (task 3.4), and links of Spell Speed 3. */
+  readonly fieldLinks: number;
+  readonly speed3Links: number;
 }
 
 export type FuzzResult =
@@ -171,8 +198,11 @@ function allCards(state: GameState): CardInstance[] {
       if (c) cards.push(c);
     }
   }
-  // Spells activated and waiting on the chain (task 3.3) are neither in the hand nor in the graveyard.
-  cards.push(...state.chainStack.map((link) => link.card));
+  // Cards activated from the HAND and waiting on the chain (task 3.3) are neither in the hand nor in the graveyard.
+  // A Set card activated from the field stays in its zone (task 3.4): its link only holds a copy.
+  cards.push(
+    ...state.chainStack.filter((link) => link.source.zone === 'Hand').map((link) => link.card),
+  );
   return cards;
 }
 
@@ -254,8 +284,13 @@ function plausibleSetSpellTrap(state: GameState, rand: Rand): Action | null {
 function plausibleActivate(state: GameState, rand: Rand): Action | null {
   const p = state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex;
   const hand = state.players[p].hand;
-  if (hand.length === 0) return null;
-  const card = rand.pick(hand);
+  // Hand cards and (task 3.4) the player's own Spell/Trap Zone, face-down or not (face-up ones must be rejected).
+  const backrow = state.players[p].board.spellTrapZones.filter(
+    (c): c is CardInstance => c !== null,
+  );
+  const pool = backrow.length > 0 && rand.chance(0.5) ? backrow : hand;
+  if (pool.length === 0) return null;
+  const card = rand.pick(pool);
   const def = FUZZ_DEFS[card.definitionId];
   const effect = def && def.kind !== 'Monster' ? def.effects?.[0] : undefined;
   const costIds: string[] = [];
@@ -446,7 +481,12 @@ function nextAction(state: GameState, rand: Rand): Action {
       action = rand.chance(state.phase === 'Main1' ? 0.25 : 0.4) ? endPhase : mainPhaseAction();
       break;
     case 'Battle':
-      action = rand.chance(0.25) ? endPhase : attack();
+      // Set Traps / Quick-Play may be activated in any phase (task 3.4).
+      action = rand.chance(0.25)
+        ? endPhase
+        : rand.chance(0.15)
+          ? (plausibleActivate(state, rand) ?? attack())
+          : attack();
       break;
     default:
       action = rand.chance(0.9) ? endPhase : (mainPhaseAction() ?? attack());
@@ -501,6 +541,21 @@ export function checkStateInvariants(
     return `chainWindow.passCount is ${state.chainWindow.passCount}`;
   for (const link of state.chainStack) {
     if (link.card.position !== null) return `chain link ${link.linkId} card has a position`;
+  }
+  // Task 3.4: a Spell/Trap is face-up on the field only while its own link (from that zone) waits on the chain.
+  for (const i of [0, 1] as const) {
+    const zones = state.players[i].board.spellTrapZones;
+    for (let z = 0; z < zones.length; z++) {
+      const c = zones[z];
+      if (!c || c.position === 'DefenseDown') continue;
+      const waiting = state.chainStack.some(
+        (l) =>
+          l.card.instanceId === c.instanceId &&
+          l.source.zone === 'SpellTrapZone' &&
+          l.source.zoneIndex === z,
+      );
+      if (!waiting) return `face-up Spell/Trap ${c.instanceId} in zone ${z} has no chain link`;
+    }
   }
 
   for (const i of [0, 1] as const) {
@@ -562,6 +617,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let duelsStarted = 0;
   let duelsEnded = 0;
   let maxChainLength = 0;
+  let fieldLinks = 0;
+  let speed3Links = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -624,6 +681,16 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
         );
     }
     maxChainLength = Math.max(maxChainLength, next.chainStack.length);
+    for (const e of result.events) {
+      if (e.type !== 'ChainLinkAdded') continue;
+      if (e.spellSpeed === 3) speed3Links++;
+      if (
+        state?.players.some((p) =>
+          p.board.spellTrapZones.some((c) => c?.instanceId === e.instanceId),
+        )
+      )
+        fieldLinks++;
+    }
     const custom = options.onState?.(next, ctx, step);
     if (custom) return fail(step, custom);
     state = next;
@@ -633,6 +700,14 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
     ok: true,
     seed,
     log,
-    stats: { accepted, rejected, duelsStarted, duelsEnded, maxChainLength },
+    stats: {
+      accepted,
+      rejected,
+      duelsStarted,
+      duelsEnded,
+      maxChainLength,
+      fieldLinks,
+      speed3Links,
+    },
   };
 }

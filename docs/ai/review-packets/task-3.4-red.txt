@@ -1,0 +1,36 @@
+# Task 3.4 — RED run (tests written before implementation), 2026-09-27
+
+## packages/shared (spellSpeed schema test)
+  × EffectDefinition > accepts an optional explicit spellSpeed 1|2|3 (task 3.4), nothing else
+  Tests  1 failed | 113 passed (114)
+
+## packages/game-engine
+   ✓ trap activation (C11) > trap in hand cannot be activated 2ms
+   × trap activation (C11) > trap set this turn cannot be activated this turn 12ms
+   × trap activation (C11) > set trap can be activated from the next turn 3ms
+   ✓ trap activation (C11) > normal spell can be activated from hand in Main Phase 4ms
+   ✓ trap activation (C11) > activating a trap in hand is rejected with TRAP_NOT_SET 1ms
+   × trap activation (C11) > activating a trap set this turn is rejected with TRAP_SET_THIS_TURN 2ms
+   × trap activation (C11) > trapSetTurnDelay=false lets a trap be activated the turn it was Set 1ms
+   ✓ trap activation (C11) > legalActions never lists Activate for a trap in hand, only Set 2ms
+   × trap activation (C11) > legalActions lists a Set trap from an earlier turn, not one Set this turn 5ms
+   × Set trap — timing and location > the turn player may activate a Set trap in Draw 1ms
+   × Set trap — timing and location > the turn player may activate a Set trap in Standby 1ms
+   × Set trap — timing and location > the turn player may activate a Set trap in Main1 1ms
+   × Set trap — timing and location > the turn player may activate a Set trap in Battle 2ms
+   × Set trap — timing and location > the turn player may activate a Set trap in Main2 1ms
+   × Set trap — timing and location > the turn player may activate a Set trap in End 1ms
+   ✓ Set trap — timing and location > the other player cannot activate a Set trap outside a chain window 2ms
+   ✓ Set trap — timing and location > a Set card of the other player is not yours to activate 0ms
+   × Set trap — timing and location > the opponent's Set trap answers my Normal Spell: flips face-up in place, resolves LIFO 2ms
+   × Set trap — timing and location > while its link waits, the activated trap sits face-up in its zone (and cannot be activated again) 3ms
+   × Set trap — timing and location > a trap destroyed while on the chain still resolves, and is not sent to the graveyard twice 1ms
+   × Set trap — timing and location > a Set trap with a Card target opens the target prompt, then flips and resolves 1ms
+   × Set trap — timing and location > a Continuous Trap is not activatable from the field 1ms
+   × Set trap — timing and location > a Trap whose effect is not a Quick trigger is not activatable from the field 1ms
+   × Set trap — timing and location > a Set Normal Spell is not activatable from the field 1ms
+   × Set trap — timing and location > a Trap with no effect is not activatable from the field 1ms
+Error: Cannot find module '../../effects/spell-speed.js' imported from 'E:/code/game/turn_battle/yugi-h5/packages/game-engine/src/actions/handlers/quick-play-and-speed.test.ts'
+⎯⎯⎯⎯⎯⎯ Failed Tests 19 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed (2)
+      Tests  19 failed | 6 passed (25)

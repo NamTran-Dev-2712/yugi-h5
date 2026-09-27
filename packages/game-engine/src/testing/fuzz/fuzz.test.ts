@@ -23,6 +23,8 @@ describe('fuzz: engine invariants hold', () => {
     let rejected = 0;
     let duelsEnded = 0;
     let maxChainLength = 0;
+    let fieldLinks = 0;
+    let speed3Links = 0;
     const byType: Record<string, number> = {};
     for (const seed of SEEDS.slice(0, 10)) {
       const result = runFuzz({ seed, steps: STEPS });
@@ -30,6 +32,8 @@ describe('fuzz: engine invariants hold', () => {
       rejected += result.stats.rejected;
       duelsEnded += result.stats.duelsEnded;
       maxChainLength = Math.max(maxChainLength, result.stats.maxChainLength);
+      fieldLinks += result.stats.fieldLinks;
+      speed3Links += result.stats.speed3Links;
       for (const [type, n] of Object.entries(result.stats.accepted)) {
         accepted += n;
         byType[type] = (byType[type] ?? 0) + n;
@@ -50,6 +54,9 @@ describe('fuzz: engine invariants hold', () => {
     }
     // Chains with a window left open (≥ 1 link waiting) and multi-link chains are reached.
     expect(maxChainLength).toBeGreaterThanOrEqual(2);
+    // Task 3.4: Set Traps / Quick-Play are activated from the field, and Counter Traps (Speed 3) are chained.
+    expect(fieldLinks, 'no link from a Set card').toBeGreaterThan(0);
+    expect(speed3Links, 'no Speed 3 link').toBeGreaterThan(0);
   });
 
   it('is deterministic: same seed → identical action log and stats', () => {
@@ -168,6 +175,30 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
     );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.violation).toMatch(/cannot respond/);
+  });
+
+  it('flags a Set card left face-up on the field with no chain link (task 3.4)', () => {
+    // After any accepted SetSpellTrap, turn the freshly Set card face-up without activating it.
+    const r = detect(
+      broken('SetSpellTrap', ({ state, events }) => {
+        const set = events.find((e) => e.type === 'SpellTrapSet');
+        if (!set || set.type !== 'SpellTrapSet') return { state, events };
+        const p = state.players[set.playerIndex];
+        const spellTrapZones = p.board.spellTrapZones.map((c, i) =>
+          i === set.zoneIndex && c ? { ...c, position: 'Attack' as const } : c,
+        ) as unknown as typeof p.board.spellTrapZones;
+        const next = { ...p, board: { ...p.board, spellTrapZones } };
+        return {
+          events,
+          state: {
+            ...state,
+            players: set.playerIndex === 0 ? [next, state.players[1]] : [state.players[0], next],
+          },
+        };
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/face-up Spell\/Trap/);
   });
 
   it('flags an uncontrolled exception', () => {

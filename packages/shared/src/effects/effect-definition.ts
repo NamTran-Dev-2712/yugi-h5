@@ -11,6 +11,11 @@ export const EffectDefinitionSchema = z
     /** Unique within one CardDefinition. */
     id: z.string().min(1),
     trigger: TriggerSchema,
+    /**
+     * Spell Speed on the chain (task 3.4). Omitted = derived by the engine from the card: Counter Trap 3, other Traps
+     * and Quick-Play Spells 2, everything else 1 [RULE]. Set it only for cards that break that default.
+     */
+    spellSpeed: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     /** AND — all must hold to activate/resolve. */
     condition: z.array(ConditionSchema).min(1).optional(),
     /** Paid on activation. */

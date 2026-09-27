@@ -60,7 +60,10 @@ function costSelections(
   return selections;
 }
 
-/** Every effect of every non-Monster card in `seat`'s hand × every candidate cost selection. Deterministic order. */
+/**
+ * Every effect of every non-Monster card in `seat`'s hand, then of every card in their Spell/Trap Zones (task 3.4),
+ * × every candidate cost selection. Deterministic order.
+ */
 export function activationCandidates(
   state: GameState,
   seat: 0 | 1,
@@ -68,17 +71,18 @@ export function activationCandidates(
 ): ActivateEffectAction[] {
   const me = state.players[seat];
   const ownMonsters = me.board.monsterZones.filter((c): c is CardInstance => c !== null);
+  const backrow = me.board.spellTrapZones.filter((c): c is CardInstance => c !== null);
   const out: ActivateEffectAction[] = [];
-  for (const handCard of me.hand) {
-    const def = ctx.cardDefinitions(handCard.definitionId);
+  for (const source of [...me.hand, ...backrow]) {
+    const def = ctx.cardDefinitions(source.definitionId);
     if (!def || def.kind === 'Monster') continue;
     for (const effect of def.effects ?? []) {
-      for (const costInstanceIds of costSelections(effect.cost, handCard, me.hand, ownMonsters)) {
+      for (const costInstanceIds of costSelections(effect.cost, source, me.hand, ownMonsters)) {
         out.push({
           type: 'ActivateEffect',
           payload: {
             playerIndex: seat,
-            cardInstanceId: handCard.instanceId,
+            cardInstanceId: source.instanceId,
             effectId: effect.id,
             ...(costInstanceIds.length > 0 ? { costInstanceIds } : {}),
           },

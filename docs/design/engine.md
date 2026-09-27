@@ -81,24 +81,31 @@ tạo object mới (spread), không mutate.
 
 Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định rời rạc của người chơi/AI):
 
-| Action                 | Milestone                                                  | Ghi chú                                                                                                                                                                                                                 |
-| ---------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChangePosition`       | M1 (task 1.5 ✅)                                           | `{playerIndex, cardInstanceId, toPosition: 'Attack'\|'DefenseUp'}`; xem chi tiết bên dưới                                                                                                                               |
-| `DeclareAttack`        | M1 (task 1.6 ✅)                                           | `{playerIndex, attackerInstanceId, targetInstanceId?}` (null = direct attack); xem chi tiết bên dưới                                                                                                                    |
-| `Surrender`            | M1 (task 1.9 ✅)                                           | `{playerIndex}`; mọi phase, cả hai bên; reject `DUEL_ENDED`/`SURRENDER_DISABLED`; xem chi tiết bên dưới                                                                                                                 |
-| `SetSpellTrap`         | M2 (task 3.2 ✅)                                           | `{playerIndex, cardInstanceId, zoneIndex}`; Spell/Trap từ tay vào ô 0–4, úp (`DefenseDown`), ghi `setTurn`; không giới hạn/lượt, không tốn Normal Summon; Main1/Main2; Field Spell chưa hỗ trợ                          |
-| `ActivateEffect`       | M2 (task 3.2 ✅; lên chain từ 3.3)                         | `{playerIndex, cardInstanceId, effectId, costInstanceIds?}`; **Normal Spell ở tay** + trigger `Ignition`; target chọn qua prompt `SelectEffectTarget` (không có `targetInstanceIds` trong payload); xem `effect-dsl.md` |
-| `ResolvePendingPrompt` | M1 (task 1.11 ✅, hand limit) / M2 (target/chain response) | `{playerIndex, promptId, cardInstanceIds}`; trả lời `PendingPrompt` hiện tại; xem mục PendingPrompt                                                                                                                     |
-| `PassPriority`         | M2 (task 3.3 ✅, engine-only)                              | `{playerIndex}`; chỉ `chainWindow.priorityPlayer`; pass thứ 2 liên tiếp resolve cả chain; xem mục Chain stack                                                                                                           |
+| Action                 | Milestone                                                  | Ghi chú                                                                                                                                                                                                                                     |
+| ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChangePosition`       | M1 (task 1.5 ✅)                                           | `{playerIndex, cardInstanceId, toPosition: 'Attack'\|'DefenseUp'}`; xem chi tiết bên dưới                                                                                                                                                   |
+| `DeclareAttack`        | M1 (task 1.6 ✅)                                           | `{playerIndex, attackerInstanceId, targetInstanceId?}` (null = direct attack); xem chi tiết bên dưới                                                                                                                                        |
+| `Surrender`            | M1 (task 1.9 ✅)                                           | `{playerIndex}`; mọi phase, cả hai bên; reject `DUEL_ENDED`/`SURRENDER_DISABLED`; xem chi tiết bên dưới                                                                                                                                     |
+| `SetSpellTrap`         | M2 (task 3.2 ✅)                                           | `{playerIndex, cardInstanceId, zoneIndex}`; Spell/Trap từ tay vào ô 0–4, úp (`DefenseDown`), ghi `setTurn`; không giới hạn/lượt, không tốn Normal Summon; Main1/Main2; Field Spell chưa hỗ trợ                                              |
+| `ActivateEffect`       | M2 (task 3.2 ✅; lên chain từ 3.3; lá Set từ 3.4)          | `{playerIndex, cardInstanceId, effectId, costInstanceIds?}`; Normal Spell/Quick-Play ở tay, Trap/Quick-Play đã Set (mục C11); target chọn qua prompt `SelectEffectTarget` (không có `targetInstanceIds` trong payload); xem `effect-dsl.md` |
+| `ResolvePendingPrompt` | M1 (task 1.11 ✅, hand limit) / M2 (target/chain response) | `{playerIndex, promptId, cardInstanceIds}`; trả lời `PendingPrompt` hiện tại; xem mục PendingPrompt                                                                                                                                         |
+| `PassPriority`         | M2 (task 3.3 ✅, engine-only)                              | `{playerIndex}`; chỉ `chainWindow.priorityPlayer`; pass thứ 2 liên tiếp resolve cả chain; xem mục Chain stack                                                                                                                               |
 
-### Kích hoạt Trap/Spell — hợp đồng C11 (implement ở P3, task 3.4)
+### Kích hoạt Trap/Spell — hợp đồng C11 (✅ xong: phần tay ở task 3.2, Trap/Quick-Play đã Set ở task 3.4)
 
-`[DECISION]` Trap phải được Set úp trên sân mới kích hoạt; `[RULE]` Trap vừa Set thì lượt đó chưa kích hoạt; `[RULE]` Spell thường kích hoạt từ tay ở Main Phase của mình. Quick-Play Spell (Speed 2): để P3, chưa chốt ở đây.
+`[DECISION]` Trap phải được Set úp trên sân mới kích hoạt; `[RULE]` Trap vừa Set thì lượt đó chưa kích hoạt; `[RULE]` Spell thường kích hoạt từ tay ở Main Phase của mình; `[RULE]` Quick-Play từ tay chỉ ở lượt mình (mọi phase), đã Set thì dùng được ở lượt đối thủ nhưng không trong lượt vừa Set (chủ dự án chốt 2026-09-27).
 
-- `ActivateEffect` cho **Trap** chỉ hợp lệ khi lá đang ở Spell/Trap Zone, úp, và (nếu `ruleset.trapSetTurnDelay`) đã qua lượt Set. Engine ghi lượt Set của lá để so sánh.
-- `ruleset.allowTrapActivationFromHand` (mặc định `false`): khi `false`, Trap trên tay chỉ có `SetSpellTrap`, không có `ActivateEffect`.
-- Reject bằng mã lỗi tách biệt: `TRAP_NOT_SET` (Trap chưa úp trên sân, vd còn trên tay), `TRAP_SET_THIS_TURN` (Set trong chính lượt này).
-- Task 3.2 đã làm phần "ở tay": Trap trên tay → `TRAP_NOT_SET`, `legalActions` không liệt kê `ActivateEffect` cho Trap ở tay (chỉ `SetSpellTrap`), `CardInstance.setTurn` được ghi lúc Set. Còn lại (kích hoạt Trap đã Set, `TRAP_SET_THIS_TURN`) là task 3.4 (`it.todo` ở `packages/game-engine/src/rules/trap-activation.test.ts`).
+- `ActivateEffect` tìm lá ở **tay** hoặc **ô Phép/Bẫy của chính người gọi** (không thấy → `CARD_NOT_IN_HAND`). Lá trên sân phải **úp** (`DefenseDown`); lá đang ngửa (đang trên chain) → `NOT_ACTIVATABLE`.
+- **Trap** Normal/Counter đã Set, trigger `Quick`: hợp lệ khi (nếu `ruleset.trapSetTurnDelay`) `setTurn !== turnCount`, không thì `TRAP_SET_THIS_TURN`. **Quick-Play** đã Set: `setTurn === turnCount` → `SPELL_SET_THIS_TURN` (luôn, không phụ thuộc ruleset). Continuous Trap/Spell, Normal Spell đã Set → `NOT_ACTIVATABLE` (chưa làm).
+- **Ai/khi nào**: ngoài cửa sổ chain chỉ người chơi của lượt (`NOT_TURN_PLAYER`), lá Set kích hoạt được ở **mọi phase**; trong cửa sổ chỉ người giữ ưu tiên (`NOT_PRIORITY_HOLDER`). Lá **trên tay** luôn cần lượt mình (`NOT_TURN_PLAYER`, kể cả khi đang giữ ưu tiên ở lượt đối thủ). Normal Spell từ tay: Main1/Main2 (`WRONG_PHASE`).
+- **Vị trí khi chờ resolve** `[RULE]`: lá Set được kích hoạt **lật ngửa tại ô** (`position: 'Attack'` = quy ước "ngửa" của Phép/Bẫy mà StateView đã hiểu), `ChainLink.source = {zone:'SpellTrapZone', zoneIndex}`; resolve xong (kể cả bị vô hiệu / duel kết thúc giữa chain) thì rời ô vào mộ, `CardSentToGraveyard {from:'SpellTrapZone'}`. Bị phá giữa chain → effect **vẫn resolve**, không phát `CardSentToGraveyard` lần hai.
+- `ruleset.allowTrapActivationFromHand` (mặc định `false`): khi `false`, Trap trên tay chỉ có `SetSpellTrap`, không có `ActivateEffect` (`TRAP_NOT_SET`); `true` hiện vẫn `NOT_ACTIVATABLE` (chưa hỗ trợ).
+- Test: `packages/game-engine/src/rules/trap-activation.test.ts`, `actions/handlers/quick-play-and-speed.test.ts`; golden `set-trap-quickplay-counter-chain`.
+- **Chưa có**: cửa sổ phản ứng khi tuyên bố tấn công / triệu hồi (`[REF]` video #3/#4) — đối thủ hiện chỉ đáp trả được khi có chain đang mở.
+
+### Mã lỗi thêm ở task 3.4
+
+`TRAP_SET_THIS_TURN` (Trap Set trong chính lượt này, theo `trapSetTurnDelay`), `SPELL_SET_THIS_TURN` (Quick-Play Set trong chính lượt này). `CARD_NOT_IN_HAND` giờ nghĩa là "không ở tay, cũng không Set trong ô Phép/Bẫy của bạn"; Normal Spell đã Set đổi từ `CARD_NOT_IN_HAND` sang `NOT_ACTIVATABLE`.
 
 ### Mã lỗi thêm ở task 3.2
 
@@ -108,7 +115,7 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 
 Đã có: `DuelStarted`, `CardDrawn`, `DeckOut`, `CardDiscarded {playerIndex,instanceId,definitionId}` (task 1.11; lá rời tay vào mộ do hand limit, phát trước `PhaseChanged Main2→End`), `PhaseChanged {from,to,turnPlayerIndex}`, `TurnChanged {turnCount,turnPlayerIndex}`, `NormalSummoned {playerIndex,instanceId,definitionId,zoneIndex}`, `MonsterSet {playerIndex,instanceId,zoneIndex}` (không có `definitionId`: lá úp, tránh lộ khi lọc event cho đối thủ). `MonsterTributed {ownerIndex,instanceId,definitionId,zoneIndex}` (task 1.4; có `definitionId` vì mộ là public, kể cả quái úp): phát theo thứ tự mảng tribute, **trước** `NormalSummoned`/`MonsterSet`. `PositionChanged {playerIndex,instanceId,definitionId,zoneIndex,from,to}` (task 1.5; `from`/`to` ∈ `Attack|DefenseUp`; có `definitionId` vì chỉ quái ngửa mới đổi được). `AttackDeclared {playerIndex,attackerInstanceId,targetInstanceId}` (task 1.6; `targetInstanceId: null` = tấn công trực tiếp), `MonsterDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (task 1.6; mirror `MonsterTributed`, phát cho mọi quái bị phá bởi combat), `DamageDealt {playerIndex,amount}` (task 1.6; `playerIndex` = bên nhận damage). `DuelEnded {winnerIndex,reason}` (task 1.7; `winnerIndex: 0|1|null` — `null` = hòa trong ngữ cảnh event này, không nhập nhằng với "đang đấu" vì event chỉ phát khi duel thật sự kết thúc; `reason` là string literal union: `'LP_ZERO'` (1.7), `'SURRENDER'` (1.9), `'DECK_OUT'` (1.10); hai reason sau luôn có người thắng). Thứ tự phát trong 1 `DeclareAttack`: `AttackDeclared` → `MonsterDestroyed` (đối thủ trước, mình sau nếu cả hai bị phá) → `DamageDealt` → `DuelEnded` (nếu có).
 
-Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `definitionId`, lá úp), `EffectActivated`/`EffectResolved {playerIndex,instanceId,definitionId,effectId}`, `CardSentToGraveyard {ownerIndex,instanceId,definitionId,from:'Hand'}` (Spell dùng xong), `LifePointsRecovered {playerIndex,amount}` (Heal), `LifePointsPaid {playerIndex,amount}` (cost PayLP), `SpellTrapDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (Destroy lên Spell/Trap; quái vẫn dùng `MonsterDestroyed`). Thứ tự khi kích hoạt: `EffectActivated` → event của cost (`LifePointsPaid`/`CardDiscarded`/`MonsterTributed`) → event của từng operation (`CardDrawn`, `DamageDealt`, `LifePointsRecovered`, `MonsterDestroyed`…) → `EffectResolved` → `CardSentToGraveyard` → `DuelEnded` (nếu có, luôn cuối). Damage/Heal/Draw dùng lại `DamageDealt`/`CardDrawn`/`DeckOut`+`DuelEnded` sẵn có. **Các event này chưa được API forward** (xem `event-visibility.md`).
+Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `definitionId`, lá úp), `EffectActivated`/`EffectResolved {playerIndex,instanceId,definitionId,effectId}`, `CardSentToGraveyard {ownerIndex,instanceId,definitionId,from:'Hand'|'SpellTrapZone'}` (lá dùng xong; `SpellTrapZone` từ task 3.4), `LifePointsRecovered {playerIndex,amount}` (Heal), `LifePointsPaid {playerIndex,amount}` (cost PayLP), `SpellTrapDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (Destroy lên Spell/Trap; quái vẫn dùng `MonsterDestroyed`). Thứ tự khi kích hoạt: `EffectActivated` → event của cost (`LifePointsPaid`/`CardDiscarded`/`MonsterTributed`) → event của từng operation (`CardDrawn`, `DamageDealt`, `LifePointsRecovered`, `MonsterDestroyed`…) → `EffectResolved` → `CardSentToGraveyard` → `DuelEnded` (nếu có, luôn cuối). Damage/Heal/Draw dùng lại `DamageDealt`/`CardDrawn`/`DeckOut`+`DuelEnded` sẵn có. **Các event này chưa được API forward** (xem `event-visibility.md`).
 
 Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
 
@@ -143,9 +150,11 @@ Khi `pendingPrompt != null`, `EndPhase`, `Draw`, `NormalSummon`/`SetMonster`, `S
 interface ChainLink {
   linkId: string;            // `link-<turnCount>-<version của state lúc kích hoạt>` — tất định, không RNG/đồng hồ
   playerIndex: 0 | 1;
-  card: CardInstance;        // lá Phép đã rời tay (position null), nằm TRONG link tới khi vào mộ; công khai
+  card: CardInstance;        // lá Phép đã rời tay (position null), nằm TRONG link tới khi vào mộ; công khai.
+                             // Lá Set (3.4): chỉ là bản sao, lá thật ngửa trong ô Phép/Bẫy
+  source: { zone: 'Hand' } | { zone: 'SpellTrapZone'; zoneIndex: number };  // task 3.4
   effectId: string;
-  spellSpeed: 1 | 2 | 3;     // Normal Spell 1, Quick-Play 2, (Counter Trap 3 ở task 3.4)
+  spellSpeed: 1 | 2 | 3;     // Normal Spell 1, Quick-Play/Trap 2, Counter Trap 3, hoặc effect.spellSpeed (3.4)
   costInstanceIds: string[]; // cost Discard/Tribute đã trả lúc kích hoạt
   lpPaid: number;            // cost PayLP đã trả lúc kích hoạt
   targetInstanceIds: string[]; // target chọn lúc kích hoạt
@@ -161,8 +170,10 @@ lúc resolve**. `version` +1 một lần cho cả action.
 
 **Spell Speed** `[RULE]`: chain rỗng → Speed 1 hoặc 2 đều mở chain được (Normal Spell ở Main Phase của mình). Chain
 không rỗng → chỉ `priorityPlayer` được kích hoạt (`NOT_PRIORITY_HOLDER`), và speed ≥ 2 và ≥ speed của link trên cùng
-(`SPELL_SPEED_TOO_LOW`). Quick-Play **từ tay** chỉ ở lượt của mình (`NOT_TURN_PLAYER`), task 3.3 giới hạn ở Main1/Main2
-`[ASSUMED]`; Quick-Play úp/ngoài lượt, Trap, Counter Trap là task 3.4. Dữ liệu thật chưa có lá Speed 2 (chỉ lá test).
+(`SPELL_SPEED_TOO_LOW`). Speed lấy từ `EffectDefinition.spellSpeed` nếu có, không thì suy ra (`effects/spell-speed.ts`,
+task 3.4): Counter Trap 3, Trap khác 2, Quick-Play 2, còn lại 1. Quick-Play **từ tay** chỉ ở lượt của mình, **mọi phase**
+(task 3.4 bỏ giới hạn Main1/Main2 `[ASSUMED]` của 3.3); Trap / Quick-Play đã Set: xem mục C11. Dữ liệu thật chưa có lá
+Speed 2/3 (chỉ lá test).
 
 **Settle / auto-pass** `[ASSUMED]` (video #3/#4 gợi ý game chỉ dừng khi có lá thoả điều kiện): trong khi người giữ ưu tiên
 **không có** activation hợp lệ nào (dry-run `prepare` trên ứng viên của `effects/activation-candidates.ts`, không chép
@@ -177,7 +188,7 @@ Thêm link mới đặt lại `passCount = 0`. Không phát event cho bản thâ
 giữa chừng. Mỗi link: target = target đã chọn ∩ `targetCandidates` trên state hiện tại (tái dùng `effects/targets.ts`);
 effect có target `Card` mà không còn target nào ⇒ `ChainLinkFizzled` (không throw); còn ít nhất 1 ⇒ chạy operations
 trên target còn lại `[ASSUMED]` → `EffectResolved`. Sau mỗi link lá vào mộ chủ sở hữu (`CardSentToGraveyard`,
-`from: 'Hand'`). Hết chain: `ChainResolved {linkCount}`, `chainStack = []`, `chainWindow = null`, người chơi của lượt
+`from: 'Hand'`; lá Set: `from: 'SpellTrapZone'`, rời ô — nếu đã bị phá giữa chain thì không phát lại). Hết chain: `ChainResolved {linkCount}`, `chainStack = []`, `chainWindow = null`, người chơi của lượt
 hành động tiếp. Duel kết thúc giữa chain ⇒ link còn lại **không** resolve, lá của chúng vẫn vào mộ, không có
 `ChainResolved`, `DuelEnded` luôn là event cuối.
 
@@ -194,9 +205,10 @@ hành động tiếp. Duel kết thúc giữa chain ⇒ link còn lại **không
 | `Surrender`                                                                                         | Luôn được (ADR 1.9)                                  |
 | `EndPhase`, `Draw`, `NormalSummon`, `SetMonster`, `ChangePosition`, `DeclareAttack`, `SetSpellTrap` | `CHAIN_WINDOW_OPEN`                                  |
 
-**Kết thúc**: mỗi link tiêu thụ một lá trên tay ⇒ độ dài chain ≤ số lá trên tay; settle lặp tối đa 2 lần. Không cần
-trần độ sâu. Fuzz kiểm `chainWindow === null ⇔ chainStack rỗng`, lá trong chain được đếm (bảo toàn lá), và cửa sổ mở
-⇒ người giữ ưu tiên có activation hợp lệ.
+**Kết thúc**: mỗi link tiêu thụ một lá trên tay hoặc một lá úp trên sân (lá ngửa không kích hoạt lại được) ⇒ độ dài chain
+≤ số lá trên tay + ô Phép/Bẫy; settle lặp tối đa 2 lần. Không cần trần độ sâu. Fuzz kiểm `chainWindow === null ⇔ chainStack
+rỗng`, lá trong chain từ tay được đếm (bảo toàn lá; link từ sân chỉ giữ bản sao), lá Phép/Bẫy ngửa trên sân ⇔ có link của
+chính nó từ ô đó, và cửa sổ mở ⇒ người giữ ưu tiên có activation hợp lệ.
 
 Mã lỗi mới: `NO_CHAIN_WINDOW`, `NOT_PRIORITY_HOLDER`, `CHAIN_WINDOW_OPEN`, `SPELL_SPEED_TOO_LOW`.
 
