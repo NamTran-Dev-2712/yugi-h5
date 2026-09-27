@@ -65,6 +65,41 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
     cost: [{ kind: 'PayLP', amount: 300 }],
     operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
   }),
+  // Test-only trigger effects (task 3.5): OnSummon mandatory / optional with a target, OnDestroyed optional / mandatory.
+  MS: effectMonster('MS', 4, 1400, 1200, {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    operations: [{ kind: 'Damage', amount: 200, target: 'opponent' }],
+  }),
+  MSO: effectMonster('MSO', 3, 1200, 1000, {
+    trigger: { kind: 'OnSummon' },
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  MD: effectMonster('MD', 4, 1500, 1000, {
+    trigger: { kind: 'OnDestroyed' },
+    operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+  }),
+  MDM: effectMonster('MDM', 2, 700, 700, {
+    trigger: { kind: 'OnDestroyed', mandatory: true },
+    cost: [{ kind: 'PayLP', amount: 100 }],
+    operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+  }),
+  TRD: {
+    ...trap('TRD', 'Normal', { operations: [{ kind: 'Heal', amount: 100, target: 'self' }] }),
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+      },
+      {
+        id: 'e2',
+        trigger: { kind: 'OnDestroyed', mandatory: true },
+        target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
 };
 const DECK_POOL = Object.keys(FUZZ_DEFS);
 const PHASES: readonly Phase[] = ['Draw', 'Standby', 'Main1', 'Battle', 'Main2', 'End'];
@@ -103,6 +138,20 @@ function trap(
   };
 }
 
+function effectMonster(
+  id: string,
+  level: number,
+  atk: number,
+  def: number,
+  effect: Omit<EffectDefinition, 'id'>,
+): CardDefinition {
+  return {
+    ...monster(id, level, atk, def),
+    category: 'Effect',
+    effects: [{ id: 'e1', ...effect } as EffectDefinition],
+  } as CardDefinition;
+}
+
 function monster(id: string, level: number, atk: number, def: number): CardDefinition {
   return {
     id,
@@ -139,6 +188,9 @@ export interface FuzzStats {
   /** Reaction windows opened by an attack or a Summon/Set (task 3.4c), counted in the states between actions. */
   readonly reactionWindows: number;
   readonly speed3Links: number;
+  /** Trigger links (task 3.5) and TriggerActivation prompts opened. */
+  readonly triggerLinks: number;
+  readonly triggerPrompts: number;
 }
 
 export type FuzzResult =
@@ -411,15 +463,19 @@ function nextAction(state: GameState, rand: Rand): Action {
     const payload = prompt.payload as { count?: unknown; candidateInstanceIds?: string[] };
     const count = typeof payload.count === 'number' ? payload.count : 1;
     const pool =
-      prompt.kind === 'SelectEffectTarget' && Array.isArray(payload.candidateInstanceIds)
+      (prompt.kind === 'SelectEffectTarget' || prompt.kind === 'TriggerActivation') &&
+      Array.isArray(payload.candidateInstanceIds)
         ? payload.candidateInstanceIds
         : state.players[prompt.playerIndex].hand.map((c) => c.instanceId);
+    // Task 3.5: sometimes decline (rejected for a mandatory trigger / any other prompt).
+    const decline = rand.chance(prompt.kind === 'TriggerActivation' ? 0.3 : 0.03);
     return {
       type: 'ResolvePendingPrompt',
       payload: {
         playerIndex: prompt.playerIndex,
         promptId: prompt.promptId,
-        cardInstanceIds: shuffledPrefix(pool, count, rand),
+        cardInstanceIds: decline && rand.chance(0.8) ? [] : shuffledPrefix(pool, count, rand),
+        ...(decline ? { decline: true } : {}),
       },
     };
   }
@@ -629,6 +685,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let fieldLinks = 0;
   let speed3Links = 0;
   let reactionWindows = 0;
+  let triggerLinks = 0;
+  let triggerPrompts = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -692,9 +750,15 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
     }
     maxChainLength = Math.max(maxChainLength, next.chainStack.length);
     if (next.chainWindow?.reactionTo && next.chainStack.length === 0) reactionWindows++;
+    if (
+      next.pendingPrompt?.kind === 'TriggerActivation' &&
+      next.pendingPrompt !== state?.pendingPrompt
+    )
+      triggerPrompts++;
     for (const e of result.events) {
       if (e.type !== 'ChainLinkAdded') continue;
       if (e.spellSpeed === 3) speed3Links++;
+      if (e.linkId.startsWith('trigger-')) triggerLinks++;
       if (
         state?.players.some((p) =>
           p.board.spellTrapZones.some((c) => c?.instanceId === e.instanceId),
@@ -720,6 +784,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       fieldLinks,
       speed3Links,
       reactionWindows,
+      triggerLinks,
+      triggerPrompts,
     },
   };
 }

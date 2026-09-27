@@ -1,0 +1,35 @@
+KILLED   a Set fires OnSummon (type-level: MonsterSet has no definitionId → tsc/test red)
+KILLED   a destroyed Spell/Trap never fires OnDestroyed
+KILLED   a destroyed monster never fires OnDestroyed
+KILLED   every effect of the card fires, whatever its trigger kind
+KILLED   opponent's triggers go on the chain first
+KILLED   triggers collected after the duel ended
+KILLED   OnDestroyed activates although the card left the graveyard
+KILLED   OnSummon activates although the monster left its zone
+KILLED   condition ignored
+KILLED   unpayable cost still activates
+KILLED   activates without a legal target
+KILLED   optional triggers treated as mandatory (never asked)
+KILLED   mandatory triggers asked (and declinable)
+KILLED   trigger cost never paid
+KILLED   trigger card is treated as coming from the hand (duplicated into the graveyard)
+KILLED   mandatory trigger with several candidates picks them all without asking
+KILLED   triggers queued behind a prompt are lost
+KILLED   declined OnSummon never opens the Summon reaction window
+KILLED   a reaction window also opens over the trigger chain
+KILLED   trigger card sent to the graveyard after its link
+KILLED   triggers fired during chain resolution are lost
+KILLED   battle after a closed reaction window fires nothing
+KILLED   settle auto-passes over a trigger prompt
+KILLED   Normal Summon fires no OnSummon
+KILLED   declined OnSummon: no reaction window for the opponent
+KILLED   battle destruction fires no OnDestroyed
+KILLED   mandatory trigger can be declined
+KILLED   decline with ids accepted
+KILLED   any id accepted as target
+KILLED   remaining triggers / afterward dropped after an answer
+KILLED   answer does not settle priority (chain never resolves)
+KILLED   decline accepted on other prompts
+KILLED   legalActions never offers decline
+
+33/33 mutants killed

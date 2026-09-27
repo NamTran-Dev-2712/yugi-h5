@@ -15,6 +15,7 @@ export const TRIGGER_KINDS = [
   'Continuous',
   'Ignition',
   'Quick',
+  'OnDestroyed',
 ] as const satisfies readonly TriggerKind[];
 export const CONDITION_KINDS = [
   'PhaseIs',

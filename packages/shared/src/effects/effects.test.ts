@@ -36,13 +36,23 @@ describe('CardFilter', () => {
 });
 
 describe('Trigger', () => {
-  it.each(['OnSummon', 'OnFlip', 'Continuous', 'Ignition', 'Quick'])('accepts %s', (kind) =>
-    ok(TriggerSchema, { kind }),
+  it.each(['OnSummon', 'OnFlip', 'Continuous', 'Ignition', 'Quick', 'OnDestroyed'])(
+    'accepts %s',
+    (kind) => ok(TriggerSchema, { kind }),
   );
   it('rejects unknown kind, missing kind, extra key', () => {
     bad(TriggerSchema, { kind: 'OnDraw' });
     bad(TriggerSchema, {});
     bad(TriggerSchema, { kind: 'OnSummon', by: 'Battle' });
+  });
+  it('accepts `mandatory` only on OnSummon/OnDestroyed (task 3.5)', () => {
+    for (const kind of ['OnSummon', 'OnDestroyed']) {
+      ok(TriggerSchema, { kind, mandatory: true });
+      ok(TriggerSchema, { kind, mandatory: false });
+      bad(TriggerSchema, { kind, mandatory: 'yes' });
+    }
+    for (const kind of ['OnFlip', 'Continuous', 'Ignition', 'Quick'])
+      bad(TriggerSchema, { kind, mandatory: true });
   });
 });
 
@@ -159,6 +169,20 @@ describe('EffectDefinition', () => {
     bad(EffectDefinitionSchema, { ...base, cost: [{ kind: 'PayLP', amount: 100 }] });
     bad(EffectDefinitionSchema, { ...base, target: { kind: 'Player', who: 'self' } });
   });
+  it('trigger effects (OnSummon/OnDestroyed) may only cost PayLP (task 3.5)', () => {
+    for (const kind of ['OnSummon', 'OnDestroyed']) {
+      const base = { id: 'x', trigger: { kind }, operations: [draw] };
+      ok(EffectDefinitionSchema, { ...base, cost: [{ kind: 'PayLP', amount: 100 }] });
+      bad(EffectDefinitionSchema, { ...base, cost: [{ kind: 'Discard', count: 1 }] });
+      bad(EffectDefinitionSchema, { ...base, cost: [{ kind: 'Tribute', count: 1 }] });
+    }
+    ok(EffectDefinitionSchema, {
+      id: 'x',
+      trigger: { kind: 'Ignition' },
+      cost: [{ kind: 'Discard', count: 1 }],
+      operations: [draw],
+    });
+  });
   it('accepts an optional explicit spellSpeed 1|2|3 (task 3.4), nothing else', () => {
     const base = { id: 'x', trigger: { kind: 'Quick' }, operations: [draw] };
     for (const spellSpeed of [1, 2, 3]) ok(EffectDefinitionSchema, { ...base, spellSpeed });
@@ -178,6 +202,7 @@ describe('registry (metadata only: no functions)', () => {
     expect([...TRIGGER_KINDS].sort()).toEqual([
       'Continuous',
       'Ignition',
+      'OnDestroyed',
       'OnFlip',
       'OnSummon',
       'Quick',

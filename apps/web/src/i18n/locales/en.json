@@ -168,6 +168,7 @@
   "error.engine.NOT_PRIORITY_HOLDER": "It is not your turn to respond in the chain.",
   "error.engine.CHAIN_WINDOW_OPEN": "A chain is waiting to resolve: activate a response or pass first.",
   "error.engine.SPELL_SPEED_TOO_LOW": "This card is too slow to be added to the chain.",
+  "error.engine.INVALID_TRIGGER_ANSWER": "This answer does not fit the trigger effect (choose its targets, or decline an optional one).",
 
   "error.api.NOT_OWNER": "You do not control this duel.",
   "error.api.PLAYER_MISMATCH": "That action does not belong to this player.",

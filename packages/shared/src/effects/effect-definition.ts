@@ -27,5 +27,12 @@ export const EffectDefinitionSchema = z
   .strict()
   .refine((e) => e.trigger.kind !== 'Continuous' || (!e.cost && !e.target), {
     message: 'Continuous effects never go on the chain: no cost/target allowed',
-  });
+  })
+  .refine(
+    (e) =>
+      (e.trigger.kind !== 'OnSummon' && e.trigger.kind !== 'OnDestroyed') ||
+      (e.cost ?? []).every((c) => c.kind === 'PayLP'),
+    // Task 3.5: a trigger is activated by the engine, which cannot pick cost cards (no cost prompt yet).
+    { message: 'Trigger effects (OnSummon/OnDestroyed) may only cost PayLP for now' },
+  );
 export type EffectDefinition = z.infer<typeof EffectDefinitionSchema>;

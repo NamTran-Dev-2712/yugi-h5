@@ -8,7 +8,8 @@ handler function đăng ký sẵn trong engine.
 > **engine chạy được 4 operation `Damage`/`Heal`/`Draw`/`Destroy` (task 3.2)** qua `ActivateEffect` cho Normal Spell
 > từ tay. Registry ở shared chỉ là metadata (`implemented: true` cho 4 kind này, không giữ hàm); handler thật ở
 > `packages/game-engine/src/effects/operations/<kind>.ts` (`OPERATION_HANDLERS`, thiếu kind = `tsc` đỏ; test đối chiếu
-> hai phía). Resolve **ngay lập tức**, chưa có chain (task 3.3). Thêm kind mới: `/new-effect-type`.
+> hai phía). Từ task 3.3 effect lên **chain** (resolve LIFO); task 3.4 thêm lá Set; task 3.5 thêm trigger tự khởi phát
+> `OnSummon`/`OnDestroyed` (optional/mandatory). Thêm kind mới: `/new-effect-type`.
 
 ## Engine chạy effect thế nào (task 3.2, chain từ task 3.3)
 
@@ -35,6 +36,24 @@ handler function đăng ký sẵn trong engine.
 - `target` kiểu `Card` (chỉ `MonsterZone`/`SpellTrapZone` ở 3.2): đúng `count` ứng viên → tự chọn; ít hơn → `NO_VALID_TARGET`;
   nhiều hơn → `PendingPrompt SelectEffectTarget`, trả lời bằng `ResolvePendingPrompt.cardInstanceIds`. Lá úp chỉ là target khi effect
   không có `filter`. `Destroy` bắt buộc có target `Card`.
+
+## Trigger effect (task 3.5)
+
+- `OnSummon` (quái được **Normal Summon**, kể cả Tribute; **Set không phải triệu hồi** `[RULE]`) và `OnDestroyed` (lá bị phá bởi
+  combat hoặc effect, đang ở mộ chủ) **không** kích hoạt bằng `ActivateEffect`: engine tự khởi phát từ event rồi đưa lên chain
+  của 3.3 (đối thủ đáp trả như link thường). Chi tiết: `engine.md` mục "Trigger effect".
+- `trigger.mandatory?: boolean` — **đặt trên trigger object** (chỉ `OnSummon`/`OnDestroyed` có; `.strict()` chặn ở kind khác)
+  `[DECISION]`. `true` = tự kích hoạt; bỏ trống/`false` = optional, engine hỏi chủ lá qua prompt `TriggerActivation`.
+- Refine: effect `OnSummon`/`OnDestroyed` chỉ được cost `PayLP` (engine không tự chọn lá trả cost; chưa có prompt cost).
+- Trigger không kích hoạt nếu lá đã rời chỗ, `condition` sai, cost không trả được, hoặc thiếu target `[RULE]`.
+
+```json
+{
+  "id": "on-destroyed-burn",
+  "trigger": { "kind": "OnDestroyed", "mandatory": true },
+  "operations": [{ "kind": "Damage", "amount": 400, "target": "opponent" }]
+}
+```
 
 ## Schema (nguồn thật: `packages/shared/src/effects/*.ts`)
 
@@ -65,7 +84,7 @@ tiêu chí, `level.min ≤ level.max`.
 
 | Loại      | Kind → field                                                                                                               |
 | --------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Trigger   | `OnSummon`, `OnFlip`, `Continuous`, `Ignition`, `Quick`                                                                    |
+| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip`, `Continuous`, `Ignition`, `Quick`                  |
 | Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                          |
 | Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                      |
 | Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                          |
@@ -77,7 +96,7 @@ tiêu chí, `level.min ≤ level.max`.
 
 ## Kind CHƯA có (thêm qua `/new-effect-type`, theo `docs/plan/card-and-effect-plan.md`)
 
-- **Trigger**: `OnDraw`, `OnDestroyed(by)`, `OnSentToGY`, `OnPhaseStart`, `OnDamage`, `OnAttackDeclared`, `OnActivate`.
+- **Trigger**: `OnDraw`, `OnDestroyed` tham số `by` (Battle/Effect) — kind đã có ở 3.5, `by` chưa, `OnSentToGY`, `OnPhaseStart`, `OnDamage`, `OnAttackDeclared`, `OnActivate`.
 - **Condition**: `LPCompare`, `HasCardIn(zone, filter)`, `ChainLength`, `PositionIs`, `OncePerTurn`.
 - **Cost**: `Banish`, `SendToGY`, `Reveal`.
 - **Target**: `AllMatching(filter)`.

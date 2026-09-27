@@ -16,8 +16,40 @@ function monster(id: string, level: number, atk: number, def: number): CardDefin
   };
 }
 
+/** Test-only Effect Monster with one trigger effect (task 3.5). */
+function triggerMonster(
+  id: string,
+  atk: number,
+  trigger: { kind: 'OnSummon' | 'OnDestroyed'; mandatory?: boolean },
+  operation: NonNullable<CardDefinition['effects']>[number]['operations'][number],
+): CardDefinition {
+  return {
+    ...monster(id, 4, atk, 1000),
+    category: 'Effect',
+    effects: [{ id: 'e1', trigger, operations: [operation] }],
+  } as CardDefinition;
+}
+
 /** Placeholder cards only (no official names). */
 export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
+  G_SUM_BURN: triggerMonster(
+    'G_SUM_BURN',
+    1200,
+    { kind: 'OnSummon', mandatory: true },
+    { kind: 'Damage', amount: 300, target: 'opponent' },
+  ),
+  G_SUM_HEAL: triggerMonster(
+    'G_SUM_HEAL',
+    1100,
+    { kind: 'OnSummon' },
+    { kind: 'Heal', amount: 500, target: 'self' },
+  ),
+  G_DES_BURN: triggerMonster(
+    'G_DES_BURN',
+    1000,
+    { kind: 'OnDestroyed', mandatory: true },
+    { kind: 'Damage', amount: 400, target: 'opponent' },
+  ),
   M1000: monster('M1000', 4, 1000, 1000),
   M1800: monster('M1800', 4, 1800, 600),
   L5: monster('L5', 5, 2100, 1500),
@@ -120,6 +152,12 @@ const TRAP_DECK = Array.from(
 const REACTION_DECK = Array.from(
   { length: 40 },
   (_, i) => ['M1000', 'G_TRAP_KILL', 'M1800'][i % 3]!,
+);
+
+/** Trigger effects (task 3.5). */
+const TRIGGER_DECK = Array.from(
+  { length: 40 },
+  (_, i) => ['G_SUM_BURN', 'G_SUM_HEAL', 'G_DES_BURN', 'M1800'][i % 4]!,
 );
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
@@ -466,6 +504,101 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
       {
         type: 'ResolvePendingPrompt',
         payload: { playerIndex: 1, promptId: 'effect-3-21', cardInstanceIds: ['p0-3'] },
+      },
+      ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'on-summon-mandatory',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-trig-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [TRIGGER_DECK, TRIGGER_DECK],
+      },
+    },
+    actions: [
+      // T1 (P0): Normal Summon G_SUM_BURN (p0-32) → its mandatory OnSummon goes on the chain and resolves (300 damage).
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-32', zoneIndex: 0 } },
+      ...endPhase(0, 4),
+      // T2 (P1): a Set (p1-19 M1800) fires nothing.
+      ...endPhase(1, 2),
+      { type: 'SetMonster', payload: { playerIndex: 1, cardInstanceId: 'p1-19', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+    ],
+  },
+  {
+    name: 'on-summon-optional-declined',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-trig-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [TRIGGER_DECK, TRIGGER_DECK],
+      },
+    },
+    actions: [
+      // T1 (P0): Normal Summon G_SUM_HEAL (p0-33) → TriggerActivation prompt for P0.
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-33', zoneIndex: 0 } },
+      // Rejected while the prompt waits: EndPhase, P1 answering, an id where none is expected.
+      ...endPhase(0, 1),
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'trigger-1-3', cardInstanceIds: [], decline: true },
+      },
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 0, promptId: 'trigger-1-3', cardInstanceIds: ['p0-33'] },
+      },
+      // P0 declines: nothing happens.
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 0, promptId: 'trigger-1-3', cardInstanceIds: [], decline: true },
+      },
+      ...endPhase(0, 4),
+      // T2 (P1): Normal Summon G_SUM_HEAL (p1-21) and accept: heal 500.
+      ...endPhase(1, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-21', zoneIndex: 0 } },
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'trigger-2-11', cardInstanceIds: [] },
+      },
+      ...endPhase(1, 4),
+    ],
+  },
+  {
+    name: 'on-destroyed-in-combat',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-trig-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [TRIGGER_DECK, TRIGGER_DECK],
+      },
+    },
+    actions: [
+      // T1 (P0): Normal Summon M1800 (p0-15).
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-15', zoneIndex: 0 } },
+      ...endPhase(0, 4),
+      // T2 (P1): Normal Summon G_DES_BURN (p1-34, ATK 1000) in Attack Position.
+      ...endPhase(1, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-34', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): M1800 attacks it → destroyed, 800 to P1; its mandatory OnDestroyed (from the graveyard) → 400 to P0.
+      ...endPhase(0, 3),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-15', targetInstanceId: 'p1-34' },
       },
       ...endPhase(0, 3),
     ],

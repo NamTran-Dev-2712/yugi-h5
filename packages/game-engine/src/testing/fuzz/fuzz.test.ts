@@ -26,6 +26,8 @@ describe('fuzz: engine invariants hold', () => {
     let fieldLinks = 0;
     let speed3Links = 0;
     let reactionWindows = 0;
+    let triggerLinks = 0;
+    let triggerPrompts = 0;
     const byType: Record<string, number> = {};
     for (const seed of SEEDS.slice(0, 10)) {
       const result = runFuzz({ seed, steps: STEPS });
@@ -36,6 +38,8 @@ describe('fuzz: engine invariants hold', () => {
       fieldLinks += result.stats.fieldLinks;
       speed3Links += result.stats.speed3Links;
       reactionWindows += result.stats.reactionWindows;
+      triggerLinks += result.stats.triggerLinks;
+      triggerPrompts += result.stats.triggerPrompts;
       for (const [type, n] of Object.entries(result.stats.accepted)) {
         accepted += n;
         byType[type] = (byType[type] ?? 0) + n;
@@ -61,6 +65,9 @@ describe('fuzz: engine invariants hold', () => {
     expect(speed3Links, 'no Speed 3 link').toBeGreaterThan(0);
     // Task 3.4c: attacks and Summons/Sets open reaction windows for an opponent holding a Set card.
     expect(reactionWindows, 'no reaction window').toBeGreaterThan(0);
+    // Task 3.5: trigger effects go on the chain, and optional ones ask their owner.
+    expect(triggerLinks, 'no trigger link').toBeGreaterThan(0);
+    expect(triggerPrompts, 'no TriggerActivation prompt').toBeGreaterThan(0);
   });
 
   it('is deterministic: same seed → identical action log and stats', () => {

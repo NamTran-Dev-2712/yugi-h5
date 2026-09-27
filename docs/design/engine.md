@@ -152,7 +152,8 @@ interface ChainLink {
   playerIndex: 0 | 1;
   card: CardInstance;        // lá Phép đã rời tay (position null), nằm TRONG link tới khi vào mộ; công khai.
                              // Lá Set (3.4): chỉ là bản sao, lá thật ngửa trong ô Phép/Bẫy
-  source: { zone: 'Hand' } | { zone: 'SpellTrapZone'; zoneIndex: number };  // task 3.4
+  source: { zone: 'Hand' } | { zone: 'SpellTrapZone'; zoneIndex: number }   // task 3.4
+        | { zone: 'MonsterZone'; zoneIndex: number } | { zone: 'Graveyard' };   // trigger (task 3.5): lá không di chuyển
   effectId: string;
   spellSpeed: 1 | 2 | 3;     // Normal Spell 1, Quick-Play/Trap 2, Counter Trap 3, hoặc effect.spellSpeed (3.4)
   costInstanceIds: string[]; // cost Discard/Tribute đã trả lúc kích hoạt
@@ -232,11 +233,51 @@ ChainWindow.reactionTo?:
 | `EndPhase`, `Draw`, `NormalSummon`, `SetMonster`, `ChangePosition`, `DeclareAttack`, `SetSpellTrap` | `CHAIN_WINDOW_OPEN`                                  |
 
 **Kết thúc**: mỗi link tiêu thụ một lá trên tay hoặc một lá úp trên sân (lá ngửa không kích hoạt lại được) ⇒ độ dài chain
-≤ số lá trên tay + ô Phép/Bẫy; settle lặp tối đa 2 lần. Không cần trần độ sâu. Fuzz kiểm `chainWindow === null ⇔ chainStack
+≤ số lá trên tay + ô Phép/Bẫy (+ trigger, mỗi lá mỗi sự kiện một lần); settle lặp tới khi cửa sổ đóng, có prompt, hoặc người giữ ưu tiên đáp trả được. Không cần trần độ sâu. Fuzz kiểm `chainWindow === null ⇔ chainStack
 rỗng`, lá trong chain từ tay được đếm (bảo toàn lá; link từ sân chỉ giữ bản sao), lá Phép/Bẫy ngửa trên sân ⇔ có link của
 chính nó từ ô đó, và cửa sổ mở ⇒ người giữ ưu tiên có activation hợp lệ.
 
 Mã lỗi mới: `NO_CHAIN_WINDOW`, `NOT_PRIORITY_HOLDER`, `CHAIN_WINDOW_OPEN`, `SPELL_SPEED_TOO_LOW`.
+
+## Trigger effect (task 3.5)
+
+`[RULE]` YGO chuẩn, chủ dự án chốt 2026-09-27 (ADR "Trigger OnSummon/OnDestroyed"). Engine-only (chưa lên wire).
+Trigger **không** do `ActivateEffect` kích hoạt: engine tự khởi phát từ event của bước vừa chạy, đọc `EffectDefinition` của lá
+(`effects/triggers.ts`), rồi đưa lên **chính chain của 3.3** (`pushLink` → `settle`).
+
+- **Khởi phát**: `NormalSummoned` (kể cả Tribute Summon) → effect `OnSummon` của quái đó; `MonsterDestroyed` /
+  `SpellTrapDestroyed` (combat 1.6–1.8, operation `Destroy`, lá Set đang chờ trên chain) → effect `OnDestroyed` của lá đó.
+  **`SetMonster` không phải triệu hồi** `[RULE]`: không bắn (và không lộ lá úp). Duel đã kết thúc ⇒ không bắn.
+- **Điểm kiểm** (không sửa `resolveAttack` / `operations/destroy.ts`, trigger suy từ event họ phát): cuối `NormalSummon`; sau damage
+  step của `DeclareAttack` (khi không có cửa sổ phản ứng); cuối `resolveChain` (gồm trận đấu mà chain vừa cho qua) và khi cửa
+  sổ phản ứng rỗng đóng lại. Trigger sinh ra **trong lúc** chain resolve chờ tới khi cả chain xong rồi mới thành **chain mới**.
+- **Thứ tự** `[RULE]`: trigger của người chơi của lượt lên chain trước (link thấp hơn), rồi của đối thủ; trong cùng một người:
+  theo thứ tự event `[ASSUMED]` (G15, luật thật cho người chơi tự chọn).
+- **Điều kiện**: lá còn ở chỗ khởi phát (quái ngửa ở ô / lá trong mộ chủ), `condition` đúng, cost trả được (chỉ `PayLP`, schema
+  chặn Discard/Tribute), đủ ứng viên target — không thì trigger **không kích hoạt** `[RULE]` (kiểm lại lúc tới lượt của nó).
+- **mandatory** (`trigger.mandatory: true`) và target cố định (0 hoặc đúng `count` ứng viên) ⇒ tự kích hoạt: `EffectActivated` →
+  cost → `ChainLinkAdded` (`linkId = trigger-<turnCount>-<version>-<chainIndex>`). **optional** (mặc định), hoặc cần chọn target ⇒
+  `PendingPrompt TriggerActivation` cho **chủ lá** (có thể là người không phải lượt):
+
+  ```ts
+  { promptId: 'trigger-<turnCount>-<version>', playerIndex: chủ lá, kind: 'TriggerActivation',
+    payload: { trigger: {playerIndex, instanceId, definitionId, effectId, source}, optional, candidateInstanceIds, count,
+               remaining: PendingTrigger[], afterward: {kind:'SummonReaction', responder} | null } }
+  ```
+
+  Trả lời bằng `ResolvePendingPrompt`: `{decline: true, cardInstanceIds: []}` (chỉ optional) hoặc đúng `count` id trong ứng viên
+  (`[]` khi không có target). Sai ⇒ `INVALID_TRIGGER_ANSWER` (kể cả `decline` trên prompt kind khác). Sau đó chạy tiếp
+  `remaining`, rồi settle; `version` +1.
+
+- **Link trigger**: `source` = `MonsterZone` / `Graveyard`, lá **không di chuyển** (không `CardSentToGraveyard` sau link;
+  `link.card` chỉ là bản sao). Spell Speed theo `spellSpeedOf` (quái/Phép 1; Bẫy có OnDestroyed = 2 theo mặc định 3.4;
+  `spellSpeed` tường minh thắng). Đối thủ đáp trả link trigger như link thường.
+- **Summon + cửa sổ phản ứng 3.4c**: có trigger lên chain ⇒ đối thủ đáp trả **link trigger** (cửa sổ thường, không `reactionTo`);
+  không trigger nào lên chain (từ chối / không thoả) ⇒ mở cửa sổ phản ứng `Summon` như trước (`afterward`).
+- `settle` dừng khi có `pendingPrompt`; câu trả lời prompt tự settle. Khi có prompt: `legalActions` = các câu trả lời (+ `Surrender`).
+- Mã lỗi mới: `INVALID_TRIGGER_ANSWER`. `ResolvePendingPrompt.payload.decline?: boolean` (mới, optional).
+- Test: `rules/trigger-effects.test.ts`, `effects/triggers.test.ts`; golden `on-summon-mandatory`, `on-summon-optional-declined`,
+  `on-destroyed-in-combat`.
 
 ## Replay
 

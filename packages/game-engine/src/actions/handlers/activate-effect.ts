@@ -26,6 +26,9 @@ import type { ActionContext, ActivateEffectAction, ResolvePendingPromptAction } 
 
 type Result = { state: GameState; events: GameEvent[] };
 
+/** Where `ActivateEffect` finds a card: the hand or a Spell/Trap Zone (trigger sources are task 3.5's). */
+type ActivationSource = Extract<ChainLinkSource, { zone: 'Hand' } | { zone: 'SpellTrapZone' }>;
+
 /** `PendingPrompt.payload` of kind `SelectEffectTarget`. */
 export interface SelectEffectTargetPayload {
   readonly cardInstanceId: string;
@@ -47,7 +50,7 @@ interface Request {
 interface Prepared {
   readonly request: Request;
   readonly card: CardInstance;
-  readonly source: ChainLinkSource;
+  readonly source: ActivationSource;
   readonly effect: EffectDefinition;
   readonly spellSpeed: 1 | 2 | 3;
   readonly costPlan: readonly CostStep[];
@@ -183,7 +186,7 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
 function locate(
   player: PlayerState,
   instanceId: string,
-): { card: CardInstance; source: ChainLinkSource } | null {
+): { card: CardInstance; source: ActivationSource } | null {
   const inHand = player.hand.find((c) => c.instanceId === instanceId);
   if (inHand) return { card: inHand, source: { zone: 'Hand' } };
   const zoneIndex = player.board.spellTrapZones.findIndex((c) => c?.instanceId === instanceId);

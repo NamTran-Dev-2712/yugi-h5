@@ -1,0 +1,25 @@
+   × OnSummon — mandatory > goes on the chain by itself and resolves (nobody can respond); the monster stays on the field 16ms
+   × OnSummon — mandatory > the opponent may respond to the trigger link (a Set Trap), then the chain resolves LIFO 2ms
+   × OnSummon — mandatory > a Tribute Summon fires it too 1ms
+   ✓ OnSummon — mandatory > a Set is not a Summon: no trigger, nothing revealed 1ms
+   × OnSummon — mandatory > with exactly `count` target candidates it targets them by itself (destroy) 2ms
+   × OnSummon — mandatory > with more candidates than `count` it asks for the target (no decline for a mandatory trigger) 4ms
+   × OnSummon — mandatory > does not activate without a legal target, or when its condition does not hold 2ms
+   × OnSummon — optional > asks the owner; nothing is on the chain yet and only the prompt answers (+ Surrender) are legal 1ms
+   × OnSummon — optional > accepted: goes on the chain and resolves 1ms
+   × OnSummon — optional > declined: nothing happens (no events, no LP change) 1ms
+   × OnSummon — optional > declined with an opponent able to respond: the 3.4c Summon reaction window opens as before 1ms
+   × OnSummon — optional > accepted with an opponent able to respond: a plain chain window (the link is what they respond to) 0ms
+   × OnSummon — optional > rejects bad answers 1ms
+   × OnSummon — optional > a PayLP cost is paid on activation; with too few LP it is not even asked 0ms
+   × OnDestroyed > fires after a battle destroys the monster: a new chain from the graveyard, card not moved again 1ms
+   × OnDestroyed > both monsters destroyed: the turn player’s trigger is link 1, the opponent’s link 2 (resolves first) 1ms
+   × OnDestroyed > optional in battle: the destroyed monster’s owner (not the turn player) is asked 1ms
+   × OnDestroyed > after a reaction window closes, the battle destruction fires it (and the Trap holder may still chain) 2ms
+   × OnDestroyed > a Destroy operation fires it after the WHOLE chain resolved (a new chain) 2ms
+   × OnDestroyed > a Set Trap destroyed by an effect fires its own OnDestroyed 1ms
+   × OnDestroyed > a face-up Trap destroyed while its link waits: its link still resolves, then its OnDestroyed fires 1ms
+   ✓ OnDestroyed > no trigger once the duel is over 0ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 20 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  20 failed | 2 passed (22)

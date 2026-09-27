@@ -60,7 +60,99 @@ export function monster(id: string, level = 4, race = 'Warrior'): CardDefinition
   };
 }
 
+/** Test-only Effect Monster with one trigger effect `e1` (task 3.5). */
+export function effectMonster(
+  id: string,
+  effect: Omit<EffectDefinition, 'id'>,
+  stats: { level?: number; atk?: number; def?: number } = {},
+): CardDefinition {
+  return {
+    ...monster(id, stats.level ?? 4),
+    category: 'Effect',
+    atk: stats.atk ?? 1000,
+    def: stats.def ?? 1000,
+    effects: [{ id: 'e1', ...effect } as EffectDefinition],
+  } as CardDefinition;
+}
+
 export const FIXTURE_DEFS: Record<string, CardDefinition> = {
+  /** Task 3.5 — OnSummon mandatory: draw 1. */
+  SUM_DRAW: effectMonster('SUM_DRAW', {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+  }),
+  /** OnSummon mandatory: 300 damage to the opponent. */
+  SUM_BURN: effectMonster('SUM_BURN', {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+  }),
+  /** OnSummon optional (no `mandatory`): heal 500. */
+  SUM_HEAL: effectMonster('SUM_HEAL', {
+    trigger: { kind: 'OnSummon' },
+    operations: [{ kind: 'Heal', amount: 500, target: 'self' }],
+  }),
+  /** OnSummon mandatory with a target: destroy 1 of the opponent's monsters. */
+  SUM_KILL: effectMonster('SUM_KILL', {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  /** OnSummon mandatory, only in Main2 (condition). */
+  SUM_MAIN2: effectMonster('SUM_MAIN2', {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    condition: [{ kind: 'PhaseIs', phase: 'Main2' }],
+    operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+  }),
+  /** OnSummon optional with a PayLP 1000 cost. */
+  SUM_PAY: effectMonster('SUM_PAY', {
+    trigger: { kind: 'OnSummon' },
+    cost: [{ kind: 'PayLP', amount: 1000 }],
+    operations: [{ kind: 'Damage', amount: 1500, target: 'opponent' }],
+  }),
+  /** Level 5 OnSummon mandatory (needs one tribute): draw 1. */
+  SUM_DRAW_L5: effectMonster(
+    'SUM_DRAW_L5',
+    {
+      trigger: { kind: 'OnSummon', mandatory: true },
+      operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+    },
+    { level: 5, atk: 2200, def: 500 },
+  ),
+  /** OnDestroyed mandatory: 400 damage to the opponent (ATK 1000 / DEF 1000). */
+  DES_BURN: effectMonster('DES_BURN', {
+    trigger: { kind: 'OnDestroyed', mandatory: true },
+    operations: [{ kind: 'Damage', amount: 400, target: 'opponent' }],
+  }),
+  /** OnDestroyed optional: draw 1. */
+  DES_DRAW: effectMonster('DES_DRAW', {
+    trigger: { kind: 'OnDestroyed' },
+    operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+  }),
+  /** Trap whose only effect is OnDestroyed mandatory (heal 600): never activatable by hand, fires when destroyed. */
+  TRAP_DES_HEAL: trap('TRAP_DES_HEAL', {
+    trigger: { kind: 'OnDestroyed', mandatory: true },
+    operations: [{ kind: 'Heal', amount: 600, target: 'self' }],
+  }),
+  /** Trap: `e1` Quick (300 damage to the opponent) + `e2` OnDestroyed mandatory (heal 600). */
+  TRAP_BURN_DES: {
+    id: 'TRAP_BURN_DES',
+    kind: 'Trap',
+    name: text('TRAP_BURN_DES'),
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+      },
+      {
+        id: 'e2',
+        trigger: { kind: 'OnDestroyed', mandatory: true },
+        operations: [{ kind: 'Heal', amount: 600, target: 'self' }],
+      },
+    ],
+  },
+
   M1: monster('M1'),
   M2: monster('M2', 2, 'Dragon'),
   D: monster('D'),

@@ -69,6 +69,29 @@ function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] 
     }
   }
 
+  if (prompt && prompt.kind === 'TriggerActivation') {
+    // Task 3.5: decline (only an optional trigger accepts it) + every way to pick the targets.
+    const payload = prompt.payload as { count?: unknown; candidateInstanceIds?: unknown };
+    out.push({
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: seat, promptId: prompt.promptId, cardInstanceIds: [], decline: true },
+    });
+    if (
+      typeof payload.count === 'number' &&
+      Number.isInteger(payload.count) &&
+      payload.count >= 0 &&
+      Array.isArray(payload.candidateInstanceIds)
+    ) {
+      const ids = payload.candidateInstanceIds.filter((id): id is string => typeof id === 'string');
+      for (const combo of combinations(ids, payload.count, MAX_ANSWER_COMBINATIONS)) {
+        out.push({
+          type: 'ResolvePendingPrompt',
+          payload: { playerIndex: seat, promptId: prompt.promptId, cardInstanceIds: combo },
+        });
+      }
+    }
+  }
+
   out.push({ type: 'PassPriority', payload: { playerIndex: seat } });
   out.push({ type: 'EndPhase', payload: { playerIndex: seat } });
   out.push({ type: 'Surrender', payload: { playerIndex: seat } });

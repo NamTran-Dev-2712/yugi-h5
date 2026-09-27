@@ -3,6 +3,7 @@ import type { GameEvent } from '../../events/types.js';
 import type { CardInstance, GameState, PendingPrompt, PlayerState } from '../../state/types.js';
 import type { ActionContext, ResolvePendingPromptAction } from '../types.js';
 import { resolveSelectEffectTarget } from './activate-effect.js';
+import { resolveTriggerActivation } from './trigger-activation.js';
 
 /** `PendingPrompt.payload` of kind `DiscardToHandLimit`. */
 export interface DiscardToHandLimitPayload {
@@ -41,11 +42,20 @@ export function applyResolvePendingPrompt(
     );
   }
 
+  if (action.payload.decline === true && prompt.kind !== 'TriggerActivation') {
+    throw new EngineError(
+      'INVALID_TRIGGER_ANSWER',
+      'ResolvePendingPrompt rejected: decline only answers a TriggerActivation prompt.',
+    );
+  }
+
   switch (prompt.kind) {
     case 'DiscardToHandLimit':
       return resolveDiscardToHandLimit(state, prompt, action);
     case 'SelectEffectTarget':
       return resolveSelectEffectTarget(state, prompt, action, ctx);
+    case 'TriggerActivation':
+      return resolveTriggerActivation(state, prompt, action, ctx);
     default:
       throw new EngineError(
         'UNKNOWN_PROMPT_KIND',

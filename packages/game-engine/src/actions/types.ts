@@ -108,6 +108,8 @@ export interface ResolvePendingPromptAction {
     readonly playerIndex: 0 | 1;
     readonly promptId: string;
     readonly cardInstanceIds: readonly string[];
+    /** Task 3.5: declines an OPTIONAL trigger effect (`TriggerActivation` prompt only; `cardInstanceIds` must be empty). */
+    readonly decline?: boolean;
   };
 }
 

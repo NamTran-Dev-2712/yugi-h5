@@ -566,3 +566,40 @@ Chỉ đổi bảng số + comment ở `animation-queue.ts`; không đổi logic
   (`tools/mutants-3.4c.mjs`).
   **Hệ quả:** 3.4b nối wire gộp cả cửa sổ phản ứng (event mở cửa sổ cho UI, `PassPriority` lên wire, AI biết pass); replay khi mất
   mục tiêu và điều kiện kích hoạt riêng của Bẫy ("khi đối thủ tấn công") là task sau khi có tư liệu/DSL trigger.
+
+## 2026-09-27 — Trigger OnSummon / OnDestroyed, optional / mandatory (task 3.5): khởi phát từ event, lên chain 3.3, engine-only
+
+- **Hai quyết định chủ dự án chốt trong phiên plan**: (1) OnSummon chỉ bắn với **Normal Summon (kể cả Tribute)** — `SetMonster` **không**
+  bắn `[RULE]` (Set không phải triệu hồi; kích hoạt từ lá úp sẽ lộ danh tính qua `EffectActivated`). **Lệch câu chữ brief** ("quái được
+  triệu hồi/Set = OnSummon"). (2) Nhiều trigger cùng lúc: người chơi của lượt lên chain trước rồi đối thủ `[RULE]`; trong cùng một người
+  theo **thứ tự event** `[ASSUMED]` (luật thật cho người chơi chọn) → **G15**, không thêm prompt sắp xếp.
+- **Khởi phát suy từ event, không sửa chỗ phá huỷ**: `effects/triggers.ts` (`collectTriggers`) quét `NormalSummoned` / `MonsterDestroyed` /
+  `SpellTrapDestroyed` của bước vừa chạy và đọc effect `OnSummon`/`OnDestroyed` của lá (data-driven, không theo definitionId).
+  `battle/resolve-attack.ts` và `operations/destroy.ts` **không đổi dòng nào**. Điểm kiểm: cuối `NormalSummon`, sau damage step của
+  `DeclareAttack`, cuối `resolveChain` (gồm trận đấu mà chain cho qua), khi cửa sổ phản ứng rỗng đóng. Trigger sinh ra giữa lúc chain
+  resolve chờ cả chain xong rồi thành chain mới `[RULE]`.
+- **`mandatory?: boolean` đặt trên trigger object** (`{kind:'OnSummon'|'OnDestroyed', mandatory?}`), không trên `EffectDefinition`
+  (`[DECISION]` của AI, brief để ngỏ): `.strict()` tự chặn `mandatory` ở Ignition/Quick/Continuous, không cần refine. Mặc định optional.
+- **Cost của trigger chỉ `PayLP`** (refine ở shared) `[DECISION]` của AI: engine không tự chọn lá trả cost Discard/Tribute và chưa có
+  prompt cost. Mở rộng = thêm prompt cost, không đổi hướng.
+- **Không state top-level mới**: hàng đợi trigger còn lại + việc cần làm sau (`afterward` = mở cửa sổ phản ứng Summon) nằm trong payload
+  prompt `TriggerActivation` (JSON thuần) ⇒ `scenario-to-state` ở api và golden state cũ không đổi. `ChainLinkSource` thêm
+  `MonsterZone`/`Graveyard`: lá trigger **không di chuyển**, `resolveChain` không đưa vào mộ (bảo toàn lá của fuzz không đổi).
+- **Trả lời prompt**: `ResolvePendingPrompt.payload.decline?: boolean` (thêm optional ⇒ `PlayerAction ⊂ Action` ở api vẫn đúng;
+  `PlayerActionSchema` chưa có field này — nối wire sau). `decline` chỉ cho trigger optional và không kèm id; `decline` trên kind khác
+  cũng bị từ chối. Mã lỗi mới `INVALID_TRIGGER_ANSWER`. Trigger mandatory mà cần chọn target cũng qua prompt (không được decline).
+- **Summon + cửa sổ 3.4c**: có trigger lên chain ⇒ đối thủ đáp trả link trigger (cửa sổ thường, không `reactionTo`); không trigger nào
+  lên chain ⇒ cửa sổ phản ứng Summon như cũ. `settle` dừng khi có `pendingPrompt` (một trigger optional có thể chờ sau một link
+  mandatory đã đẩy); vòng lặp settle tự xử lý chain mới do trigger sinh ra khi chain cũ resolve.
+- **Spell Speed**: `spellSpeedOf` không đổi. Brief cho rằng trigger luôn suy ra Speed 1 — đúng với quái/Phép; Bẫy có `OnDestroyed` giữ
+  Speed 2 theo mặc định 3.4 (ghi rõ, `spellSpeed` tường minh ghi đè). `linkId` của trigger = `trigger-<turn>-<version>-<chainIndex>`
+  (nhiều trigger cùng bước không trùng id).
+- **Import vòng** `chain.ts ↔ triggers.ts` (chỉ dùng hàm lúc gọi, ESM xử lý được; repo không có luật lint `no-cycle`).
+- **Containment**: api 0 dòng (event `ChainLinkAdded` đã `null`, payload prompt kind mới bị che với người không được hỏi, card pool thật
+  không có trigger); web chỉ 2 câu i18n cho mã lỗi mới.
+- **Kiểm chứng**: test đỏ trước (`task-3.5-red.txt`, 20/22 fail); golden mới `on-summon-mandatory`, `on-summon-optional-declined`,
+  `on-destroyed-in-combat` (9 case cũ không đổi); fuzz thêm quái/Bẫy có trigger + câu trả lời decline/rác, thống kê `triggerLinks`/
+  `triggerPrompts` > 0, 200 seed × 400 bước sạch; property test legalActions thêm biến thể `decline`; mutation `tools/mutants-3.5.mjs`.
+  **Hệ quả:** nối wire (3.4b/3.3b) phải thêm `decline` vào `PlayerActionSchema`, UI prompt "Kích hoạt?" cho trigger (C13/3.7), AI ở api
+  phải trả lời `TriggerActivation`; `OnFlip`, `OnDestroyed.by`, cost Discard/Tribute cho trigger, người chơi tự sắp thứ tự trigger là
+  task sau.

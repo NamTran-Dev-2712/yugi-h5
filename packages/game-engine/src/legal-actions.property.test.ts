@@ -116,6 +116,17 @@ function perturb(action: Action, ids: string[], int: (n: number) => number): Act
           cardInstanceIds: [...action.payload.cardInstanceIds, pick()],
         },
       });
+      // Task 3.5: flip decline (a decline with ids / on a non-trigger prompt must be rejected).
+      if (action.payload.decline === true) {
+        const { decline: _decline, ...accept } = action.payload;
+        out.push({ ...action, payload: accept });
+      } else {
+        out.push({ ...action, payload: { ...action.payload, decline: true } });
+      }
+      out.push({
+        ...action,
+        payload: { ...action.payload, decline: true, cardInstanceIds: [pick()] },
+      });
       break;
     default:
       break;
@@ -162,6 +173,10 @@ function junk(seat: 0 | 1, ids: string[], int: (n: number) => number): Action[] 
     {
       type: 'ResolvePendingPrompt',
       payload: { playerIndex: seat, promptId: 'discard-1', cardInstanceIds: [pick()] },
+    },
+    {
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: seat, promptId: 'trigger-3-1', cardInstanceIds: [], decline: true },
     },
   ];
 }

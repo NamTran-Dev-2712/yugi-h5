@@ -12,6 +12,7 @@ import type {
 import { OPERATION_HANDLERS } from './operations/index.js';
 import type { OperationContext } from './operations/types.js';
 import { targetCandidates } from './targets.js';
+import { fireTriggers } from './triggers.js';
 
 /*
  * Chain stack (task 3.3), pure helpers. [RULE] a new link gives priority to the activator's opponent; two consecutive
@@ -87,8 +88,12 @@ export function pushLink(state: GameState, link: ChainLink): Result {
 export function passPriority(state: GameState, ctx: ActionContext): Result {
   const window = state.chainWindow;
   if (window === null) return { state, events: [] };
-  if (state.chainStack.length === 0)
-    return continueAfterWindow({ ...state, chainWindow: null }, window.reactionTo, ctx);
+  if (state.chainStack.length === 0) {
+    const after = continueAfterWindow({ ...state, chainWindow: null }, window.reactionTo, ctx);
+    // Task 3.5: what the window let through (the battle) may fire triggers — a new chain.
+    const fired = fireTriggers(after.state, after.events, ctx);
+    return { state: fired.state, events: [...after.events, ...fired.events] };
+  }
   if (window.passCount === 1) return resolveChain(state, ctx);
   return {
     state: { ...state, chainWindow: windowFor(state, other(window.priorityPlayer), 1) },
@@ -118,9 +123,11 @@ function continueAfterWindow(
 export function settle(state: GameState, ctx: ActionContext, canActivate: CanActivate): Result {
   let current = state;
   const events: GameEvent[] = [];
-  // At most two iterations: after two auto-passes the chain has resolved (window null).
+  // Two auto-passes resolve the chain; triggers fired by it (task 3.5) may open a new one, settled the same way. A
+  // trigger prompt stops here: its answer settles again.
   while (
     current.chainWindow !== null &&
+    current.pendingPrompt === null &&
     !canActivate(current, current.chainWindow.priorityPlayer)
   ) {
     const out = passPriority(current, ctx);
@@ -143,6 +150,8 @@ const toGraveyard = (c: CardInstance): CardInstance => ({
  */
 function sendToGraveyard(state: GameState, link: ChainLink): Result {
   const { source, card } = link;
+  // A trigger's card never moved (task 3.5): it stays on the field / in the graveyard.
+  if (source.zone === 'MonsterZone' || source.zone === 'Graveyard') return { state, events: [] };
   const owner = state.players[card.ownerIndex];
   let next: PlayerState;
   if (source.zone === 'Hand') {
@@ -251,6 +260,11 @@ export function resolveChain(state: GameState, ctx: ActionContext): Result {
   const after = continueAfterWindow(current, state.chainWindow?.reactionTo, ctx);
   current = after.state;
   events.push(...after.events);
+
+  // Task 3.5: triggers fired while the chain resolved (and by the battle it let through) start a new chain.
+  const fired = fireTriggers(current, events, ctx);
+  current = fired.state;
+  events.push(...fired.events);
 
   // Keep "the duel is over" as the final word of the batch.
   const ordered = [

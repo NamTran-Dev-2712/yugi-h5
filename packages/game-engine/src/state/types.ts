@@ -78,9 +78,15 @@ export interface PendingPrompt {
   readonly payload: unknown;
 }
 
-/** Where the activated card was (task 3.4). */
+/**
+ * Where the activated card was (task 3.4). Trigger effects (task 3.5): a monster's OnSummon from its Monster Zone, an
+ * OnDestroyed from the graveyard — the card stays where it is and `card` is only a copy (like a Set card).
+ */
 export type ChainLinkSource =
-  { readonly zone: 'Hand' } | { readonly zone: 'SpellTrapZone'; readonly zoneIndex: number };
+  | { readonly zone: 'Hand' }
+  | { readonly zone: 'SpellTrapZone'; readonly zoneIndex: number }
+  | { readonly zone: 'MonsterZone'; readonly zoneIndex: number }
+  | { readonly zone: 'Graveyard' };
 
 /**
  * One activation waiting on the chain (task 3.3). Cost was paid and targets were chosen when it was added; its

@@ -1,6 +1,7 @@
 import { resolveAttack } from '../../battle/resolve-attack.js';
 import { resolveMonster } from '../../cards/resolve-monster.js';
-import { openReactionWindow } from '../../effects/chain.js';
+import { openReactionWindow, settle } from '../../effects/chain.js';
+import { fireTriggers } from '../../effects/triggers.js';
 import { EngineError, type EngineErrorCode } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
 import type { CardInstance, GameState } from '../../state/types.js';
@@ -86,8 +87,11 @@ export function applyDeclareAttack(
   if (window !== null) return { state: { ...window, version: state.version + 1 }, events };
 
   const resolved = resolveAttack(state, declared, ctx);
+  // Task 3.5: monsters destroyed by the battle may fire OnDestroyed triggers (a new chain).
+  const fired = fireTriggers(resolved.state, resolved.events, ctx);
+  const settled = settle(fired.state, ctx, (s, seat) => hasLegalActivation(s, seat, ctx));
   return {
-    state: { ...resolved.state, version: state.version + 1 },
-    events: [...events, ...resolved.events],
+    state: { ...settled.state, version: state.version + 1 },
+    events: [...events, ...resolved.events, ...fired.events, ...settled.events],
   };
 }
