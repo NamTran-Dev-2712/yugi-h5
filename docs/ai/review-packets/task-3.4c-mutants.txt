@@ -1,0 +1,18 @@
+KILLED   reactionTo lost when a link is pushed / priority passes
+KILLED   window opens even when the opponent cannot respond
+KILLED   responder checked without the window (never opens)
+KILLED   window held by the turn player
+KILLED   empty window needs two passes (priority goes to the turn player)
+KILLED   pass closes the window but the attack never resumes
+KILLED   attack resumes after the duel ended
+KILLED   attack never resumes after a chain
+KILLED   attack goes on without its attacker
+KILLED   attacker not marked as having attacked when the target is gone
+KILLED   attack goes on without its target
+KILLED   DeclareAttack never opens a window
+KILLED   window remembers the wrong target
+KILLED   window offered to the attacker
+KILLED   Summon / Set never opens a window
+KILLED   SetMonster opens no window
+
+16/16 mutants killed

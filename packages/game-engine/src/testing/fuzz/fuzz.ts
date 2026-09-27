@@ -136,6 +136,8 @@ export interface FuzzStats {
   readonly maxChainLength: number;
   /** Links added from a Set card in the Spell/Trap Zone (task 3.4), and links of Spell Speed 3. */
   readonly fieldLinks: number;
+  /** Reaction windows opened by an attack or a Summon/Set (task 3.4c), counted in the states between actions. */
+  readonly reactionWindows: number;
   readonly speed3Links: number;
 }
 
@@ -535,8 +537,15 @@ export function checkStateInvariants(
   ) {
     return 'pendingPrompt.playerIndex out of range';
   }
-  if ((state.chainWindow === null) !== (state.chainStack.length === 0))
-    return `chainWindow ${JSON.stringify(state.chainWindow)} with ${state.chainStack.length} chain link(s)`;
+  // A chain needs a window. A window with no chain is only an empty reaction window (task 3.4c): it says what it
+  // reacts to, nobody passed yet, and it is held by the player who is NOT the turn player.
+  if (state.chainWindow === null && state.chainStack.length > 0)
+    return `no chainWindow with ${state.chainStack.length} chain link(s)`;
+  if (state.chainWindow !== null && state.chainStack.length === 0) {
+    const w = state.chainWindow;
+    if (!w.reactionTo || w.passCount !== 0 || w.priorityPlayer === state.turnPlayerIndex)
+      return `empty chainWindow ${JSON.stringify(w)} is not a valid reaction window`;
+  }
   if (state.chainWindow && state.chainWindow.passCount !== 0 && state.chainWindow.passCount !== 1)
     return `chainWindow.passCount is ${state.chainWindow.passCount}`;
   for (const link of state.chainStack) {
@@ -619,6 +628,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let maxChainLength = 0;
   let fieldLinks = 0;
   let speed3Links = 0;
+  let reactionWindows = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -681,6 +691,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
         );
     }
     maxChainLength = Math.max(maxChainLength, next.chainStack.length);
+    if (next.chainWindow?.reactionTo && next.chainStack.length === 0) reactionWindows++;
     for (const e of result.events) {
       if (e.type !== 'ChainLinkAdded') continue;
       if (e.spellSpeed === 3) speed3Links++;
@@ -708,6 +719,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       maxChainLength,
       fieldLinks,
       speed3Links,
+      reactionWindows,
     },
   };
 }

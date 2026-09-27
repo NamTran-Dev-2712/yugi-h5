@@ -106,13 +106,28 @@ export interface ChainLink {
 }
 
 /**
+ * What a reaction window (task 3.4c) was opened for, and so what happens once it closes: an Attack goes on to damage
+ * (`battle/resolve-attack.ts`); a Summon (Normal/Tribute Summon or Set) needs nothing more.
+ */
+export type ReactionTo =
+  | { readonly kind: 'Summon' }
+  | {
+      readonly kind: 'Attack';
+      readonly playerIndex: 0 | 1;
+      readonly attackerInstanceId: string;
+      readonly targetInstanceId: string | null;
+    };
+
+/**
  * Open response window: `priorityPlayer` may activate a chainable effect or `PassPriority`. `passCount` counts
  * consecutive passes since the last link was added; the second one resolves the whole chain. Non-null ⇔ chainStack
- * is non-empty.
+ * is non-empty, OR it is an empty reaction window (task 3.4c): `reactionTo` set, `passCount` 0, held by the opponent of
+ * the turn player, closed by their single pass. `reactionTo` stays on the window until it closes.
  */
 export interface ChainWindow {
   readonly priorityPlayer: 0 | 1;
   readonly passCount: 0 | 1;
+  readonly reactionTo?: ReactionTo;
 }
 
 export interface GameState {

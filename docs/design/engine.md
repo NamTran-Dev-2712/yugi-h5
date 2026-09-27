@@ -101,7 +101,7 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 - **Vị trí khi chờ resolve** `[RULE]`: lá Set được kích hoạt **lật ngửa tại ô** (`position: 'Attack'` = quy ước "ngửa" của Phép/Bẫy mà StateView đã hiểu), `ChainLink.source = {zone:'SpellTrapZone', zoneIndex}`; resolve xong (kể cả bị vô hiệu / duel kết thúc giữa chain) thì rời ô vào mộ, `CardSentToGraveyard {from:'SpellTrapZone'}`. Bị phá giữa chain → effect **vẫn resolve**, không phát `CardSentToGraveyard` lần hai.
 - `ruleset.allowTrapActivationFromHand` (mặc định `false`): khi `false`, Trap trên tay chỉ có `SetSpellTrap`, không có `ActivateEffect` (`TRAP_NOT_SET`); `true` hiện vẫn `NOT_ACTIVATABLE` (chưa hỗ trợ).
 - Test: `packages/game-engine/src/rules/trap-activation.test.ts`, `actions/handlers/quick-play-and-speed.test.ts`; golden `set-trap-quickplay-counter-chain`.
-- **Chưa có**: cửa sổ phản ứng khi tuyên bố tấn công / triệu hồi (`[REF]` video #3/#4) — đối thủ hiện chỉ đáp trả được khi có chain đang mở.
+- **Cửa sổ phản ứng** (task 3.4c): sau `DeclareAttack` và sau `NormalSummon`/`SetMonster`, đối thủ được một cửa sổ để kích hoạt lá Set — xem mục "Cửa sổ phản ứng" dưới "Chain stack".
 
 ### Mã lỗi thêm ở task 3.4
 
@@ -160,7 +160,7 @@ interface ChainLink {
   targetInstanceIds: string[]; // target chọn lúc kích hoạt
 }
 GameState.chainStack: ChainLink[];        // [0] = link 1 (đáy)
-GameState.chainWindow: { priorityPlayer: 0 | 1; passCount: 0 | 1 } | null;  // null ⇔ chainStack rỗng
+GameState.chainWindow: { priorityPlayer: 0 | 1; passCount: 0 | 1; reactionTo?: ReactionTo } | null;  // null ⇔ chainStack rỗng, trừ cửa sổ phản ứng (3.4c)
 ```
 
 **Kích hoạt** (`ActivateEffect`): validate (`prepare`, không đổi state) → nếu cần chọn target nhiều hơn `count` thì
@@ -194,6 +194,32 @@ hành động tiếp. Duel kết thúc giữa chain ⇒ link còn lại **không
 
 **Thứ tự event 1 link, không ai đáp trả**: `EffectActivated` → cost → `ChainLinkAdded` → event operation →
 `EffectResolved` → `CardSentToGraveyard` → `ChainResolved` → `DuelEnded?`. Sau khi API bỏ 3 event chain, giống hệt 3.2b.
+
+### Cửa sổ phản ứng (task 3.4c)
+
+`[REF]` video #3/#4 (R1–R5): Bẫy kích hoạt ngay sau tuyên bố tấn công (trước damage) và sau triệu hồi. Tái dùng nguyên
+`chainWindow` / `PassPriority` / `settle` / `hasLegalActivation` — không có cơ chế ưu tiên thứ hai.
+
+```ts
+ChainWindow.reactionTo?:
+  | { kind: 'Summon' }
+  | { kind: 'Attack'; playerIndex; attackerInstanceId; targetInstanceId: string | null };
+```
+
+- **Mở**: `DeclareAttack` (kể cả tấn công trực tiếp) sau `AttackDeclared`, trước lật/phá/damage; `NormalSummon`/`SetMonster`
+  (kể cả Tribute) sau khi đặt quái — SetMonster là `[DECISION]` (brief; rules-observed chỉ ghi R2 = Normal Summon). Cửa sổ
+  `{priorityPlayer: đối thủ, passCount: 0, reactionTo}` **chỉ khi đối thủ có activation hợp lệ** (dry-run trên state đã có cửa
+  sổ) `[ASSUMED]`; không có ⇒ không có cửa sổ, action chạy tiếp y như trước (event/state không đổi). Không bao giờ mở cho
+  chính người tấn công/triệu hồi. Không có event riêng cho việc mở/đóng (UI cần thì thêm ở task nối wire).
+- **Đóng**: chain rỗng + đối thủ `PassPriority` **một lần** ⇒ đóng `[ASSUMED]`; đối thủ kích hoạt ⇒ chain bình thường (3.3),
+  `reactionTo` đi theo cửa sổ qua mọi link/pass, cả chain resolve xong ⇒ đóng.
+- **Sau khi đóng**: `Attack` ⇒ `resolveAttack` (`battle/resolve-attack.ts`, đúng logic 1.6–1.8: lật → phá → damage → LP);
+  `Summon` ⇒ không gì. Duel đã kết thúc trong chain ⇒ không tiếp. Quái tấn công rời sân hoặc không còn ở Attack ⇒ đòn dừng;
+  mục tiêu rời sân (hoặc tấn công trực tiếp mà đối thủ đã có quái) ⇒ đòn dừng, quái tấn công vẫn tính đã tấn công — **không
+  replay** `[ASSUMED]` (G14).
+- Bất biến: `chainWindow != null` mà `chainStack` rỗng ⇔ cửa sổ phản ứng (`reactionTo` có, `passCount 0`, người giữ ưu tiên
+  không phải người chơi của lượt). Khi mở: người chơi của lượt chỉ có `Surrender`; `PassPriority` của họ → `NOT_PRIORITY_HOLDER`.
+- `version` +1 một lần cho `DeclareAttack`/Summon ở cả hai nhánh.
 
 **Bảng guard khi `chainWindow != null`** (kiểm ở `applyAction` trước handler, chỉ khi duel đang chạy):
 

@@ -1,7 +1,14 @@
 import type { ActionContext } from '../actions/types.js';
 import { EngineError } from '../errors.js';
 import type { GameEvent } from '../events/types.js';
-import type { CardInstance, ChainLink, GameState, PlayerState } from '../state/types.js';
+import { resolveAttack } from '../battle/resolve-attack.js';
+import type {
+  CardInstance,
+  ChainLink,
+  GameState,
+  PlayerState,
+  ReactionTo,
+} from '../state/types.js';
 import { OPERATION_HANDLERS } from './operations/index.js';
 import type { OperationContext } from './operations/types.js';
 import { targetCandidates } from './targets.js';
@@ -20,6 +27,34 @@ export type CanActivate = (state: GameState, seat: 0 | 1) => boolean;
 
 const other = (seat: 0 | 1): 0 | 1 => (seat === 0 ? 1 : 0);
 
+/** A window with `reactionTo` carried over from the current one (a reaction window keeps it until it closes). */
+function windowFor(
+  state: GameState,
+  priorityPlayer: 0 | 1,
+  passCount: 0 | 1,
+): NonNullable<GameState['chainWindow']> {
+  const reactionTo = state.chainWindow?.reactionTo;
+  return reactionTo ? { priorityPlayer, passCount, reactionTo } : { priorityPlayer, passCount };
+}
+
+/**
+ * Task 3.4c: after an attack declaration or a Summon/Set, gives `responder` (the opponent of the turn player) an empty
+ * window — only if they can activate something [ASSUMED]. Returns the state with the window, or null (nothing to open).
+ */
+export function openReactionWindow(
+  state: GameState,
+  responder: 0 | 1,
+  reactionTo: ReactionTo,
+  canActivate: CanActivate,
+): GameState | null {
+  // Asked with the window already open: outside a window only the turn player may activate.
+  const opened: GameState = {
+    ...state,
+    chainWindow: { priorityPlayer: responder, passCount: 0, reactionTo },
+  };
+  return canActivate(opened, responder) ? opened : null;
+}
+
 /** Pushes `link` on top of the chain and hands priority to the activator's opponent (consecutive passes reset). */
 export function pushLink(state: GameState, link: ChainLink): Result {
   const chainStack = [...state.chainStack, link];
@@ -27,7 +62,7 @@ export function pushLink(state: GameState, link: ChainLink): Result {
     state: {
       ...state,
       chainStack,
-      chainWindow: { priorityPlayer: other(link.playerIndex), passCount: 0 },
+      chainWindow: windowFor(state, other(link.playerIndex), 0),
     },
     events: [
       {
@@ -45,18 +80,38 @@ export function pushLink(state: GameState, link: ChainLink): Result {
   };
 }
 
-/** The priority holder passes: the second consecutive pass resolves the chain, otherwise priority changes hands. */
+/**
+ * The priority holder passes: the second consecutive pass resolves the chain, otherwise priority changes hands.
+ * An empty reaction window (task 3.4c) closes on its holder's single pass [ASSUMED] and what it interrupted goes on.
+ */
 export function passPriority(state: GameState, ctx: ActionContext): Result {
   const window = state.chainWindow;
   if (window === null) return { state, events: [] };
+  if (state.chainStack.length === 0)
+    return continueAfterWindow({ ...state, chainWindow: null }, window.reactionTo, ctx);
   if (window.passCount === 1) return resolveChain(state, ctx);
   return {
-    state: {
-      ...state,
-      chainWindow: { priorityPlayer: other(window.priorityPlayer), passCount: 1 },
-    },
+    state: { ...state, chainWindow: windowFor(state, other(window.priorityPlayer), 1) },
     events: [],
   };
+}
+
+/** What the closed window interrupted goes on (task 3.4c): an attack proceeds to damage; a Summon needs nothing. */
+function continueAfterWindow(
+  state: GameState,
+  reactionTo: ReactionTo | undefined,
+  ctx: ActionContext,
+): Result {
+  if (reactionTo?.kind !== 'Attack' || state.winnerIndex !== null) return { state, events: [] };
+  return resolveAttack(
+    state,
+    {
+      playerIndex: reactionTo.playerIndex,
+      attackerInstanceId: reactionTo.attackerInstanceId,
+      targetInstanceId: reactionTo.targetInstanceId,
+    },
+    ctx,
+  );
 }
 
 /** Auto-passes for every holder that cannot activate anything, until someone can respond or the chain resolved. */
@@ -191,6 +246,11 @@ export function resolveChain(state: GameState, ctx: ActionContext): Result {
     events.push(...spent.events);
   }
   if (current.winnerIndex === null) events.push({ type: 'ChainResolved', linkCount: links.length });
+
+  // Task 3.4c: a chain started in a reaction window lets what it interrupted go on (e.g. the attack reaches damage).
+  const after = continueAfterWindow(current, state.chainWindow?.reactionTo, ctx);
+  current = after.state;
+  events.push(...after.events);
 
   // Keep "the duel is over" as the final word of the batch.
   const ordered = [

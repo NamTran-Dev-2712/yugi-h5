@@ -1,8 +1,10 @@
-import type { MonsterCardDefinition } from '@yugi/shared';
+import { resolveMonster } from '../../cards/resolve-monster.js';
+import { openReactionWindow } from '../../effects/chain.js';
 import { EngineError, type EngineErrorCode } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
 import type { CardInstance, CardPosition, GameState, PlayerState } from '../../state/types.js';
 import type { ActionContext, NormalSummonAction, SetMonsterAction } from '../types.js';
+import { hasLegalActivation } from './activate-effect.js';
 
 /** Tributes required to Normal Summon/Set a monster of this Level [RULE]: 1-4 → 0, 5-6 → 1, 7+ → 2. */
 function requiredTributes(level: number): number {
@@ -125,26 +127,18 @@ function placeMonsterFromHand(
     zoneIndex: t.zone,
   }));
 
+  // Task 3.4c: the opponent may respond to the Summon / Set, only if they can activate something [ASSUMED]; SetMonster
+  // opens it too [DECISION].
+  const placedState: GameState = { ...state, players };
+  const opponentIndex = (playerIndex === 0 ? 1 : 0) as 0 | 1;
+  const withWindow = openReactionWindow(placedState, opponentIndex, { kind: 'Summon' }, (s, seat) =>
+    hasLegalActivation(s, seat, ctx),
+  );
   return {
-    state: { ...state, players, version: state.version + 1 },
+    state: { ...(withWindow ?? placedState), version: state.version + 1 },
     events: [...tributeEvents, event],
   };
 }
 
-export function resolveMonster(
-  card: CardInstance,
-  ctx: ActionContext,
-  reject: (code: EngineErrorCode, reason: string) => never,
-): MonsterCardDefinition {
-  if (!ctx.cardDefinitions)
-    return reject('NO_CARD_RESOLVER', 'no card definition resolver was provided.');
-  const definition = ctx.cardDefinitions(card.definitionId);
-  if (!definition)
-    return reject(
-      'CARD_DEFINITION_NOT_FOUND',
-      `card definition "${card.definitionId}" was not found.`,
-    );
-  if (definition.kind !== 'Monster')
-    return reject('NOT_A_MONSTER', `"${definition.name.en}" is not a Monster card.`);
-  return definition;
-}
+/** Kept here for existing imports; the implementation lives in `cards/resolve-monster.ts` (task 3.4c). */
+export { resolveMonster };

@@ -246,6 +246,23 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
     { operations: [{ kind: 'Heal', amount: 50, target: 'self' }] },
     'Counter',
   ),
+  /** Destroys one of the opponent's monsters (e.g. the attacker / the monster just Summoned) — task 3.4c. */
+  TRAP_KILL_MON: trap('TRAP_KILL_MON', {
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  /** Destroys one of its owner's own monsters (e.g. the attack target) — task 3.4c. */
+  TRAP_KILL_OWN: trap('TRAP_KILL_OWN', {
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'self', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  TRAP_LETHAL: trap('TRAP_LETHAL', {
+    operations: [{ kind: 'Damage', amount: 9000, target: 'opponent' }],
+  }),
+  /** ATK 2000 / DEF 500 monster, so battles have a clear winner. */
+  BIG: { ...monster('BIG'), atk: 2000, def: 500 } as CardDefinition,
+  /** Level 5: needs one tribute. */
+  BIG_L5: { ...monster('BIG_L5', 5), atk: 2200, def: 500 } as CardDefinition,
   /** Normal Trap declared Speed 3 explicitly: `spellSpeed` overrides the default. */
   TRAP_SPEED3: trap('TRAP_SPEED3', {
     spellSpeed: 3,

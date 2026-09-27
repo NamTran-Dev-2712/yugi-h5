@@ -25,6 +25,7 @@ describe('fuzz: engine invariants hold', () => {
     let maxChainLength = 0;
     let fieldLinks = 0;
     let speed3Links = 0;
+    let reactionWindows = 0;
     const byType: Record<string, number> = {};
     for (const seed of SEEDS.slice(0, 10)) {
       const result = runFuzz({ seed, steps: STEPS });
@@ -34,6 +35,7 @@ describe('fuzz: engine invariants hold', () => {
       maxChainLength = Math.max(maxChainLength, result.stats.maxChainLength);
       fieldLinks += result.stats.fieldLinks;
       speed3Links += result.stats.speed3Links;
+      reactionWindows += result.stats.reactionWindows;
       for (const [type, n] of Object.entries(result.stats.accepted)) {
         accepted += n;
         byType[type] = (byType[type] ?? 0) + n;
@@ -57,6 +59,8 @@ describe('fuzz: engine invariants hold', () => {
     // Task 3.4: Set Traps / Quick-Play are activated from the field, and Counter Traps (Speed 3) are chained.
     expect(fieldLinks, 'no link from a Set card').toBeGreaterThan(0);
     expect(speed3Links, 'no Speed 3 link').toBeGreaterThan(0);
+    // Task 3.4c: attacks and Summons/Sets open reaction windows for an opponent holding a Set card.
+    expect(reactionWindows, 'no reaction window').toBeGreaterThan(0);
   });
 
   it('is deterministic: same seed → identical action log and stats', () => {
@@ -199,6 +203,21 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
     );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.violation).toMatch(/face-up Spell\/Trap/);
+  });
+
+  it('flags an empty chain window that is not a valid reaction window (task 3.4c)', () => {
+    // After an accepted EndPhase, leave a window open for the turn player with no chain and no reactionTo.
+    const r = detect(
+      broken('EndPhase', ({ state, events }) => ({
+        events,
+        state: {
+          ...state,
+          chainWindow: { priorityPlayer: state.turnPlayerIndex, passCount: 0 },
+        },
+      })),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/not a valid reaction window|cannot respond/);
   });
 
   it('flags an uncontrolled exception', () => {

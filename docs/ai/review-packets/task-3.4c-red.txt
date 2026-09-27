@@ -1,0 +1,23 @@
+# Task 3.4c — RED run (tests written before implementation), 2026-09-27
+
+   × reaction window after DeclareAttack > opens for the opponent with a legal Set Trap: only AttackDeclared, nothing resolved yet 26ms
+   × reaction window after DeclareAttack > one pass by the opponent closes it and the attack resolves (flip → destroy) 4ms
+   × reaction window after DeclareAttack > while open: the attacker cannot pass, other actions are blocked, Surrender still works 7ms
+   × reaction window after DeclareAttack > a direct attack opens the window too; after a pass the damage is dealt 7ms
+   × reaction window after DeclareAttack > the opponent chains a Trap: the chain resolves, then the attack continues 5ms
+   × reaction window after DeclareAttack > a Trap that destroys the attacker stops the attack (no damage) 2ms
+   × reaction window after DeclareAttack > a Trap that removes the attack target stops the attack; the attacker still counts as having attacked 1ms
+   × reaction window after DeclareAttack > a lethal Trap ends the duel: the attack never resumes, DuelEnded is last 1ms
+   ✓ reaction window after DeclareAttack > no Set card → no window, the attack resolves at once exactly as before 2ms
+   ✓ reaction window after DeclareAttack > a Trap with no effect → no window, the attack resolves at once exactly as before 1ms
+   ✓ reaction window after DeclareAttack > a Trap Set this turn → no window, the attack resolves at once exactly as before 1ms
+   ✓ reaction window after DeclareAttack > only the attacker holds a Quick-Play → no window, the attack resolves at once exactly as before 1ms
+   × reaction window after a Summon / Set > NormalSummon opens it for the opponent; a pass closes it 2ms
+   × reaction window after a Summon / Set > SetMonster opens it for the opponent; a pass closes it 1ms
+   × reaction window after a Summon / Set > a Tribute Summon opens it too 1ms
+   × reaction window after a Summon / Set > [REF] R2: a Trap destroys the monster just Summoned 1ms
+   ✓ reaction window after a Summon / Set > no legal response → no window (summon resolves as before) 0ms
+   × reaction window — event log sanity > replays deterministically 0ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  13 failed | 5 passed (18)

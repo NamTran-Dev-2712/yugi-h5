@@ -1,9 +1,11 @@
+import { resolveAttack } from '../../battle/resolve-attack.js';
+import { resolveMonster } from '../../cards/resolve-monster.js';
+import { openReactionWindow } from '../../effects/chain.js';
 import { EngineError, type EngineErrorCode } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
-import type { CardInstance, GameState, PlayerState } from '../../state/types.js';
-import { checkLifePointsWinCondition } from '../../state/win-condition.js';
+import type { CardInstance, GameState } from '../../state/types.js';
 import type { ActionContext, DeclareAttackAction } from '../types.js';
-import { resolveMonster } from './summon.js';
+import { hasLegalActivation } from './activate-effect.js';
 
 type Result = { state: GameState; events: GameEvent[] };
 
@@ -56,156 +58,36 @@ export function applyDeclareAttack(
     reject('JUST_SUMMONED_CANNOT_ATTACK', 'a monster Summoned or Set this turn cannot attack.');
   }
 
-  const attackerDef = resolveMonster(attacker, ctx, reject);
+  // Validates that the attacker is a Monster card (rejects otherwise); damage calc happens in resolveAttack.
+  resolveMonster(attacker, ctx, reject);
 
-  let targetZone = -1;
-  let target: CardInstance | null = null;
   if (targetInstanceId != null) {
-    targetZone = opponent.board.monsterZones.findIndex((c) => c?.instanceId === targetInstanceId);
-    if (targetZone === -1) {
+    if (!opponent.board.monsterZones.some((c) => c?.instanceId === targetInstanceId)) {
       reject('INVALID_TARGET', `${targetInstanceId} is not a monster on the opponent's field.`);
     }
-    target = opponent.board.monsterZones[targetZone] as CardInstance;
   } else if (opponent.board.monsterZones.some((c) => c !== null)) {
     reject('MUST_TARGET_MONSTER', 'the opponent has a monster; you must attack it directly.');
   }
 
-  // Per-side accumulators, since attacker and target usually live on opposite sides.
-  let nextAttackingPlayer = attackingPlayer;
-  let nextOpponent = opponent;
-  const events: GameEvent[] = [
-    {
-      type: 'AttackDeclared',
-      playerIndex,
-      attackerInstanceId,
-      targetInstanceId: target?.instanceId ?? null,
-    },
-  ];
+  const declared = {
+    playerIndex,
+    attackerInstanceId,
+    targetInstanceId: targetInstanceId ?? null,
+  } as const;
+  const events: GameEvent[] = [{ type: 'AttackDeclared', ...declared }];
 
-  if (target !== null && target.position === 'DefenseDown') {
-    // Attacking a face-down monster flips it face-up; it stays in Defense Position for
-    // damage calc (classic-rules assumption — never auto-switches to Attack Position).
-    const flipped: CardInstance = { ...target, position: 'DefenseUp' };
-    const monsterZones = nextOpponent.board.monsterZones.map((slot, i) =>
-      i === targetZone ? flipped : slot,
-    ) as unknown as PlayerState['board']['monsterZones'];
-    nextOpponent = { ...nextOpponent, board: { ...nextOpponent.board, monsterZones } };
-    events.push({
-      type: 'MonsterFlipped',
-      ownerIndex: opponentIndex,
-      instanceId: flipped.instanceId,
-      definitionId: flipped.definitionId,
-      zoneIndex: targetZone,
-    });
-    target = flipped;
-  }
+  // Task 3.4c: the opponent may respond before damage, but only if they can activate something [ASSUMED].
+  const window = openReactionWindow(
+    state,
+    opponentIndex,
+    { kind: 'Attack', ...declared },
+    (s, seat) => hasLegalActivation(s, seat, ctx),
+  );
+  if (window !== null) return { state: { ...window, version: state.version + 1 }, events };
 
-  const destroy = (
-    owner: PlayerState,
-    ownerIndex: 0 | 1,
-    card: CardInstance,
-    zoneIndex: number,
-    definitionId: string,
-  ): PlayerState => {
-    const monsterZones = owner.board.monsterZones.map((slot, i) =>
-      i === zoneIndex ? null : slot,
-    ) as unknown as PlayerState['board']['monsterZones'];
-    events.push({
-      type: 'MonsterDestroyed',
-      ownerIndex,
-      instanceId: card.instanceId,
-      definitionId,
-      zoneIndex,
-    });
-    return {
-      ...owner,
-      board: { ...owner.board, monsterZones },
-      graveyard: [...owner.graveyard, { ...card, position: null }],
-    };
-  };
-
-  const damage = (recipient: PlayerState, recipientIndex: 0 | 1, amount: number): PlayerState => {
-    events.push({ type: 'DamageDealt', playerIndex: recipientIndex, amount });
-    return { ...recipient, lifePoints: Math.max(0, recipient.lifePoints - amount) };
-  };
-
-  const surviveAttacker = (): void => {
-    const attacked: CardInstance = { ...attacker, attackedTurn: state.turnCount };
-    const monsterZones = attackingPlayer.board.monsterZones.map((slot, i) =>
-      i === attackerZone ? attacked : slot,
-    ) as unknown as PlayerState['board']['monsterZones'];
-    nextAttackingPlayer = {
-      ...nextAttackingPlayer,
-      board: { ...nextAttackingPlayer.board, monsterZones },
-    };
-  };
-
-  if (target === null) {
-    // Direct attack.
-    surviveAttacker();
-    nextOpponent = damage(nextOpponent, opponentIndex, attackerDef.atk);
-  } else if (target.position === 'Attack') {
-    const targetDef = resolveMonster(target, ctx, reject);
-    if (attackerDef.atk > targetDef.atk) {
-      nextOpponent = destroy(nextOpponent, opponentIndex, target, targetZone, target.definitionId);
-      nextOpponent = damage(nextOpponent, opponentIndex, attackerDef.atk - targetDef.atk);
-      surviveAttacker();
-    } else if (attackerDef.atk < targetDef.atk) {
-      nextAttackingPlayer = destroy(
-        nextAttackingPlayer,
-        playerIndex,
-        attacker,
-        attackerZone,
-        attacker.definitionId,
-      );
-      nextAttackingPlayer = damage(
-        nextAttackingPlayer,
-        playerIndex,
-        targetDef.atk - attackerDef.atk,
-      );
-    } else {
-      nextOpponent = destroy(nextOpponent, opponentIndex, target, targetZone, target.definitionId);
-      nextAttackingPlayer = destroy(
-        nextAttackingPlayer,
-        playerIndex,
-        attacker,
-        attackerZone,
-        attacker.definitionId,
-      );
-    }
-  } else {
-    // Target is in Defense Position.
-    const targetDef = resolveMonster(target, ctx, reject);
-    if (attackerDef.atk > targetDef.def) {
-      nextOpponent = destroy(nextOpponent, opponentIndex, target, targetZone, target.definitionId);
-      surviveAttacker();
-    } else if (attackerDef.atk < targetDef.def) {
-      surviveAttacker();
-      nextAttackingPlayer = damage(
-        nextAttackingPlayer,
-        playerIndex,
-        targetDef.def - attackerDef.atk,
-      );
-    } else {
-      // [ASSUMED]: ATK == DEF against a Defense Position target isn't covered by
-      // RULES-REVIEW-SHEET.md rows 33-34; treated as nobody destroyed, no damage.
-      surviveAttacker();
-    }
-  }
-
-  const players: [PlayerState, PlayerState] =
-    playerIndex === 0 ? [nextAttackingPlayer, nextOpponent] : [nextOpponent, nextAttackingPlayer];
-
-  const win = checkLifePointsWinCondition(players);
-  if (win) events.push(win.event);
-
+  const resolved = resolveAttack(state, declared, ctx);
   return {
-    state: {
-      ...state,
-      players,
-      winnerIndex: win ? win.winnerIndex : state.winnerIndex,
-      version: state.version + 1,
-    },
-    events,
+    state: { ...resolved.state, version: state.version + 1 },
+    events: [...events, ...resolved.events],
   };
 }

@@ -73,6 +73,20 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  G_TRAP_KILL: {
+    id: 'G_TRAP_KILL',
+    kind: 'Trap',
+    name: { vi: 'Golden G_TRAP_KILL', en: 'Golden G_TRAP_KILL' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
   G_COUNTER: {
     id: 'G_COUNTER',
     kind: 'Trap',
@@ -100,6 +114,12 @@ const CHAIN_DECK = Array.from(
 const TRAP_DECK = Array.from(
   { length: 40 },
   (_, i) => ['G_DRAW', 'G_QP_BURN', 'G_TRAP_BURN', 'G_COUNTER', 'M1000'][i % 5]!,
+);
+
+/** Reaction windows after a Set / an attack (task 3.4c). */
+const REACTION_DECK = Array.from(
+  { length: 40 },
+  (_, i) => ['M1000', 'G_TRAP_KILL', 'M1800'][i % 3]!,
 );
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
@@ -404,6 +424,50 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
       },
       { type: 'PassPriority', payload: { playerIndex: 1 } },
       ...endPhase(1, 4),
+    ],
+  },
+  {
+    name: 'attack-and-summon-reaction',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-reaction',
+        playerIds: ['alice', 'bob'],
+        deckLists: [REACTION_DECK, REACTION_DECK],
+      },
+    },
+    actions: [
+      ...endPhase(0, 2),
+      // T1 (P0): P1 has no Set card, so the Summon opens no window.
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-3', zoneIndex: 0 } },
+      ...endPhase(0, 4),
+      // T2 (P1) hand: p1-37 G_TRAP_KILL, ...: Set it.
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-37', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): Setting a monster opens a reaction window for P1 (its Trap was Set last turn).
+      ...endPhase(0, 2),
+      { type: 'SetMonster', payload: { playerIndex: 0, cardInstanceId: 'p0-12', zoneIndex: 1 } },
+      // Rejects while the window is open: the turn player can neither act on nor pass it.
+      { type: 'EndPhase', payload: { playerIndex: 0 } },
+      { type: 'PassPriority', payload: { playerIndex: 0 } },
+      // P1 passes once: the empty window closes.
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      ...endPhase(0, 1),
+      // Direct attack → window for P1 before damage.
+      { type: 'DeclareAttack', payload: { playerIndex: 0, attackerInstanceId: 'p0-3' } },
+      // P1's Trap has two possible targets → target prompt; it destroys the attacker, so the attack stops (no damage).
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-37', effectId: 'e1' },
+      },
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'effect-3-21', cardInstanceIds: ['p0-3'] },
+      },
+      ...endPhase(0, 3),
     ],
   },
 ];
