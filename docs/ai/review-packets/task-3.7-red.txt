@@ -1,0 +1,69 @@
+ × src/duel/legal-index.chain.test.ts > passAction > returns the listed PassPriority of the viewer 5ms
+ × src/duel/legal-index.chain.test.ts > passAction > is null when only the other seat may pass, or nobody 1ms
+ × src/duel/legal-index.chain.test.ts > activatableSetCards > lists my Set cards with at least one listed ActivateEffect, in the order given 1ms
+ × src/duel/legal-index.chain.test.ts > activatableSetCards > ignores activations of another seat and cards not asked about 1ms
+ × src/duel/legal-index.chain.test.ts > triggerAnswers > splits the decline answer from the activating answers 1ms
+ × src/duel/legal-index.chain.test.ts > triggerAnswers > has no decline for a mandatory trigger (nothing listed) 1ms
+ × src/duel/legal-index.chain.test.ts > triggerAnswers > ignores answers to another prompt or of another seat 0ms
+ × src/duel/interaction.chain.test.ts > tap a Set card of mine during a reaction window (C13) > sends the listed ActivateEffect at once, no menu 13ms
+ × src/duel/interaction.chain.test.ts > tap a Set card of mine during a reaction window (C13) > dragging the Set card does not activate it (toast: card cannot move) 2ms
+ × src/duel/interaction.chain.test.ts > tap a Set card of mine during a reaction window (C13) > works for every activatable Set card of the chain-respond fixture 2ms
+ × src/duel/interaction.chain.test.ts > a Set card with several listed activations > several effects: the option menu lists one entry per effect; picking one sends it 3ms
+ × src/duel/interaction.chain.test.ts > a Set card with several listed activations > one effect with a cost choice: asks for the cost card (cancellable), then sends the matching action 5ms
+ × src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > opens a trigger selection over the listed targets, the decline kept apart 2ms
+ × src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > choosing a target then "Kích hoạt" sends that answer 1ms
+ × src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > "Không" sends the listed decline 1ms
+ × src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > the cancel event (Esc) never declines 1ms
+ × src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > a mandatory trigger (no decline listed) shows no "Không" and the cancel spot does nothing 2ms
+ × src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > a trigger without targets can be confirmed at once 1ms
+ × src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > a click that misses an option menu re-opens a pending prompt instead of leaving it stuck 1ms
+ × src/duel/presenter.chain.test.ts > activatable Set cards > outlines my Set cards with a listed activation, and only those 10ms
+ × src/duel/presenter.chain.test.ts > "Bỏ qua" button > takes the "Phase tiếp theo" spot when PassPriority is listed 5ms
+ × src/duel/presenter.chain.test.ts > chain banner > reaction to an attack: says so, addressed to me 2ms
+ × src/duel/presenter.chain.test.ts > chain banner > reaction to a summon: a different sentence 1ms
+ × src/duel/presenter.chain.test.ts > chain banner > an ordinary chain: link count and the top card name (the chain is public) 1ms
+ × src/duel/presenter.chain.test.ts > chain banner > the opponent holds priority: waiting, not mine 1ms
+ × src/duel/presenter.chain.test.ts > chain banner > no window: no banner 1ms
+ × src/duel/presenter.chain.test.ts > TriggerActivation prompt > names the card whose trigger asks 1ms
+ × src/duel/presenter.chain.test.ts > effective ATK/DEF > keeps the printed stats and adds only the changed effective ones 4ms
+ × src/duel/presenter.chain.test.ts > effective ATK/DEF > non-monsters and face-down cards carry no effective stats 1ms
+ × src/duel/presenter.chain.test.ts > effective ATK/DEF > the detail panel shows the effective values and the printed ones 3ms
+ × src/duel/duel-controller.test.ts > pressing buttons > "Bỏ qua" sends the listed PassPriority and shows "thinking" (the AI may answer) 12ms
+ × src/duel/duel-controller.test.ts > pressing buttons > "Bỏ qua" sends nothing when PassPriority is not listed 5ms
+ × src/duel/duel-controller.test.ts > pressing buttons > exposes the card lookup it was given (the scene draws with it) 2ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 33 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/duel/duel-controller.test.ts > pressing buttons > "Bỏ qua" sends the listed PassPriority and shows "thinking" (the AI may answer)
+ FAIL  src/duel/duel-controller.test.ts > pressing buttons > "Bỏ qua" sends nothing when PassPriority is not listed
+ FAIL  src/duel/duel-controller.test.ts > pressing buttons > exposes the card lookup it was given (the scene draws with it)
+ FAIL  src/duel/interaction.chain.test.ts > tap a Set card of mine during a reaction window (C13) > sends the listed ActivateEffect at once, no menu
+ FAIL  src/duel/interaction.chain.test.ts > tap a Set card of mine during a reaction window (C13) > dragging the Set card does not activate it (toast: card cannot move)
+ FAIL  src/duel/interaction.chain.test.ts > tap a Set card of mine during a reaction window (C13) > works for every activatable Set card of the chain-respond fixture
+ FAIL  src/duel/interaction.chain.test.ts > a Set card with several listed activations > several effects: the option menu lists one entry per effect; picking one sends it
+ FAIL  src/duel/interaction.chain.test.ts > a Set card with several listed activations > one effect with a cost choice: asks for the cost card (cancellable), then sends the matching action
+ FAIL  src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > opens a trigger selection over the listed targets, the decline kept apart
+ FAIL  src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > choosing a target then "Kích hoạt" sends that answer
+ FAIL  src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > "Không" sends the listed decline
+ FAIL  src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > the cancel event (Esc) never declines
+ FAIL  src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > a mandatory trigger (no decline listed) shows no "Không" and the cancel spot does nothing
+ FAIL  src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > a trigger without targets can be confirmed at once
+ FAIL  src/duel/interaction.chain.test.ts > TriggerActivation prompt (Yes / No overlay) > a click that misses an option menu re-opens a pending prompt instead of leaving it stuck
+ FAIL  src/duel/legal-index.chain.test.ts > passAction > returns the listed PassPriority of the viewer
+ FAIL  src/duel/legal-index.chain.test.ts > passAction > is null when only the other seat may pass, or nobody
+ FAIL  src/duel/legal-index.chain.test.ts > activatableSetCards > lists my Set cards with at least one listed ActivateEffect, in the order given
+ FAIL  src/duel/legal-index.chain.test.ts > activatableSetCards > ignores activations of another seat and cards not asked about
+ FAIL  src/duel/legal-index.chain.test.ts > triggerAnswers > splits the decline answer from the activating answers
+ FAIL  src/duel/legal-index.chain.test.ts > triggerAnswers > has no decline for a mandatory trigger (nothing listed)
+ FAIL  src/duel/legal-index.chain.test.ts > triggerAnswers > ignores answers to another prompt or of another seat
+ FAIL  src/duel/presenter.chain.test.ts > activatable Set cards > outlines my Set cards with a listed activation, and only those
+ FAIL  src/duel/presenter.chain.test.ts > "Bỏ qua" button > takes the "Phase tiếp theo" spot when PassPriority is listed
+ FAIL  src/duel/presenter.chain.test.ts > chain banner > reaction to an attack: says so, addressed to me
+ FAIL  src/duel/presenter.chain.test.ts > chain banner > reaction to a summon: a different sentence
+ FAIL  src/duel/presenter.chain.test.ts > chain banner > an ordinary chain: link count and the top card name (the chain is public)
+ FAIL  src/duel/presenter.chain.test.ts > chain banner > the opponent holds priority: waiting, not mine
+ FAIL  src/duel/presenter.chain.test.ts > chain banner > no window: no banner
+ FAIL  src/duel/presenter.chain.test.ts > TriggerActivation prompt > names the card whose trigger asks
+ FAIL  src/duel/presenter.chain.test.ts > effective ATK/DEF > keeps the printed stats and adds only the changed effective ones
+ FAIL  src/duel/presenter.chain.test.ts > effective ATK/DEF > non-monsters and face-down cards carry no effective stats
+ FAIL  src/duel/presenter.chain.test.ts > effective ATK/DEF > the detail panel shows the effective values and the printed ones
+ Test Files  4 failed | 27 passed (31)
+      Tests  33 failed | 496 passed (529)

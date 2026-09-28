@@ -49,6 +49,9 @@ export const theme = {
     dim: 0x000000,
     menuBg: 0x1c2a34,
     toastBg: 0x4a1f1f,
+    /** Chain UI (task 3.7): outline of a Set card a tap activates, and the "waiting for a response" strip. */
+    activatable: 0xc38bff,
+    chainBanner: 0x3a2358,
   },
 
   css: {
@@ -59,6 +62,9 @@ export const theme = {
     danger: '#e07070',
     good: '#7fd07f',
     cardText: '#20180c',
+    /** Effective ATK/DEF on a card face (task 3.7): readable on the light card face. */
+    statUp: '#1b7a2f',
+    statDown: '#b3261e',
   },
 
   fonts: {

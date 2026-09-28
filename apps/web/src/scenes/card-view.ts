@@ -37,13 +37,38 @@ export function createCardView(scene: Phaser.Scene, c: CardRender): Phaser.GameO
     parts.push(text(scene, left + 6, top + 6, l.name, 9, theme.css.cardText, NATURAL_W - 12));
     if (l.level !== null) parts.push(text(scene, left + 8, top + 74, `★${l.level}`, 10));
     if (l.atk !== null && l.def !== null) {
-      parts.push(text(scene, left + 6, top + 88, `${l.atk}/${l.def}`, 10));
+      // [GUESS] layout (task 3.7): the current value is the number shown, green above / red below the printed one;
+      // the printed values are in the detail panel.
+      const color = (printed: number, eff: number | null): string =>
+        eff === null || eff === printed
+          ? theme.css.cardText
+          : eff > printed
+            ? theme.css.statUp
+            : theme.css.statDown;
+      const atk = text(
+        scene,
+        left + 6,
+        top + 88,
+        `${l.effAtk ?? l.atk}`,
+        10,
+        color(l.atk, l.effAtk),
+      );
+      const slash = text(scene, atk.x + atk.width, top + 88, '/', 10);
+      const def = text(
+        scene,
+        slash.x + slash.width,
+        top + 88,
+        `${l.effDef ?? l.def}`,
+        10,
+        color(l.def, l.effDef),
+      );
+      parts.push(atk, slash, def);
     }
   }
 
-  if (c.highlight) {
+  if (c.highlight || c.activatable) {
     const outline = scene.add.rectangle(0, 0, NATURAL_W + 2, NATURAL_H + 2);
-    outline.setStrokeStyle(3, theme.colors.highlight, 1);
+    outline.setStrokeStyle(3, c.activatable ? theme.colors.activatable : theme.colors.highlight, 1);
     parts.push(outline);
   }
 

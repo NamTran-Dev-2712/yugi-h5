@@ -691,3 +691,33 @@ boolean`; `EventView` + 3 event chain (shape engine); `StateView.chain: ChainLin
 - **Kiểm chứng**: xem `docs/ai/review-packets/task-3.4b.md`.
   **Hệ quả:** 3.7 dùng `chain`/`chainWindow`/`legalActions` để làm UI chạm lá Set (C13), banner, nút Bỏ qua, overlay trigger;
   thêm lá thật có trigger/Speed 2 vào pool chỉ sau 3.7.
+
+## 2026-09-28 — UI chuỗi trong Phaser (task 3.7): không thêm kind, "Bỏ qua" thay chỗ "Phase tiếp theo", chứng minh bằng fixture
+
+- **Chỉ `apps/web`** (engine/api/shared 0 dòng). Mọi thứ vẫn là lọc `legalActions`: `legal-index.ts` thêm `passAction`,
+  `activatableSetCards`, `triggerAnswers` (tách câu `decline` khỏi câu kích hoạt). Không suy luật ở client.
+- **Chạm lá Set (C13) tái dùng máy trạng thái, không thêm kind**: nhấn lá ô Phép/Bẫy của mình có `ActivateEffect` được liệt kê →
+  `dragging-card {draggable:false}`; nhả không kéo = kích hoạt (gom theo `effectId`: một nhóm gửi ngay hoặc chọn cost như 3.2b,
+  nhiều effect → `choosing-option` "Kích hoạt hiệu ứng N"); kéo đi = toast "chưa thể dùng" như lá tay bị khoá.
+- **Trigger = `selecting-tribute` với `purpose:'trigger'`** + field `decline?` (câu từ chối được liệt kê). "Kích hoạt" gửi câu trả
+  lời có tập mục tiêu khớp lựa chọn (không cần mục tiêu ⇒ bật ngay); "Không" (vị trí nút Hủy) gửi `decline`, chỉ hiện khi server liệt
+  kê (trigger optional). Esc/chuột phải KHÔNG từ chối (tránh bấm nhầm).
+- **Sửa nhỏ hành vi cũ**: bấm trượt khỏi menu lựa chọn giờ gọi `settle` thay vì về `idle` — không có prompt thì y hệt cũ, có prompt
+  thì mở lại lựa chọn của prompt (trước đó có thể kẹt). Scene vẽ overlay ngay lúc khởi tạo (trước đây overlay của prompt có sẵn —
+  fixture/Sandbox — chỉ hiện sau lần di chuột đầu tiên; thấy khi chụp ảnh).
+- **Nút "Bỏ qua" thay chỗ "Phase tiếp theo"** (`ButtonId 'pass'`, cùng rect) khi `PassPriority` của mình được liệt kê: lúc cửa sổ mở
+  engine không bao giờ liệt kê `EndPhase` nên không mất nút nào; không đổi `layout`. `press('pass')` chạy như lượt AI (`thinking`),
+  fixture chỉ ghi "sẽ gửi".
+- **Banner** (`RenderModel.chain`) đọc `chainWindow`/`chain`: phản ứng tấn công / phản ứng triệu hồi / chuỗi thường (số mắt xích +
+  tên lá trên cùng — chuỗi công khai) / chờ đối thủ; vẽ ở dòng ghi chú panel phase (ưu tiên: hiệu ứng > đang gửi > prompt > chuỗi >
+  lỗi) trên dải tím.
+- **ATK/DEF hiệu lực** `[GUESS]` G16: `CardLabel.effAtk/effDef` chỉ khác null khi server gửi giá trị khác chỉ số in; trên lá hiện số
+  hiệu lực (xanh cao hơn / đỏ thấp hơn), panel chi tiết hiện cả chỉ số in. Viền tím `theme.colors.activatable` cho lá Set kích hoạt
+  được (khác vàng/xanh lá/đỏ đã có).
+- **Chứng minh bằng fixture DEV + lá test `FIX-301..305`** (chủ dự án chọn): server chỉ biết `SAMPLE_CARDS`, pool chưa có lá Set có
+  effect nên Sandbox trên API thật không mở được cửa sổ nếu không sửa API. Lá test nằm trong `fixtures.ts` (import động, không có trong
+  `dist` — đã grep), hợp `CardDefinitionSchema` (có test). `DuelController` lộ `lookup`; scene/driver dùng `controller.lookup`, fixture
+  gộp lá test vào lookup. 3 fixture: `chain-reaction`, `chain-respond`, `trigger-optional`.
+- **Kiểm chứng**: xem `docs/ai/review-packets/task-3.7.md`.
+  **Hệ quả:** 3.8 thêm lá thật (Trap/Quick-Play/trigger) vào pool ⇒ luồng HTTP thật mở cửa sổ; khi đó chụp lại bằng Sandbox + chạy
+  `play-vs-ai`. Đổi bố cục khi có tư liệu = sửa presenter/card-view/theme.

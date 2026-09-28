@@ -180,6 +180,19 @@ export const strings = {
   get targetPrompt() {
     return t('duel.targetPrompt');
   },
+  // Chain UI (task 3.7)
+  get pass() {
+    return t('duel.pass');
+  },
+  get pickTriggerHint() {
+    return t('duel.pickTriggerHint');
+  },
+  get triggerYes() {
+    return t('duel.triggerYes');
+  },
+  get triggerNo() {
+    return t('duel.triggerNo');
+  },
 
   get detailEmpty() {
     return t('duel.detailEmpty');

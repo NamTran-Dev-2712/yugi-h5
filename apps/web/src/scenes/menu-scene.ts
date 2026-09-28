@@ -77,7 +77,7 @@ export class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     FIXTURE_NAMES.forEach((name, i) => {
-      // Two rows of four so all fixtures stay inside the frame.
+      // Rows of four (up to four rows) so all fixtures stay inside the frame.
       this.button(
         cx - 345 + (i % 4) * 230,
         545 + Math.floor(i / 4) * 50,

@@ -9,8 +9,10 @@ import {
   promptAnswers,
   spellSetOptions,
   summonOptions,
+  triggerAnswers,
   type ZoneOption,
 } from './legal-index';
+import { t } from '../i18n/i18n';
 import {
   hitTest,
   optionRects,
@@ -34,9 +36,10 @@ import { strings } from './strings';
 
 /**
  * What a card selection is for. `tribute`/`cost` come from the person's own gesture and can be cancelled;
- * `discard`/`target` answer a server prompt and cannot (the engine has no way back out of a prompt).
+ * `discard`/`target` answer a server prompt and cannot (the engine has no way back out of a prompt). `trigger`
+ * answers a TriggerActivation prompt: its "cancel" is the listed decline ("Không"), only there for an optional trigger.
  */
-export type SelectionPurpose = 'tribute' | 'discard' | 'cost' | 'target';
+export type SelectionPurpose = 'tribute' | 'discard' | 'cost' | 'target' | 'trigger';
 
 const cancellable = (purpose: SelectionPurpose): boolean =>
   purpose === 'tribute' || purpose === 'cost';
@@ -75,6 +78,8 @@ export type InteractionState =
       readonly actions: readonly PlayerAction[];
       readonly candidates: readonly string[];
       readonly selected: readonly string[];
+      /** `trigger` only: the listed decline, sent by "Không" (absent for a mandatory trigger). */
+      readonly decline?: PlayerAction;
     }
   | { readonly kind: 'pending-server' };
 
@@ -207,6 +212,24 @@ function dropSpell(
   );
 }
 
+/**
+ * A tap on one of my Set cards (C13, no "Activate?" dialog): its listed activations grouped by effect. One effect sends
+ * at once (or asks for its cost cards); several open the option menu, one entry per effect.
+ */
+function activateSetCard(cardId: string, point: Point, ctx: InteractionContext): Transition {
+  const byEffect = new Map<string, PlayerAction[]>();
+  for (const a of activations(ctx.legalActions, ctx.view.viewerIndex, cardId)) {
+    const group = byEffect.get(a.payload.effectId) ?? [];
+    group.push(a);
+    byEffect.set(a.payload.effectId, group);
+  }
+  const groups = [...byEffect.values()].map((actions, i) => ({
+    label: t('duel.activateEffectN', { n: i + 1 }),
+    actions,
+  }));
+  return offer(groups, point, ctx);
+}
+
 function dropCard(
   option: ZoneOption | undefined,
   point: Point,
@@ -231,6 +254,26 @@ function settle(ctx: InteractionContext, effects: InteractionEffect[]): Transiti
   const prompt = ctx.view.pendingPrompt;
   if (!prompt || prompt.playerIndex !== ctx.view.viewerIndex || ctx.view.winnerIndex !== null) {
     return { state: IDLE, effects };
+  }
+  if (prompt.kind === 'TriggerActivation') {
+    // Yes/No: "Kích hoạt" sends the answer whose targets match the selection (none needed = at once), "Không" the decline.
+    const { answers, decline } = triggerAnswers(
+      ctx.legalActions,
+      ctx.view.viewerIndex,
+      prompt.promptId,
+    );
+    if (answers.length === 0 && decline === null) return { state: IDLE, effects };
+    return {
+      state: {
+        kind: 'selecting-tribute',
+        purpose: 'trigger',
+        actions: answers,
+        candidates: [...new Set(answers.flatMap((a) => a.payload.cardInstanceIds))],
+        selected: [],
+        ...(decline ? { decline } : {}),
+      },
+      effects,
+    };
   }
   const answers = promptAnswers(ctx.legalActions, ctx.view.viewerIndex, prompt.promptId);
   const purpose: SelectionPurpose | null =
@@ -266,6 +309,20 @@ function onDown(point: Point, ctx: InteractionContext): Transition {
         kind: 'dragging-card',
         cardId: card.id,
         draggable: draggableHandCards(ctx.legalActions, viewer).includes(card.id),
+        origin: point,
+        pointer: point,
+        moved: false,
+      },
+      effects: [],
+    };
+  }
+  if (card.zone === 'spellTrap' && activations(ctx.legalActions, viewer, card.id).length > 0) {
+    // A Set card the server lets me activate (C13): a tap activates it; it never follows the pointer.
+    return {
+      state: {
+        kind: 'dragging-card',
+        cardId: card.id,
+        draggable: false,
         origin: point,
         pointer: point,
         moved: false,
@@ -309,8 +366,9 @@ function onUpDraggingCard(
   ctx: InteractionContext,
 ): Transition {
   if (!state.moved) {
-    // A click: only a hand card the server turned into a one-click answer (discard) does anything.
     const card = ctx.model.cards.find((c) => c.id === state.cardId);
+    if (card?.zone === 'spellTrap') return activateSetCard(card.id, point, ctx);
+    // A click on a hand card: only one the server turned into a one-click answer (discard) does anything.
     return card?.action ? emit(card.action, ctx) : stay(IDLE);
   }
   if (!state.draggable) return toIdle(toast(strings.toastCardLocked));
@@ -372,7 +430,8 @@ function onUpChoosing(
 ): Transition {
   const rects = optionRects(state.anchor, state.options.length);
   const i = rects.findIndex((r) => pointInRect(r, point));
-  return i === -1 ? stay(IDLE) : resolveGroup(state.options[i]!.actions, ctx);
+  // A miss closes the menu; a prompt still waiting for me re-opens its selection (else it would be stuck).
+  return i === -1 ? settle(ctx, []) : resolveGroup(state.options[i]!.actions, ctx);
 }
 
 function onUpSelecting(
@@ -384,8 +443,11 @@ function onUpSelecting(
     const action = matchingAction(state);
     return action ? emit(action, ctx) : stay(state);
   }
-  if (cancellable(state.purpose) && pointInRect(ctx.layout.overlay.cancel, point))
-    return stay(IDLE);
+  if (pointInRect(ctx.layout.overlay.cancel, point)) {
+    if (cancellable(state.purpose)) return stay(IDLE);
+    // "Không" on an optional trigger = the listed decline.
+    if (state.decline) return emit(state.decline, ctx);
+  }
   const hit = hitTest(ctx.layout, ctx.model, point);
   if (hit.kind === 'card' && state.candidates.includes(hit.id)) {
     const selected = state.selected.includes(hit.id)
@@ -533,7 +595,7 @@ export function overlayFor(state: InteractionState, ctx: InteractionContext): Ov
         selected: state.selected,
         confirm: {
           enabled: canConfirm(state),
-          showCancel: cancellable(state.purpose),
+          showCancel: cancellable(state.purpose) || state.decline !== undefined,
           purpose: state.purpose,
         },
       };

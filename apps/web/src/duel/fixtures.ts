@@ -1,5 +1,6 @@
 import {
   DEFAULT_RULESET,
+  type CardDefinition,
   type CardView,
   type PlayerAction,
   type PlayerIndex,
@@ -83,6 +84,8 @@ function view(
     phase: ViewPhase;
     winnerIndex?: StateView['winnerIndex'];
     pendingPrompt?: StateView['pendingPrompt'];
+    chain?: StateView['chain'];
+    chainWindow?: StateView['chainWindow'];
   },
   self: PlayerView,
   opp: PlayerView,
@@ -97,8 +100,8 @@ function view(
     phase: parts.phase,
     winnerIndex: parts.winnerIndex ?? null,
     pendingPrompt: parts.pendingPrompt ?? null,
-    chain: [],
-    chainWindow: null,
+    chain: parts.chain ?? [],
+    chainWindow: parts.chainWindow ?? null,
     players: [self, opp],
   };
 }
@@ -477,8 +480,289 @@ function dragIllegal(): Fixture {
   };
 }
 
+// ---- Chain fixtures (task 3.7). The card pool the server knows has no Set card with an effect yet, so these use
+// test-only cards (FIX-*) that live here, in the dev-only fixture module, and never in SAMPLE_CARDS. ----
+
+/** Test-only cards of the chain fixtures. Valid `CardDefinition`s (a test parses them), placeholder names. */
+export const FIXTURE_CARDS: readonly CardDefinition[] = [
+  {
+    id: 'FIX-301',
+    kind: 'Trap',
+    subType: 'Normal',
+    name: { vi: 'Bẫy Phản Kích (thử)', en: 'Counterstrike Snare (test)' },
+    effectText: {
+      vi: 'Phá huỷ 1 quái vật của đối thủ.',
+      en: "Destroy 1 of your opponent's monsters.",
+    },
+    effects: [
+      {
+        id: 'destroy-one',
+        trigger: { kind: 'Quick' },
+        target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  {
+    id: 'FIX-302',
+    kind: 'Spell',
+    subType: 'QuickPlay',
+    name: { vi: 'Bùa Hồi Sinh Lực (thử)', en: 'Vital Charm (test)' },
+    effectText: { vi: 'Hồi 1000 LP.', en: 'Gain 1000 LP.' },
+    effects: [
+      {
+        id: 'heal',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Heal', amount: 1000, target: 'self' }],
+      },
+    ],
+  },
+  {
+    id: 'FIX-303',
+    kind: 'Monster',
+    category: 'Effect',
+    attribute: 'FIRE',
+    race: 'Warrior',
+    level: 4,
+    atk: 1400,
+    def: 1000,
+    name: { vi: 'Kỵ Sĩ Mồi Lửa (thử)', en: 'Kindling Knight (test)' },
+    effectText: {
+      vi: 'Khi được Triệu hồi thường: bạn có thể phá huỷ 1 quái vật của đối thủ.',
+      en: "When Normal Summoned: you can destroy 1 of your opponent's monsters.",
+    },
+    effects: [
+      {
+        id: 'summon-strike',
+        trigger: { kind: 'OnSummon' },
+        target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  {
+    id: 'FIX-304',
+    kind: 'Monster',
+    category: 'Effect',
+    attribute: 'LIGHT',
+    race: 'Spellcaster',
+    level: 4,
+    atk: 1300,
+    def: 1200,
+    name: { vi: 'Hiền Giả Cờ Hiệu (thử)', en: 'Banner Sage (test)' },
+    effectText: {
+      vi: 'Quái vật khác của bạn +300 ATK. Quái vật của đối thủ -200 DEF.',
+      en: "Your other monsters gain 300 ATK. Your opponent's monsters lose 200 DEF.",
+    },
+    effects: [
+      {
+        id: 'banner',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          { kind: 'ModifyStat', stat: 'atk', amount: 300, side: 'self', excludeSource: true },
+          { kind: 'ModifyStat', stat: 'def', amount: -200, side: 'opponent' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'FIX-305',
+    kind: 'Spell',
+    subType: 'Normal',
+    name: { vi: 'Mưa Than Hồng (thử)', en: 'Ember Rain (test)' },
+    effectText: {
+      vi: 'Gây 800 sát thương cho đối thủ.',
+      en: 'Inflict 800 damage to your opponent.',
+    },
+    effects: [
+      {
+        id: 'burn',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'Damage', amount: 800, target: 'opponent' }],
+      },
+    ],
+  },
+];
+
+const withStats = (card: CardView, atk: number, def: number): CardView =>
+  card.hidden ? card : { ...card, effectiveStats: { atk, def } };
+
+const activate = (cardInstanceId: string, effectId: string): PlayerAction => ({
+  type: 'ActivateEffect',
+  payload: { playerIndex: 0, cardInstanceId, effectId },
+});
+const pass: PlayerAction = { type: 'PassPriority', payload: { playerIndex: 0 } };
+
+/** The AI (seat 1) declared an attack; my Trap can answer it: reaction window, I hold priority. */
+function chainReaction(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-006', 0, null), up('p0-2', 'SMP-201', 0, null)],
+    deckCount: 28,
+    monsters: five<CardView>([[2, withStats(up('p0-10', 'SMP-001', 0, 'Attack'), 1200, 800)]]),
+    spellTraps: five<CardView>([
+      [1, up('p0-30', 'FIX-301', 0, 'DefenseDown')],
+      // No effect: Set but not activatable, so it is not outlined.
+      [3, up('p0-31', 'SMP-201', 0, 'DefenseDown')],
+    ]),
+  });
+  const opp = player({
+    playerId: 'fixture-ai',
+    lifePoints: 8000,
+    hand: [1, 2, 3, 4].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 28,
+    monsters: five<CardView>([[2, withStats(up('p1-10', 'SMP-009', 1, 'Attack'), 1700, 1000)]]),
+    spellTraps: five<CardView>([[0, hidden('p1-30', 1)]]),
+  });
+  return {
+    view: view(
+      {
+        turnCount: 6,
+        turnPlayerIndex: 1,
+        phase: 'Battle',
+        chainWindow: {
+          priorityPlayer: 0,
+          passCount: 0,
+          reactionTo: {
+            kind: 'Attack',
+            playerIndex: 1,
+            attackerInstanceId: 'p1-10',
+            targetInstanceId: 'p0-10',
+          },
+        },
+      },
+      self,
+      opp,
+    ),
+    legalActions: [activate('p0-30', 'destroy-one'), pass, surrender],
+  };
+}
+
+/** The AI activated a Spell (chain link 1); two of my Set cards can respond. Continuous ATK/DEF changes on the board. */
+function chainRespond(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 5200,
+    hand: [up('p0-1', 'SMP-007', 0, null)],
+    deckCount: 25,
+    monsters: five<CardView>([
+      [1, withStats(up('p0-10', 'FIX-304', 0, 'Attack'), 1300, 1200)],
+      [3, withStats(up('p0-11', 'SMP-006', 0, 'Attack'), 1800, 1100)],
+    ]),
+    spellTraps: five<CardView>([
+      [0, up('p0-30', 'FIX-302', 0, 'DefenseDown')],
+      [2, up('p0-31', 'FIX-301', 0, 'DefenseDown')],
+    ]),
+  });
+  const opp = player({
+    playerId: 'fixture-ai',
+    lifePoints: 7000,
+    hand: [1, 2, 3].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 26,
+    monsters: five<CardView>([
+      [1, withStats(up('p1-10', 'SMP-008', 1, 'Attack'), 1600, 700)],
+      [3, withStats(up('p1-11', 'SMP-010', 1, 'DefenseUp'), 1000, 1000)],
+    ]),
+  });
+  return {
+    view: view(
+      {
+        turnCount: 7,
+        turnPlayerIndex: 1,
+        phase: 'Main1',
+        chain: [
+          {
+            linkId: 'link-7-40',
+            playerIndex: 1,
+            card: {
+              hidden: false,
+              instanceId: 'p1-40',
+              definitionId: 'FIX-305',
+              ownerIndex: 1,
+              position: null,
+            },
+            source: { zone: 'Hand' },
+            effectId: 'burn',
+            spellSpeed: 1,
+            targetInstanceIds: [],
+          },
+        ],
+        chainWindow: { priorityPlayer: 0, passCount: 0 },
+      },
+      self,
+      opp,
+    ),
+    legalActions: [activate('p0-30', 'heal'), activate('p0-31', 'destroy-one'), pass, surrender],
+  };
+}
+
+/** I just Normal Summoned FIX-303: its optional trigger asks me (Activate on a target, or decline). */
+function triggerOptional(): Fixture {
+  const promptId = 'trigger-5-9';
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-005', 0, null), up('p0-2', 'SMP-101', 0, null)],
+    deckCount: 29,
+    normalSummonUsed: true,
+    monsters: five<CardView>([[2, withStats(up('p0-12', 'FIX-303', 0, 'Attack'), 1400, 1000)]]),
+  });
+  const opp = player({
+    playerId: 'fixture-ai',
+    lifePoints: 8000,
+    hand: [1, 2, 3, 4, 5].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 29,
+    monsters: five<CardView>([
+      [1, withStats(up('p1-10', 'SMP-009', 1, 'Attack'), 1700, 1000)],
+      [3, withStats(up('p1-12', 'SMP-010', 1, 'DefenseUp'), 1000, 1200)],
+    ]),
+  });
+  const answer = (cardInstanceIds: string[], decline?: boolean): PlayerAction => ({
+    type: 'ResolvePendingPrompt',
+    payload: { playerIndex: 0, promptId, cardInstanceIds, ...(decline ? { decline } : {}) },
+  });
+  return {
+    view: view(
+      {
+        turnCount: 5,
+        turnPlayerIndex: 0,
+        phase: 'Main1',
+        pendingPrompt: {
+          promptId,
+          playerIndex: 0,
+          kind: 'TriggerActivation',
+          payload: {
+            trigger: {
+              playerIndex: 0,
+              instanceId: 'p0-12',
+              definitionId: 'FIX-303',
+              effectId: 'summon-strike',
+              source: { zone: 'MonsterZone', zoneIndex: 2 },
+            },
+            optional: true,
+            candidateInstanceIds: ['p1-10', 'p1-12'],
+            count: 1,
+            remaining: [],
+            afterward: null,
+          },
+        },
+      },
+      self,
+      opp,
+    ),
+    legalActions: [answer(['p1-10']), answer(['p1-12']), answer([], true), surrender],
+  };
+}
+
 export function loadFixture(name: FixtureName): Fixture {
   switch (name) {
+    case 'chain-reaction':
+      return chainReaction();
+    case 'chain-respond':
+      return chainRespond();
+    case 'trigger-optional':
+      return triggerOptional();
     case 'summon-choice':
       return summonChoice();
     case 'tribute':

@@ -9,8 +9,12 @@ import { cardLookup } from '../duel/services';
  */
 export async function launchFixture(scene: Phaser.Scene, name: FixtureName): Promise<void> {
   if (!import.meta.env.DEV) return;
-  const { loadFixture } = await import('../duel/fixtures');
-  const controller = createDuelController({ lookup: cardLookup });
+  const { loadFixture, FIXTURE_CARDS } = await import('../duel/fixtures');
+  // The chain fixtures (task 3.7) use test-only cards that exist only in the fixture module.
+  const testCards = new Map(FIXTURE_CARDS.map((c) => [c.id, c]));
+  const controller = createDuelController({
+    lookup: (id) => cardLookup(id) ?? testCards.get(id),
+  });
   const f = loadFixture(name);
   controller.showFixture(f.view, f.legalActions);
   scene.scene.start('Duel', { controller });

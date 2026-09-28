@@ -23,7 +23,7 @@ import {
   type LogStorage,
 } from '../duel/log-panel';
 import { present, type CardDetail, type RenderModel } from '../duel/presenter';
-import { animatorHost, cardLookup } from '../duel/services';
+import { animatorHost } from '../duel/services';
 import { strings } from '../duel/strings';
 import { theme } from '../duel/theme';
 import { createCardView } from './card-view';
@@ -41,6 +41,7 @@ const CONFIRM_HINT: Record<SelectionPurpose, () => string> = {
   discard: () => strings.pickDiscardHint,
   cost: () => strings.pickCostHint,
   target: () => strings.pickTargetHint,
+  trigger: () => strings.pickTriggerHint,
 };
 
 /** localStorage may be missing or throw (private window); the panel then just uses its defaults. */
@@ -148,7 +149,7 @@ export class DuelScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-L', toggleLog);
     this.input.keyboard?.on('keydown-ENTER', skip);
     this.driver = createInteractionDriver(this.controller, {
-      lookup: cardLookup,
+      lookup: this.controller.lookup,
       layout: this.layout,
     });
     const stopController = this.controller.subscribe((s) => this.render(s));
@@ -172,6 +173,8 @@ export class DuelScene extends Phaser.Scene {
       this.input.off('pointerupoutside');
     });
     this.render(this.controller.getState());
+    // A prompt already open when the scene starts (fixture, Sandbox) shows its overlay without waiting for a pointer.
+    this.renderOverlay();
   }
 
   private dispatchLog(action: LogPanelAction): void {
@@ -293,6 +296,7 @@ export class DuelScene extends Phaser.Scene {
           ...card,
           action: null,
           highlight: false,
+          activatable: false,
           rect: { x: at.x - r.w / 2, y: at.y - r.h / 2, w: r.w, h: r.h },
         });
         ghost.disableInteractive().setAlpha(0.85);
@@ -367,8 +371,10 @@ export class DuelScene extends Phaser.Scene {
         .setOrigin(0.5);
       this.overlay.add([box, text]);
     };
-    button(confirm, strings.confirm, enabled);
-    if (showCancel) button(cancel, strings.cancel, true);
+    // A trigger prompt asks Yes/No ("Kích hoạt" / "Không" = decline); every other selection is Confirm/Cancel.
+    const trigger = purpose === 'trigger';
+    button(confirm, trigger ? strings.triggerYes : strings.confirm, enabled);
+    if (showCancel) button(cancel, trigger ? strings.triggerNo : strings.cancel, true);
   }
 
   private drawToast(): void {
@@ -411,7 +417,7 @@ export class DuelScene extends Phaser.Scene {
     if (!state.view) return;
 
     const model = present(state.view, state.legalActions, {
-      lookup: cardLookup,
+      lookup: this.controller.lookup,
       surrenderArmed: state.surrenderArmed,
       layout: this.layout,
     });
@@ -681,13 +687,31 @@ export class DuelScene extends Phaser.Scene {
         })
         .setOrigin(0.5, 0),
     );
+    const quiet = !state.animating && !state.busy && !model.prompt;
+    // Chain / reaction window banner (task 3.7): a coloured strip, brighter when I hold priority.
+    const chain = quiet ? model.chain : null;
     const note = state.animating
       ? strings.animating
       : state.busy
         ? state.thinking
           ? strings.thinking
           : strings.sending
-        : (model.prompt?.text ?? state.error ?? '');
+        : (model.prompt?.text ?? chain?.text ?? state.error ?? '');
+    if (chain) {
+      this.dynamic.add(
+        this.add
+          .rectangle(
+            r.x + 8,
+            r.y + 42,
+            r.w - 16,
+            30,
+            theme.colors.chainBanner,
+            chain.mine ? 0.9 : 0.5,
+          )
+          .setOrigin(0, 0)
+          .setStrokeStyle(2, theme.colors.activatable, chain.mine ? 1 : 0.4),
+      );
+    }
     if (note) {
       this.dynamic.add(
         this.add

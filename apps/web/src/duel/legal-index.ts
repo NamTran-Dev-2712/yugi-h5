@@ -158,6 +158,43 @@ export function positionOptions(
   );
 }
 
+export type PassPriorityAction = Extract<PlayerAction, { type: 'PassPriority' }>;
+
+/** The viewer's listed PassPriority ("Bỏ qua"), or null when the server does not offer it. */
+export function passAction(
+  legal: readonly PlayerAction[],
+  viewer: PlayerIndex,
+): PassPriorityAction | null {
+  return (
+    legal.find((a): a is PassPriorityAction => a.type === 'PassPriority' && mine(a, viewer)) ?? null
+  );
+}
+
+/** Of `setCardIds` (my Set cards), those the server lists at least one ActivateEffect for, in the given order. */
+export function activatableSetCards(
+  legal: readonly PlayerAction[],
+  viewer: PlayerIndex,
+  setCardIds: readonly string[],
+): string[] {
+  return setCardIds.filter((id) => activations(legal, viewer, id).length > 0);
+}
+
+/**
+ * The listed answers to a TriggerActivation prompt: the activating ones (with their targets) and, apart, the decline
+ * (only listed for an optional trigger).
+ */
+export function triggerAnswers(
+  legal: readonly PlayerAction[],
+  viewer: PlayerIndex,
+  promptId: string,
+): { answers: ResolvePromptAction[]; decline: ResolvePromptAction | null } {
+  const all = promptAnswers(legal, viewer, promptId);
+  return {
+    answers: all.filter((a) => a.payload.decline !== true),
+    decline: all.find((a) => a.payload.decline === true) ?? null,
+  };
+}
+
 export function promptAnswers(
   legal: readonly PlayerAction[],
   viewer: PlayerIndex,

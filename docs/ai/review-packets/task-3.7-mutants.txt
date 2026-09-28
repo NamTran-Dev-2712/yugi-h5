@@ -1,0 +1,26 @@
+KILLED   passAction takes the other seat’s PassPriority
+KILLED   every Set card counted as activatable
+KILLED   decline mixed into the activating answers
+KILLED   decline never found
+KILLED   any of my Set cards starts a tap (even without a listed activation)
+KILLED   tapping a Set card does nothing
+KILLED   several effects are not split into menu entries
+KILLED   trigger prompt does not open its selection
+KILLED   "Không" does not decline
+KILLED   "Không" button never shown
+KILLED   missing a menu leaves a pending prompt stuck
+KILLED   no Set card outlined
+KILLED   opponent Set cards looked up as activatable
+KILLED   "Bỏ qua" button never shown
+KILLED   waiting-for-opponent banner said to be mine
+KILLED   summon reaction uses the attack sentence
+KILLED   banner names the bottom link, not the top
+KILLED   trigger prompt does not name the card
+KILLED   unchanged effective stats reported as changed
+KILLED   effective ATK read from DEF
+KILLED   printed stats line shown without a modifier
+KILLED   detail panel shows only the printed stats
+KILLED   "Bỏ qua" sends EndPhase
+KILLED   "Bỏ qua" does not show "thinking"
+
+24/24 mutants killed

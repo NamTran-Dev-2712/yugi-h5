@@ -170,6 +170,43 @@ describe('pressing buttons', () => {
     await p;
   });
 
+  it('"Bỏ qua" sends the listed PassPriority and shows "thinking" (the AI may answer)', async () => {
+    const pass: PlayerAction = { type: 'PassPriority', payload: { playerIndex: 0 } };
+    const f = loadFixture('chain-reaction');
+    let release!: (r: ViewResponse) => void;
+    const pending = new Promise<ViewResponse>((res) => (release = res));
+    const { api } = fakeApi([response({ view: f.view, legalActions: f.legalActions })]);
+    const c = createDuelController({ api, lookup });
+    await c.start();
+    api.submitAction.mockImplementationOnce(() => pending);
+    const p = c.press('pass');
+    expect(c.getState().thinking).toBe(true);
+    release(response());
+    await p;
+    expect(api.submitAction).toHaveBeenCalledWith('d-1', 0, pass);
+    expect(c.getState().thinking).toBe(false);
+  });
+
+  it('"Bỏ qua" in a fixture only logs what would be sent', async () => {
+    const f = loadFixture('chain-reaction');
+    const c = createDuelController({ lookup });
+    c.showFixture(f.view, f.legalActions);
+    await c.press('pass');
+    expect(c.getState().log.at(-1)).toContain('PassPriority');
+    expect(c.getState().busy).toBe(false);
+  });
+
+  it('"Bỏ qua" sends nothing when PassPriority is not listed', async () => {
+    const { c, api } = await started([]);
+    await c.press('pass');
+    expect(api.submitAction).not.toHaveBeenCalled();
+  });
+
+  it('exposes the card lookup it was given (the scene draws with it)', async () => {
+    const { c } = await started([]);
+    expect(c.lookup).toBe(lookup);
+  });
+
   it('does not send anything when the action is not in legalActions', async () => {
     const { c, api } = await started([]);
     c.showFixture(loadFixture('midgame').view, []);

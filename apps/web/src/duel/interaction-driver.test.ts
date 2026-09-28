@@ -26,6 +26,7 @@ function fake(name: FixtureName, submitImpl: (a: PlayerAction) => Promise<Submit
   const submit = vi.fn(submitImpl);
   const press = vi.fn(async () => undefined);
   const controller: DuelController = {
+    lookup,
     getState: () => state,
     subscribe: (l) => {
       listeners.add(l);
@@ -149,6 +150,28 @@ describe('interaction driver', () => {
     await d.dispatch(ptr('pointerDown', centre(end.rect)));
     await d.dispatch(ptr('pointerUp', centre(end.rect)));
     expect(f.press).not.toHaveBeenCalled();
+  });
+
+  it('"Bỏ qua" (in the "Phase tiếp theo" spot) is pressed as `pass`; a tapped Set card is submitted', async () => {
+    const f = fake('chain-reaction', async () => ({ ok: true, sent: true }));
+    const d = createInteractionDriver(f.controller, { lookup });
+    await d.dispatch(ptr('pointerDown', centre(layout.buttons.nextPhase)));
+    await d.dispatch(ptr('pointerUp', centre(layout.buttons.nextPhase)));
+    expect(f.press).toHaveBeenCalledWith('pass');
+    const trap = centre(cardRect(d.getContext()!, 'p0-30'));
+    await d.dispatch(ptr('pointerDown', trap));
+    await d.dispatch(ptr('pointerUp', trap));
+    expect(f.submit).toHaveBeenCalledWith({
+      type: 'ActivateEffect',
+      payload: { playerIndex: 0, cardInstanceId: 'p0-30', effectId: 'destroy-one' },
+    });
+  });
+
+  it('a trigger prompt already there opens its Yes/No selection at once', () => {
+    const f = fake('trigger-optional', async () => ({ ok: true, sent: true }));
+    const d = createInteractionDriver(f.controller, { lookup });
+    expect(d.getState()).toMatchObject({ kind: 'selecting-tribute', purpose: 'trigger' });
+    expect(d.getOverlay()?.confirm).toMatchObject({ purpose: 'trigger', showCancel: true });
   });
 
   it('a new view from the controller resets a half-finished gesture', async () => {

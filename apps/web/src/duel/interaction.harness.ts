@@ -1,5 +1,5 @@
 import { SAMPLE_CARDS, type PlayerAction, type StateView } from '@yugi/shared';
-import { type FixtureName, loadFixture } from './fixtures';
+import { FIXTURE_CARDS, type FixtureName, loadFixture } from './fixtures';
 import {
   initialInteraction,
   reduce,
@@ -13,7 +13,8 @@ import { present, type CardLookup } from './presenter';
 
 /** Test helpers (not shipped): build a machine context from a fixture and drive it with pointer gestures. */
 
-const byId = new Map(SAMPLE_CARDS.map((c) => [c.id, c]));
+// The chain fixtures (task 3.7) use test-only cards that live next to them.
+const byId = new Map([...SAMPLE_CARDS, ...FIXTURE_CARDS].map((c) => [c.id, c]));
 export const lookup: CardLookup = (id) => byId.get(id);
 export const layout = computeLayout();
 

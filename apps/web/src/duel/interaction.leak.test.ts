@@ -28,7 +28,17 @@ function secretsOf(name: FixtureName): { ids: string[]; names: string[] } {
   return { ids: secret.map((c) => c.id), names: secret.flatMap((c) => [c.name.vi, c.name.en]) };
 }
 
-const names: FixtureName[] = ['summon-choice', 'tribute', 'attack', 'attack-direct', 'midgame'];
+const names: FixtureName[] = [
+  'summon-choice',
+  'tribute',
+  'attack',
+  'attack-direct',
+  'midgame',
+  // task 3.7: a Set card of the opponent stays hidden while mine are tapped / a trigger is answered
+  'chain-reaction',
+  'chain-respond',
+  'trigger-optional',
+];
 
 describe('no hidden identity leaks through the interaction layer', () => {
   for (const name of names) {

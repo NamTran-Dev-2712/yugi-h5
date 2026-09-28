@@ -69,6 +69,8 @@ const MAX_LOG_LINES = 200;
 const MAX_END_TURN_STEPS = 12;
 
 export interface DuelController {
+  /** The card data this duel is drawn with (the scene uses it; a fixture may add test-only cards). */
+  readonly lookup: CardLookup;
   getState(): DuelUiState;
   subscribe(listener: (state: DuelUiState) => void): () => void;
   /** Creates a solo-vs-ai duel on the server and shows its first view. */
@@ -208,6 +210,18 @@ export function createDuelController({
     }
   }
 
+  /** No server (fixture): only log what would be sent. */
+  function preview(action: PlayerAction): void {
+    set(
+      addLog([
+        {
+          text: `${strings.sendPreview} ${JSON.stringify(action).replace(/,/g, ', ')}`,
+          category: 'field',
+        },
+      ]),
+    );
+  }
+
   const legal = (type: PlayerAction['type']): PlayerAction | null =>
     state.legalActions.find(
       (a) => a.type === type && a.payload.playerIndex === state.view?.viewerIndex,
@@ -246,6 +260,7 @@ export function createDuelController({
   }
 
   return {
+    lookup,
     getState: () => state,
     subscribe(listener) {
       listeners.add(listener);
@@ -272,6 +287,14 @@ export function createDuelController({
         await endTurn();
         return;
       }
+      if (id === 'pass') {
+        // Passing may hand the chain / the attack back to the AI, which then plays inside the same request.
+        const action = legal('PassPriority');
+        if (!action) return;
+        if (api === undefined || state.duelId === null) preview(action);
+        else await run(action, true);
+        return;
+      }
       const action = legal('EndPhase');
       if (action) await run(action, true);
     },
@@ -286,14 +309,7 @@ export function createDuelController({
       }
       if (state.busy) return { ok: false, message: strings.toastBusy };
       if (api === undefined || state.duelId === null) {
-        set(
-          addLog([
-            {
-              text: `${strings.sendPreview} ${JSON.stringify(action).replace(/,/g, ', ')}`,
-              category: 'field',
-            },
-          ]),
-        );
+        preview(action);
         return { ok: true, sent: false };
       }
       return run(action, false);

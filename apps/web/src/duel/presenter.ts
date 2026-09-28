@@ -1,6 +1,7 @@
 import type {
   CardDefinition,
   CardView,
+  EffectiveStatsView,
   PlayerAction,
   PlayerIndex,
   StateView,
@@ -9,6 +10,8 @@ import type {
 } from '@yugi/shared';
 import { computeLayout, handSlots, type BoardLayout, type Rect, type Side } from './layout';
 import { cardName, cardEffectText } from './card-text';
+import { activatableSetCards, passAction } from './legal-index';
+import { t } from '../i18n/i18n';
 import { strings } from './strings';
 
 /**
@@ -25,8 +28,15 @@ export type ZoneKind = 'hand' | 'monster' | 'spellTrap' | 'field';
 export interface CardLabel {
   readonly name: string;
   readonly level: number | null;
+  /** Printed ATK/DEF (card data). */
   readonly atk: number | null;
   readonly def: number | null;
+  /**
+   * ATK/DEF after Continuous modifiers (server `effectiveStats`), only when it differs from the printed value; null
+   * otherwise (no modifier, not a face-up monster).
+   */
+  readonly effAtk: number | null;
+  readonly effDef: number | null;
 }
 
 export interface CardDetail extends CardLabel {
@@ -53,6 +63,8 @@ export interface CardRender {
   /** Action sent when this card is clicked (only cards the server says can be acted on); else null. */
   readonly action: PlayerAction | null;
   readonly highlight: boolean;
+  /** One of my Set cards the server lists an ActivateEffect for: a tap activates it (C13, task 3.7). */
+  readonly activatable: boolean;
 }
 
 export interface PileRender {
@@ -63,7 +75,8 @@ export interface PileRender {
   readonly caption: string;
 }
 
-export type ButtonId = 'nextPhase' | 'endTurn' | 'surrender';
+/** `pass` ("Bỏ qua", PassPriority) takes the spot of `nextPhase` while the server lists it (task 3.7). */
+export type ButtonId = 'nextPhase' | 'pass' | 'endTurn' | 'surrender';
 
 export interface ButtonRender {
   readonly id: ButtonId;
@@ -99,6 +112,8 @@ export interface RenderModel {
   readonly buttons: readonly ButtonRender[];
   readonly banner: { readonly kind: 'win' | 'lose' | 'draw'; readonly text: string } | null;
   readonly prompt: { readonly text: string } | null;
+  /** An open chain / reaction window: what it waits for; `mine` = I hold priority. */
+  readonly chain: { readonly text: string; readonly mine: boolean } | null;
 }
 
 export interface PresentContext {
@@ -112,14 +127,26 @@ function frameOf(def: CardDefinition): FrameKind {
   return def.kind === 'Monster' ? 'monster' : def.kind === 'Spell' ? 'spell' : 'trap';
 }
 
+/** The effective value only when the server sent one that differs from the printed value. */
+const changed = (printed: number | null, effective: number | undefined): number | null =>
+  printed !== null && effective !== undefined && effective !== printed ? effective : null;
+
 function describeKnown(
   definitionId: string,
   position: ViewCardPosition | null,
   lookup: CardLookup,
+  effective: EffectiveStatsView | undefined,
 ): { frame: FrameKind; label: CardLabel; detail: CardDetail } {
   const def = lookup(definitionId);
   if (!def) {
-    const label: CardLabel = { name: definitionId, level: null, atk: null, def: null };
+    const label: CardLabel = {
+      name: definitionId,
+      level: null,
+      atk: null,
+      def: null,
+      effAtk: null,
+      effDef: null,
+    };
     return {
       frame: 'monster',
       label,
@@ -127,11 +154,15 @@ function describeKnown(
     };
   }
   const monster = def.kind === 'Monster';
+  const atk = monster ? def.atk : null;
+  const dfn = monster ? def.def : null;
   const label: CardLabel = {
     name: cardName(def),
     level: monster ? def.level : null,
-    atk: monster ? def.atk : null,
-    def: monster ? def.def : null,
+    atk,
+    def: dfn,
+    effAtk: changed(atk, effective?.atk),
+    effDef: changed(dfn, effective?.def),
   };
   return {
     frame: frameOf(def),
@@ -148,7 +179,15 @@ function renderCard(
   viewer: PlayerIndex,
   lookup: CardLookup,
 ): CardRender {
-  const base = { id: card.instanceId, side, zone, rect, action: null, highlight: false } as const;
+  const base = {
+    id: card.instanceId,
+    side,
+    zone,
+    rect,
+    action: null,
+    highlight: false,
+    activatable: false,
+  } as const;
   // Hidden for the viewer: a `hidden` card, or (defence in depth against a server bug) an opponent's card that is
   // face-down. Nothing about it is kept.
   const opponentFaceDown =
@@ -163,7 +202,7 @@ function renderCard(
       detail: null,
     };
   }
-  const known = describeKnown(card.definitionId, card.position, lookup);
+  const known = describeKnown(card.definitionId, card.position, lookup, card.effectiveStats);
   const faceDown = card.position === 'DefenseDown';
   return {
     ...base,
@@ -208,9 +247,22 @@ export function present(
     player.board.monsterZones.forEach((c, i) => {
       if (c) cards.push(renderCard(c, side, 'monster', sl.monsterZones[i]!, viewer, ctx.lookup));
     });
-    player.board.spellTrapZones.forEach((c, i) => {
-      if (c)
-        cards.push(renderCard(c, side, 'spellTrap', sl.spellTrapZones[i]!, viewer, ctx.lookup));
+    const spellTraps = player.board.spellTrapZones;
+    // My Set cards the server lets me activate right now (C13: a tap activates them).
+    const activatable =
+      side === 'self'
+        ? new Set(
+            activatableSetCards(
+              legalActions,
+              viewer,
+              spellTraps.flatMap((c) => (c ? [c.instanceId] : [])),
+            ),
+          )
+        : new Set<string>();
+    spellTraps.forEach((c, i) => {
+      if (!c) return;
+      const r = renderCard(c, side, 'spellTrap', sl.spellTrapZones[i]!, viewer, ctx.lookup);
+      cards.push(activatable.has(c.instanceId) ? { ...r, activatable: true } : r);
     });
     if (player.board.fieldZone) {
       cards.push(
@@ -267,15 +319,26 @@ export function present(
 
   const endPhase = findAction(legalActions, viewer, 'EndPhase');
   const surrender = findAction(legalActions, viewer, 'Surrender');
+  const pass = passAction(legalActions, viewer);
   const buttons: ButtonRender[] = [
-    {
-      id: 'nextPhase',
-      label: strings.nextPhase,
-      rect: layout.buttons.nextPhase,
-      enabled: endPhase !== null,
-      danger: false,
-      action: endPhase,
-    },
+    // While a chain / reaction window waits for me, EndPhase is never listed, so "Bỏ qua" takes its spot.
+    pass
+      ? {
+          id: 'pass',
+          label: strings.pass,
+          rect: layout.buttons.nextPhase,
+          enabled: true,
+          danger: false,
+          action: pass,
+        }
+      : {
+          id: 'nextPhase',
+          label: strings.nextPhase,
+          rect: layout.buttons.nextPhase,
+          enabled: endPhase !== null,
+          danger: false,
+          action: endPhase,
+        },
     {
       id: 'endTurn',
       label: strings.endTurn,
@@ -316,7 +379,9 @@ export function present(
             : strings.discardNeedsDrag
           : prompt.kind === 'SelectEffectTarget'
             ? strings.targetPrompt
-            : strings.promptOther,
+            : prompt.kind === 'TriggerActivation'
+              ? triggerPromptText(prompt.payload, ctx.lookup)
+              : strings.promptOther,
     };
   }
 
@@ -337,5 +402,37 @@ export function present(
     buttons,
     banner,
     prompt: promptModel,
+    chain: view.winnerIndex === null ? chainBanner(view, ctx.lookup) : null,
   };
+}
+
+/** Name of the card whose trigger asks (the prompted player's payload); the generic text if it is not readable. */
+function triggerPromptText(payload: unknown, lookup: CardLookup): string {
+  const trigger =
+    typeof payload === 'object' && payload !== null && 'trigger' in payload
+      ? (payload as { trigger: unknown }).trigger
+      : null;
+  const id =
+    typeof trigger === 'object' && trigger !== null && 'definitionId' in trigger
+      ? (trigger as { definitionId: unknown }).definitionId
+      : null;
+  if (typeof id !== 'string') return strings.promptOther;
+  const def = lookup(id);
+  return t('duel.triggerPrompt', { name: def ? cardName(def) : id });
+}
+
+/**
+ * What an open window waits for, read from `chainWindow`/`chain` only (no rule): a reaction to an attack or a summon,
+ * or a chain to respond to (its links are public); "waiting" when the other seat holds priority.
+ */
+function chainBanner(view: StateView, lookup: CardLookup): RenderModel['chain'] {
+  const w = view.chainWindow;
+  if (!w) return null;
+  if (w.priorityPlayer !== view.viewerIndex) return { text: t('chain.waitOpponent'), mine: false };
+  if (w.reactionTo?.kind === 'Attack') return { text: t('chain.reactionAttack'), mine: true };
+  if (w.reactionTo?.kind === 'Summon') return { text: t('chain.reactionSummon'), mine: true };
+  const top = view.chain[view.chain.length - 1];
+  const def = top ? lookup(top.card.definitionId) : undefined;
+  const name = def ? cardName(def) : (top?.card.definitionId ?? '?');
+  return { text: t('chain.respond', { count: view.chain.length, name }), mine: true };
 }

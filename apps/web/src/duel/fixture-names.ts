@@ -10,6 +10,9 @@ export const FIXTURE_NAMES = [
   'drag-illegal',
   'spell',
   'effect-target',
+  'chain-reaction',
+  'chain-respond',
+  'trigger-optional',
 ] as const;
 export type FixtureName = (typeof FIXTURE_NAMES)[number];
 
