@@ -117,6 +117,20 @@ export function describeEvent(event: EventView, ctx: DescribeContext): string {
         card: ctx.cardName(event.definitionId),
         zone: event.zoneIndex,
       });
+    // Chain (task 3.4b): the linked card is public (it was revealed when activated).
+    case 'ChainLinkAdded':
+      return t('event.chainLinkAdded', {
+        player: p(event.playerIndex),
+        card: ctx.cardName(event.definitionId),
+        index: event.chainIndex,
+      });
+    case 'ChainLinkFizzled':
+      return t('event.chainLinkFizzled', {
+        player: p(event.playerIndex),
+        card: ctx.cardName(event.definitionId),
+      });
+    case 'ChainResolved':
+      return t('event.chainResolved', { count: event.linkCount });
     default: {
       const unhandled: never = event;
       return t('event.unknown', { json: JSON.stringify(unhandled) });

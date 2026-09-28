@@ -57,15 +57,13 @@ export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | n
     case 'LifePointsRecovered':
     case 'LifePointsPaid':
     case 'SpellTrapDestroyed':
-      return event;
-
-    // Chain (task 3.3): all PUBLIC by nature (the linked card was revealed by EffectActivated; ChainResolved carries no
-    // card data) but NOT forwarded yet — EventView/web have no chain shape until task 3.3b (after C13). Dropping them
-    // leaves every HTTP batch identical to task 3.2b.
+    // Chain (task 3.3, forwarded since 3.4b): the linked card was revealed when it was activated (EffectActivated) —
+    // from the hand it lives in the chain link, a Set card was flipped face-up, a trigger's card is face-up on the field
+    // or in the graveyard; ChainResolved carries no card data. Same public form as StateView.chain.
     case 'ChainLinkAdded':
     case 'ChainLinkFizzled':
     case 'ChainResolved':
-      return null;
+      return event;
 
     default: {
       const unclassified: never = event;

@@ -117,17 +117,18 @@ Task con:
 | Rủi ro    | Timing "when/if", auto-chain vs hỏi mỗi lần `[GUESS]` — sai flow so với gốc. Giảm: `RulesetConfig.chainPrompt` chỉnh được.                                                          |
 | Bạn làm   | Video/mô tả flow chain của Yugi H5 `[REF]` (**trước 3.4**).                                                                                                                         |
 
-| #    | Task                                                                                                                                                                | Lớp      | Độ khó |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------ |
-| 3.1  | Schema `EffectDefinition` (Zod) + registry operation/cond/cost                                                                                                      | Shared   | M      |
-| 3.2  | `SetSpellTrap` + `ActivateEffect` Normal Spell + operation Damage/Heal/Draw/Destroy (✅ nháp, engine-only; resolve ngay, chưa chain)                                | Engine   | M      |
-| 3.2b | Nối wire Spell/Trap: `PlayerActionSchema` + `EventView` + animation/log/i18n + UI Set/kích hoạt + prompt chọn target (**cổng**: fuzz "không lộ thông tin" qua HTTP) | API+FE   | M      |
-| 3.3  | Chain stack + resolve LIFO + `PassPriority`                                                                                                                         | Engine   | L      |
-| 3.4  | Spell Speed enforcement + Quick-Play + Normal Trap                                                                                                                  | Engine   | M      |
-| 3.5  | Trigger OnSummon/OnDestroyed (optional/mandatory)                                                                                                                   | Engine   | L      |
-| 3.6  | Continuous effect + `scriptId` registry                                                                                                                             | Engine   | M      |
-| 3.7  | Chain UI + prompt target/activate?                                                                                                                                  | Frontend | L      |
-| 3.8  | 10 card mẫu + test mỗi lá                                                                                                                                           | Shared   | M      |
+| #    | Task                                                                                                                                                                | Lớp        | Độ khó |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| 3.1  | Schema `EffectDefinition` (Zod) + registry operation/cond/cost                                                                                                      | Shared     | M      |
+| 3.2  | `SetSpellTrap` + `ActivateEffect` Normal Spell + operation Damage/Heal/Draw/Destroy (✅ nháp, engine-only; resolve ngay, chưa chain)                                | Engine     | M      |
+| 3.2b | Nối wire Spell/Trap: `PlayerActionSchema` + `EventView` + animation/log/i18n + UI Set/kích hoạt + prompt chọn target (**cổng**: fuzz "không lộ thông tin" qua HTTP) | API+FE     | M      |
+| 3.3  | Chain stack + resolve LIFO + `PassPriority`                                                                                                                         | Engine     | L      |
+| 3.4  | Spell Speed enforcement + Quick-Play + Normal Trap                                                                                                                  | Engine     | M      |
+| 3.5  | Trigger OnSummon/OnDestroyed (optional/mandatory)                                                                                                                   | Engine     | L      |
+| 3.6  | Continuous effect + `scriptId` registry                                                                                                                             | Engine     | M      |
+| 3.4b | Nối wire chain + lá Set + cửa sổ phản ứng + prompt trigger + ATK/DEF hiệu lực trong StateView; AI pass/đáp trả/trả lời trigger; C13 (✅ nháp)                       | API+Shared | M      |
+| 3.7  | Chain UI + prompt target/activate?                                                                                                                                  | Frontend   | L      |
+| 3.8  | 10 card mẫu + test mỗi lá                                                                                                                                           | Shared     | M      |
 
 ## P4 — Card batches + luật mở rộng
 

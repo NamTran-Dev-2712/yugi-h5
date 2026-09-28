@@ -2,6 +2,9 @@ import { applyAction, type CardInstance, type GameState } from '@yugi/game-engin
 import { describe, expect, it } from 'vitest';
 import { toStateView } from './state-view';
 
+/** These fixtures use made-up definition ids: no card data, so no effective stats (see state-view.chain.spec.ts). */
+const NO_DEFS = () => undefined;
+
 const card = (
   instanceId: string,
   definitionId: string,
@@ -66,7 +69,7 @@ function richState(): GameState {
 describe('toStateView', () => {
   it('shows the viewer their own hand in full and the opponent hand as hidden cards', () => {
     const s = richState();
-    const v0 = toStateView(s, 0);
+    const v0 = toStateView(s, 0, NO_DEFS);
     expect(v0.players[0].hand).toEqual(
       s.players[0].hand.map((c) => ({
         hidden: false,
@@ -86,7 +89,7 @@ describe('toStateView', () => {
 
   it('is symmetric: viewer 1 sees own hand and a hidden hand for player 0', () => {
     const s = richState();
-    const v1 = toStateView(s, 1);
+    const v1 = toStateView(s, 1, NO_DEFS);
     expect(v1.viewerIndex).toBe(1);
     expect(v1.players[1].hand.every((c) => !c.hidden)).toBe(true);
     expect(v1.players[0].hand.every((c) => c.hidden)).toBe(true);
@@ -96,7 +99,7 @@ describe('toStateView', () => {
   it('never exposes deck contents to anyone, only counts', () => {
     const s = richState();
     for (const viewer of [0, 1] as const) {
-      const v = toStateView(s, viewer);
+      const v = toStateView(s, viewer, NO_DEFS);
       expect(v.players[0].deckCount).toBe(s.players[0].deck.length);
       expect(v.players[1].deckCount).toBe(s.players[1].deck.length);
       expect(v.players[0]).not.toHaveProperty('deck');
@@ -107,7 +110,7 @@ describe('toStateView', () => {
   it('keeps graveyards and face-up field cards fully visible to both viewers', () => {
     const s = richState();
     for (const viewer of [0, 1] as const) {
-      const v = toStateView(s, viewer);
+      const v = toStateView(s, viewer, NO_DEFS);
       expect(v.players[0].graveyard[0]).toMatchObject({ hidden: false, definitionId: 'A-GRAVE' });
       expect(v.players[1].graveyard[0]).toMatchObject({ hidden: false, definitionId: 'B-GRAVE' });
       expect(v.players[0].board.monsterZones[0]).toMatchObject({
@@ -125,7 +128,7 @@ describe('toStateView', () => {
 
   it('shows own face-down cards but hides the opponent face-down monster and spell/trap', () => {
     const s = richState();
-    const v0 = toStateView(s, 0);
+    const v0 = toStateView(s, 0, NO_DEFS);
     expect(v0.players[0].board.monsterZones[1]).toMatchObject({
       hidden: false,
       definitionId: 'A-FACEDOWN',
@@ -164,7 +167,7 @@ describe('toStateView', () => {
         },
       ],
     };
-    expect(toStateView(tweaked, 0).players[1].board.spellTrapZones[0]).toEqual({
+    expect(toStateView(tweaked, 0, NO_DEFS).players[1].board.spellTrapZones[0]).toEqual({
       hidden: true,
       instanceId: 'p1-st1',
       ownerIndex: 1,
@@ -173,7 +176,7 @@ describe('toStateView', () => {
 
   it('does not leak hidden definitionIds anywhere in the serialized view', () => {
     const s = richState();
-    const json = JSON.stringify(toStateView(s, 0));
+    const json = JSON.stringify(toStateView(s, 0, NO_DEFS));
     const secrets = [
       'B-FACEDOWN',
       'B-SETTRAP',
@@ -183,15 +186,16 @@ describe('toStateView', () => {
     for (const secret of secrets) expect(json).not.toContain(secret);
     expect(json).not.toContain('"rng"');
     expect(json).not.toContain('chainStack');
-    expect(json).not.toContain('chainWindow');
-    const json1 = JSON.stringify(toStateView(s, 1));
+    // Task 3.4b: the chain goes out in its public form (`chain`, `chainWindow`), never the raw `chainStack`.
+    expect(json).toContain('"chain":[]');
+    const json1 = JSON.stringify(toStateView(s, 1, NO_DEFS));
     expect(json1).not.toContain('A-FACEDOWN');
     expect(json1).not.toContain('A-SETSPELL');
   });
 
   it('passes public fields through unchanged', () => {
     const s = { ...richState(), turnCount: 3, phase: 'Main1' as const, version: 42 };
-    const v = toStateView(s, 1);
+    const v = toStateView(s, 1, NO_DEFS);
     expect(v).toMatchObject({
       matchId: 'm1',
       version: 42,
@@ -209,8 +213,8 @@ describe('toStateView', () => {
   it('does not mutate the input and is deterministic', () => {
     const s = richState();
     const snapshot = JSON.stringify(s);
-    const a = toStateView(s, 0);
-    const b = toStateView(s, 0);
+    const a = toStateView(s, 0, NO_DEFS);
+    const b = toStateView(s, 0, NO_DEFS);
     expect(JSON.stringify(s)).toBe(snapshot);
     expect(a).toEqual(b);
   });
@@ -218,7 +222,7 @@ describe('toStateView', () => {
   it.each([0, 1, 'draw'] as const)('works after the duel ended (winnerIndex=%s)', (winner) => {
     const s = { ...richState(), winnerIndex: winner };
     for (const viewer of [0, 1] as const) {
-      const v = toStateView(s, viewer);
+      const v = toStateView(s, viewer, NO_DEFS);
       expect(v.winnerIndex).toBe(winner);
       expect(v.players[viewer === 0 ? 1 : 0].hand.every((c) => c.hidden)).toBe(true);
     }
@@ -234,7 +238,7 @@ describe('toStateView', () => {
         payload: { count: 1 },
       },
     };
-    expect(toStateView(s, 1).pendingPrompt).toEqual(s.pendingPrompt);
+    expect(toStateView(s, 1, NO_DEFS).pendingPrompt).toEqual(s.pendingPrompt);
   });
 
   describe('pending prompt payload (deny by default for the player who is not asked)', () => {
@@ -253,12 +257,12 @@ describe('toStateView', () => {
 
     it('gives the prompted player the full SelectEffectTarget payload', () => {
       const s: GameState = { ...richState(), pendingPrompt: targetPrompt };
-      expect(toStateView(s, 0).pendingPrompt).toEqual(targetPrompt);
+      expect(toStateView(s, 0, NO_DEFS).pendingPrompt).toEqual(targetPrompt);
     });
 
     it('hides the SelectEffectTarget payload (which hand card is being activated) from the other player', () => {
       const s: GameState = { ...richState(), pendingPrompt: targetPrompt };
-      const seen = toStateView(s, 1).pendingPrompt;
+      const seen = toStateView(s, 1, NO_DEFS).pendingPrompt;
       expect(seen).toEqual({
         promptId: 'effect-3-9',
         playerIndex: 0,
@@ -278,8 +282,8 @@ describe('toStateView', () => {
           payload: { secret: 1 },
         },
       };
-      expect(toStateView(s, 0).pendingPrompt?.payload).toBeNull();
-      expect(toStateView(s, 1).pendingPrompt?.payload).toEqual({ secret: 1 });
+      expect(toStateView(s, 0, NO_DEFS).pendingPrompt?.payload).toBeNull();
+      expect(toStateView(s, 1, NO_DEFS).pendingPrompt?.payload).toEqual({ secret: 1 });
     });
   });
 
@@ -290,7 +294,7 @@ describe('toStateView', () => {
       ...s,
       players: [p0, { ...p1, board: { ...p1.board, fieldZone: card('p1-f', 'B-FIELD', 1, null) } }],
     };
-    expect(toStateView(withField, 0).players[1].board.fieldZone).toEqual({
+    expect(toStateView(withField, 0, NO_DEFS).players[1].board.fieldZone).toEqual({
       hidden: true,
       instanceId: 'p1-f',
       ownerIndex: 1,

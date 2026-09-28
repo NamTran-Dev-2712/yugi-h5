@@ -1,7 +1,17 @@
-import type { CardInstance, GameState, PendingPrompt, PlayerState } from '@yugi/game-engine';
+import {
+  effectiveStats,
+  type CardInstance,
+  type ChainLink,
+  type GameState,
+  type PendingPrompt,
+  type PlayerState,
+} from '@yugi/game-engine';
 import type {
   BoardView,
+  CardDefinition,
   CardView,
+  ChainLinkView,
+  ChainWindowView,
   HiddenCardView,
   PendingPromptView,
   PlayerView,
@@ -23,10 +33,24 @@ const hiddenCard = (c: CardInstance): HiddenCardView => ({
   ownerIndex: c.ownerIndex,
 });
 
-/** Monsters are face-down iff `DefenseDown`. */
-const monsterView = (c: CardInstance | null, isOwner: boolean): CardView | null => {
+export type CardResolver = (definitionId: string) => CardDefinition | undefined;
+
+/**
+ * Monsters are face-down iff `DefenseDown`. A face-up monster also carries its effective ATK/DEF (task 3.4b: printed
+ * stats + every Continuous modifier, computed by the engine); face-down ones never do, not even for their owner.
+ */
+const monsterView = (
+  state: GameState,
+  c: CardInstance | null,
+  isOwner: boolean,
+  cardDefinitions: CardResolver,
+): CardView | null => {
   if (c === null) return null;
-  return isOwner || c.position !== 'DefenseDown' ? visible(c) : hiddenCard(c);
+  if (c.position === 'DefenseDown') return isOwner ? visible(c) : hiddenCard(c);
+  // An unknown/non-monster definition cannot have stats (the engine would throw): leave them out.
+  if (cardDefinitions(c.definitionId)?.kind !== 'Monster') return visible(c);
+  const stats = effectiveStats(state, c, { cardDefinitions });
+  return { ...visible(c), effectiveStats: { atk: stats.atk, def: stats.def } };
 };
 
 /**
@@ -45,9 +69,16 @@ function mapFive<T, R>(zones: readonly [T, T, T, T, T], fn: (t: T) => R): [R, R,
   return [fn(zones[0]), fn(zones[1]), fn(zones[2]), fn(zones[3]), fn(zones[4])];
 }
 
-function toPlayerView(p: PlayerState, isOwner: boolean): PlayerView {
+function toPlayerView(
+  state: GameState,
+  p: PlayerState,
+  isOwner: boolean,
+  cardDefinitions: CardResolver,
+): PlayerView {
   const board: BoardView = {
-    monsterZones: mapFive(p.board.monsterZones, (c) => monsterView(c, isOwner)),
+    monsterZones: mapFive(p.board.monsterZones, (c) =>
+      monsterView(state, c, isOwner, cardDefinitions),
+    ),
     spellTrapZones: mapFive(p.board.spellTrapZones, (c) => backrowView(c, isOwner)),
     fieldZone: backrowView(p.board.fieldZone, isOwner),
   };
@@ -80,11 +111,40 @@ function promptView(prompt: PendingPrompt | null, viewerIndex: 0 | 1): PendingPr
 }
 
 /**
- * Filters the full server-side GameState down to what `viewerIndex` may see. Pure. Every payload
- * sent to a client must go through this (never the raw GameState). Deliberately omits `rng` and
- * `chainStack`. Event filtering is NOT done here.
+ * A chain link is public to both seats (task 3.4b): activating revealed the card — from the hand it now lives in the
+ * link, a Set card was flipped face-up, a trigger's card is face-up on the field or in the graveyard. Cost ids and LP
+ * paid stay server-side (the costs were public events already; the client does not need them).
  */
-export function toStateView(state: GameState, viewerIndex: 0 | 1): StateView {
+const chainLinkView = (link: ChainLink): ChainLinkView => ({
+  linkId: link.linkId,
+  playerIndex: link.playerIndex,
+  card: visible(link.card),
+  source: link.source,
+  effectId: link.effectId,
+  spellSpeed: link.spellSpeed,
+  targetInstanceIds: link.targetInstanceIds,
+});
+
+const chainWindowView = (w: GameState['chainWindow']): ChainWindowView | null =>
+  w === null
+    ? null
+    : {
+        priorityPlayer: w.priorityPlayer,
+        passCount: w.passCount,
+        ...(w.reactionTo ? { reactionTo: w.reactionTo } : {}),
+      };
+
+/**
+ * Filters the full server-side GameState down to what `viewerIndex` may see. Pure. Every payload
+ * sent to a client must go through this (never the raw GameState). Deliberately omits `rng`; the chain is sent
+ * in its public form. `cardDefinitions` is needed for the effective ATK/DEF of face-up monsters. Event filtering is
+ * NOT done here.
+ */
+export function toStateView(
+  state: GameState,
+  viewerIndex: 0 | 1,
+  cardDefinitions: CardResolver,
+): StateView {
   return {
     matchId: state.matchId,
     version: state.version,
@@ -95,9 +155,11 @@ export function toStateView(state: GameState, viewerIndex: 0 | 1): StateView {
     phase: state.phase,
     winnerIndex: state.winnerIndex,
     pendingPrompt: promptView(state.pendingPrompt, viewerIndex),
+    chain: state.chainStack.map(chainLinkView),
+    chainWindow: chainWindowView(state.chainWindow),
     players: [
-      toPlayerView(state.players[0], viewerIndex === 0),
-      toPlayerView(state.players[1], viewerIndex === 1),
+      toPlayerView(state, state.players[0], viewerIndex === 0, cardDefinitions),
+      toPlayerView(state, state.players[1], viewerIndex === 1, cardDefinitions),
     ],
   };
 }

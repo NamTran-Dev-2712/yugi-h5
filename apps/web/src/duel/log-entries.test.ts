@@ -35,6 +35,9 @@ const EVENT_CATEGORY: Record<EventView['type'], LogCategory> = {
   LifePointsRecovered: 'combat',
   LifePointsPaid: 'combat',
   SpellTrapDestroyed: 'combat',
+  ChainLinkAdded: 'field',
+  ChainLinkFizzled: 'field',
+  ChainResolved: 'field',
 };
 
 const AI_CATEGORY: Record<PlayerAction['type'], LogCategory> = {
@@ -47,6 +50,7 @@ const AI_CATEGORY: Record<PlayerAction['type'], LogCategory> = {
   Surrender: 'combat',
   SetSpellTrap: 'field',
   ActivateEffect: 'field',
+  PassPriority: 'turn',
 };
 
 describe('category tables', () => {

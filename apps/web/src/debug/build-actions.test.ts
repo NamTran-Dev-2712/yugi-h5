@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyLegality,
   buildActionButtons,
+  describeChain,
   pickViewer,
   shouldContinueEndTurn,
   toAction,
@@ -77,6 +78,8 @@ function view(
     phase: 'Main1',
     winnerIndex: null,
     pendingPrompt: null,
+    chain: [],
+    chainWindow: null,
     players: [player(p0), player(p1)],
     ...rest,
   };
@@ -412,5 +415,105 @@ describe('applyLegality', () => {
 
   it('is fully illegal (nothing enabled) for an empty list', () => {
     expect(applyLegality(buttons, [], true).some((a) => a.legal)).toBe(false);
+  });
+});
+
+describe('chain on the debug page (task 3.4b)', () => {
+  const window = (priorityPlayer: 0 | 1) =>
+    ({ priorityPlayer, passCount: 0, reactionTo: { kind: 'Summon' } }) as const;
+  const triggerPrompt = (optional: boolean): StateView['pendingPrompt'] => ({
+    promptId: 'trigger-3-7',
+    playerIndex: 0,
+    kind: 'TriggerActivation',
+    payload: {
+      trigger: {
+        playerIndex: 0,
+        instanceId: 'p0-1',
+        definitionId: 'MON',
+        effectId: 'e1',
+        source: { zone: 'MonsterZone', zoneIndex: 0 },
+      },
+      optional,
+      candidateInstanceIds: ['p1-4'],
+      count: 1,
+      remaining: [],
+      afterward: null,
+    },
+  });
+
+  it('offers "Bỏ qua" (PassPriority) only to the seat holding priority', () => {
+    const mine = buildActionButtons(view({ chainWindow: window(0) }), lookup);
+    const pass = find(mine, 'PassPriority');
+    expect(toAction(pass, {})).toEqual({ type: 'PassPriority', payload: { playerIndex: 0 } });
+    const theirs = buildActionButtons(view({ chainWindow: window(1) }), lookup);
+    expect(ids(theirs)).not.toContain('PassPriority');
+    expect(ids(buildActionButtons(view(), lookup))).not.toContain('PassPriority');
+  });
+
+  it('a TriggerActivation prompt gets an accept button (with targets) and, if optional, "Từ chối"', () => {
+    const buttons = buildActionButtons(view({ pendingPrompt: triggerPrompt(true) }), lookup);
+    const accept = find(buttons, 'TriggerAccept');
+    expect(toAction(accept, { cardInstanceIds: ['p1-4'] })).toEqual({
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: 0, promptId: 'trigger-3-7', cardInstanceIds: ['p1-4'] },
+    });
+    expect(toAction(find(buttons, 'TriggerDecline'), {})).toEqual({
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: 0, promptId: 'trigger-3-7', cardInstanceIds: [], decline: true },
+    });
+    const mandatory = buildActionButtons(view({ pendingPrompt: triggerPrompt(false) }), lookup);
+    expect(ids(mandatory)).toContain('TriggerAccept');
+    expect(ids(mandatory)).not.toContain('TriggerDecline');
+  });
+
+  it('applyLegality matches the decline button only to a decline answer', () => {
+    const buttons = buildActionButtons(view({ pendingPrompt: triggerPrompt(true) }), lookup);
+    const accept: PlayerAction = {
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: 0, promptId: 'trigger-3-7', cardInstanceIds: ['p1-4'] },
+    };
+    const marked = applyLegality(buttons, [accept], false);
+    expect(marked.find((b) => b.button.id === 'TriggerAccept')?.legal).toBe(true);
+    expect(marked.find((b) => b.button.id === 'TriggerDecline')?.legal).toBe(false);
+    const decline: PlayerAction = {
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: 0, promptId: 'trigger-3-7', cardInstanceIds: [], decline: true },
+    };
+    const onlyDecline = applyLegality(buttons, [decline], false);
+    expect(onlyDecline.find((b) => b.button.id === 'TriggerAccept')?.legal).toBe(false);
+    expect(onlyDecline.find((b) => b.button.id === 'TriggerDecline')?.legal).toBe(true);
+  });
+
+  it('pickViewer follows the priority holder; End Turn stops at an open window', () => {
+    expect(pickViewer(view({ turnPlayerIndex: 0, chainWindow: window(1) }))).toBe(1);
+    expect(shouldContinueEndTurn(1, view({ turnCount: 1, chainWindow: window(1) }))).toBe(false);
+  });
+
+  it('describeChain lists the links bottom → top and who must answer', () => {
+    expect(describeChain(view(), lookup)).toBe('');
+    const v = view({
+      chainWindow: { priorityPlayer: 1, passCount: 0 },
+      chain: [
+        {
+          linkId: 'l1',
+          playerIndex: 0,
+          card: {
+            hidden: false,
+            instanceId: 'p0-9',
+            definitionId: 'SPL',
+            position: null,
+            ownerIndex: 0,
+          },
+          source: { zone: 'Hand' },
+          effectId: 'e1',
+          spellSpeed: 1,
+          targetInstanceIds: [],
+        },
+      ],
+    });
+    expect(describeChain(v, lookup)).toBe('CHUỖI: [1] P0 Spell [p0-9] (tốc 1) · chờ P1 phản ứng');
+    expect(describeChain(view({ chainWindow: window(1) }), lookup)).toBe(
+      'CHUỖI: (trống) · chờ P1 phản ứng (sau Triệu hồi)',
+    );
   });
 });

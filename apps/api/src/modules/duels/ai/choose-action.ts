@@ -1,11 +1,18 @@
-import type { CardDefinition, CardView, PlayerAction, StateView } from '@yugi/shared';
+import type {
+  CardDefinition,
+  CardView,
+  EffectDefinition,
+  PlayerAction,
+  StateView,
+} from '@yugi/shared';
 import { DEFAULT_AI_CONFIG, type AiConfig } from './ai-config';
 
 /**
  * Rule-based AI. A PURE function of what the AI seat is allowed to know: its own StateView (opponent hand, deck and
  * face-down cards are already hidden there), the actions the engine says are legal, card definitions and a seeded
  * random source for tie-breaks. It never receives a GameState, so it cannot peek. The answer is always one of
- * `legalActions`, and never `Surrender`.
+ * `legalActions`, and never `Surrender`. Task 3.4b: in a chain / reaction window it holds, it activates a card that
+ * harms the opponent or passes; it answers trigger/target prompts. It still never starts a Spell/Trap on its own.
  */
 
 export interface AiInput {
@@ -34,6 +41,16 @@ interface Stats {
 }
 
 const key = (a: PlayerAction): string => JSON.stringify(a);
+
+/** An effect that hurts the opponent: destroys one of their cards or burns them. Nothing else is worth a card yet. */
+const harmsOpponent = (effect: EffectDefinition): boolean =>
+  effect.operations.some(
+    (op) =>
+      (op.kind === 'Destroy' &&
+        effect.target?.kind === 'Card' &&
+        effect.target.side === 'opponent') ||
+      (op.kind === 'Damage' && op.target === 'opponent'),
+  );
 
 /** Highest-scoring item; ties are broken with the rng (never by object identity/insertion order alone). */
 function best<T>(items: readonly T[], score: (t: T) => number, rng: () => number): T | undefined {
@@ -101,7 +118,17 @@ export function chooseAction(input: AiInput): PlayerAction {
   return fallback();
 
   function decide(): PlayerAction | undefined {
-    if (view.pendingPrompt !== null) return discard();
+    if (view.pendingPrompt !== null) {
+      switch (view.pendingPrompt.kind) {
+        case 'TriggerActivation':
+        case 'SelectEffectTarget':
+          return targetAnswer();
+        default:
+          return discard();
+      }
+    }
+    // Task 3.4b: holding priority in a chain / reaction window — answer with a harmful card, else pass.
+    if (view.chainWindow?.priorityPlayer === seat) return respond();
     switch (view.phase) {
       case 'Main1':
       case 'Main2':
@@ -123,6 +150,58 @@ export function chooseAction(input: AiInput): PlayerAction {
           : -Infinity,
       input.rng,
     );
+  }
+
+  /** Definition of one of the AI's own cards (hand, field, graveyard): the only cards it may activate. */
+  function ownDefinition(instanceId: string): CardDefinition | undefined {
+    const zones: readonly (CardView | null)[] = [
+      ...own.hand,
+      ...own.board.monsterZones,
+      ...own.board.spellTrapZones,
+      ...own.graveyard,
+    ];
+    const c = zones.find((z) => z?.instanceId === instanceId);
+    return c && !c.hidden ? input.cardDefinitions(c.definitionId) : undefined;
+  }
+
+  function respond(): PlayerAction | undefined {
+    const harmful = legalActions.filter((a) => {
+      if (a.type !== 'ActivateEffect') return false;
+      const effect = ownDefinition(a.payload.cardInstanceId)?.effects?.find(
+        (e) => e.id === a.payload.effectId,
+      );
+      return effect !== undefined && harmsOpponent(effect);
+    });
+    const pick = best(harmful, () => 0, input.rng);
+    return pick ?? legalActions.find((a) => a.type === 'PassPriority');
+  }
+
+  /**
+   * Trigger / target prompt: the answer (never `decline` if anything else is listed) whose targets are worth most —
+   * the opponent's cards count their ATK (a face-down one 500), the AI's own cards count against. Decline only when
+   * it is the one answer left.
+   */
+  function targetAnswer(): PlayerAction | undefined {
+    const answers = legalActions.filter((a) => a.type === 'ResolvePendingPrompt');
+    const accepts = answers.filter(
+      (a) => a.type === 'ResolvePendingPrompt' && a.payload.decline !== true,
+    );
+    const oppIds = new Set(
+      [...opp.board.monsterZones, ...opp.board.spellTrapZones].flatMap((c) =>
+        c ? [c.instanceId] : [],
+      ),
+    );
+    const worth = (id: string): number =>
+      oppIds.has(id) ? (stats.get(id)?.atk ?? 500) : -valueOf(id);
+    const top = best(
+      accepts,
+      (a) =>
+        a.type === 'ResolvePendingPrompt'
+          ? a.payload.cardInstanceIds.reduce((sum, id) => sum + worth(id), 0)
+          : -Infinity,
+      input.rng,
+    );
+    return top ?? answers[0];
   }
 
   function summon(): PlayerAction | undefined {
@@ -214,6 +293,8 @@ export function chooseAction(input: AiInput): PlayerAction {
   function fallback(): PlayerAction {
     const end = legalActions.find((a) => a.type === 'EndPhase');
     if (end) return end;
+    const pass = legalActions.find((a) => a.type === 'PassPriority');
+    if (pass) return pass;
     const other = legalActions.find((a) => a.type !== 'Surrender');
     if (other) return other;
     throw new AiNoActionError('The AI has no legal action other than Surrender.');

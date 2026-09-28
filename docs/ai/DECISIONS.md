@@ -642,3 +642,52 @@ Chỉ đổi bảng số + comment ở `animation-queue.ts`; không đổi logic
   `tools/mutants-3.6.mjs`.
   **Hệ quả:** P4 (4.3) thêm kích hoạt lá Continuous Spell/Trap (ở lại sân ngửa — bất biến fuzz "Phép/Bẫy ngửa ⇔ có link" phải nới);
   nối wire thêm chỉ số hiệu lực vào `StateView`; lá thật dùng script ở 3.8 thêm vào `EFFECT_SCRIPTS`.
+
+## 2026-09-28 — C13: phản ứng = chạm lá trực tiếp, KHÔNG có hộp thoại "Kích hoạt?"
+
+- **Chủ dự án chốt** `[DECISION]` (đóng mâu thuẫn C13 giữa video #3/#4 và G5/C12): khi cửa sổ phản ứng/chain đang mở và người
+  chơi có lá Set (Trap/Quick-Play) đáp trả được, UI **không** hiện dialog xác nhận — chạm lá úp có `ActivateEffect` hợp lệ
+  trong `legalActions` là kích hoạt luôn (như chạm quái ngửa mở menu hiện có, chỉ khác action). "Bỏ qua" là **nút riêng**
+  gửi `PassPriority`, không phải nút trong dialog.
+- `TriggerActivation` (hỏi **chủ** lá có trigger) **không thuộc** C13: vẫn dùng overlay Có/Không như các prompt khác
+  (`SelectEffectTarget`, tribute), vì đó là lá của chính mình.
+- **Hệ quả:** G5 cập nhật trong `fidelity-spec.md`; `RulesetConfig.chainPrompt` (C12) không dùng cho phản ứng (engine chưa bao
+  giờ đọc nó); việc làm UI (chạm lá Set, banner "đang chờ phản ứng", nút Bỏ qua, overlay trigger) là task 3.7.
+
+## 2026-09-28 — Nối wire chain + lá Set + cửa sổ phản ứng + prompt trigger (task 3.4b)
+
+- **Engine: đúng 1 dòng** (chủ dự án duyệt trong phiên plan): `export { effectiveStats, type Stats }` ở
+  `packages/game-engine/src/index.ts` để api gắn chỉ số hiệu lực vào view mà không chép luật Continuous. 0 dòng logic đổi,
+  606 test + golden không đổi.
+- **Shared**: `PlayerActionSchema` + `PassPriority {playerIndex}` (`.strict()`), `ResolvePendingPrompt.payload.decline?:
+boolean`; `EventView` + 3 event chain (shape engine); `StateView.chain: ChainLinkView[]` (linkId, playerIndex, card
+  `VisibleCardView`, source, effectId, spellSpeed, targetInstanceIds — **không** `costInstanceIds`/`lpPaid`: FE không cần,
+  cost đã công khai qua event) + `chainWindow {priorityPlayer, passCount, reactionTo?}`; `VisibleCardView.effectiveStats?`
+  chỉ trên quái **ngửa** ở ô quái (không thay chỉ số in — FE lấy chỉ số in từ card data); type
+  `TriggerActivationPromptPayload`.
+- **`toStateView(state, viewer, cardDefinitions)`: resolver bắt buộc** (~25 call site sửa) — bắt buộc để không có đường trả
+  response nào quên chỉ số hiệu lực. Lá có definition lạ/không phải quái → bỏ qua field (không ném). Quái úp không có field kể
+  cả với chủ (tránh khác biệt hình dạng giữa hai ghế).
+- **Chain công khai cho cả hai ghế** `[RULE]`: lá của link đã lộ lúc kích hoạt (tay → nằm trong link; Set → lật ngửa; trigger →
+  quái ngửa/lá ở mộ). 3 event chain chuyển sang PUBLIC. Oracle `leak-check.ts` coi lá nằm trong chain link là công khai (chỉ
+  khi không tìm thấy ở đâu khác — link của lá Set chỉ là bản sao).
+- **"Ai phải hành động" = `pendingPrompt` → `chainWindow.priorityPlayer` → turn player** (`actorOf` ở `DuelManager`, cùng
+  công thức ở `ai/simulate.ts` và fuzz). Trước đây bỏ qua `chainWindow`: người tấn công mà AI giữ ưu tiên cửa sổ phản ứng thì
+  driver không chạy AI và người chỉ còn `Surrender` (kẹt). `ENGINE_ONLY_ACTIONS` bị xoá.
+- **AI** (vẫn chỉ `StateView` + `legalActions`): (1) prompt `TriggerActivation`/`SelectEffectTarget` → câu trả lời không-`decline`
+  có tổng giá trị mục tiêu cao nhất (quái đối thủ = ATK, lá úp đối thủ = 500, lá mình = −giá trị); `decline` chỉ khi là câu trả
+  lời duy nhất; `DiscardToHandLimit` như cũ; (2) giữ ưu tiên trong cửa sổ → `ActivateEffect` có effect **gây hại đối thủ**
+  (Destroy nhắm đối thủ / Damage đối thủ, đọc từ card data) nếu có, còn lại `PassPriority`; (3) fallback `EndPhase` →
+  `PassPriority` → action khác ngoài Surrender. AI **vẫn không tự Set/kích hoạt** Spell/Trap ngoài cửa sổ (ADR 3.2b giữ nguyên;
+  mô phỏng chain dùng wrapper test-only `setsFirst` để có lá úp). `[ASSUMED]` mọi ngưỡng/điểm số, đổi ở `choose-action.ts`.
+- **Web tối thiểu** (không tương tác Phaser mới): switch vét cạn cho 3 event + `PassPriority` (describe/log/animation: step
+  caption-only `chainLink`/`chainFizzle`/`chainResolved`, thời lượng `[GUESS]`), 6 câu i18n vi/en; trang debug (chủ dự án duyệt
+  gộp): nút **Bỏ qua**, **Kích hoạt/Từ chối trigger**, dòng "CHUỖI: …", `pickViewer`/End Turn theo cửa sổ. Sửa kèm lỗi có sẵn từ
+  3.1: `cardLabel` của trang debug in `[object Object]` (tên lá thành `{vi,en}`) → dùng `name.vi`.
+- **Giới hạn còn lại**: (a) Phaser DuelScene chưa có nút Bỏ qua ⇒ nếu người giữ ưu tiên thì chỉ đầu hàng được — card pool thật
+  (SMP-201 không effect, không lá trigger/Quick-Play) không bao giờ mở cửa sổ cho người, nên chưa xảy ra qua HTTP; 3.7 làm UI;
+  (b) cửa sổ còn mở cho người kia biết "đối thủ có lá đáp trả" (trade-off ADR 3.3) — chỉ quan trọng ở PvP (P9); (c) câu log AI
+  cho câu trả lời prompt có id vẫn là "bỏ bài" (chỉ loại có id qua HTTP hiện nay); (d) UI/AI chưa dùng `effectiveStats`.
+- **Kiểm chứng**: xem `docs/ai/review-packets/task-3.4b.md`.
+  **Hệ quả:** 3.7 dùng `chain`/`chainWindow`/`legalActions` để làm UI chạm lá Set (C13), banner, nút Bỏ qua, overlay trigger;
+  thêm lá thật có trigger/Speed 2 vào pool chỉ sau 3.7.

@@ -69,6 +69,8 @@ const ResolvePendingPrompt = z
         playerIndex: Seat,
         promptId: z.string().min(1).max(64),
         cardInstanceIds: InstanceIds,
+        /** Declines an optional trigger (`TriggerActivation` prompt only, with no ids; the engine checks it). */
+        decline: z.boolean().optional(),
       })
       .strict(),
   })
@@ -106,6 +108,14 @@ const ActivateEffect = z
   })
   .strict();
 
+/**
+ * Passes priority in an open chain / reaction window (task 3.3; on the wire since 3.4b). The second consecutive pass
+ * resolves the chain; one pass closes an empty reaction window.
+ */
+const PassPriority = z
+  .object({ type: z.literal('PassPriority'), payload: z.object({ playerIndex: Seat }).strict() })
+  .strict();
+
 /** The actions a player may send. */
 export const PlayerActionSchema = z.discriminatedUnion('type', [
   EndPhase,
@@ -117,6 +127,7 @@ export const PlayerActionSchema = z.discriminatedUnion('type', [
   ResolvePendingPrompt,
   SetSpellTrap,
   ActivateEffect,
+  PassPriority,
 ]);
 export type PlayerAction = z.infer<typeof PlayerActionSchema>;
 

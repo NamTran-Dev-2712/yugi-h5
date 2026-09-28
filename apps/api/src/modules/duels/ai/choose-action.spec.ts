@@ -359,3 +359,171 @@ describe('chooseAction — determinism and no peeking', () => {
     }
   });
 });
+
+describe('chooseAction — chain windows and trigger prompts (task 3.4b)', () => {
+  const PASS: PlayerAction = { type: 'PassPriority', payload: { playerIndex: AI_SEAT } };
+  const SURRENDER: PlayerAction = { type: 'Surrender', payload: { playerIndex: AI_SEAT } };
+  const activate = (id: string): PlayerAction => ({
+    type: 'ActivateEffect',
+    payload: { playerIndex: AI_SEAT, cardInstanceId: id, effectId: 'e1' },
+  });
+  /** The AI (seat 1) holds priority in the human's reaction window, with Set Traps in its backrow. */
+  const inWindow = (traps: string[], legalActions: PlayerAction[]) => {
+    const base = scenario({ theirs: [{ def: 'A2000' }], mine: [] }).view;
+    const backrow = [0, 1, 2, 3, 4].map((i) =>
+      traps[i]
+        ? {
+            hidden: false as const,
+            instanceId: `st${i}`,
+            definitionId: traps[i]!,
+            position: 'DefenseDown' as const,
+            ownerIndex: AI_SEAT,
+          }
+        : null,
+    ) as unknown as (typeof base)['players'][1]['board']['spellTrapZones'];
+    const view = {
+      ...base,
+      turnPlayerIndex: 0 as const,
+      phase: 'Battle' as const,
+      chainWindow: {
+        priorityPlayer: AI_SEAT,
+        passCount: 0 as const,
+        reactionTo: {
+          kind: 'Attack' as const,
+          playerIndex: 0 as const,
+          attackerInstanceId: 't0',
+          targetInstanceId: null,
+        },
+      },
+      players: [
+        base.players[0],
+        { ...base.players[1], board: { ...base.players[1].board, spellTrapZones: backrow } },
+      ] as const,
+    };
+    return (seed = 's') =>
+      chooseAction({
+        view,
+        legalActions,
+        cardDefinitions: (id) => AI_DEFS[id],
+        rng: createAiRng(seed),
+      });
+  };
+
+  it('activates a Set Trap that harms the opponent', () => {
+    const choose = inWindow(['TRK'], [activate('st0'), PASS, SURRENDER]);
+    expect(choose()).toEqual(activate('st0'));
+  });
+
+  it('passes when the only answer does not harm the opponent', () => {
+    const choose = inWindow(['TRH'], [activate('st0'), PASS, SURRENDER]);
+    for (const seed of ['a', 'b', 'c']) expect(choose(seed)).toEqual(PASS);
+  });
+
+  it('passes when it has nothing to activate, and never surrenders', () => {
+    expect(inWindow([], [PASS, SURRENDER])()).toEqual(PASS);
+  });
+
+  it('fallback prefers PassPriority over any other listed action (no EndPhase listed)', () => {
+    const sit = scenario({ phase: 'Battle' });
+    const a = chooseAction({
+      view: sit.view,
+      legalActions: [activate('st0'), PASS, SURRENDER],
+      cardDefinitions: (id) => AI_DEFS[id],
+      rng: createAiRng('y'),
+    });
+    expect(a).toEqual(PASS);
+  });
+
+  it('falls back to PassPriority rather than stalling (no EndPhase listed)', () => {
+    const sit = scenario({ phase: 'Battle' });
+    const a = chooseAction({
+      view: sit.view,
+      legalActions: [PASS, SURRENDER],
+      cardDefinitions: (id) => AI_DEFS[id],
+      rng: createAiRng('x'),
+    });
+    expect(a).toEqual(PASS);
+  });
+
+  const triggerPrompt = (optional: boolean, candidates: string[], count: number) => ({
+    promptId: 'trigger-4-9',
+    playerIndex: AI_SEAT,
+    kind: 'TriggerActivation',
+    payload: {
+      trigger: {
+        playerIndex: AI_SEAT,
+        instanceId: 'o0',
+        definitionId: 'A1000',
+        effectId: 'e1',
+        source: { zone: 'MonsterZone', zoneIndex: 0 },
+      },
+      optional,
+      candidateInstanceIds: candidates,
+      count,
+      remaining: [],
+      afterward: null,
+    },
+  });
+  const answer = (ids: string[], decline?: boolean): PlayerAction => ({
+    type: 'ResolvePendingPrompt',
+    payload: {
+      playerIndex: AI_SEAT,
+      promptId: 'trigger-4-9',
+      cardInstanceIds: ids,
+      ...(decline ? { decline: true } : {}),
+    },
+  });
+  const onPrompt = (prompt: ReturnType<typeof triggerPrompt>, legal: PlayerAction[]) => {
+    const sit = scenario({ theirs: [{ def: 'A1000' }, { def: 'A2000' }] });
+    return chooseAction({
+      view: { ...sit.view, pendingPrompt: prompt },
+      legalActions: legal,
+      cardDefinitions: (id) => AI_DEFS[id],
+      rng: createAiRng('p'),
+    });
+  };
+
+  it('accepts an optional trigger (no target) rather than declining', () => {
+    expect(onPrompt(triggerPrompt(true, [], 0), [answer([], true), answer([]), SURRENDER])).toEqual(
+      answer([]),
+    );
+  });
+
+  it("targets the opponent's strongest monster with a trigger", () => {
+    const legal = [answer(['t0']), answer(['t1']), answer([], true), SURRENDER];
+    expect(onPrompt(triggerPrompt(true, ['t0', 't1'], 1), legal)).toEqual(answer(['t1']));
+  });
+
+  it('declines when declining is the only answer left', () => {
+    expect(onPrompt(triggerPrompt(true, [], 0), [answer([], true), SURRENDER])).toEqual(
+      answer([], true),
+    );
+  });
+
+  it("SelectEffectTarget: picks the opponent's strongest monster", () => {
+    const sit = scenario({ theirs: [{ def: 'A1000' }, { def: 'A2000' }] });
+    const prompt = {
+      promptId: 'target-4-9',
+      playerIndex: AI_SEAT,
+      kind: 'SelectEffectTarget',
+      payload: {
+        cardInstanceId: 'x',
+        effectId: 'e1',
+        costInstanceIds: [],
+        candidateInstanceIds: ['t0', 't1'],
+        count: 1,
+      },
+    };
+    const mk = (id: string): PlayerAction => ({
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: AI_SEAT, promptId: 'target-4-9', cardInstanceIds: [id] },
+    });
+    const a = chooseAction({
+      view: { ...sit.view, pendingPrompt: prompt },
+      legalActions: [mk('t0'), mk('t1'), SURRENDER],
+      cardDefinitions: (id) => AI_DEFS[id],
+      rng: createAiRng('q'),
+    });
+    expect(a).toEqual(mk('t1'));
+  });
+});

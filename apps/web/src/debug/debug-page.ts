@@ -14,6 +14,7 @@ import {
   applyLegality,
   buildActionButtons,
   cardLabel,
+  describeChain,
   pickViewer,
   shouldContinueEndTurn,
   toAction,
@@ -354,7 +355,7 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
             view.pendingPrompt
               ? ` · PROMPT ${view.pendingPrompt.kind} cho P${view.pendingPrompt.playerIndex}: ${JSON.stringify(view.pendingPrompt.payload)}`
               : ''
-          }`,
+          }${view.chainWindow ? ` · ${describeChain(view, lookup)}` : ''}`,
         }),
       );
       const opp = (1 - view.viewerIndex) as PlayerIndex;

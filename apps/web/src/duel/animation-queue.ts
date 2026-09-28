@@ -29,7 +29,11 @@ export type StepKind =
   | 'toGraveyard'
   | 'lpGain'
   | 'lpPay'
-  | 'spellDestroy';
+  | 'spellDestroy'
+  // Chain (task 3.4b): caption only for now (task 3.7 draws the chain)
+  | 'chainLink'
+  | 'chainFizzle'
+  | 'chainResolved';
 
 /**
  * How long each step lasts at speed 1 (ms). One place to tune the feel (`?fast=1` = ×3, `?anim=off` = none).
@@ -61,6 +65,9 @@ export const DURATION_MS: Readonly<Record<StepKind, number>> = {
   lpGain: 500, // [GUESS] floating number, same as damage
   lpPay: 500, // [GUESS] floating number, same as damage
   spellDestroy: 375, // [REF] same as destroying a monster (~0.3–0.4 s)
+  chainLink: 400, // [GUESS] no footage of a 2+ link chain
+  chainFizzle: 400, // [GUESS]
+  chainResolved: 250, // [GUESS] short caption, the links already had their steps
 };
 /** Several cards drawn in a row (the opening hand) play as one longer step instead of N short ones. */
 const DRAW_MANY_MS = 600;
@@ -136,7 +143,14 @@ export type AnimationStep =
       readonly kind: 'lpGain' | 'lpPay';
       readonly playerIndex: PlayerIndex;
       readonly amount: number;
-    });
+    })
+  | (StepBase & {
+      /** Chain (task 3.4b): a link was added / resolved with no effect. Caption only; no definitionId is copied. */
+      readonly kind: 'chainLink' | 'chainFizzle';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+    })
+  | (StepBase & { readonly kind: 'chainResolved' });
 
 export interface AnimationSegment {
   /** true = the AI's move (starts with an `aiLabel` step). */
@@ -270,6 +284,22 @@ function stepFor(e: EventView, text: string): AnimationStep | null {
         instanceId: e.instanceId,
         zoneIndex: e.zoneIndex,
       };
+    case 'ChainLinkAdded':
+      return {
+        kind: 'chainLink',
+        ...d('chainLink'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+      };
+    case 'ChainLinkFizzled':
+      return {
+        kind: 'chainFizzle',
+        ...d('chainFizzle'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+      };
+    case 'ChainResolved':
+      return { kind: 'chainResolved', ...d('chainResolved') };
     default: {
       const exhaustive: never = e;
       return exhaustive;

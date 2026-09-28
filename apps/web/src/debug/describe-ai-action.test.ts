@@ -67,6 +67,24 @@ describe('describeAiAction', () => {
     ).toBe('🤖 AI kích hoạt «p1-9»');
   });
 
+  it('words the chain answers of task 3.4b: pass, trigger accepted / declined', () => {
+    expect(say({ type: 'PassPriority', payload: { playerIndex: 1 } })).toBe(
+      '🤖 AI bỏ qua (không phản ứng)',
+    );
+    expect(
+      say({
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [], decline: true },
+      }),
+    ).toBe('🤖 AI không kích hoạt hiệu ứng trigger');
+    expect(
+      say({
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [] },
+      }),
+    ).toBe('🤖 AI kích hoạt hiệu ứng trigger');
+  });
+
   it('treats a null target as a direct attack', () => {
     expect(
       say({

@@ -98,6 +98,27 @@ const SAMPLES: Record<EventView['type'], EventView> = {
     definitionId: 'SMP-201',
     zoneIndex: 3,
   },
+  ChainLinkAdded: {
+    type: 'ChainLinkAdded',
+    linkId: 'link-3-9',
+    chainIndex: 1,
+    playerIndex: 1,
+    instanceId: 'p1-8',
+    definitionId: 'SMP-201',
+    effectId: 'e1',
+    spellSpeed: 2,
+    targetInstanceIds: [],
+  },
+  ChainLinkFizzled: {
+    type: 'ChainLinkFizzled',
+    linkId: 'link-3-9',
+    playerIndex: 1,
+    instanceId: 'p1-8',
+    definitionId: 'SMP-201',
+    effectId: 'e1',
+    reason: 'TARGET_GONE',
+  },
+  ChainResolved: { type: 'ChainResolved', linkCount: 1 },
 };
 
 const KIND_OF: Record<EventView['type'], StepKind | null> = {
@@ -123,6 +144,9 @@ const KIND_OF: Record<EventView['type'], StepKind | null> = {
   LifePointsRecovered: 'lpGain',
   LifePointsPaid: 'lpPay',
   SpellTrapDestroyed: 'spellDestroy',
+  ChainLinkAdded: 'chainLink',
+  ChainLinkFizzled: 'chainFizzle',
+  ChainResolved: 'chainResolved',
 };
 
 describe('stepsFor', () => {

@@ -1,0 +1,90 @@
+# Task 3.4b — test đỏ trước khi cài đặt (2026-09-28)
+
+Mỗi khối: kết quả chạy ngay sau khi viết test, trước khi sửa code tương ứng.
+
+## Shared (action-schema.test.ts)
+   × Task 3.4b — chain on the wire > accepts PassPriority 15ms
+   × Task 3.4b — chain on the wire > accepts ResolvePendingPrompt decline 1ms
+   × Task 3.4b — chain on the wire > accepts ResolvePendingPrompt decline:false 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/duel/action-schema.test.ts > Task 3.4b — chain on the wire > accepts PassPriority
+ FAIL  src/duel/action-schema.test.ts > Task 3.4b — chain on the wire > accepts ResolvePendingPrompt decline
+ FAIL  src/duel/action-schema.test.ts > Task 3.4b — chain on the wire > accepts ResolvePendingPrompt decline:false
+      Tests  3 failed | 46 passed (49)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/duel/action-schema.test.ts
+
+## API (event-view, state-view.chain, duel-manager.chain, spell-trap, choose-action, leak-check)
+   × toEventView > forwards chain event ChainLinkAdded unchanged to both viewers (task 3.4b) 7ms
+   × toEventView > forwards chain event ChainLinkFizzled unchanged to both viewers (task 3.4b) 1ms
+   × toEventView > forwards chain event ChainResolved unchanged to both viewers (task 3.4b) 1ms
+   × toEventView > passes public event ChainLinkAdded through unchanged to both viewers 1ms
+   × toEventView > passes public event ChainLinkFizzled through unchanged to both viewers 1ms
+   × toEventView > passes public event ChainResolved through unchanged to both viewers 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  6 failed | 30 passed (36)
+   × toStateView — chain (task 3.4b) > is empty with no window outside a chain 29ms
+   × toStateView — chain (task 3.4b) > shows every link, bottom → top, identically to both seats (no cost ids, no LP paid) 9ms
+   × toStateView — chain (task 3.4b) > carries the reaction window and what it was opened for 3ms
+   × toStateView — effective ATK/DEF (task 3.4b) > adds the modified stats to face-up monsters, clamped at 0, for both viewers 15ms
+   × toStateView — effective ATK/DEF (task 3.4b) > equals the printed stats when nothing modifies them 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  5 failed | 2 passed (7)
+   × Chain over the wire (task 3.4b) — the AI answers the windows it holds > human attacks, the AI activates a harmful Set Trap in the reaction window, all in one request 26ms
+   × Chain over the wire (task 3.4b) — the AI answers the windows it holds > human attacks, the AI holds a harmless Trap: it passes and the attack goes through 5ms
+   × Chain over the wire (task 3.4b) — the AI answers the windows it holds > the AI attacks, the human holds a Trap: the response stops with the window open for the human 11ms
+   × Chain over the wire (task 3.4b) — the AI answers the windows it holds > the human may answer the AI attack with its Trap instead (chain resolves, attack stops) 7ms
+   × Trigger prompts over the wire (task 3.4b) > the AI answers its optional OnSummon prompt (accepts a harmful trigger) 18ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  5 failed | 2 passed (7)
+   × Spell/Trap actions over the manager (SetSpellTrap / ActivateEffect) > ActivateEffect is accepted: both players see the activation, the Spell goes to the graveyard 10ms
+   × Chain on the wire (task 3.4b; was engine-only containment in 3.3) > with a window open: the chain is public, PassPriority is listed and accepted 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 3 passed (5)
+   × chooseAction — chain windows and trigger prompts (task 3.4b) > passes when the only answer does not harm the opponent 10ms
+   × chooseAction — chain windows and trigger prompts (task 3.4b) > targets the opponent's strongest monster with a trigger 2ms
+   × chooseAction — chain windows and trigger prompts (task 3.4b) > SelectEffectTarget: picks the opponent's strongest monster 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { type: 'ActivateEffect', …(1) } to deeply equal { type: 'PassPriority', …(1) }
+AssertionError: expected { type: 'ResolvePendingPrompt', …(1) } to deeply equal { type: 'ResolvePendingPrompt', …(1) }
+AssertionError: expected { type: 'ResolvePendingPrompt', …(1) } to deeply equal { type: 'ResolvePendingPrompt', …(1) }
+      Tests  3 failed | 38 passed (41)
+   × findLeaks — chain (task 3.4b) > accepts a card activated from the hand that now lives in a chain link (public) 12ms
+   × findLeaks — chain (task 3.4b) > still flags a wrong definitionId for a chain card 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 5 passed (7)
+
+## Web (describe/log/animation/i18n, trang debug)
+      Tests  16 failed | 449 passed (465)
+ FAIL  src/debug/describe-ai-action.test.ts > describeAiAction > words the chain answers of task 3.4b: pass, trigger accepted / declined
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes ChainLinkAdded
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes ChainLinkFizzled
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes ChainResolved
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > ChainLinkAdded → chainLink
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > ChainLinkFizzled → chainFizzle
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > ChainResolved → chainResolved
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > never puts a hidden card name into a step (captions come from the injected describer only)
+ FAIL  src/duel/log-entries.test.ts > category tables > AI action PassPriority -> turn
+ FAIL  src/duel/log-entries.test.ts > category tables > event ChainLinkAdded -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event ChainLinkFizzled -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event ChainResolved -> field
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent ChainLinkAdded
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent ChainLinkFizzled
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent ChainResolved
+ FAIL  src/i18n/translated.test.ts > English wording > words the chain answers of task 3.4b: pass, trigger accepted / declined
+ Test Files  5 failed | 23 passed (28)
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  5 failed | 26 passed (31)
+     90|   if (!b) throw new Error(`no button ${id}; have ${buttons.map((x) => …
+ FAIL  src/debug/build-actions.test.ts > chain on the debug page (task 3.4b) > a TriggerActivation prompt gets an accept button (with targets) and, if optional, "Từ chối"
+ FAIL  src/debug/build-actions.test.ts > chain on the debug page (task 3.4b) > applyLegality matches the decline button only to a decline answer
+ FAIL  src/debug/build-actions.test.ts > chain on the debug page (task 3.4b) > describeChain lists the links bottom → top and who must answer
+ FAIL  src/debug/build-actions.test.ts > chain on the debug page (task 3.4b) > offers "Bỏ qua" (PassPriority) only to the seat holding priority
+ FAIL  src/debug/build-actions.test.ts > chain on the debug page (task 3.4b) > pickViewer follows the priority holder; End Turn stops at an open window
+AssertionError: expected +0 to be 1 // Object.is equality
+AssertionError: expected undefined to be true // Object.is equality
+Error: no button PassPriority; have EndPhase, EndTurn, Surrender
+Error: no button TriggerAccept; have EndPhase, EndTurn, Surrender
+TypeError: (0 , describeChain) is not a function
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+Ghi chú: 2 ca trong duel-manager.chain.spec (trigger mandatory, human decline) xanh ngay từ đầu — engine đã làm đúng, chỉ cần wire; e2e HTTP (PassPriority/decline qua schema) và simulate.chain.spec viết sau khi cài đặt (không có bản đỏ).

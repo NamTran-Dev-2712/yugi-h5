@@ -46,6 +46,10 @@ export function describeAiAction(action: PlayerAction, ctx: DescribeAiContext): 
           });
     }
     case 'ResolvePendingPrompt':
+      // Task 3.4b: the AI also answers trigger prompts (accept with no ids / decline). A choice of ids is still worded
+      // as the hand-limit discard (the only kind of answer with ids the card pool reaches over HTTP today).
+      if (action.payload.decline === true) return t('ai.declineTrigger');
+      if (action.payload.cardInstanceIds.length === 0) return t('ai.acceptTrigger');
       return t('ai.discard', { cards: action.payload.cardInstanceIds.map(label).join(', ') });
     case 'Surrender':
       return t('ai.surrender');
@@ -56,6 +60,8 @@ export function describeAiAction(action: PlayerAction, ctx: DescribeAiContext): 
       });
     case 'ActivateEffect':
       return t('ai.activateEffect', { card: label(action.payload.cardInstanceId) });
+    case 'PassPriority':
+      return t('ai.passPriority');
     default: {
       const unhandled: never = action;
       return t('ai.unknown', { json: JSON.stringify(unhandled) });

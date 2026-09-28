@@ -166,6 +166,37 @@ export interface SpellTrapDestroyedEventView {
   readonly zoneIndex: number;
 }
 
+/** Chain (task 3.3, on the wire since 3.4b). The linked card was revealed by EffectActivated: public. */
+export interface ChainLinkAddedEventView {
+  readonly type: 'ChainLinkAdded';
+  readonly linkId: string;
+  /** 1-based position on the chain (1 = first activated, resolves last). */
+  readonly chainIndex: number;
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+  readonly spellSpeed: 1 | 2 | 3;
+  readonly targetInstanceIds: readonly string[];
+}
+
+/** A link resolved with no effect: all of its targets left their zone first. */
+export interface ChainLinkFizzledEventView {
+  readonly type: 'ChainLinkFizzled';
+  readonly linkId: string;
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+  readonly reason: 'TARGET_GONE';
+}
+
+/** Every link resolved (LIFO); the window is closed. */
+export interface ChainResolvedEventView {
+  readonly type: 'ChainResolved';
+  readonly linkCount: number;
+}
+
 export interface DuelEndedEventView {
   readonly type: 'DuelEnded';
   readonly winnerIndex: PlayerIndex | null;
@@ -194,4 +225,7 @@ export type EventView =
   | LifePointsRecoveredEventView
   | LifePointsPaidEventView
   | SpellTrapDestroyedEventView
+  | ChainLinkAddedEventView
+  | ChainLinkFizzledEventView
+  | ChainResolvedEventView
   | DuelEndedEventView;

@@ -5,3 +5,4 @@ export * from './state/types.js';
 export * from './rng/seeded-rng.js';
 export * from './errors.js';
 export * from './legal-actions.js';
+export { effectiveStats, type Stats } from './effects/continuous.js';

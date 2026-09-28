@@ -139,11 +139,14 @@ describe('Spell/Trap actions over the manager (SetSpellTrap / ActivateEffect)', 
       payload: { playerIndex: 0, cardInstanceId: 'sp-1', effectId: 'e1' },
     });
     const types = result.eventsByViewer[1].map((e) => e.type);
+    // Task 3.4b: the chain events are forwarded too.
     expect(types).toEqual([
       'EffectActivated',
+      'ChainLinkAdded',
       'CardDrawn',
       'EffectResolved',
       'CardSentToGraveyard',
+      'ChainResolved',
     ]);
     // The spell left the hand and one card was drawn.
     expect(result.view.players[0].handCount).toBe(handBefore);
@@ -151,24 +154,26 @@ describe('Spell/Trap actions over the manager (SetSpellTrap / ActivateEffect)', 
   });
 });
 
-describe('Chain containment (task 3.3): PassPriority is engine-only', () => {
-  it('a normal activation still resolves in one call and chain events are not forwarded', async () => {
+describe('Chain on the wire (task 3.4b; was engine-only containment in 3.3)', () => {
+  it('a normal activation resolves in one call and both viewers get the chain events', async () => {
     const { manager, duelId } = await setup();
     const result = await manager.submitAction(duelId, 0, {
       type: 'ActivateEffect',
       payload: { playerIndex: 0, cardInstanceId: 'sp-1', effectId: 'e1' },
     });
     for (const viewer of [0, 1] as const) {
-      const types = result.eventsByViewer[viewer].map((e) => e.type as string);
-      expect(types).not.toContain('ChainLinkAdded');
-      expect(types).not.toContain('ChainResolved');
+      const types = result.eventsByViewer[viewer].map((e) => e.type);
+      expect(types).toContain('ChainLinkAdded');
+      expect(types).toContain('ChainResolved');
     }
-    expect(result.legalActions.map((a) => a.type as string)).not.toContain('PassPriority');
+    expect(result.view.chain).toEqual([]);
+    expect(result.view.chainWindow).toBeNull();
+    expect(result.legalActions.map((a) => a.type)).not.toContain('PassPriority');
   });
 
-  it('is never listed and is refused with FORBIDDEN_ACTION, even with an engine chain window open', async () => {
+  it('with a window open: the chain is public, PassPriority is listed and accepted', async () => {
     const { manager, duelId, store } = await setup();
-    // Engine-side only: a Quick-Play in hand lets the activation leave a window open for player 0.
+    // A Quick-Play in hand lets the activation leave a window open for player 0.
     const session = (await store.get(duelId))!;
     const qp: CardInstance = {
       instanceId: 'qp-1',
@@ -188,15 +193,23 @@ describe('Chain containment (task 3.3): PassPriority is engine-only', () => {
       type: 'ActivateEffect',
       payload: { playerIndex: 0, cardInstanceId: 'sp-1', effectId: 'e1' },
     });
-    expect((await store.get(duelId))!.state.chainWindow).toEqual({
-      priorityPlayer: 0,
-      passCount: 1,
+    expect(opened.view.chainWindow).toEqual({ priorityPlayer: 0, passCount: 1 });
+    expect(opened.view.chain.map((l) => l.card.definitionId)).toEqual(['TST-SPELL']);
+    expect((await manager.getView(duelId, 1)).chain).toEqual(opened.view.chain);
+    expect(opened.legalActions).toContainEqual({
+      type: 'PassPriority',
+      payload: { playerIndex: 0 },
     });
-    expect(opened.legalActions.map((a) => a.type as string)).not.toContain('PassPriority');
-    expect(JSON.stringify(opened.view)).not.toContain('chainStack');
-    expect(JSON.stringify(opened.view)).not.toContain('chainWindow');
-    await expect(
-      manager.submitAction(duelId, 0, { type: 'PassPriority', payload: { playerIndex: 0 } }),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN_ACTION' });
+    expect(await manager.getLegalActions(duelId, 1)).not.toContainEqual({
+      type: 'PassPriority',
+      payload: { playerIndex: 1 },
+    });
+    const passed = await manager.submitAction(duelId, 0, {
+      type: 'PassPriority',
+      payload: { playerIndex: 0 },
+    });
+    expect(passed.events.map((e) => e.type)).toContain('ChainResolved');
+    expect(passed.view.chainWindow).toBeNull();
+    expect(passed.view.players[0].graveyard.map((c) => c.definitionId)).toEqual(['TST-SPELL']);
   });
 });

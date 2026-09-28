@@ -16,15 +16,13 @@ const SPELL_TRAP_TYPES = [
   'SpellTrapDestroyed',
 ] as const satisfies readonly GameEvent['type'][];
 
-/** Task 3.3 chain events: classified (PUBLIC by nature) but not forwarded until task 3.3b. */
+/** Task 3.3 chain events: PUBLIC, forwarded since task 3.4b (the linked card was revealed by EffectActivated). */
 const CHAIN_TYPES = [
   'ChainLinkAdded',
   'ChainLinkFizzled',
   'ChainResolved',
 ] as const satisfies readonly GameEvent['type'][];
-type ChainEvent = Extract<GameEvent, { type: (typeof CHAIN_TYPES)[number] }>;
-
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent | ChainEvent>;
+type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
 
 /** One fixture per GameEvent type: adding a type to the engine makes this Record fail to typecheck. */
 const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = {
@@ -143,7 +141,7 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
 const asView = (e: PublicEvent): EventView => e;
 
 const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
-  (t) => t !== 'CardDrawn' && !(CHAIN_TYPES as readonly string[]).includes(t),
+  (t) => t !== 'CardDrawn',
 );
 
 describe('toEventView', () => {
@@ -151,12 +149,12 @@ describe('toEventView', () => {
     expect(Object.keys(FIXTURES)).toHaveLength(25);
   });
 
-  it.each(CHAIN_TYPES)(
-    'drops chain event %s for both viewers (engine-only until task 3.3b)',
-    (type) => {
-      for (const viewer of [0, 1] as const) expect(toEventView(FIXTURES[type], viewer)).toBeNull();
-    },
-  );
+  it.each(CHAIN_TYPES)('forwards chain event %s unchanged to both viewers (task 3.4b)', (type) => {
+    expect(PUBLIC_TYPES).toContain(type);
+    for (const viewer of [0, 1] as const) {
+      expect(toEventView(FIXTURES[type], viewer)).toEqual(FIXTURES[type]);
+    }
+  });
 
   it.each(PUBLIC_TYPES)('passes public event %s through unchanged to both viewers', (type) => {
     const event = FIXTURES[type] as PublicEvent;

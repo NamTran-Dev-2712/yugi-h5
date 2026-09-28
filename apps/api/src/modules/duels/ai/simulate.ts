@@ -6,7 +6,7 @@ import {
   type ActionContext,
   type GameState,
 } from '@yugi/game-engine';
-import { STARTER_DECK, type PlayerAction } from '@yugi/shared';
+import { STARTER_DECK, type CardDefinition, type PlayerAction } from '@yugi/shared';
 import { lookupCard } from '../card-pool';
 import { toStateView } from '../state-view';
 import { createAiRng } from './ai-rng';
@@ -17,8 +17,6 @@ import { chooseAction, type AiPolicy } from './choose-action';
  * policy exactly what the server gives the AI — its own StateView and its legal actions. Used by the simulation and
  * strength specs; not part of the server.
  */
-
-const ctx: ActionContext = { cardDefinitions: lookupCard };
 
 /** Uniformly random legal action, never Surrender (the weak baseline). */
 export const randomPolicy: AiPolicy = ({ legalActions, rng }) => {
@@ -31,6 +29,8 @@ export interface SimOptions {
   /** Policy per seat. */
   readonly policies: readonly [AiPolicy, AiPolicy];
   readonly deck?: readonly string[];
+  /** Card data for `deck` (default: the server card pool). Task 3.4b: test decks with Traps/triggers. */
+  readonly cardDefinitions?: (definitionId: string) => CardDefinition | undefined;
   /** Safety valve: a game still running after this many actions counts as "stuck". */
   readonly maxActions?: number;
 }
@@ -48,6 +48,8 @@ export interface SimResult {
 
 export function simulate(options: SimOptions): SimResult {
   const deck = options.deck ?? STARTER_DECK;
+  const cards = options.cardDefinitions ?? lookupCard;
+  const ctx: ActionContext = { cardDefinitions: cards };
   const maxActions = options.maxActions ?? 4000;
   let state: GameState = applyAction(null, {
     type: 'StartDuel',
@@ -62,14 +64,18 @@ export function simulate(options: SimOptions): SimResult {
   let rejected = 0;
   let surrenders = 0;
   while (state.winnerIndex === null && actions < maxActions) {
-    const seat = state.pendingPrompt?.playerIndex ?? state.turnPlayerIndex;
+    // Same "who acts" as DuelManager: prompt, then chain priority, then the turn player.
+    const seat =
+      state.pendingPrompt?.playerIndex ??
+      state.chainWindow?.priorityPlayer ??
+      state.turnPlayerIndex;
     const legal = getLegalActions(state, seat, ctx).filter(
       (a) => a.type !== 'StartDuel' && a.type !== 'Draw',
     ) as unknown as PlayerAction[];
     const action = options.policies[seat]({
-      view: toStateView(state, seat),
+      view: toStateView(state, seat, cards),
       legalActions: legal,
-      cardDefinitions: lookupCard,
+      cardDefinitions: cards,
       rng: createAiRng(`${options.seed}:${seat}:${actions}`),
     });
     if (action.type === 'Surrender') surrenders++;

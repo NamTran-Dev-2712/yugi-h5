@@ -104,15 +104,11 @@ interface AiStep {
 }
 
 /**
- * Engine actions not on the wire yet (task 3.3: chain PassPriority — task 3.3b wires it with the chain UI, after C13).
- * Never listed in `legalActions`, refused if submitted. Over HTTP a chain window never stays open: the card pool has
- * no Speed 2 card, so every activation resolves in the same call (the engine auto-passes a player who cannot respond).
+ * Who has to act now: the prompted player if a prompt is pending, else the player holding priority in an open chain /
+ * reaction window (task 3.4b), else the turn player. The AI driver runs while this is the AI seat.
  */
-const ENGINE_ONLY_ACTIONS: ReadonlySet<Action['type']> = new Set(['PassPriority']);
-
-/** Who has to act now: the prompted player if a prompt is pending, else the turn player. */
 const actorOf = (state: GameState): 0 | 1 =>
-  state.pendingPrompt?.playerIndex ?? state.turnPlayerIndex;
+  state.pendingPrompt?.playerIndex ?? state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex;
 
 /**
  * Framework-free duel loop: holds sessions in a `DuelStore`, validates who may act, runs the engine and
@@ -239,7 +235,10 @@ export class DuelManager {
     }
     return {
       duelId: session.duelId,
-      views: [toStateView(finalState, 0), toStateView(finalState, 1)],
+      views: [
+        toStateView(finalState, 0, this.cardDefinitions),
+        toStateView(finalState, 1, this.cardDefinitions),
+      ],
       eventsByViewer,
       legalActionsByViewer: [
         this.legalActionsOf(finalState, 0),
@@ -270,11 +269,7 @@ export class DuelManager {
 
   submitAction(duelId: string, playerIndex: 0 | 1, action: Action): Promise<SubmitActionResult> {
     // State-independent checks first: they must not queue behind other work.
-    if (
-      action.type === 'StartDuel' ||
-      action.type === 'Draw' ||
-      ENGINE_ONLY_ACTIONS.has(action.type)
-    ) {
+    if (action.type === 'StartDuel' || action.type === 'Draw') {
       return Promise.reject(
         new DuelServiceError(
           'FORBIDDEN_ACTION',
@@ -302,7 +297,7 @@ export class DuelManager {
       const aiActions = this.appendAiSteps(eventsByViewer, driven.steps, playerIndex);
       const finalState = driven.session.state;
       return {
-        view: toStateView(finalState, playerIndex),
+        view: toStateView(finalState, playerIndex, this.cardDefinitions),
         events: eventsByViewer[playerIndex],
         eventsByViewer,
         legalActions: this.legalActionsOf(finalState, playerIndex),
@@ -339,7 +334,7 @@ export class DuelManager {
   }
 
   /**
-   * `solo-vs-ai`: while the AI is the one to act (turn player, or the player a pending prompt waits for), ask the policy
+   * `solo-vs-ai`: while the AI is the one to act (`actorOf`: prompt, chain priority, else turn player), ask the policy
    * — which sees only the AI seat's StateView and legal actions — and apply its answer through `applyAndSave`.
    * Runs inside the caller's duel lock, so no other request interleaves. Bounded by `maxAiActions`; hitting the cap
    * throws AI_LOOP_LIMIT and leaves the duel in the (valid, saved) state reached so far.
@@ -361,7 +356,7 @@ export class DuelManager {
       let action: PlayerAction;
       try {
         action = this.aiPolicy({
-          view: toStateView(session.state, aiSeat),
+          view: toStateView(session.state, aiSeat, this.cardDefinitions),
           legalActions: this.legalActionsOf(session.state, aiSeat),
           cardDefinitions: this.cardDefinitions,
           rng: createAiRng(`${session.seed}:ai:${session.actionLog.length}`),
@@ -391,7 +386,7 @@ export class DuelManager {
 
   async getView(duelId: string, viewerIndex: 0 | 1): Promise<StateView> {
     const session = await this.requireSession(duelId);
-    return toStateView(session.state, viewerIndex);
+    return toStateView(session.state, viewerIndex, this.cardDefinitions);
   }
 
   /** What `seat` may submit now: candidates filtered by the engine's own validators (see `getLegalActions`). */
@@ -402,10 +397,9 @@ export class DuelManager {
 
   private legalActionsOf(state: GameState, seat: 0 | 1): PlayerAction[] {
     const actions = getLegalActions(state, seat, { cardDefinitions: this.cardDefinitions });
-    // The engine never lists StartDuel/Draw; the filter narrows the type to the wire shape (PlayerActionSchema) and
-    // hides engine-only actions (PassPriority, task 3.3).
+    // The engine never lists StartDuel/Draw; the filter narrows the type to the wire shape (PlayerActionSchema).
     return actions.filter(
-      (a) => a.type !== 'StartDuel' && a.type !== 'Draw' && !ENGINE_ONLY_ACTIONS.has(a.type),
+      (a) => a.type !== 'StartDuel' && a.type !== 'Draw',
     ) as unknown as PlayerAction[];
   }
 

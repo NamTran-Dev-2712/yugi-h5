@@ -169,6 +169,36 @@ const EVENTS: Record<EventView['type'], { event: EventView; en: string }> = {
     },
     en: 'P1 loses Spell/Trap Name(SMP-201) (zone 2), destroyed',
   },
+  ChainLinkAdded: {
+    event: {
+      type: 'ChainLinkAdded',
+      linkId: 'link-3-9',
+      chainIndex: 2,
+      playerIndex: 1,
+      instanceId: 'p1-8',
+      definitionId: 'SMP-201',
+      effectId: 'e1',
+      spellSpeed: 2,
+      targetInstanceIds: [],
+    },
+    en: 'P1 adds Name(SMP-201) to the chain (link 2)',
+  },
+  ChainLinkFizzled: {
+    event: {
+      type: 'ChainLinkFizzled',
+      linkId: 'link-3-9',
+      playerIndex: 0,
+      instanceId: 'p0-7',
+      definitionId: 'SMP-101',
+      effectId: 'e1',
+      reason: 'TARGET_GONE',
+    },
+    en: 'Name(SMP-101) of P0 has no effect (its target is gone)',
+  },
+  ChainResolved: {
+    event: { type: 'ChainResolved', linkCount: 2 },
+    en: 'Chain of 2 links resolved',
+  },
 };
 
 describe('English wording', () => {
@@ -259,6 +289,25 @@ describe('English wording', () => {
         payload: { playerIndex: 1, cardInstanceId: 'p1-9', effectId: 'e1' },
       }),
     ).toBe('🤖 AI activates «p1-9»');
+  });
+
+  it('words the chain answers of task 3.4b: pass, trigger accepted / declined', () => {
+    const say = (a: PlayerAction) => describeAiAction(a, { instanceLabel: (id) => `«${id}»` });
+    expect(say({ type: 'PassPriority', payload: { playerIndex: 1 } })).toBe(
+      '🤖 AI passes (no response)',
+    );
+    expect(
+      say({
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [], decline: true },
+      }),
+    ).toBe('🤖 AI declines its trigger effect');
+    expect(
+      say({
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [] },
+      }),
+    ).toBe('🤖 AI activates its trigger effect');
   });
 
   it('messageFor', () => {

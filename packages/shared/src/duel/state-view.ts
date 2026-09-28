@@ -16,12 +16,23 @@ export interface HiddenCardView {
   readonly ownerIndex: PlayerIndex;
 }
 
+/** ATK/DEF a face-up monster has right now, after every Continuous modifier (never below 0). */
+export interface EffectiveStatsView {
+  readonly atk: number;
+  readonly def: number;
+}
+
 export interface VisibleCardView {
   readonly hidden: false;
   readonly instanceId: string;
   readonly definitionId: string;
   readonly position: ViewCardPosition | null;
   readonly ownerIndex: PlayerIndex;
+  /**
+   * Task 3.4b: only on a FACE-UP monster in a Monster Zone. The printed ATK/DEF stay in the card data (show both);
+   * absent everywhere else (hand, graveyard, face-down monsters, Spell/Traps).
+   */
+  readonly effectiveStats?: EffectiveStatsView;
 }
 
 export type CardView = HiddenCardView | VisibleCardView;
@@ -75,6 +86,70 @@ export interface SelectEffectTargetPromptPayload {
   readonly count: number;
 }
 
+/** `payload` of a `TriggerActivation` prompt (task 3.5; only the prompted player receives it). */
+export interface TriggerActivationPromptPayload {
+  readonly trigger: PendingTriggerView;
+  /** false = mandatory (asked only to choose targets): the answer cannot be `decline`. */
+  readonly optional: boolean;
+  readonly candidateInstanceIds: readonly string[];
+  /** Exactly this many ids must be chosen (0 = no target). */
+  readonly count: number;
+  /** Triggers still to handle after this one, in chain order. */
+  readonly remaining: readonly PendingTriggerView[];
+  readonly afterward: { readonly kind: 'SummonReaction'; readonly responder: PlayerIndex } | null;
+}
+
+/** A trigger that fired: its card is face-up in a Monster Zone or in the (public) graveyard. */
+export interface PendingTriggerView {
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+  readonly source:
+    { readonly zone: 'MonsterZone'; readonly zoneIndex: number } | { readonly zone: 'Graveyard' };
+}
+
+/** Where a chain link's card was activated from (engine `ChainLinkSource`). */
+export type ChainLinkSourceView =
+  | { readonly zone: 'Hand' }
+  | { readonly zone: 'SpellTrapZone'; readonly zoneIndex: number }
+  | { readonly zone: 'MonsterZone'; readonly zoneIndex: number }
+  | { readonly zone: 'Graveyard' };
+
+/**
+ * One link of the chain (task 3.4b). Public for both seats: activating revealed the card (from the hand: it now lives
+ * in the link; a Set card: flipped face-up in its zone; a trigger: face-up monster or graveyard card).
+ */
+export interface ChainLinkView {
+  readonly linkId: string;
+  readonly playerIndex: PlayerIndex;
+  readonly card: VisibleCardView;
+  readonly source: ChainLinkSourceView;
+  readonly effectId: string;
+  readonly spellSpeed: 1 | 2 | 3;
+  readonly targetInstanceIds: readonly string[];
+}
+
+/** What an (empty) reaction window was opened for (task 3.4c). */
+export type ReactionToView =
+  | { readonly kind: 'Summon' }
+  | {
+      readonly kind: 'Attack';
+      readonly playerIndex: PlayerIndex;
+      readonly attackerInstanceId: string;
+      readonly targetInstanceId: string | null;
+    };
+
+/**
+ * Open response window: `priorityPlayer` may activate a chainable effect or `PassPriority`. Non-null ⇔ the chain is
+ * non-empty, or an empty reaction window (`reactionTo` set) waits for the opponent of the turn player.
+ */
+export interface ChainWindowView {
+  readonly priorityPlayer: PlayerIndex;
+  readonly passCount: 0 | 1;
+  readonly reactionTo?: ReactionToView;
+}
+
 export interface StateView {
   readonly matchId: string;
   readonly version: number;
@@ -85,5 +160,8 @@ export interface StateView {
   readonly phase: ViewPhase;
   readonly winnerIndex: PlayerIndex | 'draw' | null;
   readonly pendingPrompt: PendingPromptView | null;
+  /** Chain links, bottom (link 1, resolves last) → top. Empty outside a chain. */
+  readonly chain: readonly ChainLinkView[];
+  readonly chainWindow: ChainWindowView | null;
   readonly players: readonly [PlayerView, PlayerView];
 }

@@ -3,7 +3,9 @@ import {
   nextInt,
   type Action,
   type ActivateEffectAction,
+  type CardInstance,
   type GameState,
+  type PassPriorityAction,
   type RngState,
   type SetSpellTrapAction,
 } from '@yugi/game-engine';
@@ -25,6 +27,9 @@ import { findLeaks, type LeakViolation } from './testing/leak-check';
  * DuelManager output the HTTP layer serializes (view + filtered events + legalActions), with Spell/Trap in play.
  * Each step picks a random legal action (Spell/Trap actions favoured), sometimes an illegal one, then checks
  * EVERYTHING each viewer would receive against the raw server state with `findLeaks` (shape-agnostic oracle).
+ * Task 3.4b: + chain on the wire — Set Traps / Quick-Play / Counter Trap answering in chain and reaction windows,
+ * trigger monsters (optional/mandatory OnSummon, OnDestroyed) with `TriggerActivation` prompts (accepted/declined),
+ * a Continuous monster (effective stats in the view). The acting seat follows prompt → chain priority → turn player.
  *
  * Default: FUZZ_SEEDS=8 × FUZZ_STEPS=120. Long run: `FUZZ_SEEDS=200 FUZZ_STEPS=400 pnpm --filter @yugi/api exec
  * vitest run src/modules/duels/event-visibility.fuzz.spec.ts`.
@@ -76,19 +81,100 @@ const FUZZ_SPELLS: readonly CardDefinition[] = [
   }),
 ];
 
+/** Task 3.4b: chain responders (Set Traps, Quick-Play, Counter Trap) — test-only. */
+const chainCard = (
+  id: string,
+  kind: 'Trap' | 'Spell',
+  subType: string,
+  effect: Omit<EffectDefinition, 'id' | 'trigger'>,
+): CardDefinition =>
+  ({
+    id,
+    kind,
+    name: text(id),
+    subType,
+    effects: [{ id: 'e1', trigger: { kind: 'Quick' }, ...effect }],
+  }) as CardDefinition;
+
+const FUZZ_CHAIN: readonly CardDefinition[] = [
+  chainCard('FZ-TRAP-KILL', 'Trap', 'Normal', {
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  chainCard('FZ-TRAP-KILL-ST', 'Trap', 'Normal', {
+    target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  chainCard('FZ-TRAP-BURN', 'Trap', 'Normal', {
+    operations: [{ kind: 'Damage', amount: 200, target: 'opponent' }],
+  }),
+  chainCard('FZ-QP-HEAL', 'Spell', 'QuickPlay', {
+    operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+  }),
+  chainCard('FZ-COUNTER', 'Trap', 'Counter', {
+    operations: [{ kind: 'Damage', amount: 100, target: 'opponent' }],
+  }),
+];
+
+/** Task 3.4b: trigger / Continuous monsters — test-only. */
+const effectMonster = (id: string, atk: number, effect: Omit<EffectDefinition, 'id'>) =>
+  ({
+    id,
+    kind: 'Monster',
+    name: text(id),
+    category: 'Effect',
+    attribute: 'DARK',
+    race: 'Fiend',
+    level: 4,
+    atk,
+    def: 1000,
+    effects: [{ id: 'e1', ...effect }],
+  }) as CardDefinition;
+
+const FUZZ_MONSTERS: readonly CardDefinition[] = [
+  effectMonster('FZ-SUM-OPT-KILL', 1400, {
+    trigger: { kind: 'OnSummon' },
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  effectMonster('FZ-SUM-MAND', 1500, {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    operations: [{ kind: 'Damage', amount: 100, target: 'opponent' }],
+  }),
+  effectMonster('FZ-DES-HEAL', 1600, {
+    trigger: { kind: 'OnDestroyed', mandatory: true },
+    operations: [{ kind: 'Heal', amount: 300, target: 'self' }],
+  }),
+  effectMonster('FZ-SUM-OPT-DRAW', 1300, {
+    trigger: { kind: 'OnSummon' },
+    operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+  }),
+  effectMonster('FZ-CONT-WEAKEN', 1200, {
+    trigger: { kind: 'Continuous' },
+    operations: [{ kind: 'ModifyStat', stat: 'atk', amount: -500, side: 'opponent' }],
+  }),
+];
+
 const DEFS = new Map<string, CardDefinition>(
-  [...SAMPLE_CARDS, ...FUZZ_SPELLS].map((c) => [c.id, c]),
+  [...SAMPLE_CARDS, ...FUZZ_SPELLS, ...FUZZ_CHAIN, ...FUZZ_MONSTERS].map((c) => [c.id, c]),
 );
 const MONSTERS = SAMPLE_CARDS.filter((c) => c.kind === 'Monster').map((c) => c.id);
 
-/** 40 cards: monsters, SMP-101 (Draw 1), SMP-201 (Trap, Set only until 3.4) and every fuzz Spell. */
+/**
+ * 40 cards: SMP-101, SMP-201, every fuzz Spell ×3 (the 3.2 paths stay covered), every chain responder and effect
+ * monster ×2, then plain monsters if any room is left.
+ */
 function deckList(): string[] {
-  const spells = ['SMP-101', 'SMP-101', 'SMP-201', 'SMP-201', 'SMP-201'];
-  for (const s of FUZZ_SPELLS) spells.push(s.id, s.id);
-  const deck = [...spells];
+  const deck = ['SMP-101', 'SMP-201'];
+  for (const c of FUZZ_SPELLS) deck.push(c.id, c.id, c.id);
+  for (const c of [...FUZZ_CHAIN, ...FUZZ_MONSTERS]) deck.push(c.id, c.id);
   for (let i = 0; deck.length < 40; i++) deck.push(MONSTERS[i % MONSTERS.length]!);
   return deck;
 }
+
+/** Who has to act: the prompted player, else the chain priority holder, else the turn player (as DuelManager). */
+const actorOf = (state: GameState): 0 | 1 =>
+  state.pendingPrompt?.playerIndex ?? state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex;
 
 const WATCHED = [
   'SpellTrapSet',
@@ -98,6 +184,8 @@ const WATCHED = [
   'LifePointsRecovered',
   'LifePointsPaid',
   'SpellTrapDestroyed',
+  'ChainLinkAdded',
+  'ChainResolved',
 ] as const satisfies readonly EventView['type'][];
 
 interface Stats {
@@ -105,6 +193,13 @@ interface Stats {
   duels: number;
   rejected: number;
   targetPrompts: number;
+  /** Task 3.4b coverage. */
+  triggerPrompts: number;
+  declines: number;
+  reactionWindows: number;
+  multiLinkChains: number;
+  setActivations: number;
+  passes: number;
   events: Map<string, number>;
   violations: LeakViolation[];
 }
@@ -138,31 +233,72 @@ async function checkBothViewers(
         : {}),
     };
     stats.violations.push(...findLeaks(state, viewer, payload));
-    // The prompt payload of a SelectEffectTarget is for the prompted player only.
+    // SelectEffectTarget / TriggerActivation payloads are for the prompted player only.
     const prompt = view.pendingPrompt;
-    if (prompt && prompt.kind === 'SelectEffectTarget' && prompt.playerIndex !== viewer) {
-      if (prompt.payload !== null)
-        stats.violations.push({
-          viewer,
-          path: '$.view.pendingPrompt.payload',
-          instanceId: null,
-          definitionId: '(prompt payload)',
-          reason: 'SelectEffectTarget payload sent to the player who is not asked',
-        });
+    if (
+      prompt &&
+      (prompt.kind === 'SelectEffectTarget' || prompt.kind === 'TriggerActivation') &&
+      prompt.playerIndex !== viewer &&
+      prompt.payload !== null
+    ) {
+      stats.violations.push({
+        viewer,
+        path: '$.view.pendingPrompt.payload',
+        instanceId: null,
+        definitionId: '(prompt payload)',
+        reason: `${prompt.kind} payload sent to the player who is not asked`,
+      });
+    }
+    // The chain is public and identical for both seats; effective stats only on face-up monsters.
+    const otherView = await manager.getView(duelId, (1 - viewer) as 0 | 1);
+    if (JSON.stringify(view.chain) !== JSON.stringify(otherView.chain)) {
+      stats.violations.push({
+        viewer,
+        path: '$.view.chain',
+        instanceId: null,
+        definitionId: '(chain)',
+        reason: 'the two seats see different chains',
+      });
+    }
+    for (const p of view.players) {
+      const cards = [...p.board.spellTrapZones, ...p.hand, ...p.graveyard];
+      for (const c of [...p.board.monsterZones, ...cards]) {
+        if (!c || c.hidden || !c.effectiveStats) continue;
+        const faceUpMonster =
+          p.board.monsterZones.includes(c) &&
+          (c.position === 'Attack' || c.position === 'DefenseUp');
+        if (!faceUpMonster) {
+          stats.violations.push({
+            viewer,
+            path: '$.view.players',
+            instanceId: c.instanceId,
+            definitionId: c.definitionId,
+            reason: 'effectiveStats on a card that is not a face-up monster',
+          });
+        }
+      }
     }
   }
 }
 
-/** A Spell/Trap action the NON-acting seat tries with its own hand card: the engine must refuse it. */
+/**
+ * A Spell/Trap (or PassPriority) action the NON-acting seat tries with its own card: the engine must refuse it. Its
+ * Set cards are tried too (they must not answer without priority).
+ */
 function illegalAttempt(
   state: GameState,
   rng: RngState,
-): [SetSpellTrapAction | ActivateEffectAction | null, RngState] {
-  const actor = state.pendingPrompt?.playerIndex ?? state.turnPlayerIndex;
+): [SetSpellTrapAction | ActivateEffectAction | PassPriorityAction | null, RngState] {
+  const actor = actorOf(state);
   const other = (1 - actor) as 0 | 1;
-  const hand = state.players[other].hand;
-  if (hand.length === 0) return [null, rng];
-  const [card, r1] = pick(rng, hand);
+  const [mode, r0] = nextInt(rng, 4);
+  if (mode === 0) return [{ type: 'PassPriority', payload: { playerIndex: other } }, r0];
+  const cards: CardInstance[] = [
+    ...state.players[other].hand,
+    ...state.players[other].board.spellTrapZones.filter((c): c is CardInstance => c !== null),
+  ];
+  if (cards.length === 0) return [null, r0];
+  const [card, r1] = pick(r0, cards);
   const [zone, r2] = nextInt(r1, 5);
   const [flip, r3] = nextInt(r2, 2);
   const action: SetSpellTrapAction | ActivateEffectAction =
@@ -184,6 +320,10 @@ function choose(legal: readonly PlayerAction[], rng: RngState): [PlayerAction, R
     (a) => a.type === 'SetSpellTrap' || a.type === 'ActivateEffect',
   );
   const [roll, r1] = nextInt(rng, 100);
+  // In a window, answer more often than not (chains of 2+ links), else pass.
+  const inWindow = candidates.some((a) => a.type === 'PassPriority');
+  const answers = candidates.filter((a) => a.type === 'ActivateEffect');
+  if (inWindow && answers.length > 0 && roll < 60) return pick(r1, answers);
   if (spellTrap.length > 0 && roll < 40) return pick(r1, spellTrap);
   if (candidates.length === 0) return pick(r1, legal); // only Surrender left
   return pick(r1, candidates);
@@ -218,7 +358,7 @@ async function fuzzSeed(seed: number, stats: Stats): Promise<void> {
       await checkBothViewers(manager, duelId, null, 0, stats);
       state = await rawState(manager, duelId);
     }
-    const actor = state.pendingPrompt?.playerIndex ?? state.turnPlayerIndex;
+    const actor = actorOf(state);
 
     const [roll, r0] = nextInt(rng, 100);
     rng = r0;
@@ -243,10 +383,24 @@ async function fuzzSeed(seed: number, stats: Stats): Promise<void> {
     // PlayerAction is the wire shape of an engine Action (asserted in duels.dto.ts).
     const result = await manager.submitAction(duelId, actor, action as unknown as Action);
     stats.steps++;
-    for (const e of result.eventsByViewer[0])
+    if (action.type === 'PassPriority') stats.passes++;
+    if (action.type === 'ResolvePendingPrompt' && action.payload.decline === true) stats.declines++;
+    if (
+      action.type === 'ActivateEffect' &&
+      state.players[actor].board.spellTrapZones.some(
+        (c) => c?.instanceId === action.payload.cardInstanceId,
+      )
+    ) {
+      stats.setActivations++;
+    }
+    for (const e of result.eventsByViewer[0]) {
       stats.events.set(e.type, (stats.events.get(e.type) ?? 0) + 1);
+      if (e.type === 'ChainLinkAdded' && e.chainIndex >= 2) stats.multiLinkChains++;
+    }
     const after = await rawState(manager, duelId);
     if (after.pendingPrompt?.kind === 'SelectEffectTarget') stats.targetPrompts++;
+    if (after.pendingPrompt?.kind === 'TriggerActivation') stats.triggerPrompts++;
+    if (after.chainWindow?.reactionTo) stats.reactionWindows++;
     await checkBothViewers(manager, duelId, result, actor, stats);
   }
 }
@@ -257,6 +411,12 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     duels: 0,
     rejected: 0,
     targetPrompts: 0,
+    triggerPrompts: 0,
+    declines: 0,
+    reactionWindows: 0,
+    multiLinkChains: 0,
+    setActivations: 0,
+    passes: 0,
     events: new Map(),
     violations: [],
   };
@@ -271,17 +431,30 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     120_000,
   );
 
-  it('covered every task 3.2 event, the target prompt and refused Spell/Trap attempts', () => {
-    console.info('[fuzz 3.2b]', {
+  it('covered every task 3.2 / chain event, prompts, windows and refused attempts', () => {
+    console.info('[fuzz 3.2b/3.4b]', {
       steps: stats.steps,
       duels: stats.duels,
       rejected: stats.rejected,
       targetPrompts: stats.targetPrompts,
+      triggerPrompts: stats.triggerPrompts,
+      declines: stats.declines,
+      reactionWindows: stats.reactionWindows,
+      multiLinkChains: stats.multiLinkChains,
+      setActivations: stats.setActivations,
+      passes: stats.passes,
       events: Object.fromEntries(WATCHED.map((t) => [t, stats.events.get(t) ?? 0])),
     });
     for (const t of WATCHED) expect(stats.events.get(t) ?? 0, t).toBeGreaterThan(0);
     expect(stats.targetPrompts).toBeGreaterThan(0);
     expect(stats.rejected).toBeGreaterThan(0);
+    // Task 3.4b coverage.
+    expect(stats.triggerPrompts, 'triggerPrompts').toBeGreaterThan(0);
+    expect(stats.declines, 'declines').toBeGreaterThan(0);
+    expect(stats.reactionWindows, 'reactionWindows').toBeGreaterThan(0);
+    expect(stats.multiLinkChains, 'multiLinkChains').toBeGreaterThan(0);
+    expect(stats.setActivations, 'setActivations').toBeGreaterThan(0);
+    expect(stats.passes, 'passes').toBeGreaterThan(0);
     expect(stats.violations).toEqual([]);
   });
 });

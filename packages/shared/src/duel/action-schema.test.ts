@@ -243,3 +243,40 @@ describe('ActionInputSchema', () => {
     expect(ok({ type: 'Draw', payload: { playerIndex: 0, count: 1 } })).toBe(false);
   });
 });
+
+describe('Task 3.4b — chain on the wire', () => {
+  it.each([
+    ['PassPriority', { type: 'PassPriority', payload: { playerIndex: 1 } }],
+    [
+      'ResolvePendingPrompt decline',
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 0, promptId: 'trigger-3', cardInstanceIds: [], decline: true },
+      },
+    ],
+    [
+      'ResolvePendingPrompt decline:false',
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 0, promptId: 'trigger-3', cardInstanceIds: [], decline: false },
+      },
+    ],
+  ])('accepts %s', (_n, action) => {
+    expect(ok(action)).toBe(true);
+  });
+
+  it.each([
+    ['PassPriority extra key', { type: 'PassPriority', payload: { playerIndex: 0, hax: 1 } }],
+    ['PassPriority bad seat', { type: 'PassPriority', payload: { playerIndex: 2 } }],
+    ['PassPriority no payload', { type: 'PassPriority' }],
+    [
+      'decline not a boolean',
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 0, promptId: 'p', cardInstanceIds: [], decline: 'yes' },
+      },
+    ],
+  ])('rejects %s', (_n, action) => {
+    expect(ok(action)).toBe(false);
+  });
+});

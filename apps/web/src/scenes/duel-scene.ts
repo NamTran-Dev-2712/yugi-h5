@@ -528,6 +528,9 @@ export class DuelScene extends Phaser.Scene {
       case 'turn':
       case 'duelEnd':
       case 'aiLabel':
+      case 'chainLink': // task 3.4b: caption only; task 3.7 draws the chain
+      case 'chainFizzle':
+      case 'chainResolved':
         break; // the caption below is the whole effect
     }
 

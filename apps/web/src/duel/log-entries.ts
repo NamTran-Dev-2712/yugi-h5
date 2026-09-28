@@ -26,6 +26,10 @@ export function categoryOfEvent(type: EventView['type']): LogCategory {
     case 'EffectActivated':
     case 'EffectResolved':
     case 'CardSentToGraveyard':
+    // Chain (task 3.4b): with the activations.
+    case 'ChainLinkAdded':
+    case 'ChainLinkFizzled':
+    case 'ChainResolved':
       return 'field';
     case 'AttackDeclared':
     case 'MonsterDestroyed':
@@ -63,6 +67,8 @@ export function categoryOfAiAction(type: PlayerAction['type']): LogCategory {
     case 'Surrender':
       return 'combat';
     case 'EndPhase':
+    // [ASSUMED] passing priority is part of the turn flow, like ending a phase.
+    case 'PassPriority':
       return 'turn';
     default: {
       const unhandled: never = type;

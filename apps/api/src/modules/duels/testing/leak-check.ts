@@ -6,7 +6,7 @@ import type { CardInstance, GameState } from '@yugi/game-engine';
  * It walks ANY JSON a viewer receives (view, events, legalActions, prompt…) without knowing its shape, collects every
  * object that carries a `definitionId`, and checks each against the raw server state AFTER the action:
  *  - the card must exist and carry that very definitionId;
- *  - it may be shown only if it is in a graveyard/banished (public), face-up on the field, or the viewer's own card in
+ *  - it may be shown only if it is in a graveyard/banished/a chain link (public), face-up on the field, or the viewer's own card in
  *    hand or on the field (face-down included). A card in a deck or Extra Deck is never shown, not even to its owner;
  *  - a `definitionId` without an `instanceId` next to it is flagged too (it cannot be checked, so it is not allowed).
  * Knowing nothing about the wire shape is the point: a new field that smuggles a card identity is caught as well.
@@ -22,7 +22,9 @@ export interface LeakViolation {
 
 type Place =
   | { zone: 'deck' | 'extraDeck' | 'hand' | 'graveyard' | 'banished'; card: CardInstance }
-  | { zone: 'field'; card: CardInstance };
+  | { zone: 'field'; card: CardInstance }
+  /** Task 3.4b: a card activated from the hand lives in its chain link until it resolves — public (it was revealed). */
+  | { zone: 'chain'; card: CardInstance };
 
 function locate(state: GameState, instanceId: string): Place | null {
   for (const p of state.players) {
@@ -34,6 +36,9 @@ function locate(state: GameState, instanceId: string): Place | null {
       if (card?.instanceId === instanceId) return { zone: 'field', card };
     }
   }
+  // Only a card found nowhere else: a Set card's link holds a copy of the card still in its zone.
+  const link = state.chainStack.find((l) => l.card.instanceId === instanceId);
+  if (link) return { zone: 'chain', card: link.card };
   return null;
 }
 
@@ -75,6 +80,7 @@ function reasonToHide(place: Place | null, viewer: 0 | 1): string | null {
       return `card is in a ${zone}`;
     case 'graveyard':
     case 'banished':
+    case 'chain':
       return null;
     case 'hand':
       return card.ownerIndex === viewer ? null : "card is in the opponent's hand";

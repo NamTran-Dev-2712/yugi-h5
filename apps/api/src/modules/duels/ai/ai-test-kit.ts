@@ -52,6 +52,35 @@ export const AI_DEFS: Readonly<Record<string, CardDefinition>> = {
     ],
   },
   TR: { id: 'TR', kind: 'Trap', name: { vi: 'AI Trap', en: 'AI Trap' }, subType: 'Normal' },
+  /** Task 3.4b: a Trap that destroys one of the opponent's monsters (worth activating in a window). */
+  TRK: {
+    id: 'TRK',
+    kind: 'Trap',
+    name: { vi: 'AI Kill Trap', en: 'AI Kill Trap' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  /** A Trap that only heals its owner (the AI passes instead of using it). */
+  TRH: {
+    id: 'TRH',
+    kind: 'Trap',
+    name: { vi: 'AI Heal Trap', en: 'AI Heal Trap' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+      },
+    ],
+  },
 };
 export const aiCtx: ActionContext = { cardDefinitions: (id) => AI_DEFS[id] };
 
@@ -151,7 +180,7 @@ export interface AiSituation {
 export function situation(state: GameState, seat: 0 | 1 = AI_SEAT): AiSituation {
   return {
     state,
-    view: toStateView(state, seat),
+    view: toStateView(state, seat, aiCtx.cardDefinitions),
     legalActions: getLegalActions(state, seat, aiCtx).filter(
       (a) => a.type !== 'StartDuel' && a.type !== 'Draw',
     ) as unknown as PlayerAction[],

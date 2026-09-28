@@ -107,3 +107,35 @@ describe('findLeaks', () => {
     );
   });
 });
+
+describe('findLeaks — chain (task 3.4b)', () => {
+  const withChain = (): GameState => ({
+    ...state(),
+    chainStack: [
+      {
+        linkId: 'link-1-2',
+        playerIndex: 1,
+        card: card('c1', 'CHAIN-SPELL', 1, null),
+        source: { zone: 'Hand' },
+        effectId: 'e1',
+        spellSpeed: 1,
+        costInstanceIds: [],
+        lpPaid: 0,
+        targetInstanceIds: [],
+      },
+    ],
+    chainWindow: { priorityPlayer: 0, passCount: 0 },
+  });
+
+  it('accepts a card activated from the hand that now lives in a chain link (public)', () => {
+    expect(findLeaks(withChain(), 0, { instanceId: 'c1', definitionId: 'CHAIN-SPELL' })).toEqual(
+      [],
+    );
+  });
+
+  it('still flags a wrong definitionId for a chain card', () => {
+    expect(
+      findLeaks(withChain(), 0, { instanceId: 'c1', definitionId: 'OTHER' })[0]?.reason,
+    ).toMatch(/wrong definitionId/);
+  });
+});

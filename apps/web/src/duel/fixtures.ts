@@ -97,6 +97,8 @@ function view(
     phase: parts.phase,
     winnerIndex: parts.winnerIndex ?? null,
     pendingPrompt: parts.pendingPrompt ?? null,
+    chain: [],
+    chainWindow: null,
     players: [self, opp],
   };
 }

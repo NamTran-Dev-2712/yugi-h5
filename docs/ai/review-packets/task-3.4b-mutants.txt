@@ -1,0 +1,55 @@
+# Task 3.4b — mutation testing (node tools/mutants-3.4b.mjs)
+
+## Lần 1: 20/23
+KILLED   actorOf ignores the chain priority holder (AI never answers a window)
+KILLED   ChainLinkAdded dropped again
+KILLED   chain not sent
+KILLED   chain link view leaks the cost ids
+KILLED   chainWindow drops reactionTo
+KILLED   effective stats on the owner’s face-down monster
+KILLED   effective DEF reports ATK
+KILLED   TriggerActivation payload shown to the player who is not asked
+KILLED   AI never answers a window with a card
+KILLED   AI activates any answer, harmful or not
+SURVIVED fallback skips PassPriority
+KILLED   AI ignores the window it holds
+KILLED   AI may decline a trigger it could accept
+KILLED   AI targets the weakest opponent card
+KILLED   simulation asks the turn player during a window
+KILLED   oracle forgets chain links (a false positive)
+KILLED   oracle treats the chain as hidden
+KILLED   debug page offers PassPriority to the seat without priority
+SURVIVED accept button matches a decline answer
+MISSING  pickViewer ignores the priority holder  (pattern not found in apps/web/src/debug/build-actions.ts)
+KILLED   AI decline worded as accept
+KILLED   decline accepts any value
+KILLED   PassPriority payload not strict
+20/23 mutants killed
+
+Sửa: thêm test 'fallback prefers PassPriority over any other listed action' (choose-action.spec.ts), test 'chỉ có câu decline → nút Kích hoạt không hợp lệ' (build-actions.test.ts); mẫu pickViewer cập nhật theo định dạng prettier.
+
+## Lần 2: 23/23
+KILLED   actorOf ignores the chain priority holder (AI never answers a window)
+KILLED   ChainLinkAdded dropped again
+KILLED   chain not sent
+KILLED   chain link view leaks the cost ids
+KILLED   chainWindow drops reactionTo
+KILLED   effective stats on the owner’s face-down monster
+KILLED   effective DEF reports ATK
+KILLED   TriggerActivation payload shown to the player who is not asked
+KILLED   AI never answers a window with a card
+KILLED   AI activates any answer, harmful or not
+KILLED   fallback skips PassPriority
+KILLED   AI ignores the window it holds
+KILLED   AI may decline a trigger it could accept
+KILLED   AI targets the weakest opponent card
+KILLED   simulation asks the turn player during a window
+KILLED   oracle forgets chain links (a false positive)
+KILLED   oracle treats the chain as hidden
+KILLED   debug page offers PassPriority to the seat without priority
+KILLED   accept button matches a decline answer
+KILLED   pickViewer ignores the priority holder
+KILLED   AI decline worded as accept
+KILLED   decline accepts any value
+KILLED   PassPriority payload not strict
+23/23 mutants killed

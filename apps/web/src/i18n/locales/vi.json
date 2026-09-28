@@ -103,6 +103,9 @@
   "event.lifePointsRecovered": "{player} hồi {amount} LP",
   "event.lifePointsPaid": "{player} trả {amount} LP",
   "event.spellTrapDestroyed": "{player} mất lá Phép/Bẫy {card} (ô {zone}) do bị phá hủy",
+  "event.chainLinkAdded": "{player} đưa {card} vào chuỗi (mắt xích {index})",
+  "event.chainLinkFizzled": "{card} của {player} không có tác dụng (mục tiêu đã rời đi)",
+  "event.chainResolved": "Chuỗi {count} mắt xích đã xử lý xong",
   "event.unknown": "Event không rõ: {json}",
 
   "ai.endPhase": "🤖 AI kết thúc phase",
@@ -116,6 +119,9 @@
   "ai.surrender": "🤖 AI đầu hàng",
   "ai.setSpellTrap": "🤖 AI úp {card} vào ô Phép/Bẫy {zone}",
   "ai.activateEffect": "🤖 AI kích hoạt {card}",
+  "ai.passPriority": "🤖 AI bỏ qua (không phản ứng)",
+  "ai.acceptTrigger": "🤖 AI kích hoạt hiệu ứng trigger",
+  "ai.declineTrigger": "🤖 AI không kích hoạt hiệu ứng trigger",
   "ai.unknown": "AI hành động không rõ: {json}",
 
   "error.generic": "Không thực hiện được (mã {code}).",

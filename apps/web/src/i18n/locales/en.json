@@ -103,6 +103,9 @@
   "event.lifePointsRecovered": "{player} gains {amount} LP",
   "event.lifePointsPaid": "{player} pays {amount} LP",
   "event.spellTrapDestroyed": "{player} loses Spell/Trap {card} (zone {zone}), destroyed",
+  "event.chainLinkAdded": "{player} adds {card} to the chain (link {index})",
+  "event.chainLinkFizzled": "{card} of {player} has no effect (its target is gone)",
+  "event.chainResolved": "Chain of {count} links resolved",
   "event.unknown": "Unknown event: {json}",
 
   "ai.endPhase": "🤖 AI ends the phase",
@@ -116,6 +119,9 @@
   "ai.surrender": "🤖 AI surrenders",
   "ai.setSpellTrap": "🤖 AI Sets {card} in Spell/Trap zone {zone}",
   "ai.activateEffect": "🤖 AI activates {card}",
+  "ai.passPriority": "🤖 AI passes (no response)",
+  "ai.acceptTrigger": "🤖 AI activates its trigger effect",
+  "ai.declineTrigger": "🤖 AI declines its trigger effect",
   "ai.unknown": "Unknown AI action: {json}",
 
   "error.generic": "Could not do that (code {code}).",

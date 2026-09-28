@@ -447,6 +447,12 @@ describe('POST /duels/:id/actions', () => {
       { promptId: 'x', cardInstanceIds: 'p0-1' },
     ],
     ['unknown payload key', 'EndPhase', { hax: true }],
+    [
+      'decline that is not a boolean',
+      'ResolvePendingPrompt',
+      { promptId: 'x', cardInstanceIds: [], decline: 'yes' },
+    ],
+    ['PassPriority with an extra key', 'PassPriority', { hax: 1 }],
   ])(
     'rejects a malformed payload (%s) with 400, not 500, and changes nothing',
     async (_n, type, extra) => {
@@ -457,6 +463,33 @@ describe('POST /duels/:id/actions', () => {
       expect(await viewOf(d, 0)).toEqual(before);
     },
   );
+});
+
+describe('chain on the wire over HTTP (task 3.4b)', () => {
+  it('every view carries the public chain fields (empty outside a chain)', async () => {
+    const d = await newDuel();
+    const view = await viewOf(d, 1);
+    expect(view.chain).toEqual([]);
+    expect(view.chainWindow).toBeNull();
+  });
+
+  it('PassPriority passes the schema: with no window the engine refuses it (409), not the server (403/400)', async () => {
+    const d = await newDuel();
+    const before = await viewOf(d, 0);
+    const res = await act(d, 0, 'PassPriority').expect(409);
+    expect(res.body.engineCode).toBe('NO_CHAIN_WINDOW');
+    expect(await viewOf(d, 0)).toEqual(before);
+  });
+
+  it('a well-formed decline passes the schema and reaches the engine (409 NO_PENDING_PROMPT)', async () => {
+    const d = await newDuel();
+    const res = await act(d, 0, 'ResolvePendingPrompt', {
+      promptId: 'x',
+      cardInstanceIds: [],
+      decline: true,
+    }).expect(409);
+    expect(res.body.engineCode).toBe('NO_PENDING_PROMPT');
+  });
 });
 
 describe('a short duel over HTTP never leaks hidden information', () => {
@@ -664,9 +697,11 @@ describe('Spell/Trap over HTTP (task 3.2b gate): no hidden definitionId in any r
     const used = await send(0, 'ActivateEffect', { cardInstanceId: draw, effectId: 'draw-one' });
     expect(used.events.map((e) => e.type)).toEqual([
       'EffectActivated',
+      'ChainLinkAdded',
       'CardDrawn',
       'EffectResolved',
       'CardSentToGraveyard',
+      'ChainResolved',
     ]);
     // The opponent sees the activated Spell (public) but still not the Set Trap.
     const after = await viewOf(d, 1);

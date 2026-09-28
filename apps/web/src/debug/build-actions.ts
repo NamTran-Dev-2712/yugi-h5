@@ -47,11 +47,27 @@ const ZONES = [0, 1, 2, 3, 4] as const;
 
 export function cardLabel(card: CardView, lookup: CardLookup): string {
   if (card.hidden) return `? [${card.instanceId}]`;
-  return `${lookup(card.definitionId)?.name ?? card.definitionId} [${card.instanceId}]`;
+  // The debug page is Vietnamese-only (names are {vi, en} since task 3.1; printing the object gave "[object Object]").
+  return `${lookup(card.definitionId)?.name.vi ?? card.definitionId} [${card.instanceId}]`;
 }
 
 const isMonster = (card: CardView, lookup: CardLookup): boolean =>
   !card.hidden && lookup(card.definitionId)?.kind === 'Monster';
+
+/** `candidateInstanceIds` of a prompt payload (SelectEffectTarget / TriggerActivation), if any. */
+function promptCandidates(payload: unknown): readonly string[] {
+  if (typeof payload !== 'object' || payload === null) return [];
+  const ids = (payload as { candidateInstanceIds?: unknown }).candidateInstanceIds;
+  return Array.isArray(ids) ? ids.filter((x): x is string => typeof x === 'string') : [];
+}
+
+function promptOptional(payload: unknown): boolean {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    (payload as { optional?: unknown }).optional === true
+  );
+}
 
 function promptCount(payload: unknown): number | undefined {
   if (typeof payload !== 'object' || payload === null) return undefined;
@@ -179,6 +195,47 @@ export function buildActionButtons(view: StateView, lookup: CardLookup): ActionB
     });
   }
 
+  // Task 3.4b: the seat holding priority in a chain / reaction window may pass.
+  if (view.chainWindow?.priorityPlayer === seat) {
+    buttons.push({
+      id: 'PassPriority',
+      label: 'Bỏ qua (PassPriority)',
+      type: 'PassPriority',
+      playerIndex: seat,
+      fixed: {},
+      inputs: [],
+    });
+  }
+  // Task 3.4b: a trigger of one of my cards asks me (accept, choosing targets if any; decline if optional).
+  if (prompt && prompt.playerIndex === seat && prompt.kind === 'TriggerActivation') {
+    const candidates = promptCandidates(prompt.payload);
+    buttons.push({
+      id: 'TriggerAccept',
+      label: 'Kích hoạt hiệu ứng trigger',
+      type: 'ResolvePendingPrompt',
+      playerIndex: seat,
+      fixed: { promptId: prompt.promptId },
+      inputs: [
+        {
+          name: 'cardInstanceIds',
+          label: 'Mục tiêu (nếu có)',
+          multiple: true,
+          options: candidates.map((id) => ({ value: id, label: id })),
+        },
+      ],
+    });
+    if (promptOptional(prompt.payload)) {
+      buttons.push({
+        id: 'TriggerDecline',
+        label: 'Từ chối trigger',
+        type: 'ResolvePendingPrompt',
+        playerIndex: seat,
+        fixed: { promptId: prompt.promptId, decline: true },
+        inputs: [],
+      });
+    }
+  }
+
   buttons.push({
     id: 'Surrender',
     label: 'Surrender',
@@ -240,6 +297,8 @@ export function applyLegality(
       const p = payloadOf(a);
       return (
         p.playerIndex === button.playerIndex &&
+        // An accept button never matches a decline answer (and vice versa).
+        (p.decline === true) === (button.fixed.decline === true) &&
         Object.entries(button.fixed).every(([key, value]) => p[key] === value)
       );
     });
@@ -274,18 +333,48 @@ export function toAction(button: ActionButton, chosen: ChosenValues): PlayerActi
         break;
     }
   }
+  // A prompt answer without a card list (decline) still sends an empty one.
+  if (button.type === 'ResolvePendingPrompt' && payload.cardInstanceIds === undefined)
+    payload.cardInstanceIds = [];
   return PlayerActionSchema.parse({ type: button.type, payload });
 }
 
 /** Which seat the person most likely wants to look at next: the one the server is waiting for. */
 export function pickViewer(view: StateView): PlayerIndex {
   if (view.winnerIndex !== null) return view.viewerIndex;
-  return view.pendingPrompt?.playerIndex ?? view.turnPlayerIndex;
+  return (
+    view.pendingPrompt?.playerIndex ?? view.chainWindow?.priorityPlayer ?? view.turnPlayerIndex
+  );
 }
 
 /** "End Turn" keeps sending EndPhase while nothing but the phase changed. */
 export function shouldContinueEndTurn(startTurnCount: number, view: StateView): boolean {
   return (
-    view.winnerIndex === null && view.pendingPrompt === null && view.turnCount === startTurnCount
+    view.winnerIndex === null &&
+    view.pendingPrompt === null &&
+    view.chainWindow === null &&
+    view.turnCount === startTurnCount
   );
+}
+
+/** One line for the open chain (task 3.4b): links bottom → top, and who must answer. '' outside a window. */
+export function describeChain(view: StateView, lookup: CardLookup): string {
+  const w = view.chainWindow;
+  if (w === null) return '';
+  const links =
+    view.chain.length === 0
+      ? '(trống)'
+      : view.chain
+          .map(
+            (l, i) =>
+              `[${i + 1}] P${l.playerIndex} ${cardLabel(l.card, lookup)} (tốc ${l.spellSpeed})`,
+          )
+          .join(' ← ');
+  const reason =
+    w.reactionTo?.kind === 'Attack'
+      ? ' (sau Tấn công)'
+      : w.reactionTo?.kind === 'Summon'
+        ? ' (sau Triệu hồi)'
+        : '';
+  return `CHUỖI: ${links} · chờ P${w.priorityPlayer} phản ứng${reason}`;
 }

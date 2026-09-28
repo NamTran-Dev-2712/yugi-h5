@@ -165,6 +165,36 @@ const EXAMPLES: Record<EventView['type'], { event: EventView; text: string }> = 
     },
     text: 'P1 mất lá Phép/Bẫy Name(SMP-201) (ô 2) do bị phá hủy',
   },
+  ChainLinkAdded: {
+    event: {
+      type: 'ChainLinkAdded',
+      linkId: 'link-3-9',
+      chainIndex: 2,
+      playerIndex: 1,
+      instanceId: 'p1-8',
+      definitionId: 'SMP-201',
+      effectId: 'e1',
+      spellSpeed: 2,
+      targetInstanceIds: [],
+    },
+    text: 'P1 đưa Name(SMP-201) vào chuỗi (mắt xích 2)',
+  },
+  ChainLinkFizzled: {
+    event: {
+      type: 'ChainLinkFizzled',
+      linkId: 'link-3-9',
+      playerIndex: 0,
+      instanceId: 'p0-7',
+      definitionId: 'SMP-101',
+      effectId: 'e1',
+      reason: 'TARGET_GONE',
+    },
+    text: 'Name(SMP-101) của P0 không có tác dụng (mục tiêu đã rời đi)',
+  },
+  ChainResolved: {
+    event: { type: 'ChainResolved', linkCount: 2 },
+    text: 'Chuỗi 2 mắt xích đã xử lý xong',
+  },
 };
 
 describe('describeEvent', () => {
