@@ -1,0 +1,55 @@
+- Expected
++ Received
+
+  [
+    "Damage",
+    "Destroy",
+    "Draw",
+    "Heal",
+-   "ModifyStat",
+  ]
+
+ ❯ src/effects/effects.test.ts:283:41
+    281|     expect([...CONDITION_KINDS].sort()).toEqual(['IsMyTurn', 'PhaseIs'…
+    282|     expect([...COST_KINDS].sort()).toEqual(['Discard', 'PayLP', 'Tribu…
+    283|     expect([...OPERATION_KINDS].sort()).toEqual(['Damage', 'Destroy', …
+       |                                         ^
+    284|   });
+    285| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed | 6 passed (7)
+      Tests  7 failed | 115 passed (122)
+   Start at  00:19:05
+   Duration  892ms (transform 325ms, setup 0ms, collect 1.21s, tests 93ms, environment 2ms, prepare 1.56s)
+
+E:\code\game\turn_battle\yugi-h5\packages\shared:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @yugi/shared@0.1.0 test: `vitest run`
+Exit status 1
+
+ FAIL  src/effects/scripts/registry.test.ts [ src/effects/scripts/registry.test.ts ]
+Error: Cannot find module './registry.js' imported from 'E:/code/game/turn_battle/yugi-h5/packages/game-engine/src/effects/scripts/registry.test.ts'
+ ❯ src/effects/scripts/registry.test.ts:10:1
+      8| import { expectEngineError } from '../../testing/expect-engine-error.j…
+      9| import { fixtureCtx, fixtureState, type FixtureSetup } from '../../tes…
+     10| import { EFFECT_SCRIPTS } from './registry.js';
+       | ^
+     11| 
+     12| /* Task 3.6 — effect-level `scriptId`: a registered handler runs on re…
+
+Caused by: Error: Failed to load url ./registry.js (resolved id: ./registry.js) in E:/code/game/turn_battle/yugi-h5/packages/game-engine/src/effects/scripts/registry.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@7.3.6_@types+node@22.2_194e501776750d489097a3705aac3374/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  no tests
+   Start at  00:19:08
+   Duration  2.03s (transform 568ms, setup 0ms, collect 0ms, tests 0ms, environment 1ms, prepare 628ms)
+
+undefined
+E:\code\game\turn_battle\yugi-h5\packages\game-engine:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/effects/continuous.test.ts src/effects/scripts src/effects/operations

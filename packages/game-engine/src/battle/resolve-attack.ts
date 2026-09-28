@@ -1,5 +1,6 @@
 import type { ActionContext } from '../actions/types.js';
 import { resolveMonster } from '../cards/resolve-monster.js';
+import { effectiveStats } from '../effects/continuous.js';
 import { EngineError, type EngineErrorCode } from '../errors.js';
 import type { GameEvent } from '../events/types.js';
 import type { CardInstance, GameState, PlayerState } from '../state/types.js';
@@ -43,7 +44,8 @@ export function resolveAttack(
   const found = attackingPlayer.board.monsterZones[attackerZone];
   if (!found || found.position !== 'Attack') return { state, events: [] };
   const attacker: CardInstance = found;
-  const attackerDef = resolveMonster(attacker, ctx, reject);
+  // Only checks the attacker is a Monster; the ATK/DEF used below are the effective ones (task 3.6).
+  resolveMonster(attacker, ctx, reject);
 
   const events: GameEvent[] = [];
   // Per-side accumulators, since attacker and target usually live on opposite sides.
@@ -123,22 +125,27 @@ export function resolveAttack(
     };
   };
 
+  // Task 3.6: effective ATK/DEF (Continuous effects included), read on the board AFTER the flip above, so a monster
+  // just flipped face-up both receives modifiers and applies its own [RULE]. Read once, before anything is destroyed.
+  const boardAfterFlip = withPlayers();
+  const attackerStats = effectiveStats(boardAfterFlip, attacker, ctx);
+  const targetStats = target === null ? null : effectiveStats(boardAfterFlip, target, ctx);
+
   const damage = (recipient: PlayerState, recipientIndex: 0 | 1, amount: number): PlayerState => {
     events.push({ type: 'DamageDealt', playerIndex: recipientIndex, amount });
     return { ...recipient, lifePoints: Math.max(0, recipient.lifePoints - amount) };
   };
 
-  if (target === null) {
+  if (target === null || targetStats === null) {
     // Direct attack.
     surviveAttacker();
-    nextOpponent = damage(nextOpponent, opponentIndex, attackerDef.atk);
+    nextOpponent = damage(nextOpponent, opponentIndex, attackerStats.atk);
   } else if (target.position === 'Attack') {
-    const targetDef = resolveMonster(target, ctx, reject);
-    if (attackerDef.atk > targetDef.atk) {
+    if (attackerStats.atk > targetStats.atk) {
       nextOpponent = destroy(nextOpponent, opponentIndex, target, targetZone, target.definitionId);
-      nextOpponent = damage(nextOpponent, opponentIndex, attackerDef.atk - targetDef.atk);
+      nextOpponent = damage(nextOpponent, opponentIndex, attackerStats.atk - targetStats.atk);
       surviveAttacker();
-    } else if (attackerDef.atk < targetDef.atk) {
+    } else if (attackerStats.atk < targetStats.atk) {
       nextAttackingPlayer = destroy(
         nextAttackingPlayer,
         playerIndex,
@@ -149,7 +156,7 @@ export function resolveAttack(
       nextAttackingPlayer = damage(
         nextAttackingPlayer,
         playerIndex,
-        targetDef.atk - attackerDef.atk,
+        targetStats.atk - attackerStats.atk,
       );
     } else {
       nextOpponent = destroy(nextOpponent, opponentIndex, target, targetZone, target.definitionId);
@@ -163,16 +170,15 @@ export function resolveAttack(
     }
   } else {
     // Target is in Defense Position.
-    const targetDef = resolveMonster(target, ctx, reject);
-    if (attackerDef.atk > targetDef.def) {
+    if (attackerStats.atk > targetStats.def) {
       nextOpponent = destroy(nextOpponent, opponentIndex, target, targetZone, target.definitionId);
       surviveAttacker();
-    } else if (attackerDef.atk < targetDef.def) {
+    } else if (attackerStats.atk < targetStats.def) {
       surviveAttacker();
       nextAttackingPlayer = damage(
         nextAttackingPlayer,
         playerIndex,
-        targetDef.def - attackerDef.atk,
+        targetStats.def - attackerStats.atk,
       );
     } else {
       // [ASSUMED]: ATK == DEF against a Defense Position target isn't covered by

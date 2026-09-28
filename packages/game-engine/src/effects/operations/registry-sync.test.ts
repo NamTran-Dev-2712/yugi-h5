@@ -2,16 +2,26 @@ import { describe, expect, it } from 'vitest';
 import { OPERATION_REGISTRY, SAMPLE_CARDS } from '@yugi/shared';
 import { applyAction } from '../../apply-action.js';
 import { fixtureState } from '../../testing/effect-fixtures.js';
+import { CONTINUOUS_HANDLERS } from '../continuous.js';
 import { OPERATION_HANDLERS } from './index.js';
 
 describe('operation handlers ↔ shared registry', () => {
-  it('the engine has a handler for exactly the kinds the registry marks implemented', () => {
-    const implemented = Object.entries(OPERATION_REGISTRY)
-      .filter(([, entry]) => entry.implemented)
+  const implemented = (timing: 'resolve' | 'continuous') =>
+    Object.entries(OPERATION_REGISTRY)
+      .filter(([, entry]) => entry.implemented && entry.timing === timing)
       .map(([kind]) => kind)
       .sort();
-    expect(Object.keys(OPERATION_HANDLERS).sort()).toEqual(implemented);
+
+  it('the engine has a resolve handler for exactly the resolve kinds the registry marks implemented', () => {
+    expect(Object.keys(OPERATION_HANDLERS).sort()).toEqual(implemented('resolve'));
     for (const handler of Object.values(OPERATION_HANDLERS)) {
+      expect(typeof handler).toBe('function');
+    }
+  });
+
+  it('the engine has a continuous handler for exactly the continuous kinds implemented (task 3.6)', () => {
+    expect(Object.keys(CONTINUOUS_HANDLERS).sort()).toEqual(implemented('continuous'));
+    for (const handler of Object.values(CONTINUOUS_HANDLERS)) {
       expect(typeof handler).toBe('function');
     }
   });

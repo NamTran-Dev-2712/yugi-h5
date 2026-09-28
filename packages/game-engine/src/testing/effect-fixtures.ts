@@ -75,7 +75,115 @@ export function effectMonster(
   } as CardDefinition;
 }
 
+/** Test-only monster with one Continuous effect `e1` made of the given operations (task 3.6). */
+export function continuousMonster(
+  id: string,
+  operations: EffectDefinition['operations'],
+  stats: { atk?: number; def?: number; race?: string } = {},
+  condition?: EffectDefinition['condition'],
+): CardDefinition {
+  return {
+    ...monster(id, 4, stats.race ?? 'Warrior'),
+    category: 'Effect',
+    atk: stats.atk ?? 1000,
+    def: stats.def ?? 1000,
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Continuous' },
+        ...(condition ? { condition } : {}),
+        operations,
+      } as EffectDefinition,
+    ],
+  } as CardDefinition;
+}
+
 export const FIXTURE_DEFS: Record<string, CardDefinition> = {
+  /** Task 3.6 — Continuous: the OTHER face-up Warriors you control gain 500 ATK. */
+  CONT_WARRIOR_BUFF: continuousMonster('CONT_WARRIOR_BUFF', [
+    {
+      kind: 'ModifyStat',
+      stat: 'atk',
+      amount: 500,
+      side: 'self',
+      filter: { race: 'Warrior' },
+      excludeSource: true,
+    },
+  ]),
+  /** Continuous: every face-up monster your opponent controls loses 600 ATK and 400 DEF. */
+  CONT_WEAKEN: continuousMonster(
+    'CONT_WEAKEN',
+    [
+      { kind: 'ModifyStat', stat: 'atk', amount: -600, side: 'opponent' },
+      { kind: 'ModifyStat', stat: 'def', amount: -400, side: 'opponent' },
+    ],
+    { race: 'Fiend' },
+  ),
+  /** Continuous: opponent's face-up monsters lose 5000 ATK (tests the clamp at 0). */
+  CONT_CRUSH: continuousMonster(
+    'CONT_CRUSH',
+    [{ kind: 'ModifyStat', stat: 'atk', amount: -5000, side: 'opponent' }],
+    { race: 'Fiend' },
+  ),
+  /** Continuous: your face-up monsters (this one included) gain 800 DEF. */
+  CONT_WALL: continuousMonster(
+    'CONT_WALL',
+    [{ kind: 'ModifyStat', stat: 'def', amount: 800, side: 'self' }],
+    { race: 'Rock' },
+  ),
+  /** Continuous with a condition: on your turn only, your face-up monsters gain 400 ATK. */
+  CONT_MY_TURN: continuousMonster(
+    'CONT_MY_TURN',
+    [{ kind: 'ModifyStat', stat: 'atk', amount: 400, side: 'self' }],
+    { race: 'Fiend' },
+    [{ kind: 'IsMyTurn' }],
+  ),
+  /** Continuous Spell: your face-up Warriors gain 300 ATK (only a fixture can place it face-up until P4). */
+  CONT_SPELL_BUFF: {
+    id: 'CONT_SPELL_BUFF',
+    kind: 'Spell',
+    name: text('CONT_SPELL_BUFF'),
+    subType: 'Continuous',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          {
+            kind: 'ModifyStat',
+            stat: 'atk',
+            amount: 300,
+            side: 'self',
+            filter: { race: 'Warrior' },
+          },
+        ],
+      },
+    ],
+  },
+  /** Task 3.6 — effect whose only behaviour is a registered script: halve the opponent's LP. */
+  SCRIPT_HALVE: spell('SCRIPT_HALVE', {
+    trigger: { kind: 'Ignition' },
+    scriptId: 'test.halve-opponent-lp',
+    operations: [],
+  }),
+  /** Operations run first, then the script: 1000 damage, then halve. */
+  SCRIPT_BURN_HALVE: spell('SCRIPT_BURN_HALVE', {
+    trigger: { kind: 'Ignition' },
+    scriptId: 'test.halve-opponent-lp',
+    operations: [{ kind: 'Damage', amount: 1000, target: 'opponent' }],
+  }),
+  /** A script id nobody registered: never activatable. */
+  SCRIPT_UNKNOWN: spell('SCRIPT_UNKNOWN', {
+    trigger: { kind: 'Ignition' },
+    scriptId: 'no.such-script',
+    operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+  }),
+  /** OnSummon mandatory with an unknown script: does not activate. */
+  SUM_SCRIPT_UNKNOWN: effectMonster('SUM_SCRIPT_UNKNOWN', {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    scriptId: 'no.such-script',
+    operations: [{ kind: 'Heal', amount: 100, target: 'self' }],
+  }),
   /** Task 3.5 — OnSummon mandatory: draw 1. */
   SUM_DRAW: effectMonster('SUM_DRAW', {
     trigger: { kind: 'OnSummon', mandatory: true },
@@ -376,8 +484,8 @@ export interface FixtureSetup {
   /** Definition ids for player 0's hand; instance ids are h0, h1, ... */
   hand?: string[];
   phase?: Phase;
-  /** Player 0 monsters as [zone, definitionId, position?]; instance ids m0-<zone>. */
-  myMonsters?: [number, string][];
+  /** Player 0 monsters as [zone, definitionId, position?]; instance ids m0-<zone>. Position defaults to Attack. */
+  myMonsters?: [number, string, ('Attack' | 'DefenseUp' | 'DefenseDown')?][];
   /** Player 1 monsters; instance ids o0-<zone>. `DefenseDown` = face-down. */
   oppMonsters?: [number, string, ('Attack' | 'DefenseUp' | 'DefenseDown')?][];
   /** Player 1 Spell/Trap Zone cards (face-down); instance ids os-<zone>. Third item = `setTurn` (omitted = long ago). */
@@ -411,7 +519,7 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
     fill(3),
     fill(4),
   ];
-  const mine = new Map(s.myMonsters ?? []);
+  const mine = new Map((s.myMonsters ?? []).map(([z, d, p]) => [z, { d, p: p ?? 'Attack' }]));
   const theirs = new Map((s.oppMonsters ?? []).map(([z, d, p]) => [z, { d, p: p ?? 'Attack' }]));
   const backrow = (list: [number, string, number?][] | undefined, prefix: string, owner: 0 | 1) => {
     const byZone = new Map((list ?? []).map(([z, d, t]) => [z, { d, t }]));
@@ -428,9 +536,10 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
   const p0 = started.players[0];
   const p1 = started.players[1];
   const hand = (s.hand ?? []).map((d, i) => inst(`h${i}`, d));
-  const monsterZones0 = zones((i) =>
-    mine.has(i) ? ({ ...inst(`m0-${i}`, mine.get(i)!), position: 'Attack' } as CardInstance) : null,
-  );
+  const monsterZones0 = zones((i) => {
+    const m = mine.get(i);
+    return m ? ({ ...inst(`m0-${i}`, m.d), position: m.p } as CardInstance) : null;
+  });
   const monsterZones1 = zones((i) => {
     const t = theirs.get(i);
     return t ? ({ ...inst(`o0-${i}`, t.d, 1), position: t.p } as CardInstance) : null;

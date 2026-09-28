@@ -28,6 +28,7 @@ describe('fuzz: engine invariants hold', () => {
     let reactionWindows = 0;
     let triggerLinks = 0;
     let triggerPrompts = 0;
+    let continuousApplied = 0;
     const byType: Record<string, number> = {};
     for (const seed of SEEDS.slice(0, 10)) {
       const result = runFuzz({ seed, steps: STEPS });
@@ -40,6 +41,7 @@ describe('fuzz: engine invariants hold', () => {
       reactionWindows += result.stats.reactionWindows;
       triggerLinks += result.stats.triggerLinks;
       triggerPrompts += result.stats.triggerPrompts;
+      continuousApplied += result.stats.continuousApplied;
       for (const [type, n] of Object.entries(result.stats.accepted)) {
         accepted += n;
         byType[type] = (byType[type] ?? 0) + n;
@@ -68,6 +70,8 @@ describe('fuzz: engine invariants hold', () => {
     // Task 3.5: trigger effects go on the chain, and optional ones ask their owner.
     expect(triggerLinks, 'no trigger link').toBeGreaterThan(0);
     expect(triggerPrompts, 'no TriggerActivation prompt').toBeGreaterThan(0);
+    // Task 3.6: Continuous effects actually modify stats on the board.
+    expect(continuousApplied, 'no Continuous modifier in force').toBeGreaterThan(0);
   });
 
   it('is deterministic: same seed → identical action log and stats', () => {

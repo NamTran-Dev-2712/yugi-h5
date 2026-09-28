@@ -169,6 +169,8 @@
   "error.engine.CHAIN_WINDOW_OPEN": "A chain is waiting to resolve: activate a response or pass first.",
   "error.engine.SPELL_SPEED_TOO_LOW": "This card is too slow to be added to the chain.",
   "error.engine.INVALID_TRIGGER_ANSWER": "This answer does not fit the trigger effect (choose its targets, or decline an optional one).",
+  "error.engine.CONTINUOUS_NOT_ACTIVATABLE": "A continuous effect is never activated: it applies by itself while the card is face-up on the field.",
+  "error.engine.UNKNOWN_SCRIPT": "This effect uses a script the game does not know, so it cannot be activated.",
 
   "error.api.NOT_OWNER": "You do not control this duel.",
   "error.api.PLAYER_MISMATCH": "That action does not belong to this player.",

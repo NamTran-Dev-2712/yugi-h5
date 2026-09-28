@@ -96,12 +96,18 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 `[DECISION]` Trap phải được Set úp trên sân mới kích hoạt; `[RULE]` Trap vừa Set thì lượt đó chưa kích hoạt; `[RULE]` Spell thường kích hoạt từ tay ở Main Phase của mình; `[RULE]` Quick-Play từ tay chỉ ở lượt mình (mọi phase), đã Set thì dùng được ở lượt đối thủ nhưng không trong lượt vừa Set (chủ dự án chốt 2026-09-27).
 
 - `ActivateEffect` tìm lá ở **tay** hoặc **ô Phép/Bẫy của chính người gọi** (không thấy → `CARD_NOT_IN_HAND`). Lá trên sân phải **úp** (`DefenseDown`); lá đang ngửa (đang trên chain) → `NOT_ACTIVATABLE`.
-- **Trap** Normal/Counter đã Set, trigger `Quick`: hợp lệ khi (nếu `ruleset.trapSetTurnDelay`) `setTurn !== turnCount`, không thì `TRAP_SET_THIS_TURN`. **Quick-Play** đã Set: `setTurn === turnCount` → `SPELL_SET_THIS_TURN` (luôn, không phụ thuộc ruleset). Continuous Trap/Spell, Normal Spell đã Set → `NOT_ACTIVATABLE` (chưa làm).
+- **Trap** Normal/Counter đã Set, trigger `Quick`: hợp lệ khi (nếu `ruleset.trapSetTurnDelay`) `setTurn !== turnCount`, không thì `TRAP_SET_THIS_TURN`. **Quick-Play** đã Set: `setTurn === turnCount` → `SPELL_SET_THIS_TURN` (luôn, không phụ thuộc ruleset). Kích hoạt **lá** Continuous Trap/Spell, Normal Spell đã Set → `NOT_ACTIVATABLE` (P4). Effect `Continuous` → `CONTINUOUS_NOT_ACTIVATABLE` (task 3.6).
 - **Ai/khi nào**: ngoài cửa sổ chain chỉ người chơi của lượt (`NOT_TURN_PLAYER`), lá Set kích hoạt được ở **mọi phase**; trong cửa sổ chỉ người giữ ưu tiên (`NOT_PRIORITY_HOLDER`). Lá **trên tay** luôn cần lượt mình (`NOT_TURN_PLAYER`, kể cả khi đang giữ ưu tiên ở lượt đối thủ). Normal Spell từ tay: Main1/Main2 (`WRONG_PHASE`).
 - **Vị trí khi chờ resolve** `[RULE]`: lá Set được kích hoạt **lật ngửa tại ô** (`position: 'Attack'` = quy ước "ngửa" của Phép/Bẫy mà StateView đã hiểu), `ChainLink.source = {zone:'SpellTrapZone', zoneIndex}`; resolve xong (kể cả bị vô hiệu / duel kết thúc giữa chain) thì rời ô vào mộ, `CardSentToGraveyard {from:'SpellTrapZone'}`. Bị phá giữa chain → effect **vẫn resolve**, không phát `CardSentToGraveyard` lần hai.
 - `ruleset.allowTrapActivationFromHand` (mặc định `false`): khi `false`, Trap trên tay chỉ có `SetSpellTrap`, không có `ActivateEffect` (`TRAP_NOT_SET`); `true` hiện vẫn `NOT_ACTIVATABLE` (chưa hỗ trợ).
 - Test: `packages/game-engine/src/rules/trap-activation.test.ts`, `actions/handlers/quick-play-and-speed.test.ts`; golden `set-trap-quickplay-counter-chain`.
 - **Cửa sổ phản ứng** (task 3.4c): sau `DeclareAttack` và sau `NormalSummon`/`SetMonster`, đối thủ được một cửa sổ để kích hoạt lá Set — xem mục "Cửa sổ phản ứng" dưới "Chain stack".
+
+### Mã lỗi thêm ở task 3.6
+
+`CONTINUOUS_NOT_ACTIVATABLE` (effect có `trigger.kind === 'Continuous'`: kiểm trước mọi luật kích hoạt khác, kể cả với quái trên sân —
+lá khác không ở tay/ô Phép/Bẫy vẫn là `CARD_NOT_IN_HAND`), `UNKNOWN_SCRIPT` (`effect.scriptId` không có trong `EFFECT_SCRIPTS`; trigger
+như vậy không kích hoạt).
 
 ### Mã lỗi thêm ở task 3.4
 
@@ -278,6 +284,28 @@ Trigger **không** do `ActivateEffect` kích hoạt: engine tự khởi phát t�
 - Mã lỗi mới: `INVALID_TRIGGER_ANSWER`. `ResolvePendingPrompt.payload.decline?: boolean` (mới, optional).
 - Test: `rules/trigger-effects.test.ts`, `effects/triggers.test.ts`; golden `on-summon-mandatory`, `on-summon-optional-declined`,
   `on-destroyed-in-combat`.
+
+## Continuous effect + scriptId (task 3.6)
+
+`[RULE]` chủ dự án chốt nguồn 2026-09-28. Engine-only (chưa lên wire).
+
+- **Không có action, không lên chain, không lưu vào state.** `effects/continuous.ts`:
+  - `activeContinuousEffects(state, ctx)` — mọi effect `Continuous` đang hiệu lực: lá **ngửa** (quái `Attack`/`DefenseUp`, Phép/Bẫy
+    ngửa ở ô) của cả hai bên, thứ tự cố định (người 0 rồi 1; ô quái 0–4 rồi ô Phép/Bẫy 0–4), `condition` đúng **lúc đọc** (theo góc
+    nhìn người điều khiển lá nguồn).
+  - `effectiveStats(state, card, ctx) → {atk, def}` = chỉ số in trên lá + tổng delta của `CONTINUOUS_HANDLERS`, kẹp ≥ 0. Đọc lá theo
+    `instanceId` trên **state truyền vào** (không tin bản sao của caller); quái úp / không ở sân ⇒ chỉ số in.
+  - Lá nguồn rời sân (bị phá, …) hoặc bị úp ⇒ lần đọc sau không còn modifier; không có code "gỡ hiệu ứng".
+- **Combat**: `battle/resolve-attack.ts` đọc `effectiveStats` một lần, trên bàn **sau khi lật** mục tiêu úp và trước khi phá lá nào,
+  cho mọi so sánh/damage (quái vừa lật vừa nhận vừa phát modifier của chính nó `[RULE]`). Không modifier ⇒ y hệt 1.6–1.8.
+  Hiện đây là chỗ duy nhất engine đọc ATK/DEF (`legalActions` dry-run nên tự đúng). **`StateView`/AI ở api vẫn đọc chỉ số in** — cần
+  thêm chỉ số hiệu lực vào view khi nối wire.
+- **Script** (`effects/effect-scripts/`): `EFFECT_SCRIPTS: Record<scriptId, EffectScriptHandler>`, `scriptFor(id)` (chỉ own-property).
+  `resolveLink` (`effects/chain.ts`) chạy script **sau** `operations`, nếu duel chưa kết thúc; cùng `OperationContext`
+  (`controller`, `targetInstanceIds`). Kiểm tồn tại lúc kích hoạt (`UNKNOWN_SCRIPT`) và ở `readyTrigger`.
+- `activation-candidates.ts` bỏ effect `Continuous` (không bao giờ vào `legalActions`).
+- Test: `effects/continuous.test.ts`, `effects/effect-scripts/registry.test.ts`, `operations/registry-sync.test.ts`; golden
+  `continuous-atk-buff`; fuzz: bất biến "chỉ số hiệu lực ≥ 0 và = chỉ số in khi không có nguồn", thống kê `continuousApplied`.
 
 ## Replay
 

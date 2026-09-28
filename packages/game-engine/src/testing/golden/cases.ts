@@ -119,6 +119,43 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  /** Task 3.6 — Continuous: the OTHER face-up Warriors its controller has gain 500 ATK. */
+  G_CONT_BUFF: {
+    ...monster('G_CONT_BUFF', 4, 1000, 1000),
+    category: 'Effect',
+    race: 'Fiend',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          {
+            kind: 'ModifyStat',
+            stat: 'atk',
+            amount: 500,
+            side: 'self',
+            filter: { race: 'Warrior' },
+            excludeSource: true,
+          },
+        ],
+      },
+    ],
+  } as CardDefinition,
+  /** Normal Spell: destroy 1 of the opponent's monsters. */
+  G_KILL: {
+    id: 'G_KILL',
+    kind: 'Spell',
+    name: { vi: 'Golden G_KILL', en: 'Golden G_KILL' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
   G_COUNTER: {
     id: 'G_COUNTER',
     kind: 'Trap',
@@ -159,6 +196,10 @@ const TRIGGER_DECK = Array.from(
   { length: 40 },
   (_, i) => ['G_SUM_BURN', 'G_SUM_HEAL', 'G_DES_BURN', 'M1800'][i % 4]!,
 );
+
+/** Continuous effects (task 3.6): P0 runs the buff source, P1 the Spell that destroys it. */
+const CONT_DECK_P0 = Array.from({ length: 40 }, (_, i) => ['G_CONT_BUFF', 'M1800'][i % 2]!);
+const CONT_DECK_P1 = Array.from({ length: 40 }, (_, i) => ['G_KILL', 'M1800'][i % 2]!);
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
 
@@ -599,6 +640,62 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
       {
         type: 'DeclareAttack',
         payload: { playerIndex: 0, attackerInstanceId: 'p0-15', targetInstanceId: 'p1-34' },
+      },
+      ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'continuous-atk-buff',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-cont-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [CONT_DECK_P0, CONT_DECK_P1],
+      },
+    },
+    actions: [
+      // T1 (P0): Normal Summon M1800 (p0-17, Warrior).
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-17', zoneIndex: 1 } },
+      ...endPhase(0, 4),
+      // T2 (P1): Normal Summon M1800 (p1-37).
+      ...endPhase(1, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-37', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): Summon G_CONT_BUFF (p0-38): p0-17 is now 2300 ATK → it destroys p1-37 (1800), 500 to P1.
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-38', zoneIndex: 0 } },
+      // Rejected: a Continuous effect is never activated.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-38', effectId: 'e1' },
+      },
+      ...endPhase(0, 1),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-17', targetInstanceId: 'p1-37' },
+      },
+      ...endPhase(0, 3),
+      // T4 (P1): G_KILL (p1-32) destroys the buff source p0-38, then Summon M1800 (p1-3).
+      ...endPhase(1, 2),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-32', effectId: 'e1' },
+      },
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'effect-4-25', cardInstanceIds: ['p0-38'] },
+      },
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-3', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T5 (P0): the buff is gone at once: p0-17 (1800) attacks p1-3 (1800) → both destroyed, no damage.
+      ...endPhase(0, 3),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-17', targetInstanceId: 'p1-3' },
       },
       ...endPhase(0, 3),
     ],

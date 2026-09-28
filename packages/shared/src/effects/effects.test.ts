@@ -8,6 +8,7 @@ import { OperationSchema } from './operation.js';
 import { EffectDefinitionSchema } from './effect-definition.js';
 import {
   CONDITION_KINDS,
+  CONTINUOUS_OPERATION_KINDS,
   COST_KINDS,
   OPERATION_KINDS,
   OPERATION_REGISTRY,
@@ -127,6 +128,32 @@ describe('Operation', () => {
     bad(OperationSchema, { kind: 'Destroy', extra: 1 });
     bad(OperationSchema, { kind: 'NegateAttack' });
   });
+  it('accepts ModifyStat (task 3.6): atk/def, signed non-zero amount, side, optional filter/excludeSource', () => {
+    ok(OperationSchema, { kind: 'ModifyStat', stat: 'atk', amount: 500, side: 'self' });
+    ok(OperationSchema, { kind: 'ModifyStat', stat: 'def', amount: -300, side: 'opponent' });
+    ok(OperationSchema, {
+      kind: 'ModifyStat',
+      stat: 'atk',
+      amount: 10000,
+      side: 'self',
+      filter: { race: 'Dragon' },
+      excludeSource: true,
+    });
+  });
+  it('rejects a malformed ModifyStat', () => {
+    const base = { kind: 'ModifyStat', stat: 'atk', amount: 500, side: 'self' };
+    bad(OperationSchema, { ...base, amount: 0 });
+    bad(OperationSchema, { ...base, amount: 10001 });
+    bad(OperationSchema, { ...base, amount: -10001 });
+    bad(OperationSchema, { ...base, amount: 1.5 });
+    bad(OperationSchema, { ...base, stat: 'level' });
+    bad(OperationSchema, { ...base, side: 'both' });
+    bad(OperationSchema, { ...base, filter: {} });
+    bad(OperationSchema, { ...base, excludeSource: 'yes' });
+    bad(OperationSchema, { ...base, target: 'self' });
+    const { side: _side, ...noSide } = base;
+    bad(OperationSchema, noSide);
+  });
 });
 
 describe('EffectDefinition', () => {
@@ -164,7 +191,8 @@ describe('EffectDefinition', () => {
     bad(EffectDefinitionSchema, { ...base, bogus: 1 });
   });
   it('rejects Continuous with cost or target (it never goes on the chain)', () => {
-    const base = { id: 'x', trigger: { kind: 'Continuous' }, operations: [draw] };
+    const buff = { kind: 'ModifyStat', stat: 'atk', amount: 300, side: 'self' };
+    const base = { id: 'x', trigger: { kind: 'Continuous' }, operations: [buff] };
     ok(EffectDefinitionSchema, base);
     bad(EffectDefinitionSchema, { ...base, cost: [{ kind: 'PayLP', amount: 100 }] });
     bad(EffectDefinitionSchema, { ...base, target: { kind: 'Player', who: 'self' } });
@@ -183,6 +211,50 @@ describe('EffectDefinition', () => {
       operations: [draw],
     });
   });
+  it('Continuous effects hold only continuous operations, other effects only resolve ones (task 3.6)', () => {
+    const buff = { kind: 'ModifyStat', stat: 'atk', amount: 300, side: 'self' };
+    bad(EffectDefinitionSchema, { id: 'x', trigger: { kind: 'Continuous' }, operations: [draw] });
+    bad(EffectDefinitionSchema, {
+      id: 'x',
+      trigger: { kind: 'Continuous' },
+      operations: [buff, draw],
+    });
+    for (const kind of ['OnSummon', 'OnFlip', 'Ignition', 'Quick', 'OnDestroyed'])
+      bad(EffectDefinitionSchema, { id: 'x', trigger: { kind }, operations: [buff] });
+  });
+  it('accepts an effect-level scriptId (task 3.6); operations may be empty only with a scriptId', () => {
+    ok(EffectDefinitionSchema, {
+      id: 'x',
+      trigger: { kind: 'Ignition' },
+      scriptId: 'test.halve-opponent-lp',
+      operations: [],
+    });
+    ok(EffectDefinitionSchema, {
+      id: 'x',
+      trigger: { kind: 'Quick' },
+      scriptId: 's',
+      operations: [draw],
+    });
+    bad(EffectDefinitionSchema, {
+      id: 'x',
+      trigger: { kind: 'Ignition' },
+      scriptId: '',
+      operations: [draw],
+    });
+    bad(EffectDefinitionSchema, {
+      id: 'x',
+      trigger: { kind: 'Ignition' },
+      scriptId: 7,
+      operations: [draw],
+    });
+    // A script runs on resolution: a Continuous effect never resolves.
+    bad(EffectDefinitionSchema, {
+      id: 'x',
+      trigger: { kind: 'Continuous' },
+      scriptId: 's',
+      operations: [{ kind: 'ModifyStat', stat: 'atk', amount: 300, side: 'self' }],
+    });
+  });
   it('accepts an optional explicit spellSpeed 1|2|3 (task 3.4), nothing else', () => {
     const base = { id: 'x', trigger: { kind: 'Quick' }, operations: [draw] };
     for (const spellSpeed of [1, 2, 3]) ok(EffectDefinitionSchema, { ...base, spellSpeed });
@@ -194,9 +266,18 @@ describe('EffectDefinition', () => {
 describe('registry (metadata only: no functions)', () => {
   it('has one entry per operation kind, metadata only (task 3.2: all batch-1 operations implemented)', () => {
     expect(Object.keys(OPERATION_REGISTRY).sort()).toEqual([...OPERATION_KINDS].sort());
-    for (const entry of Object.values(OPERATION_REGISTRY)) {
-      expect(entry).toEqual({ implemented: true });
+    for (const [kind, entry] of Object.entries(OPERATION_REGISTRY)) {
+      expect(entry).toEqual({
+        implemented: true,
+        timing: kind === 'ModifyStat' ? 'continuous' : 'resolve',
+      });
     }
+  });
+  it('CONTINUOUS_OPERATION_KINDS = the kinds whose timing is continuous (task 3.6)', () => {
+    const continuous = Object.entries(OPERATION_REGISTRY)
+      .filter(([, e]) => e.timing === 'continuous')
+      .map(([k]) => k);
+    expect([...CONTINUOUS_OPERATION_KINDS].sort()).toEqual(continuous.sort());
   });
   it('kind lists match the schemas', () => {
     expect([...TRIGGER_KINDS].sort()).toEqual([
@@ -209,7 +290,13 @@ describe('registry (metadata only: no functions)', () => {
     ]);
     expect([...CONDITION_KINDS].sort()).toEqual(['IsMyTurn', 'PhaseIs', 'ZoneCount']);
     expect([...COST_KINDS].sort()).toEqual(['Discard', 'PayLP', 'Tribute']);
-    expect([...OPERATION_KINDS].sort()).toEqual(['Damage', 'Destroy', 'Draw', 'Heal']);
+    expect([...OPERATION_KINDS].sort()).toEqual([
+      'Damage',
+      'Destroy',
+      'Draw',
+      'Heal',
+      'ModifyStat',
+    ]);
   });
 });
 

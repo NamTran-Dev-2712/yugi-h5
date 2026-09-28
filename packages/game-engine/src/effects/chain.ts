@@ -1,3 +1,4 @@
+import { isContinuousOperationKind } from '@yugi/shared';
 import type { ActionContext } from '../actions/types.js';
 import { EngineError } from '../errors.js';
 import type { GameEvent } from '../events/types.js';
@@ -10,6 +11,7 @@ import type {
   ReactionTo,
 } from '../state/types.js';
 import { OPERATION_HANDLERS } from './operations/index.js';
+import { scriptFor } from './effect-scripts/registry.js';
 import type { OperationContext } from './operations/types.js';
 import { targetCandidates } from './targets.js';
 import { fireTriggers } from './triggers.js';
@@ -221,12 +223,21 @@ function resolveLink(state: GameState, link: ChainLink, ctx: ActionContext): Res
   const opCtx: OperationContext = { controller: link.playerIndex, targetInstanceIds };
   for (const op of effect.operations) {
     if (current.winnerIndex !== null) break; // the duel ended mid-effect: later operations never run
+    // Continuous operations never resolve (the schema keeps them out of chainable effects; task 3.6).
+    if (isContinuousOperationKind(op.kind)) continue;
     const handler = OPERATION_HANDLERS[op.kind] as (
       s: GameState,
       o: typeof op,
       c: OperationContext,
     ) => { state: GameState; events: GameEvent[] };
     const out = handler(current, op, opCtx);
+    current = out.state;
+    events.push(...out.events);
+  }
+  // Task 3.6: the effect's script runs after its operations (validated at activation, so it is registered).
+  const script = effect.scriptId === undefined ? undefined : scriptFor(effect.scriptId);
+  if (script && current.winnerIndex === null) {
+    const out = script(current, opCtx);
     current = out.state;
     events.push(...out.events);
   }

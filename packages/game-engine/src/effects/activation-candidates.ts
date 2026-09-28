@@ -77,6 +77,8 @@ export function activationCandidates(
     const def = ctx.cardDefinitions(source.definitionId);
     if (!def || def.kind === 'Monster') continue;
     for (const effect of def.effects ?? []) {
+      // Task 3.6: a Continuous effect is never activated (structural: it is not a player action at all).
+      if (effect.trigger.kind === 'Continuous') continue;
       for (const costInstanceIds of costSelections(effect.cost, source, me.hand, ownMonsters)) {
         out.push({
           type: 'ActivateEffect',

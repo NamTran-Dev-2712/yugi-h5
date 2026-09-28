@@ -169,6 +169,8 @@
   "error.engine.CHAIN_WINDOW_OPEN": "Đang có chuỗi hiệu ứng chờ xử lý: hãy kích hoạt hoặc bỏ qua trước.",
   "error.engine.SPELL_SPEED_TOO_LOW": "Lá này không đủ tốc độ để nối vào chuỗi.",
   "error.engine.INVALID_TRIGGER_ANSWER": "Câu trả lời không hợp lệ cho hiệu ứng tự kích hoạt (chọn đúng mục tiêu, hoặc bỏ qua nếu là hiệu ứng tuỳ chọn).",
+  "error.engine.CONTINUOUS_NOT_ACTIVATABLE": "Hiệu ứng liên tục không cần kích hoạt: nó tự có hiệu lực khi lá nằm ngửa trên sân.",
+  "error.engine.UNKNOWN_SCRIPT": "Hiệu ứng này dùng một script chưa có trong game nên không kích hoạt được.",
 
   "error.api.NOT_OWNER": "Bạn không có quyền điều khiển trận này.",
   "error.api.PLAYER_MISMATCH": "Hành động không thuộc về người chơi này.",

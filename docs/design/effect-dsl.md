@@ -9,7 +9,8 @@ handler function đăng ký sẵn trong engine.
 > từ tay. Registry ở shared chỉ là metadata (`implemented: true` cho 4 kind này, không giữ hàm); handler thật ở
 > `packages/game-engine/src/effects/operations/<kind>.ts` (`OPERATION_HANDLERS`, thiếu kind = `tsc` đỏ; test đối chiếu
 > hai phía). Từ task 3.3 effect lên **chain** (resolve LIFO); task 3.4 thêm lá Set; task 3.5 thêm trigger tự khởi phát
-> `OnSummon`/`OnDestroyed` (optional/mandatory). Thêm kind mới: `/new-effect-type`.
+> `OnSummon`/`OnDestroyed` (optional/mandatory); task 3.6 thêm **Continuous effect** (`ModifyStat`, tính lại mỗi lần đọc) và
+> **`scriptId` ở mức effect** (registry `EFFECT_SCRIPTS`). Thêm kind mới: `/new-effect-type`.
 
 ## Engine chạy effect thế nào (task 3.2, chain từ task 3.3)
 
@@ -22,7 +23,9 @@ handler function đăng ký sẵn trong engine.
     `TRAP_SET_THIS_TURN` (nếu `ruleset.trapSetTurnDelay`).
   - Lá Set được kích hoạt **lật ngửa và ở lại ô** tới khi link resolve rồi vào mộ (`CardSentToGraveyard.from: 'SpellTrapZone'`).
   - Ngoài cửa sổ chain chỉ người chơi của lượt kích hoạt (mọi phase với lá Set); trong cửa sổ chỉ người giữ ưu tiên.
-  - Continuous Spell/Trap, Normal Spell đã Set, Field → `NOT_ACTIVATABLE` (chưa làm); trigger không khớp → `NOT_ACTIVATABLE`.
+  - Kích hoạt **lá** Continuous Spell/Trap (để nó nằm ngửa trên sân), Normal Spell đã Set, Field → `NOT_ACTIVATABLE` (P4);
+    trigger không khớp → `NOT_ACTIVATABLE`. Effect có `trigger.kind === 'Continuous'` → `CONTINUOUS_NOT_ACTIVATABLE` (task 3.6,
+    kể cả quái trên sân); effect có `scriptId` chưa đăng ký → `UNKNOWN_SCRIPT`.
 - **Spell Speed** (task 3.4): `EffectDefinition.spellSpeed?: 1 | 2 | 3`; bỏ trống = engine suy ra (`effects/spell-speed.ts`):
   Counter Trap 3, Trap khác 2, Quick-Play 2, còn lại 1 `[RULE]`. Chỉ khai báo tường minh cho lá lệch mặc định. Nối chain cần
   Speed ≥ 2 và ≥ link trên cùng (`SPELL_SPEED_TOO_LOW`).
@@ -55,6 +58,35 @@ handler function đăng ký sẵn trong engine.
 }
 ```
 
+## Continuous effect (task 3.6)
+
+- `[RULE]` Không kích hoạt, không lên chain, không có `cost`/`target`. Có hiệu lực **khi lá nằm ngửa trên sân** (quái `Attack`/
+  `DefenseUp`, Phép/Bẫy ngửa ở ô Phép/Bẫy) và `condition` (nếu có) đúng **tại thời điểm đọc**; mất hiệu lực ngay khi lá rời sân hoặc úp.
+- **Không lưu vào state**: engine tính lại mỗi lần cần (`effects/continuous.ts`: `activeContinuousEffects`, `effectiveStats`), nên không
+  có code "gỡ hiệu ứng". Hiện chỉ combat (`battle/resolve-attack.ts`) đọc ATK/DEF; chỉ số đọc trên bàn **sau khi lật** mục tiêu úp.
+- Operation Continuous (`CONTINUOUS_OPERATION_KINDS`, `OPERATION_REGISTRY[kind].timing === 'continuous'`) chỉ nằm trong effect
+  `Continuous`, và effect `Continuous` chỉ chứa chúng (refine). Handler ở `CONTINUOUS_HANDLERS` (engine), không ở `OPERATION_HANDLERS`.
+- `ModifyStat{stat: 'atk'|'def', amount (≠ 0, ±10000), side, filter?, excludeSource?}`: quái **ngửa** ở `side` (tương đối người điều
+  khiển lá nguồn) khớp `filter`, trừ chính lá nguồn nếu `excludeSource`. Cộng dồn nhiều nguồn; kết quả kẹp ≥ 0 `[RULE]`.
+- Kích hoạt lá Continuous Spell/Trap để đặt ngửa: **P4** (chủ dự án chốt 2026-09-28); tới lúc đó chỉ fixture/Sandbox đặt được ngửa.
+
+```json
+{
+  "id": "warrior-aura",
+  "trigger": { "kind": "Continuous" },
+  "operations": [
+    {
+      "kind": "ModifyStat",
+      "stat": "atk",
+      "amount": 500,
+      "side": "self",
+      "filter": { "race": "Warrior" },
+      "excludeSource": true
+    }
+  ]
+}
+```
+
 ## Schema (nguồn thật: `packages/shared/src/effects/*.ts`)
 
 Mỗi `kind` là một `z.object({ kind: z.literal(...), ...field })` `.strict()` gộp bằng
@@ -69,12 +101,13 @@ interface EffectDefinition {
   condition?: Condition[]; // AND; không được rỗng nếu có
   cost?: Cost[]; // trả khi activate; không được rỗng nếu có
   target?: Target; // chọn lúc activate
-  operations: Operation[]; // thực thi tuần tự khi resolve; KHÔNG được rỗng
+  operations: Operation[]; // thực thi tuần tự khi resolve (Continuous: modifier đang hiệu lực); rỗng chỉ khi có scriptId
+  scriptId?: string; // task 3.6: script engine chạy lúc resolve, SAU operations; không cho Continuous
 }
 ```
 
-Ràng buộc (`.refine`): `operations` ≥ 1; `condition`/`cost` không rỗng nếu có; `Continuous` không có
-`cost`/`target` (không lên chain); `ZoneCount` cần `min` và/hoặc `max`, `min ≤ max`; `filter` cần ≥ 1
+Ràng buộc (`.refine`): `operations` ≥ 1 hoặc có `scriptId`; `condition`/`cost` không rỗng nếu có; `Continuous` không có
+`cost`/`target`/`scriptId` (không lên chain) và chỉ chứa operation continuous, effect khác không chứa operation continuous; `ZoneCount` cần `min` và/hoặc `max`, `min ≤ max`; `filter` cần ≥ 1
 tiêu chí, `level.min ≤ level.max`.
 
 `CardDefinition` có thêm `effects?: EffectDefinition[]` (id không trùng), `name`/`effectText?` là
@@ -82,14 +115,14 @@ tiêu chí, `level.min ≤ level.max`.
 
 ## Kind đã có (batch 1)
 
-| Loại      | Kind → field                                                                                                               |
-| --------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip`, `Continuous`, `Ignition`, `Quick`                  |
-| Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                          |
-| Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                      |
-| Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                          |
-| Operation | `Damage{amount, target}`, `Heal{amount, target}`, `Draw{count, target}`, `Destroy` (tác động lên `target` Card của effect) |
-| Filter    | `kind` (Monster/Spell/Trap), `level{min?,max?}`, `attribute`, `race`                                                       |
+| Loại      | Kind → field                                                                                                                                                                                                 |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip`, `Continuous`, `Ignition`, `Quick`                                                                                                    |
+| Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                                                                                                            |
+| Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                                                                                                        |
+| Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                                                                                                            |
+| Operation | `Damage{amount, target}`, `Heal{amount, target}`, `Draw{count, target}`, `Destroy` (tác động lên `target` Card của effect); continuous: `ModifyStat{stat, amount, side, filter?, excludeSource?}` (task 3.6) |
+| Filter    | `kind` (Monster/Spell/Trap), `level{min?,max?}`, `attribute`, `race`                                                                                                                                         |
 
 `zone`: `Hand|Deck|Graveyard|MonsterZone|SpellTrapZone`; `side`/`who`/operation `target`: `self|opponent`;
 `phase`: `Draw|Standby|Main1|Battle|Main2|End`.
@@ -100,7 +133,8 @@ tiêu chí, `level.min ≤ level.max`.
 - **Condition**: `LPCompare`, `HasCardIn(zone, filter)`, `ChainLength`, `PositionIs`, `OncePerTurn`.
 - **Cost**: `Banish`, `SendToGY`, `Reveal`.
 - **Target**: `AllMatching(filter)`.
-- **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `SpecialSummon`, `ModifyStat`/`ModifyAtk`, `ChangePosition`, `Negate`/`NegateAttack`, `Shuffle`, `Search`, `Equip`, `SkipPhase`.
+- **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `SpecialSummon`, `ChangePosition`, `Negate`/`NegateAttack`, `Shuffle`, `Search`, `Equip`, `SkipPhase`. (`ModifyStat` continuous đã có ở 3.6; bản
+  "tới hết lượt" chạy lúc resolve cần Duration, chưa có.) Continuous "chặn một loại hành động" (vd cấm tấn công) chưa có.
 - **Filter**: `atk(min/max)`, `position`, `nameContains`, `tag`.
 - **Duration**: `ThisTurn`, `UntilEndPhase`, `WhileOnField`, `Permanent` (batch 3).
 
@@ -142,21 +176,25 @@ Ví dụ trong bản spec cũ dùng tên `DrawCard`/`DealDamage`/`ModifyAtk`/`Ne
 }
 ```
 
-**scriptId** — effect quá đặc thù (không map được vào operation catalog):
+**scriptId** (task 3.6) — effect quá đặc thù (không map được vào operation catalog). `operations` được rỗng khi có `scriptId`:
 
 ```json
 {
-  "id": "complex-fusion-search",
-  "trigger": { "kind": "OnSummon" },
-  "scriptId": "ashfall-wyrm-on-summon"
+  "id": "halve-lp",
+  "trigger": { "kind": "Ignition" },
+  "scriptId": "test.halve-opponent-lp",
+  "operations": []
 }
 ```
 
-> Ví dụ `scriptId` chưa hợp lệ với `EffectDefinitionSchema` (chưa có trường `scriptId` trong effect; hiện `scriptId` chỉ ở mức
-> `CardDefinition`). Quyết định vị trí `scriptId` khi làm task có script đầu tiên.
-
-Engine giữ 1 registry `Record<scriptId, EffectScriptHandler>` — handler nhận `(state, ctx)`,
-trả `{ state, events }` giống `applyAction`, chỉ chạy trong scope resolve của effect đó.
+- `scriptId` nằm ở **mức `EffectDefinition`** `[DECISION]`; chạy lúc link resolve, **sau** `operations`, chỉ khi duel chưa kết thúc.
+  Không cho effect `Continuous` (script là việc chạy một lần).
+- Engine: `EFFECT_SCRIPTS: Record<scriptId, EffectScriptHandler>` (`packages/game-engine/src/effects/effect-scripts/registry.ts`);
+  handler `(state, ctx: {controller, targetInstanceIds}) → {state, events}`, thuần như operation, không bump `version`.
+  `scriptId` chưa đăng ký → `UNKNOWN_SCRIPT` (ActivateEffect) / trigger không kích hoạt. Test: mọi `scriptId` trong `SAMPLE_CARDS`
+  phải có trong registry.
+- Hiện registry chỉ có `test.halve-opponent-lp` (LP đối thủ giảm một nửa, làm tròn xuống, như effect damage) — chỉ lá test dùng.
+- `CardDefinition.scriptId` (trường cũ ở mức lá, task 1.x) **không được engine đọc**; lá mới dùng `scriptId` ở mức effect.
 
 ## Nguyên tắc thêm operation/condition/cost mới
 

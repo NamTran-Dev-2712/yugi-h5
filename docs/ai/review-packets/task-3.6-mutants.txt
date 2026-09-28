@@ -1,0 +1,32 @@
+KILLED   a face-down source applies its Continuous effect
+KILLED   every effect of a face-up card counts as Continuous
+KILLED   the Continuous effect ignores its conditions
+KILLED   face-up Spell/Traps are not sources
+KILLED   source order changes (Spell/Trap before monsters)
+KILLED   side ignored (both players affected)
+KILLED   side inverted
+KILLED   excludeSource ignored
+KILLED   filter ignored
+KILLED   atk/def swapped
+KILLED   no clamp at 0
+KILLED   a face-down monster gets modified
+KILLED   the caller's (pre-flip) copy is used instead of the board's
+KILLED   stats read on the board BEFORE the flip
+KILLED   attacker uses printed ATK
+KILLED   target uses printed ATK/DEF
+KILLED   Continuous effect of a Spell/Trap not rejected with CONTINUOUS_NOT_ACTIVATABLE
+KILLED   Continuous effect of a field monster: CARD_NOT_IN_HAND instead
+KILLED   unknown script activatable
+SURVIVED Continuous effects generated as candidates (only costs dry runs — expected EQUIVALENT)
+KILLED   script never runs
+SURVIVED script runs after the duel ended (no test reaches it — expected EQUIVALENT with the halve script)
+KILLED   halve script emits a 0 damage event
+KILLED   halve script reads the wrong player
+KILLED   scriptFor ignores own-property check
+KILLED   trigger with unknown script activates
+KILLED   effect with no operation and no script accepted
+KILLED   continuous/resolve operations mixed freely
+KILLED   scriptId accepted on a Continuous effect
+KILLED   ModifyStat amount 0 accepted
+
+28/30 mutants killed

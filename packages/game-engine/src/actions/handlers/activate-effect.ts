@@ -13,6 +13,7 @@ import { activationCandidates } from '../../effects/activation-candidates.js';
 import { pushLink, settle } from '../../effects/chain.js';
 import { conditionsHold } from '../../effects/conditions.js';
 import { payCosts, planCosts, type CostStep } from '../../effects/costs.js';
+import { scriptFor } from '../../effects/effect-scripts/registry.js';
 import { spellSpeedOf } from '../../effects/spell-speed.js';
 import { targetCandidates } from '../../effects/targets.js';
 import type { ActionContext, ActivateEffectAction, ResolvePendingPromptAction } from '../types.js';
@@ -76,6 +77,20 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
     fail('NOT_TURN_PLAYER', 'only the turn player may act.');
 
   const found = locate(state.players[playerIndex], cardInstanceId);
+  if (!found) {
+    // Task 3.6: a monster on the field is never activated; say why when the asked effect is Continuous.
+    const monster = state.players[playerIndex].board.monsterZones.find(
+      (c) => c?.instanceId === cardInstanceId,
+    );
+    const asked = monster
+      ? ctx.cardDefinitions(monster.definitionId)?.effects?.find((e) => e.id === effectId)
+      : undefined;
+    if (asked?.trigger.kind === 'Continuous')
+      fail(
+        'CONTINUOUS_NOT_ACTIVATABLE',
+        `effect "${effectId}" is Continuous: it applies by itself while the card is face-up.`,
+      );
+  }
   if (!found)
     return fail(
       'CARD_NOT_IN_HAND',
@@ -88,6 +103,12 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
     return fail(
       'CARD_DEFINITION_NOT_FOUND',
       `card definition "${card.definitionId}" was not found.`,
+    );
+  // Task 3.6 [RULE]: a Continuous effect is never activated; it holds while its card is face-up on the field.
+  if (definition.effects?.find((e) => e.id === effectId)?.trigger.kind === 'Continuous')
+    fail(
+      'CONTINUOUS_NOT_ACTIVATABLE',
+      `effect "${effectId}" of "${definition.name.en}" is Continuous: it applies by itself while the card is face-up.`,
     );
   if (definition.kind === 'Monster')
     return fail('NOT_A_SPELL_TRAP', `"${definition.name.en}" is not a Spell/Trap card.`);
@@ -117,7 +138,8 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
     // A face-up card is already on the chain (or resolving): it cannot be activated again.
     if (card.position !== 'DefenseDown')
       fail('NOT_ACTIVATABLE', `"${definition.name.en}" is already face-up.`);
-    // Set Normal/Counter Trap and Set Quick-Play: Quick trigger, any phase. Continuous cards / Set Normal Spell: later.
+    // Set Normal/Counter Trap and Set Quick-Play: Quick trigger, any phase. Activating a Continuous Spell/Trap card
+    // (so that it stays face-up) and a Set Normal Spell: P4. Its Continuous effects never activate (task 3.6).
     trigger =
       definition.kind === 'Trap'
         ? definition.subType === 'Continuous'
@@ -141,6 +163,8 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
       'NOT_ACTIVATABLE',
       `a ${effect.trigger.kind} effect cannot be activated as a ${definition.subType} ${definition.kind}.`,
     );
+  if (effect.scriptId !== undefined && !scriptFor(effect.scriptId))
+    return fail('UNKNOWN_SCRIPT', `script "${effect.scriptId}" is not registered.`);
 
   if (source.zone === 'SpellTrapZone' && card.setTurn === state.turnCount) {
     // [RULE] not on the turn it was Set: Traps per `ruleset.trapSetTurnDelay`, Quick-Play Spells always.

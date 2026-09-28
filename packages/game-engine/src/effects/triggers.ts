@@ -12,6 +12,7 @@ import type {
 import { openReactionWindow, pushLink, type CanActivate } from './chain.js';
 import { conditionsHold } from './conditions.js';
 import { payCosts, planCosts, type CostStep } from './costs.js';
+import { scriptFor } from './effect-scripts/registry.js';
 import { spellSpeedOf } from './spell-speed.js';
 import { targetCandidates } from './targets.js';
 
@@ -135,6 +136,8 @@ export function readyTrigger(
   const effect = definition?.effects?.find((e) => e.id === trigger.effectId);
   if (!definition || !effect) return null;
   if (effect.trigger.kind !== 'OnSummon' && effect.trigger.kind !== 'OnDestroyed') return null;
+  // Task 3.6: a script nobody registered never activates (as in ActivateEffect's UNKNOWN_SCRIPT).
+  if (effect.scriptId !== undefined && !scriptFor(effect.scriptId)) return null;
   if (!conditionsHold(state, trigger.playerIndex, effect.condition)) return null;
 
   let costPlan: CostStep[];

@@ -3,6 +3,7 @@ import type { Action, ActionContext, StartDuelAction } from '../../actions/types
 import type { ApplyActionResult } from '../../apply-action.js';
 import { applyAction } from '../../apply-action.js';
 import { hasLegalActivation } from '../../actions/handlers/activate-effect.js';
+import { activeContinuousEffects, effectiveStats } from '../../effects/continuous.js';
 import { EngineError } from '../../errors.js';
 import { createRng, nextInt } from '../../rng/seeded-rng.js';
 import type { RngState } from '../../rng/seeded-rng.js';
@@ -83,6 +84,49 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
     trigger: { kind: 'OnDestroyed', mandatory: true },
     cost: [{ kind: 'PayLP', amount: 100 }],
     operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+  }),
+  // Task 3.6 — Continuous effects (hold while face-up): +500 ATK to the other Warriors of its side; −700 ATK / −1000 DEF
+  // to every opponent monster (clamps at 0); a Continuous Spell (never activatable until P4) and a script Spell.
+  MCB: {
+    ...effectMonster('MCB', 4, 1300, 1100, {
+      trigger: { kind: 'Continuous' },
+      operations: [
+        {
+          kind: 'ModifyStat',
+          stat: 'atk',
+          amount: 500,
+          side: 'self',
+          filter: { race: 'Warrior' },
+          excludeSource: true,
+        },
+      ],
+    }),
+    race: 'Fiend',
+  } as CardDefinition,
+  MCW: effectMonster('MCW', 3, 900, 900, {
+    trigger: { kind: 'Continuous' },
+    operations: [
+      { kind: 'ModifyStat', stat: 'atk', amount: -700, side: 'opponent' },
+      { kind: 'ModifyStat', stat: 'def', amount: -1000, side: 'opponent' },
+    ],
+  }),
+  CSB: {
+    id: 'CSB',
+    kind: 'Spell',
+    name: { vi: 'Fuzz CSB', en: 'Fuzz CSB' },
+    subType: 'Continuous',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'def', amount: 300, side: 'self' }],
+      },
+    ],
+  },
+  SPH: spell('SPH', {
+    trigger: { kind: 'Ignition' },
+    scriptId: 'test.halve-opponent-lp',
+    operations: [],
   }),
   TRD: {
     ...trap('TRD', 'Normal', { operations: [{ kind: 'Heal', amount: 100, target: 'self' }] }),
@@ -191,6 +235,8 @@ export interface FuzzStats {
   /** Trigger links (task 3.5) and TriggerActivation prompts opened. */
   readonly triggerLinks: number;
   readonly triggerPrompts: number;
+  /** States (between actions) where a Continuous effect changed some monster's ATK/DEF (task 3.6). */
+  readonly continuousApplied: number;
 }
 
 export type FuzzResult =
@@ -661,6 +707,29 @@ export function checkStateInvariants(
   return null;
 }
 
+/**
+ * Task 3.6: effective ATK/DEF are never negative, and equal the printed stats when no Continuous effect is in force.
+ * Returns [violation, whether some monster's stats were modified].
+ */
+function checkContinuous(state: GameState, ctx: ActionContext): [string | null, boolean] {
+  const noneActive = activeContinuousEffects(state, ctx).length === 0;
+  let modified = false;
+  for (const i of [0, 1] as const) {
+    for (const c of monstersOf(state, i)) {
+      const printed = FUZZ_DEFS[c.definitionId];
+      if (!printed || printed.kind !== 'Monster') continue;
+      const s = effectiveStats(state, c, ctx);
+      if (s.atk < 0 || s.def < 0)
+        return [`${c.instanceId} has negative stats ${JSON.stringify(s)}`, false];
+      const same = s.atk === printed.atk && s.def === printed.def;
+      if (noneActive && !same)
+        return [`${c.instanceId} modified with no Continuous effect in force`, false];
+      if (!same) modified = true;
+    }
+  }
+  return [null, modified];
+}
+
 /** Invariants relating a state to the one before the (accepted) action. */
 function checkTransition(prev: GameState, next: GameState): string | null {
   if (next.version !== prev.version + 1)
@@ -687,6 +756,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let reactionWindows = 0;
   let triggerLinks = 0;
   let triggerPrompts = 0;
+  let continuousApplied = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -739,6 +809,9 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
     }
     const broken = checkStateInvariants(next, initialIds);
     if (broken) return fail(step, broken);
+    const [continuousBroken, modified] = checkContinuous(next, ctx);
+    if (continuousBroken) return fail(step, continuousBroken);
+    if (modified) continuousApplied++;
     // [ASSUMED] auto-pass: a window only stays open for a holder who can actually respond.
     const window = next.chainWindow;
     if (window && next.winnerIndex === null && next.pendingPrompt === null) {
@@ -786,6 +859,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       reactionWindows,
       triggerLinks,
       triggerPrompts,
+      continuousApplied,
     },
   };
 }

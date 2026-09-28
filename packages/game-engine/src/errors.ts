@@ -47,7 +47,9 @@ export type EngineErrorCode =
   | 'NOT_PRIORITY_HOLDER'
   | 'CHAIN_WINDOW_OPEN'
   | 'SPELL_SPEED_TOO_LOW'
-  | 'INVALID_TRIGGER_ANSWER';
+  | 'INVALID_TRIGGER_ANSWER'
+  | 'CONTINUOUS_NOT_ACTIVATABLE'
+  | 'UNKNOWN_SCRIPT';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */
 export class EngineError extends Error {

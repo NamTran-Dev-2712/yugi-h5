@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ConditionSchema } from './condition.js';
 import { CostSchema } from './cost.js';
 import { OperationSchema } from './operation.js';
+import { isContinuousOperationKind } from './registry.js';
 import { TargetSchema } from './target.js';
 import { TriggerSchema } from './trigger.js';
 
@@ -21,10 +22,34 @@ export const EffectDefinitionSchema = z
     /** Paid on activation. */
     cost: z.array(CostSchema).min(1).optional(),
     target: TargetSchema.optional(),
-    /** Run in order on resolution. */
-    operations: z.array(OperationSchema).min(1),
+    /**
+     * Run in order on resolution; for a `Continuous` effect, the modifiers that hold while the card is face-up.
+     * May be empty only when `scriptId` does the work.
+     */
+    operations: z.array(OperationSchema),
+    /**
+     * Engine script run on resolution, after `operations` (task 3.6), for behaviour the DSL cannot express. The engine
+     * refuses to activate an effect whose script is not registered. Not allowed on `Continuous` effects.
+     */
+    scriptId: z.string().min(1).optional(),
   })
   .strict()
+  .refine((e) => e.operations.length > 0 || e.scriptId !== undefined, {
+    message: 'an effect needs at least one operation or a scriptId',
+  })
+  .refine(
+    (e) =>
+      e.operations.every(
+        (o) => isContinuousOperationKind(o.kind) === (e.trigger.kind === 'Continuous'),
+      ),
+    {
+      message:
+        'Continuous effects hold only continuous operations (ModifyStat), other effects none',
+    },
+  )
+  .refine((e) => e.trigger.kind !== 'Continuous' || e.scriptId === undefined, {
+    message: 'a scriptId runs on resolution: not allowed on a Continuous effect',
+  })
   .refine((e) => e.trigger.kind !== 'Continuous' || (!e.cost && !e.target), {
     message: 'Continuous effects never go on the chain: no cost/target allowed',
   })
