@@ -65,6 +65,8 @@ export interface CardRender {
   readonly highlight: boolean;
   /** One of my Set cards the server lists an ActivateEffect for: a tap activates it (C13, task 3.7). */
   readonly activatable: boolean;
+  /** Task 4.2d: a face-up Equip card's monster (server `equippedTo`); null for every other card. */
+  readonly equippedTo: string | null;
 }
 
 export interface PileRender {
@@ -114,6 +116,8 @@ export interface RenderModel {
   readonly prompt: { readonly text: string } | null;
   /** An open chain / reaction window: what it waits for; `mine` = I hold priority. */
   readonly chain: { readonly text: string; readonly mine: boolean } | null;
+  /** Task 4.2d: Equip card → monster, only when both are drawn (the scene draws a line between them). */
+  readonly equipLinks: readonly { readonly equipId: string; readonly monsterId: string }[];
 }
 
 export interface PresentContext {
@@ -187,6 +191,7 @@ function renderCard(
     action: null,
     highlight: false,
     activatable: false,
+    equippedTo: null,
   } as const;
   // Hidden for the viewer: a `hidden` card, or (defence in depth against a server bug) an opponent's card that is
   // face-down. Nothing about it is kept.
@@ -213,6 +218,7 @@ function renderCard(
     label: faceDown ? null : known.label,
     // The owner knows their own face-down card, so the panel may name it.
     detail: known.detail,
+    equippedTo: !faceDown && card.equippedTo !== undefined ? card.equippedTo : null,
   };
 }
 
@@ -403,6 +409,11 @@ export function present(
     banner,
     prompt: promptModel,
     chain: view.winnerIndex === null ? chainBanner(view, ctx.lookup) : null,
+    equipLinks: cards.flatMap((c) =>
+      c.equippedTo !== null && cards.some((m) => m.id === c.equippedTo && m.zone === 'monster')
+        ? [{ equipId: c.id, monsterId: c.equippedTo }]
+        : [],
+    ),
   };
 }
 
@@ -435,4 +446,22 @@ function chainBanner(view: StateView, lookup: CardLookup): RenderModel['chain'] 
   const def = top ? lookup(top.card.definitionId) : undefined;
   const name = def ? cardName(def) : (top?.card.definitionId ?? '?');
   return { text: t('chain.respond', { count: view.chain.length, name }), mine: true };
+}
+
+/**
+ * Task 4.2d: the graveyard picker slots (`OverlayModel.picker`) as cards to draw, face-up. Only a card the view shows in
+ * a graveyard is drawn (always public); any other id gets no card (never guessed).
+ */
+export function pickerCards(
+  view: StateView,
+  picker: readonly { readonly id: string; readonly rect: Rect }[],
+  lookup: CardLookup,
+): CardRender[] {
+  const graveyard = view.players.flatMap((p) => p.graveyard);
+  return picker.flatMap(({ id, rect }) => {
+    const card = graveyard.find((c) => c.instanceId === id);
+    if (!card || card.hidden) return [];
+    const side: Side = card.ownerIndex === view.viewerIndex ? 'self' : 'opp';
+    return [renderCard(card, side, 'hand', rect, view.viewerIndex, lookup)];
+  });
 }

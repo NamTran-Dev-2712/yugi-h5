@@ -199,6 +199,38 @@ const EVENTS: Record<EventView['type'], { event: EventView; en: string }> = {
     event: { type: 'ChainResolved', linkCount: 2 },
     en: 'Chain of 2 links resolved',
   },
+  MonsterSpecialSummoned: {
+    event: {
+      type: 'MonsterSpecialSummoned',
+      playerIndex: 0,
+      instanceId: 'p0-9',
+      definitionId: 'SMP-003',
+      zoneIndex: 1,
+      from: 'Graveyard',
+      position: 'Attack',
+    },
+    en: 'P0 Special Summons Name(SMP-003) from the graveyard to zone 1',
+  },
+  FlipSummoned: {
+    event: {
+      type: 'FlipSummoned',
+      playerIndex: 1,
+      instanceId: 'p1-4',
+      definitionId: 'SMP-044',
+      zoneIndex: 2,
+    },
+    en: 'P1 Flip Summons Name(SMP-044) in zone 2',
+  },
+  CardEquipped: {
+    event: {
+      type: 'CardEquipped',
+      playerIndex: 0,
+      instanceId: 'p0-20',
+      definitionId: 'SMP-112',
+      targetInstanceId: 'p0-2',
+    },
+    en: 'P0 equips Name(SMP-112) to <p0-2>',
+  },
 };
 
 describe('English wording', () => {

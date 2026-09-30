@@ -89,7 +89,7 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 | `SetSpellTrap`         | M2 (task 3.2 ✅)                                           | `{playerIndex, cardInstanceId, zoneIndex}`; Spell/Trap từ tay vào ô 0–4, úp (`DefenseDown`), ghi `setTurn`; không giới hạn/lượt, không tốn Normal Summon; Main1/Main2; Field Spell chưa hỗ trợ                                              |
 | `ActivateEffect`       | M2 (task 3.2 ✅; lên chain từ 3.3; lá Set từ 3.4)          | `{playerIndex, cardInstanceId, effectId, costInstanceIds?}`; Normal Spell/Quick-Play ở tay, Trap/Quick-Play đã Set (mục C11); target chọn qua prompt `SelectEffectTarget` (không có `targetInstanceIds` trong payload); xem `effect-dsl.md` |
 | `ResolvePendingPrompt` | M1 (task 1.11 ✅, hand limit) / M2 (target/chain response) | `{playerIndex, promptId, cardInstanceIds}`; trả lời `PendingPrompt` hiện tại; xem mục PendingPrompt                                                                                                                                         |
-| `FlipSummon`           | P4 (task 4.2b ✅, engine-only)                             | `{playerIndex, cardInstanceId}`; lật quái úp của mình lên Tư thế Công ở Main Phase; xem mục "Flip Summon + OnFlip"                                                                                                                          |
+| `FlipSummon`           | P4 (task 4.2b ✅, lên wire 4.2d)                           | `{playerIndex, cardInstanceId}`; lật quái úp của mình lên Tư thế Công ở Main Phase; xem mục "Flip Summon + OnFlip"                                                                                                                          |
 | `PassPriority`         | M2 (task 3.3 ✅, engine-only)                              | `{playerIndex}`; chỉ `chainWindow.priorityPlayer`; pass thứ 2 liên tiếp resolve cả chain; xem mục Chain stack                                                                                                                               |
 
 ### Kích hoạt Trap/Spell — hợp đồng C11 (✅ xong: phần tay ở task 3.2, Trap/Quick-Play đã Set ở task 3.4)
@@ -138,12 +138,12 @@ Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `defin
 
 Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
 
-Task 4.2c thêm: `CardEquipped {playerIndex,instanceId,definitionId,targetInstanceId}` (lá Equip gắn vào quái). Equip rời sân theo quái dùng lại `CardSentToGraveyard {from:'SpellTrapZone'}`. **Chưa được API forward**.
+Task 4.2c thêm: `CardEquipped {playerIndex,instanceId,definitionId,targetInstanceId}` (lá Equip gắn vào quái). Equip rời sân theo quái dùng lại `CardSentToGraveyard {from:'SpellTrapZone'}`. API forward từ task 4.2d (PUBLIC); `CardInstance.equippedTo` ra wire thành `VisibleCardView.equippedTo`.
 
-Task 4.2b thêm: `FlipSummoned {playerIndex,instanceId,definitionId,zoneIndex}` (Flip Summon; trigger OnFlip/OnSummon theo sau). **Chưa được API forward**.
+Task 4.2b thêm: `FlipSummoned {playerIndex,instanceId,definitionId,zoneIndex}` (Flip Summon; trigger OnFlip/OnSummon theo sau). API forward từ task 4.2d (PUBLIC).
 
 Task 4.2a thêm: `MonsterSpecialSummoned {playerIndex,instanceId,definitionId,zoneIndex,from:'Hand'|'Graveyard',position}`
-(phát trong lúc link resolve, giữa `ChainLinkAdded` và `EffectResolved`). **Chưa được API forward** (engine-only).
+(phát trong lúc link resolve, giữa `ChainLinkAdded` và `EffectResolved`). API forward từ task 4.2d (PUBLIC); `targetInstanceIds` trỏ vào tay bị API lọc với ghế không được biết (xem `event-visibility.md`).
 
 Event là **fact đã xảy ra**, không phải instruction cho FE — FE tự quyết định animate thế nào
 từ fact đó.
@@ -329,7 +329,7 @@ Trigger **không** do `ActivateEffect` kích hoạt: engine tự khởi phát t�
 
 ## Special Summon (task 4.2a)
 
-Engine-only (chưa lên wire). Chủ dự án chốt 2026-09-30: **chỉ là operation**, không có action `SpecialSummon` của người chơi
+Lên wire ở task 4.2d (lá thật SMP-111; engine không đổi). Chủ dự án chốt 2026-09-30: **chỉ là operation**, không có action `SpecialSummon` của người chơi
 (summon "tự thân" kiểu "được Special Summon nếu…" cần DSL điều kiện riêng, để dành).
 
 - Operation `SpecialSummon{position?: 'Attack' | 'DefenseUp'}` (`effects/operations/special-summon.ts`) tác động lên target `Card`
@@ -350,7 +350,7 @@ Engine-only (chưa lên wire). Chủ dự án chốt 2026-09-30: **chỉ là ope
 
 ## Flip Summon + OnFlip (task 4.2b)
 
-Engine-only (chưa lên wire: API lọc khỏi `legalActions` và từ chối `FORBIDDEN_ACTION`, `apps/api/src/modules/duels/wire-actions.ts`).
+Lên wire ở task 4.2d (`PlayerActionSchema`, lá thật SMP-044; engine không đổi). Trước đó API lọc khỏi `legalActions` qua `apps/api/src/modules/duels/wire-actions.ts` (cơ chế giữ lại, danh sách rỗng).
 
 - **`FlipSummon {playerIndex, cardInstanceId}`** `[RULE]`: turn player, Main1/Main2, không prompt/cửa sổ chain; quái **úp** của chính mình
   (ngửa ⇒ `MONSTER_FACE_UP`), không phải quái Set trong lượt này (`SUMMONED_THIS_TURN`), chưa đổi thế trong lượt
@@ -369,7 +369,7 @@ instanceId, definitionId, zoneIndex}`; `version` +1.
 
 ## Equip Spell (task 4.2c)
 
-Engine-only (chưa lên wire). Chủ dự án chốt 2026-09-30: **không thêm Duration**. Continuous đã có nghĩa "khi lá còn ngửa trên sân" (tính
+Lên wire ở task 4.2d (lá thật SMP-112, `equippedTo` trên view; engine không đổi). Chủ dự án chốt 2026-09-30: **không thêm Duration**. Continuous đã có nghĩa "khi lá còn ngửa trên sân" (tính
 lại mỗi lần đọc); cái còn thiếu chỉ là phạm vi "quái được trang bị" ⇒ `ModifyStat.equipped`.
 
 - **Kích hoạt**: Spell `subType: 'Equip'` từ **tay**, trigger `Ignition`, Main1/Main2 của mình (như Normal Spell). Cần 1 ô Phép/Bẫy trống

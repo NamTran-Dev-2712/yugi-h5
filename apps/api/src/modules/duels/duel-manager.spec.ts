@@ -143,7 +143,7 @@ describe('DuelManager.submitAction', () => {
     );
   });
 
-  it('keeps the engine-only FlipSummon off the wire (task 4.2b): never listed, refused with FORBIDDEN_ACTION', async () => {
+  it('puts FlipSummon on the wire (task 4.2d; engine-only in 4.2b): listed, and accepted like any action', async () => {
     const { manager, duelId } = await setup();
     await toMain1(manager, duelId);
     const card = (await stateOf(manager, duelId)).players[0].hand[0]!.instanceId;
@@ -160,8 +160,9 @@ describe('DuelManager.submitAction', () => {
     });
     expect(engineLists).toContainEqual(flip);
     const offered = await manager.getLegalActions(duelId, 0);
-    expect(offered.some((a) => (a.type as string) === 'FlipSummon')).toBe(false);
-    await expectDuelError(manager.submitAction(duelId, 0, flip), 'FORBIDDEN_ACTION');
+    expect(offered).toContainEqual(flip);
+    const res = await manager.submitAction(duelId, 0, flip);
+    expect(res.events.map((e) => e.type)).toContain('FlipSummoned');
   });
 
   it('leaves state, version and log untouched when the engine rejects', async () => {
@@ -441,7 +442,8 @@ describe('DuelManager legalActions (2.5)', () => {
         fresh.manager.submitAction(fresh.duelId, 0, a as unknown as Action),
       ).resolves.toBeDefined();
     }
-  });
+    // Task 4.2d: explicit timeout (one fresh duel per listed action; slow while the workspace tests in parallel).
+  }, 60_000);
 
   it('is empty once the duel ended and throws DUEL_NOT_FOUND for unknown ids', async () => {
     const { manager, duelId } = await setup();

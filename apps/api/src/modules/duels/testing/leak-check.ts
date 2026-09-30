@@ -91,9 +91,85 @@ function reasonToHide(place: Place | null, viewer: 0 | 1): string | null {
   }
 }
 
+/** A key naming instance ids that POINT at cards (targets, costs, answers…); `instanceId` itself is excluded. */
+const POINTER_KEY = /InstanceIds?$/;
+
+/**
+ * Task 4.2d: every id under a pointer key (`targetInstanceIds`, `cardInstanceIds`, `targetInstanceId`…, any depth), and
+ * every `equippedTo`. The plain `instanceId` of a hidden card is fine (the view lists the opponent's hand that way); what
+ * leaks is a list that singles out one of them.
+ */
+function collectPointers(value: unknown): {
+  ids: { path: string; id: string }[];
+  equips: { path: string; owner: Record<string, unknown>; id: string }[];
+} {
+  const ids: { path: string; id: string }[] = [];
+  const equips: { path: string; owner: Record<string, unknown>; id: string }[] = [];
+  const walk = (v: unknown, p: string): void => {
+    if (Array.isArray(v)) {
+      v.forEach((item, i) => walk(item, `${p}[${i}]`));
+      return;
+    }
+    if (typeof v !== 'object' || v === null) return;
+    const rec = v as Record<string, unknown>;
+    for (const [k, child] of Object.entries(rec)) {
+      if (k === 'equippedTo' && typeof child === 'string') {
+        equips.push({ path: `${p}.${k}`, owner: rec, id: child });
+      } else if (k !== 'instanceId' && POINTER_KEY.test(k)) {
+        if (typeof child === 'string') ids.push({ path: `${p}.${k}`, id: child });
+        if (Array.isArray(child)) {
+          child.forEach((id, i) => {
+            if (typeof id === 'string') ids.push({ path: `${p}.${k}[${i}]`, id });
+          });
+        }
+      }
+      walk(child, `${p}.${k}`);
+    }
+  };
+  walk(value, '$');
+  return { ids, equips };
+}
+
+/** Where a pointed-at id must not be for `viewer`: the opponent's hand, or any deck / Extra Deck. */
+function pointsAtHidden(place: Place | null, viewer: 0 | 1): boolean {
+  if (place === null) return false;
+  if (place.zone === 'deck' || place.zone === 'extraDeck') return true;
+  return place.zone === 'hand' && place.card.ownerIndex !== viewer;
+}
+
+/** `equippedTo` may only sit on a face-up card and name a face-up monster in a Monster Zone. */
+function equipProblem(state: GameState, owner: Record<string, unknown>, id: string): string | null {
+  if (owner['hidden'] !== false || owner['position'] === 'DefenseDown') {
+    return 'equippedTo on a card that is not face-up';
+  }
+  for (const p of state.players) {
+    const m = p.board.monsterZones.find((c) => c?.instanceId === id);
+    if (m) return m.position === 'DefenseDown' ? 'equippedTo names a face-down monster' : null;
+  }
+  return 'equippedTo names a card that is not a monster on the field';
+}
+
 /** All violations in `payload` (whatever the viewer received) against the raw state after the action. */
 export function findLeaks(state: GameState, viewer: 0 | 1, payload: unknown): LeakViolation[] {
   const violations: LeakViolation[] = [];
+  const pointers = collectPointers(payload);
+  for (const { path, id } of pointers.ids) {
+    if (pointsAtHidden(locate(state, id), viewer)) {
+      violations.push({
+        viewer,
+        path,
+        instanceId: id,
+        definitionId: '(pointer)',
+        reason: 'an id list points at a card hidden from the viewer',
+      });
+    }
+  }
+  for (const { path, owner, id } of pointers.equips) {
+    const reason = equipProblem(state, owner, id);
+    if (reason !== null) {
+      violations.push({ viewer, path, instanceId: id, definitionId: '(equippedTo)', reason });
+    }
+  }
   for (const pair of collectDefinitionIds(payload)) {
     const fail = (reason: string) => violations.push({ viewer, ...pair, reason });
     if (pair.instanceId === null) {

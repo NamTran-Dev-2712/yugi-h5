@@ -1,5 +1,6 @@
 import type { GameEvent } from '@yugi/game-engine';
 import type { EventView } from '@yugi/shared';
+import { visibleIds } from './visibility';
 
 /**
  * Filters one engine GameEvent down to what `viewerIndex` may see (classification table:
@@ -12,8 +13,16 @@ import type { EventView } from '@yugi/shared';
  * (e.g. MonsterSet carries no definitionId). Contract on the engine: an event never carries the definitionId
  * of a card that is still hidden from the opponent, except CardDrawn (OWNER_ONLY, handled here). The
  * cross-check in event-visibility.spec.ts guards this contract.
+ *
+ * `hidden` (task 4.2d, explicit on purpose): the ids `viewerIndex` may not be pointed at (`hiddenIdsFor` on the state the
+ * response is built from). Only target lists use it: a ChainLinkAdded never tells the opponent which hand card an effect
+ * chose (e.g. a Special Summon from the hand).
  */
-export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | null {
+export function toEventView(
+  event: GameEvent,
+  viewerIndex: 0 | 1,
+  hidden: ReadonlySet<string>,
+): EventView | null {
   switch (event.type) {
     // OWNER_ONLY: the drawer sees the card, the opponent only that a card was drawn.
     case 'CardDrawn':
@@ -60,19 +69,22 @@ export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | n
     // Chain (task 3.3, forwarded since 3.4b): the linked card was revealed when it was activated (EffectActivated) —
     // from the hand it lives in the chain link, a Set card was flipped face-up, a trigger's card is face-up on the field
     // or in the graveyard; ChainResolved carries no card data. Same public form as StateView.chain.
-    case 'ChainLinkAdded':
     case 'ChainLinkFizzled':
     case 'ChainResolved':
       return event;
+    case 'ChainLinkAdded': {
+      const targetInstanceIds = visibleIds(event.targetInstanceIds, hidden);
+      return targetInstanceIds === event.targetInstanceIds
+        ? event
+        : { ...event, targetInstanceIds };
+    }
 
-    // Engine-only for now (task 4.2a; no card of the pool Special Summons yet): classified PUBLIC (always face-up) in
-    // docs/design/event-visibility.md, but not forwarded until EventView has it (wire task).
+    // Task 4.2a/b/c, forwarded since 4.2d: the Special Summoned / Flip Summoned monster is face-up, the Equip Spell is
+    // face-up on a face-up monster.
     case 'MonsterSpecialSummoned':
-    // Task 4.2b: FlipSummoned is PUBLIC (face-up), engine-only like above.
     case 'FlipSummoned':
-    // Task 4.2c: CardEquipped is PUBLIC (a face-up Equip on a face-up monster), engine-only like above.
     case 'CardEquipped':
-      return null;
+      return event;
 
     default: {
       const unclassified: never = event;
@@ -83,10 +95,14 @@ export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | n
 }
 
 /** Filters a batch, keeping order and dropping events the viewer must not receive. */
-export function toEventViews(events: readonly GameEvent[], viewerIndex: 0 | 1): EventView[] {
+export function toEventViews(
+  events: readonly GameEvent[],
+  viewerIndex: 0 | 1,
+  hidden: ReadonlySet<string>,
+): EventView[] {
   const views: EventView[] = [];
   for (const event of events) {
-    const view = toEventView(event, viewerIndex);
+    const view = toEventView(event, viewerIndex, hidden);
     if (view !== null) views.push(view);
   }
   return views;

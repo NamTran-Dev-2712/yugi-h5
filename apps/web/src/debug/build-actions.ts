@@ -163,6 +163,17 @@ export function buildActionButtons(view: StateView, lookup: CardLookup): ActionB
         inputs: [],
       });
     }
+    // Task 4.2d: every face-down monster of mine gets a Flip Summon button (the server decides if it is legal).
+    if (card.position === 'DefenseDown') {
+      buttons.push({
+        id: `FlipSummon:${card.instanceId}`,
+        label: `Triệu hồi Lật ${label}`,
+        type: 'FlipSummon',
+        playerIndex: seat,
+        fixed: { cardInstanceId: card.instanceId },
+        inputs: [],
+      });
+    }
     if (card.position === 'Attack') {
       buttons.push({
         id: `DeclareAttack:${card.instanceId}`,

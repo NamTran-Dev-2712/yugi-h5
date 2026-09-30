@@ -314,6 +314,10 @@ describe('sample scenarios', () => {
     // Task 3.8: scenarios on the real effect cards.
     'chain-reaction-real',
     'continuous-real',
+    // Task 4.2d: Special Summon / Flip Summon / Equip on real cards.
+    'equip-real',
+    'flip-real',
+    'special-summon-real',
     'tribute-summon',
     'trigger-optional-real',
   ];

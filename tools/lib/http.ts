@@ -16,6 +16,8 @@ export interface CardV {
   position?: string | null;
   /** Task 3.4b: face-up monsters only. */
   effectiveStats?: { atk: number; def: number };
+  /** Task 4.2d: face-up Equip cards only (the monster they are equipped to). */
+  equippedTo?: string;
 }
 
 export interface PlayerV {

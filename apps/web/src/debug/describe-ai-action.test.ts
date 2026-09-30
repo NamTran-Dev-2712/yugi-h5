@@ -53,6 +53,9 @@ describe('describeAiAction', () => {
       }),
     ).toBe('🤖 AI bỏ «p1-1», «p1-2» xuống mộ');
     expect(say({ type: 'Surrender', payload: { playerIndex: 1 } })).toBe('🤖 AI đầu hàng');
+    expect(say({ type: 'FlipSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-4' } })).toBe(
+      '🤖 AI Triệu hồi Lật «p1-4»',
+    );
     expect(
       say({
         type: 'SetSpellTrap',

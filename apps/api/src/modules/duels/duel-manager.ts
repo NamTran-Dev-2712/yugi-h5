@@ -21,6 +21,7 @@ import { createAiRng } from './ai/ai-rng';
 import { chooseAction, type AiPolicy } from './ai/choose-action';
 import { DuelServiceError } from './duel-errors';
 import { toEventViews } from './event-view';
+import { hiddenIdsFor, redactAction } from './visibility';
 import type { DuelMode, DuelSession, DuelStore } from './duel-store';
 import type { DuelMeta } from './duel-access';
 import { toStateView } from './state-view';
@@ -225,14 +226,15 @@ export class DuelManager {
   ): Promise<CreateDuelResult> {
     const driven = await this.driveAi(session);
     const finalState = driven.session.state;
+    const hidden = hiddenByViewer(finalState);
     const eventsByViewer: [EventView[], EventView[]] = [
-      toEventViews(events, 0),
-      toEventViews(events, 1),
+      toEventViews(events, 0, hidden[0]),
+      toEventViews(events, 1, hidden[1]),
     ];
     let aiActions: AiActionView[] | undefined;
     if (driven.steps.length > 0 && session.aiSeat !== undefined) {
       const human = session.aiSeat === 0 ? 1 : 0;
-      aiActions = this.appendAiSteps(eventsByViewer, driven.steps, human);
+      aiActions = this.appendAiSteps(eventsByViewer, driven.steps, human, hidden);
     }
     return {
       duelId: session.duelId,
@@ -251,19 +253,24 @@ export class DuelManager {
 
   /**
    * Appends the AI steps' events to both viewers' lists (viewer order preserved) and returns the slices they
-   * occupy in `human`'s list.
+   * occupy in `human`'s list. Task 4.2d: each AI action loses the ids still hidden from the human (`redactAction`).
    */
   private appendAiSteps(
     eventsByViewer: [EventView[], EventView[]],
     steps: readonly AiStep[],
     human: 0 | 1,
+    hidden: readonly [ReadonlySet<string>, ReadonlySet<string>],
   ): AiActionView[] {
     const out: AiActionView[] = [];
     for (const step of steps) {
       const eventsFrom = eventsByViewer[human].length;
-      eventsByViewer[0].push(...toEventViews(step.events, 0));
-      eventsByViewer[1].push(...toEventViews(step.events, 1));
-      out.push({ action: step.action, eventsFrom, eventsTo: eventsByViewer[human].length });
+      eventsByViewer[0].push(...toEventViews(step.events, 0, hidden[0]));
+      eventsByViewer[1].push(...toEventViews(step.events, 1, hidden[1]));
+      out.push({
+        action: redactAction(step.action, hidden[human]),
+        eventsFrom,
+        eventsTo: eventsByViewer[human].length,
+      });
     }
     return out;
   }
@@ -295,12 +302,14 @@ export class DuelManager {
       }
       const applied = await this.applyAndSave(session, playerIndex, action);
       const driven = await this.driveAi(applied.session);
-      const eventsByViewer: [EventView[], EventView[]] = [
-        toEventViews(applied.events, 0),
-        toEventViews(applied.events, 1),
-      ];
-      const aiActions = this.appendAiSteps(eventsByViewer, driven.steps, playerIndex);
       const finalState = driven.session.state;
+      // Filtered against the state the response shows (task 4.2d): a target still hidden at the end stays hidden.
+      const hidden = hiddenByViewer(finalState);
+      const eventsByViewer: [EventView[], EventView[]] = [
+        toEventViews(applied.events, 0, hidden[0]),
+        toEventViews(applied.events, 1, hidden[1]),
+      ];
+      const aiActions = this.appendAiSteps(eventsByViewer, driven.steps, playerIndex, hidden);
       return {
         view: toStateView(finalState, playerIndex, this.cardDefinitions),
         events: eventsByViewer[playerIndex],
@@ -470,4 +479,9 @@ export class DuelManager {
       }
     }
   }
+}
+
+/** `hiddenIdsFor` of both seats, on the state a response is built from. */
+function hiddenByViewer(state: GameState): [ReadonlySet<string>, ReadonlySet<string>] {
+  return [hiddenIdsFor(state, 0), hiddenIdsFor(state, 1)];
 }

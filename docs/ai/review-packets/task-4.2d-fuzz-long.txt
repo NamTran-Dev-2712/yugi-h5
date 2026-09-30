@@ -1,0 +1,362 @@
+
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/apps/api
+
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts
+[fuzz 3.2b/3.4b] {
+  steps: 93671,
+  duels: 581,
+  rejected: 6329,
+  targetPrompts: 1103,
+  triggerPrompts: 805,
+  declines: 312,
+  reactionWindows: 1058,
+  multiLinkChains: 636,
+  setActivations: 1810,
+  passes: 311,
+  ssFromHand: 150,
+  ssFromGraveyard: 219,
+  battleFlipTriggers: 73,
+  filteredTargets: 27,
+  aiSteps: 15892,
+  aiPromptAnswers: 1143,
+  events: {
+    SpellTrapSet: 6921,
+    EffectActivated: 7693,
+    EffectResolved: 7642,
+    CardSentToGraveyard: 5632,
+    LifePointsRecovered: 1557,
+    LifePointsPaid: 541,
+    SpellTrapDestroyed: 794,
+    ChainLinkAdded: 7693,
+    ChainResolved: 6923,
+    MonsterSpecialSummoned: 369,
+    FlipSummoned: 1460,
+    CardEquipped: 78
+  }
+}
+
+ ✓ src/modules/duels/event-visibility.fuzz.spec.ts (301 tests) 1657282ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 0: every response to both viewers passes the leak oracle  3430ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 1: every response to both viewers passes the leak oracle  1511ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 2: every response to both viewers passes the leak oracle  3364ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 3: every response to both viewers passes the leak oracle  5376ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 4: every response to both viewers passes the leak oracle  3053ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 5: every response to both viewers passes the leak oracle  3535ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 6: every response to both viewers passes the leak oracle  2566ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 7: every response to both viewers passes the leak oracle  3019ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 8: every response to both viewers passes the leak oracle  2066ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 9: every response to both viewers passes the leak oracle  2670ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 10: every response to both viewers passes the leak oracle  2201ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 11: every response to both viewers passes the leak oracle  3989ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 12: every response to both viewers passes the leak oracle  8053ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 13: every response to both viewers passes the leak oracle  2749ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 14: every response to both viewers passes the leak oracle  4648ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 15: every response to both viewers passes the leak oracle  2254ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 16: every response to both viewers passes the leak oracle  3420ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 17: every response to both viewers passes the leak oracle  5175ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 18: every response to both viewers passes the leak oracle  3450ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 19: every response to both viewers passes the leak oracle  4420ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 20: every response to both viewers passes the leak oracle  4370ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 21: every response to both viewers passes the leak oracle  5749ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 22: every response to both viewers passes the leak oracle  11653ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 23: every response to both viewers passes the leak oracle  2894ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 24: every response to both viewers passes the leak oracle  3582ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 25: every response to both viewers passes the leak oracle  4051ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 26: every response to both viewers passes the leak oracle  3989ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 27: every response to both viewers passes the leak oracle  5248ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 28: every response to both viewers passes the leak oracle  3715ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 29: every response to both viewers passes the leak oracle  8097ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 30: every response to both viewers passes the leak oracle  4098ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 31: every response to both viewers passes the leak oracle  5005ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 32: every response to both viewers passes the leak oracle  8509ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 33: every response to both viewers passes the leak oracle  4614ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 34: every response to both viewers passes the leak oracle  4426ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 35: every response to both viewers passes the leak oracle  4525ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 36: every response to both viewers passes the leak oracle  4144ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 37: every response to both viewers passes the leak oracle  4481ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 38: every response to both viewers passes the leak oracle  4107ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 39: every response to both viewers passes the leak oracle  3154ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 40: every response to both viewers passes the leak oracle  4406ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 41: every response to both viewers passes the leak oracle  2247ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 42: every response to both viewers passes the leak oracle  4641ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 43: every response to both viewers passes the leak oracle  6908ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 44: every response to both viewers passes the leak oracle  2932ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 45: every response to both viewers passes the leak oracle  5090ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 46: every response to both viewers passes the leak oracle  6903ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 47: every response to both viewers passes the leak oracle  6239ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 48: every response to both viewers passes the leak oracle  5417ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 49: every response to both viewers passes the leak oracle  1985ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 50: every response to both viewers passes the leak oracle  5685ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 51: every response to both viewers passes the leak oracle  2670ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 52: every response to both viewers passes the leak oracle  4967ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 53: every response to both viewers passes the leak oracle  3694ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 54: every response to both viewers passes the leak oracle  8869ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 55: every response to both viewers passes the leak oracle  3255ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 56: every response to both viewers passes the leak oracle  3391ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 57: every response to both viewers passes the leak oracle  2635ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 58: every response to both viewers passes the leak oracle  10753ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 59: every response to both viewers passes the leak oracle  5764ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 60: every response to both viewers passes the leak oracle  15294ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 61: every response to both viewers passes the leak oracle  3820ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 62: every response to both viewers passes the leak oracle  4406ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 63: every response to both viewers passes the leak oracle  3166ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 64: every response to both viewers passes the leak oracle  4073ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 65: every response to both viewers passes the leak oracle  4265ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 66: every response to both viewers passes the leak oracle  3337ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 67: every response to both viewers passes the leak oracle  5658ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 68: every response to both viewers passes the leak oracle  5716ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 69: every response to both viewers passes the leak oracle  2571ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 70: every response to both viewers passes the leak oracle  7686ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 71: every response to both viewers passes the leak oracle  4292ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 72: every response to both viewers passes the leak oracle  2488ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 73: every response to both viewers passes the leak oracle  13594ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 74: every response to both viewers passes the leak oracle  7366ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 75: every response to both viewers passes the leak oracle  5419ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 76: every response to both viewers passes the leak oracle  5652ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 77: every response to both viewers passes the leak oracle  3164ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 78: every response to both viewers passes the leak oracle  3088ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 79: every response to both viewers passes the leak oracle  4120ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 80: every response to both viewers passes the leak oracle  2514ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 81: every response to both viewers passes the leak oracle  4434ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 82: every response to both viewers passes the leak oracle  2129ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 83: every response to both viewers passes the leak oracle  2041ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 84: every response to both viewers passes the leak oracle  3754ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 85: every response to both viewers passes the leak oracle  5583ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 86: every response to both viewers passes the leak oracle  4203ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 87: every response to both viewers passes the leak oracle  6870ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 88: every response to both viewers passes the leak oracle  4116ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 89: every response to both viewers passes the leak oracle  4170ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 90: every response to both viewers passes the leak oracle  4199ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 91: every response to both viewers passes the leak oracle  5469ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 92: every response to both viewers passes the leak oracle  1971ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 93: every response to both viewers passes the leak oracle  12549ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 94: every response to both viewers passes the leak oracle  3960ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 95: every response to both viewers passes the leak oracle  5609ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 96: every response to both viewers passes the leak oracle  2335ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 97: every response to both viewers passes the leak oracle  3144ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 98: every response to both viewers passes the leak oracle  3062ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 99: every response to both viewers passes the leak oracle  3152ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 100: every response to both viewers passes the leak oracle  3619ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 101: every response to both viewers passes the leak oracle  4582ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 102: every response to both viewers passes the leak oracle  3405ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 103: every response to both viewers passes the leak oracle  3600ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 104: every response to both viewers passes the leak oracle  4194ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 105: every response to both viewers passes the leak oracle  3823ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 106: every response to both viewers passes the leak oracle  4146ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 107: every response to both viewers passes the leak oracle  2789ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 108: every response to both viewers passes the leak oracle  3465ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 109: every response to both viewers passes the leak oracle  3363ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 110: every response to both viewers passes the leak oracle  4022ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 111: every response to both viewers passes the leak oracle  2820ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 112: every response to both viewers passes the leak oracle  2533ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 113: every response to both viewers passes the leak oracle  6310ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 114: every response to both viewers passes the leak oracle  6236ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 115: every response to both viewers passes the leak oracle  3681ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 116: every response to both viewers passes the leak oracle  4542ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 117: every response to both viewers passes the leak oracle  5492ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 118: every response to both viewers passes the leak oracle  2637ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 119: every response to both viewers passes the leak oracle  6873ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 120: every response to both viewers passes the leak oracle  4472ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 121: every response to both viewers passes the leak oracle  7623ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 122: every response to both viewers passes the leak oracle  5793ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 123: every response to both viewers passes the leak oracle  7399ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 124: every response to both viewers passes the leak oracle  2830ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 125: every response to both viewers passes the leak oracle  12408ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 126: every response to both viewers passes the leak oracle  3979ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 127: every response to both viewers passes the leak oracle  3324ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 128: every response to both viewers passes the leak oracle  2057ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 129: every response to both viewers passes the leak oracle  2492ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 130: every response to both viewers passes the leak oracle  4117ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 131: every response to both viewers passes the leak oracle  9410ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 132: every response to both viewers passes the leak oracle  7043ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 133: every response to both viewers passes the leak oracle  7251ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 134: every response to both viewers passes the leak oracle  3462ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 135: every response to both viewers passes the leak oracle  3152ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 136: every response to both viewers passes the leak oracle  8155ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 137: every response to both viewers passes the leak oracle  11586ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 138: every response to both viewers passes the leak oracle  5079ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 139: every response to both viewers passes the leak oracle  2775ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 140: every response to both viewers passes the leak oracle  3761ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 141: every response to both viewers passes the leak oracle  3231ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 142: every response to both viewers passes the leak oracle  9221ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 143: every response to both viewers passes the leak oracle  4623ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 144: every response to both viewers passes the leak oracle  5338ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 145: every response to both viewers passes the leak oracle  2710ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 146: every response to both viewers passes the leak oracle  4869ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 147: every response to both viewers passes the leak oracle  9082ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 148: every response to both viewers passes the leak oracle  3296ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 149: every response to both viewers passes the leak oracle  3215ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 150: every response to both viewers passes the leak oracle  4168ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 151: every response to both viewers passes the leak oracle  7005ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 152: every response to both viewers passes the leak oracle  2775ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 153: every response to both viewers passes the leak oracle  4133ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 154: every response to both viewers passes the leak oracle  6432ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 155: every response to both viewers passes the leak oracle  3615ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 156: every response to both viewers passes the leak oracle  6117ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 157: every response to both viewers passes the leak oracle  2661ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 158: every response to both viewers passes the leak oracle  6160ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 159: every response to both viewers passes the leak oracle  7424ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 160: every response to both viewers passes the leak oracle  2644ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 161: every response to both viewers passes the leak oracle  3717ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 162: every response to both viewers passes the leak oracle  2288ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 163: every response to both viewers passes the leak oracle  8281ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 164: every response to both viewers passes the leak oracle  13294ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 165: every response to both viewers passes the leak oracle  7942ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 166: every response to both viewers passes the leak oracle  3593ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 167: every response to both viewers passes the leak oracle  5542ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 168: every response to both viewers passes the leak oracle  3328ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 169: every response to both viewers passes the leak oracle  4227ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 170: every response to both viewers passes the leak oracle  2786ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 171: every response to both viewers passes the leak oracle  8939ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 172: every response to both viewers passes the leak oracle  5701ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 173: every response to both viewers passes the leak oracle  2458ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 174: every response to both viewers passes the leak oracle  2679ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 175: every response to both viewers passes the leak oracle  6019ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 176: every response to both viewers passes the leak oracle  6089ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 177: every response to both viewers passes the leak oracle  3053ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 178: every response to both viewers passes the leak oracle  3437ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 179: every response to both viewers passes the leak oracle  5145ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 180: every response to both viewers passes the leak oracle  1437ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 181: every response to both viewers passes the leak oracle  3966ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 182: every response to both viewers passes the leak oracle  4216ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 183: every response to both viewers passes the leak oracle  9950ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 184: every response to both viewers passes the leak oracle  3973ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 185: every response to both viewers passes the leak oracle  3162ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 186: every response to both viewers passes the leak oracle  2946ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 187: every response to both viewers passes the leak oracle  2529ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 188: every response to both viewers passes the leak oracle  3623ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 189: every response to both viewers passes the leak oracle  6016ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 190: every response to both viewers passes the leak oracle  4224ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 191: every response to both viewers passes the leak oracle  6048ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 192: every response to both viewers passes the leak oracle  4993ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 193: every response to both viewers passes the leak oracle  3200ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 194: every response to both viewers passes the leak oracle  4322ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 195: every response to both viewers passes the leak oracle  3298ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 196: every response to both viewers passes the leak oracle  7768ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 197: every response to both viewers passes the leak oracle  6887ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 198: every response to both viewers passes the leak oracle  7813ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 199: every response to both viewers passes the leak oracle  2285ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 0 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5435ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 1 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4669ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 2 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  3983ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 3 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5489ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 4 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  8413ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 5 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4466ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 6 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  8355ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 7 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6203ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 8 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4797ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 9 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5450ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 10 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5685ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 11 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  12737ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 12 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4965ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 13 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6631ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 14 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  8496ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 15 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6398ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 16 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6138ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 17 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5389ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 18 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  8290ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 19 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  9136ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 20 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  8352ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 21 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  9368ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 22 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  8043ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 23 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6854ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 24 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5689ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 25 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5759ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 26 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6519ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 27 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  9112ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 28 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  7698ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 29 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4984ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 30 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  7833ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 31 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  10135ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 32 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  19667ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 33 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  9380ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 34 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  7896ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 35 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6268ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 36 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6344ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 37 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4432ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 38 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  8282ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 39 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4820ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 40 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5992ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 41 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5077ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 42 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6595ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 43 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6493ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 44 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  7206ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 45 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  12246ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 46 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5497ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 47 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  9702ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 48 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  11051ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 49 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  9520ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 50 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6488ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 51 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  7464ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 52 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5620ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 53 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4487ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 54 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5138ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 55 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4321ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 56 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4495ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 57 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  9498ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 58 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4427ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 59 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6808ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 60 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4401ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 61 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  3841ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 62 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  3521ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 63 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5318ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 64 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4310ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 65 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4519ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 66 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  9241ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 67 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6132ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 68 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  3199ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 69 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6079ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 70 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6839ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 71 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5454ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 72 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5957ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 73 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5287ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 74 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5513ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 75 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  36205ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 76 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  15977ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 77 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4085ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 78 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4469ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 79 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5152ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 80 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5858ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 81 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4189ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 82 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  7642ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 83 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5286ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 84 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5781ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 85 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5527ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 86 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5605ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 87 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  12079ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 88 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5641ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 89 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6777ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 90 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  10025ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 91 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5337ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 92 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6532ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 93 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  5479ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 94 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4642ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 95 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4646ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 96 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  11268ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 97 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6852ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 98 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  4513ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > seed 99 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  6855ms
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ ❯ Object.onTimeoutError ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:53:10
+ ❯ Timeout._onTimeout ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/index.B521nVV-.js:59:62
+ ❯ listOnTimeout node:internal/timers:588:17
+ ❯ processTimers node:internal/timers:523:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 passed (1)
+      Tests  301 passed (301)
+     Errors  1 error
+   Start at  23:39:54
+   Duration  1659.93s (transform 653ms, setup 0ms, collect 1.73s, tests 1657.28s, environment 0ms, prepare 343ms)
+
+undefined
+E:\code\game\turn_battle\yugi-h5\apps\api:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/modules/duels/event-visibility.fuzz.spec.ts

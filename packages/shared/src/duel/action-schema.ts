@@ -116,12 +116,24 @@ const PassPriority = z
   .object({ type: z.literal('PassPriority'), payload: z.object({ playerIndex: Seat }).strict() })
   .strict();
 
+/**
+ * Flip Summons one of your face-down monsters (task 4.2b; on the wire since 4.2d): it turns face-up in Attack Position.
+ * Whether it may (Main Phase, not Set this turn, …) is the engine's call.
+ */
+const FlipSummon = z
+  .object({
+    type: z.literal('FlipSummon'),
+    payload: z.object({ playerIndex: Seat, cardInstanceId: InstanceId }).strict(),
+  })
+  .strict();
+
 /** The actions a player may send. */
 export const PlayerActionSchema = z.discriminatedUnion('type', [
   EndPhase,
   NormalSummon,
   SetMonster,
   ChangePosition,
+  FlipSummon,
   DeclareAttack,
   Surrender,
   ResolvePendingPrompt,

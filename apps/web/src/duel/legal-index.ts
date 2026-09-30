@@ -205,3 +205,34 @@ export function promptAnswers(
       a.type === 'ResolvePendingPrompt' && mine(a, viewer) && a.payload.promptId === promptId,
   );
 }
+
+export type FlipSummonAction = Extract<PlayerAction, { type: 'FlipSummon' }>;
+
+/** Task 4.2d: the listed FlipSummon of this face-down monster of mine, or null. */
+export function flipSummonAction(
+  legal: readonly PlayerAction[],
+  viewer: PlayerIndex,
+  monsterId: string,
+): FlipSummonAction | null {
+  return (
+    legal.find(
+      (a): a is FlipSummonAction =>
+        a.type === 'FlipSummon' && mine(a, viewer) && a.payload.cardInstanceId === monsterId,
+    ) ?? null
+  );
+}
+
+/** The listed activations of this card, grouped by effect in list order (one group per effect id). */
+export function activationsByEffect(
+  legal: readonly PlayerAction[],
+  viewer: PlayerIndex,
+  cardId: string,
+): ActivateEffectAction[][] {
+  const byEffect = new Map<string, ActivateEffectAction[]>();
+  for (const a of activations(legal, viewer, cardId)) {
+    const group = byEffect.get(a.payload.effectId) ?? [];
+    group.push(a);
+    byEffect.set(a.payload.effectId, group);
+  }
+  return [...byEffect.values()];
+}

@@ -33,7 +33,11 @@ export type StepKind =
   // Chain (task 3.4b): caption only for now (task 3.7 draws the chain)
   | 'chainLink'
   | 'chainFizzle'
-  | 'chainResolved';
+  | 'chainResolved'
+  // Task 4.2d
+  | 'specialSummon'
+  | 'flipSummon'
+  | 'equip';
 
 /**
  * How long each step lasts at speed 1 (ms). One place to tune the feel (`?fast=1` = ×3, `?anim=off` = none).
@@ -68,6 +72,11 @@ export const DURATION_MS: Readonly<Record<StepKind, number>> = {
   chainLink: 400, // [GUESS] no footage of a 2+ link chain
   chainFizzle: 400, // [GUESS]
   chainResolved: 250, // [GUESS] short caption, the links already had their steps
+  // Task 4.2d — no footage of these yet ([GUESS], G19): shorter than a Normal Summon (no large card preview), longer
+  // than a one-card change.
+  specialSummon: 1300, // [GUESS]
+  flipSummon: 900, // [GUESS]
+  equip: 700, // [GUESS]
 };
 /** Several cards drawn in a row (the opening hand) play as one longer step instead of N short ones. */
 const DRAW_MANY_MS = 600;
@@ -150,7 +159,21 @@ export type AnimationStep =
       readonly playerIndex: PlayerIndex;
       readonly instanceId: string;
     })
-  | (StepBase & { readonly kind: 'chainResolved' });
+  | (StepBase & { readonly kind: 'chainResolved' })
+  | (StepBase & {
+      /** Task 4.2d: a monster Special / Flip Summoned face-up into Monster Zone `zoneIndex`. */
+      readonly kind: 'specialSummon' | 'flipSummon';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+      readonly zoneIndex: number;
+    })
+  | (StepBase & {
+      /** Task 4.2d: Equip card `instanceId` attached to monster `targetInstanceId`. */
+      readonly kind: 'equip';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+      readonly targetInstanceId: string;
+    });
 
 export interface AnimationSegment {
   /** true = the AI's move (starts with an `aiLabel` step). */
@@ -300,6 +323,23 @@ function stepFor(e: EventView, text: string): AnimationStep | null {
       };
     case 'ChainResolved':
       return { kind: 'chainResolved', ...d('chainResolved') };
+    case 'MonsterSpecialSummoned':
+    case 'FlipSummoned':
+      return {
+        kind: e.type === 'FlipSummoned' ? 'flipSummon' : 'specialSummon',
+        ...d(e.type === 'FlipSummoned' ? 'flipSummon' : 'specialSummon'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+        zoneIndex: e.zoneIndex,
+      };
+    case 'CardEquipped':
+      return {
+        kind: 'equip',
+        ...d('equip'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+        targetInstanceId: e.targetInstanceId,
+      };
     default: {
       const exhaustive: never = e;
       return exhaustive;

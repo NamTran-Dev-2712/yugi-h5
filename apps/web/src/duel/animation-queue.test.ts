@@ -119,6 +119,29 @@ const SAMPLES: Record<EventView['type'], EventView> = {
     reason: 'TARGET_GONE',
   },
   ChainResolved: { type: 'ChainResolved', linkCount: 1 },
+  MonsterSpecialSummoned: {
+    type: 'MonsterSpecialSummoned',
+    playerIndex: 0,
+    instanceId: 'p0-9',
+    definitionId: 'SMP-003',
+    zoneIndex: 1,
+    from: 'Graveyard',
+    position: 'Attack',
+  },
+  FlipSummoned: {
+    type: 'FlipSummoned',
+    playerIndex: 1,
+    instanceId: 'p1-4',
+    definitionId: 'SMP-044',
+    zoneIndex: 1,
+  },
+  CardEquipped: {
+    type: 'CardEquipped',
+    playerIndex: 0,
+    instanceId: 'p0-20',
+    definitionId: 'SMP-112',
+    targetInstanceId: 'p0-2',
+  },
 };
 
 const KIND_OF: Record<EventView['type'], StepKind | null> = {
@@ -147,6 +170,9 @@ const KIND_OF: Record<EventView['type'], StepKind | null> = {
   ChainLinkAdded: 'chainLink',
   ChainLinkFizzled: 'chainFizzle',
   ChainResolved: 'chainResolved',
+  MonsterSpecialSummoned: 'specialSummon',
+  FlipSummoned: 'flipSummon',
+  CardEquipped: 'equip',
 };
 
 describe('stepsFor', () => {
@@ -254,6 +280,42 @@ function res(events: EventView[], aiActions?: AiActionView[]): ViewResponse {
 const pa = (t: PlayerAction['type']): PlayerAction =>
   ({ type: t, payload: { playerIndex: 1 } }) as PlayerAction;
 const kinds = (steps: readonly AnimationStep[]): string[] => steps.map((s) => s.kind);
+
+describe('stepsFor — task 4.2d mechanics', () => {
+  it('Special Summon / Flip Summon / Equip steps carry where to draw, never a definitionId', () => {
+    const steps = stepsFor(
+      [SAMPLES.MonsterSpecialSummoned, SAMPLES.FlipSummoned, SAMPLES.CardEquipped],
+      describe1,
+    );
+    expect(steps).toEqual([
+      {
+        kind: 'specialSummon',
+        durationMs: DURATION_MS.specialSummon,
+        text: 'ev:MonsterSpecialSummoned',
+        playerIndex: 0,
+        instanceId: 'p0-9',
+        zoneIndex: 1,
+      },
+      {
+        kind: 'flipSummon',
+        durationMs: DURATION_MS.flipSummon,
+        text: 'ev:FlipSummoned',
+        playerIndex: 1,
+        instanceId: 'p1-4',
+        zoneIndex: 1,
+      },
+      {
+        kind: 'equip',
+        durationMs: DURATION_MS.equip,
+        text: 'ev:CardEquipped',
+        playerIndex: 0,
+        instanceId: 'p0-20',
+        targetInstanceId: 'p0-2',
+      },
+    ]);
+    expect(JSON.stringify(steps)).not.toContain('definitionId');
+  });
+});
 
 describe('segmentsFor', () => {
   const E = SAMPLES;

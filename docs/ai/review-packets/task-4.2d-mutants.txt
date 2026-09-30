@@ -1,0 +1,35 @@
+KILLED   ChainLinkAdded forwards hand targets unfiltered
+KILLED   StateView.chain keeps hand targets
+KILLED   aiActions not redacted
+KILLED   hiddenIdsFor forgets the opponent's hand
+KILLED   hiddenIdsFor hides the viewer's own hand instead
+KILLED   equippedTo pointing at a face-down monster
+KILLED   equippedTo on a face-down card (owner view)
+KILLED   equippedTo never sent
+KILLED   CardEquipped dropped
+KILLED   FlipSummon back to engine-only
+KILLED   oracle: pointer to the opponent hand not flagged
+KILLED   oracle: equippedTo to a face-down monster not flagged
+KILLED   AI counts its own Special Summon / Equip targets against
+KILLED   AI ignores graveyard stats
+KILLED   AI: a raising Equip is not helpful
+KILLED   AI never Flip Summons in Main 1
+KILLED   FlipSummon not in PlayerActionSchema
+KILLED   SMP-044 triggers on Summon
+KILLED   SMP-044 targets its own side
+KILLED   SMP-111 hand effect looks in the graveyard
+KILLED   SMP-111 hand effect wants 2 monsters
+KILLED   SMP-112 gives 300
+KILLED   SMP-112 equips the opponent
+KILLED   MECH_DEMO_DECK loses copies
+KILLED   no "Lật ngửa" entry
+KILLED   tapping a face-down monster does nothing
+KILLED   FlipSummon matched on any monster
+KILLED   picker also lists board candidates
+KILLED   picker slots not clickable
+KILLED   a two-effect hand Spell gets one entry
+KILLED   equip link without its monster
+KILLED   animation kinds swapped
+KILLED   CardEquipped logged as combat
+
+33/33 mutants killed

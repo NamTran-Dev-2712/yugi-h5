@@ -179,6 +179,25 @@ describe('buildActionButtons', () => {
     expect(ids(b).filter((i) => i.endsWith('p0-9'))).toEqual([]);
   });
 
+  it('task 4.2d: my face-down monster (as its owner sees it) gets only a Flip Summon button, schema-valid', () => {
+    const v = view({
+      p0: {
+        board: {
+          monsterZones: [visible('p0-9', 'MON', 0, 'DefenseDown'), null, null, null, null],
+          spellTrapZones: EMPTY5,
+          fieldZone: null,
+        },
+      },
+    });
+    const b = buildActionButtons(v, lookup);
+    expect(ids(b).filter((i) => i.endsWith('p0-9'))).toEqual(['FlipSummon:p0-9']);
+    const action = toAction(find(b, 'FlipSummon:p0-9'), {});
+    expect(PlayerActionSchema.parse(action)).toEqual({
+      type: 'FlipSummon',
+      payload: { playerIndex: 0, cardInstanceId: 'p0-9' },
+    });
+  });
+
   it('offers a discard answer when the viewer seat has a DiscardToHandLimit prompt', () => {
     const v = view({
       p0: {

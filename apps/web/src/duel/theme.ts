@@ -52,6 +52,9 @@ export const theme = {
     /** Chain UI (task 3.7): outline of a Set card a tap activates, and the "waiting for a response" strip. */
     activatable: 0xc38bff,
     chainBanner: 0x3a2358,
+    /** Task 4.2d [GUESS] G19: the line + outlines tying an Equip card to its monster, and the graveyard picker panel. */
+    equipLink: 0x5fd3b3,
+    pickerBg: 0x16222b,
   },
 
   css: {

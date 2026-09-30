@@ -225,6 +225,30 @@ export const SAMPLE_CARDS: CardDefinition[] = [
     atk,
     def,
   })),
+  // Task 4.2d — first real card with an OnFlip trigger (Tier B).
+  {
+    id: 'SMP-044',
+    kind: 'Monster',
+    name: { vi: 'Cú Đêm Phục Kích', en: 'Ambush Night Owl' },
+    category: 'Effect',
+    attribute: 'WIND',
+    race: 'Winged Beast',
+    level: 3,
+    atk: 700,
+    def: 1400,
+    effectText: {
+      vi: 'LẬT: Bạn có thể chọn 1 quái thú đối thủ điều khiển; phá huỷ nó.',
+      en: 'FLIP: You can target 1 monster your opponent controls; destroy it.',
+    },
+    effects: [
+      {
+        id: 'flip-ambush',
+        trigger: { kind: 'OnFlip' },
+        target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
   {
     id: 'SMP-101',
     kind: 'Spell',
@@ -413,6 +437,66 @@ export const SAMPLE_CARDS: CardDefinition[] = [
           { kind: 'Damage', amount: 600, target: 'opponent' },
           { kind: 'Heal', amount: 600, target: 'self' },
         ],
+      },
+    ],
+  },
+  // Task 4.2d — first real cards using Special Summon (two effects: activate one) and Equip (Tier B).
+  {
+    id: 'SMP-111',
+    kind: 'Spell',
+    name: { vi: 'Hiệu Triệu Đồng Đội', en: 'Rallying Call' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Kích hoạt 1 trong 2 hiệu ứng: Triệu hồi Đặc biệt 1 quái thú từ tay bạn; hoặc Triệu hồi Đặc biệt 1 quái thú từ mộ bạn.',
+      en: 'Activate 1 of these effects: Special Summon 1 monster from your hand; or Special Summon 1 monster from your graveyard.',
+    },
+    effects: [
+      {
+        id: 'call-from-hand',
+        trigger: { kind: 'Ignition' },
+        target: { kind: 'Card', zone: 'Hand', side: 'self', count: 1, filter: { kind: 'Monster' } },
+        operations: [{ kind: 'SpecialSummon' }],
+      },
+      {
+        id: 'call-from-grave',
+        trigger: { kind: 'Ignition' },
+        target: {
+          kind: 'Card',
+          zone: 'Graveyard',
+          side: 'self',
+          count: 1,
+          filter: { kind: 'Monster' },
+        },
+        operations: [{ kind: 'SpecialSummon' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-112',
+    kind: 'Spell',
+    name: { vi: 'Giáp Sợi Thép', en: 'Steelweave Harness' },
+    subType: 'Equip',
+    effectText: {
+      vi: 'Chỉ trang bị cho quái thú ngửa bạn điều khiển. Quái thú được trang bị tăng 500 ATK.',
+      en: 'Equip only to a face-up monster you control. The equipped monster gains 500 ATK.',
+    },
+    effects: [
+      {
+        id: 'equip',
+        trigger: { kind: 'Ignition' },
+        target: {
+          kind: 'Card',
+          zone: 'MonsterZone',
+          side: 'self',
+          count: 1,
+          filter: { kind: 'Monster' },
+        },
+        operations: [{ kind: 'Equip' }],
+      },
+      {
+        id: 'equip-boost',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount: 500, equipped: true }],
       },
     ],
   },

@@ -139,3 +139,56 @@ describe('findLeaks — chain (task 3.4b)', () => {
     ).toMatch(/wrong definitionId/);
   });
 });
+
+describe('findLeaks — id lists and equippedTo (task 4.2d)', () => {
+  it("flags an id of the opponent's hand or of a deck in any *InstanceIds list / *InstanceId field", () => {
+    const s = state();
+    const hand1 = s.players[1].hand[0]!.instanceId;
+    const deck1 = s.players[1].deck[0]!.instanceId;
+    expect(findLeaks(s, 0, { link: { targetInstanceIds: [hand1] } })).toMatchObject([
+      { path: '$.link.targetInstanceIds[0]', instanceId: hand1 },
+    ]);
+    expect(
+      findLeaks(s, 0, { action: { payload: { cardInstanceIds: ['g0', deck1] } } }),
+    ).toHaveLength(1);
+    expect(findLeaks(s, 0, { targetInstanceId: hand1 })).toHaveLength(1);
+  });
+
+  it('accepts ids the viewer may point at: own hand, graveyard, field (face-down too), and plain instanceId keys', () => {
+    const s = state();
+    const hand0 = s.players[0].hand[0]!.instanceId;
+    const hand1 = s.players[1].hand[0]!.instanceId;
+    expect(
+      findLeaks(s, 0, {
+        targetInstanceIds: [hand0, 'g0', 'm1', 's1'],
+        attackerInstanceId: 'm0',
+        hand: [{ hidden: true, instanceId: hand1, ownerIndex: 1 }],
+      }),
+    ).toEqual([]);
+  });
+
+  it('accepts equippedTo on a face-up card pointing at a face-up monster on the field', () => {
+    expect(
+      findLeaks(state(), 0, {
+        hidden: false,
+        instanceId: 'x',
+        position: 'Attack',
+        equippedTo: 'm1',
+      }),
+    ).toEqual([]);
+  });
+
+  it('flags equippedTo on a face-down/hidden card, or pointing at a face-down, missing or non-field card', () => {
+    const s = state();
+    const bad = [
+      { hidden: true, instanceId: 'x', equippedTo: 'm1' },
+      { hidden: false, instanceId: 'x', position: 'DefenseDown', equippedTo: 'm1' },
+      { hidden: false, instanceId: 'x', position: 'Attack', equippedTo: 'm0' },
+      { hidden: false, instanceId: 'x', position: 'Attack', equippedTo: 'nope' },
+      { hidden: false, instanceId: 'x', position: 'Attack', equippedTo: 'g0' },
+      { hidden: false, instanceId: 'x', position: 'Attack', equippedTo: 's1' },
+    ];
+    for (const payload of bad)
+      expect(findLeaks(s, 0, payload), JSON.stringify(payload)).toHaveLength(1);
+  });
+});

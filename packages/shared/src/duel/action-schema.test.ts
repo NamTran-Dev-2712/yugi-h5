@@ -280,3 +280,33 @@ describe('Task 3.4b — chain on the wire', () => {
     expect(ok(action)).toBe(false);
   });
 });
+
+describe('Task 4.2d — FlipSummon on the wire', () => {
+  it('accepts FlipSummon {playerIndex, cardInstanceId}', () => {
+    expect(ok({ type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-7' } })).toBe(
+      true,
+    );
+    expect(
+      ActionInputSchema.safeParse({
+        type: 'FlipSummon',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-2' },
+      }).success,
+    ).toBe(true);
+  });
+
+  it.each([
+    [
+      'extra key',
+      { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: 'x', zoneIndex: 0 } },
+    ],
+    ['missing card', { type: 'FlipSummon', payload: { playerIndex: 0 } }],
+    ['empty id', { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: '' } }],
+    ['bad seat', { type: 'FlipSummon', payload: { playerIndex: 2, cardInstanceId: 'x' } }],
+    [
+      'extra top-level key',
+      { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: 'x' }, x: 1 },
+    ],
+  ])('rejects %s', (_label, action) => {
+    expect(ok(action)).toBe(false);
+  });
+});

@@ -62,6 +62,8 @@ export function describeAiAction(action: PlayerAction, ctx: DescribeAiContext): 
       return t('ai.activateEffect', { card: label(action.payload.cardInstanceId) });
     case 'PassPriority':
       return t('ai.passPriority');
+    case 'FlipSummon':
+      return t('ai.flipSummon', { card: label(action.payload.cardInstanceId) });
     default: {
       const unhandled: never = action;
       return t('ai.unknown', { json: JSON.stringify(unhandled) });

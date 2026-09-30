@@ -52,6 +52,20 @@ const harmsOpponent = (effect: EffectDefinition): boolean =>
       (op.kind === 'Damage' && op.target === 'opponent'),
   );
 
+/**
+ * Task 4.2d: an effect whose chosen cards are the point of it for their controller — a Special Summon, or an Equip that
+ * raises the equipped monster (read from the card data, not from the card id). Its own targets count for, not against.
+ */
+const helpsTargets = (card: CardDefinition, effect: EffectDefinition): boolean =>
+  effect.operations.some(
+    (op) =>
+      op.kind === 'SpecialSummon' ||
+      (op.kind === 'Equip' &&
+        (card.effects ?? []).some((e) =>
+          e.operations.some((o) => o.kind === 'ModifyStat' && o.equipped === true && o.amount > 0),
+        )),
+  );
+
 /** Highest-scoring item; ties are broken with the rng (never by object identity/insertion order alone). */
 function best<T>(items: readonly T[], score: (t: T) => number, rng: () => number): T | undefined {
   let top = -Infinity;
@@ -92,6 +106,7 @@ export function chooseAction(input: AiInput): PlayerAction {
   };
   noteAll(own.hand);
   noteAll(own.board.monsterZones);
+  noteAll(own.graveyard); // task 4.2d: a Special Summon may bring one back
   noteAll(opp.board.monsterZones); // face-down ones are hidden cards: no stats, by design
 
   /** Cards without stats (Spells, unknown) are worth nothing. */
@@ -178,8 +193,8 @@ export function chooseAction(input: AiInput): PlayerAction {
 
   /**
    * Trigger / target prompt: the answer (never `decline` if anything else is listed) whose targets are worth most —
-   * the opponent's cards count their ATK (a face-down one 500), the AI's own cards count against. Decline only when
-   * it is the one answer left.
+   * the opponent's cards count their ATK (a face-down one 500), the AI's own cards count against — unless the effect is
+   * for them (Special Summon, a raising Equip: task 4.2d), then they count for. Decline only when it is the one answer left.
    */
   function targetAnswer(): PlayerAction | undefined {
     const answers = legalActions.filter((a) => a.type === 'ResolvePendingPrompt');
@@ -191,8 +206,9 @@ export function chooseAction(input: AiInput): PlayerAction {
         c ? [c.instanceId] : [],
       ),
     );
+    const sign = promptHelpsTargets() ? 1 : -1;
     const worth = (id: string): number =>
-      oppIds.has(id) ? (stats.get(id)?.atk ?? 500) : -valueOf(id);
+      oppIds.has(id) ? (stats.get(id)?.atk ?? 500) : sign * valueOf(id);
     const top = best(
       accepts,
       (a) =>
@@ -202,6 +218,26 @@ export function chooseAction(input: AiInput): PlayerAction {
       input.rng,
     );
     return top ?? answers[0];
+  }
+
+  /** The effect a TriggerActivation / SelectEffectTarget prompt is about, when the AI can read its card. */
+  function promptHelpsTargets(): boolean {
+    const prompt = view.pendingPrompt;
+    if (!prompt || prompt.payload === null || typeof prompt.payload !== 'object') return false;
+    const p = prompt.payload as {
+      trigger?: { definitionId?: string; effectId?: string };
+      cardInstanceId?: string;
+      effectId?: string;
+    };
+    const card =
+      p.trigger?.definitionId !== undefined
+        ? input.cardDefinitions(p.trigger.definitionId)
+        : p.cardInstanceId !== undefined
+          ? ownDefinition(p.cardInstanceId)
+          : undefined;
+    const effectId = p.trigger?.effectId ?? p.effectId;
+    const effect = card?.effects?.find((e) => e.id === effectId);
+    return card !== undefined && effect !== undefined && helpsTargets(card, effect);
   }
 
   function summon(): PlayerAction | undefined {
@@ -232,8 +268,17 @@ export function chooseAction(input: AiInput): PlayerAction {
   }
 
   function reposition(): PlayerAction | undefined {
-    const moves = legalActions.filter((a) => a.type === 'ChangePosition');
-    const scored = moves.flatMap((a) => {
+    const moves = legalActions.filter(
+      (a) => a.type === 'ChangePosition' || a.type === 'FlipSummon',
+    );
+    const scored = moves.flatMap((a): { a: PlayerAction; score: number }[] => {
+      // Task 4.2d: a Set monster that would win against the strongest face-up attacker is Flip Summoned before Battle
+      // (FlipSummon is on the wire since 4.2d; a random opponent that flips beat an AI that never did: 90% → 77% over
+      // 30 games; with this rule 83%). [ASSUMED] threshold, same `threat` as the Summon/Set choice.
+      if (a.type === 'FlipSummon') {
+        const s = stats.get(a.payload.cardInstanceId);
+        return view.phase === 'Main1' && s && s.atk > threat ? [{ a, score: s.atk - threat }] : [];
+      }
       if (a.type !== 'ChangePosition') return [];
       const s = stats.get(a.payload.cardInstanceId);
       if (!s) return [];

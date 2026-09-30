@@ -203,6 +203,35 @@ export interface DuelEndedEventView {
   readonly reason: 'LP_ZERO' | 'SURRENDER' | 'DECK_OUT';
 }
 
+/** Task 4.2a: an effect Special Summoned a monster from its controller's hand or graveyard, always face-up. */
+export interface MonsterSpecialSummonedEventView {
+  readonly type: 'MonsterSpecialSummoned';
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+  readonly from: 'Hand' | 'Graveyard';
+  readonly position: Extract<ViewCardPosition, 'Attack' | 'DefenseUp'>;
+}
+
+/** Task 4.2b: a face-down monster was Flip Summoned (now face-up in Attack Position). */
+export interface FlipSummonedEventView {
+  readonly type: 'FlipSummoned';
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
+/** Task 4.2c: a face-up Equip Spell was equipped to the face-up monster `targetInstanceId`. */
+export interface CardEquippedEventView {
+  readonly type: 'CardEquipped';
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly targetInstanceId: string;
+}
+
 export type EventView =
   | DuelStartedEventView
   | CardDrawnEventView
@@ -228,4 +257,7 @@ export type EventView =
   | ChainLinkAddedEventView
   | ChainLinkFizzledEventView
   | ChainResolvedEventView
+  | MonsterSpecialSummonedEventView
+  | FlipSummonedEventView
+  | CardEquippedEventView
   | DuelEndedEventView;

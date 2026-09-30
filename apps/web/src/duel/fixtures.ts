@@ -755,8 +755,158 @@ function triggerOptional(): Fixture {
   };
 }
 
+// ---- Task 4.2d: Flip Summon, Equip, Special Summon (real cards SMP-044 / SMP-111 / SMP-112) ----
+
+const oppBasic = (extra: Partial<PlayerParts> = {}): PlayerView =>
+  player({
+    playerId: 'fixture-ai',
+    lifePoints: 8000,
+    hand: [1, 2, 3, 4].map((n) => hidden(`p1-h${n}`, 1)),
+    deckCount: 30,
+    ...extra,
+  });
+
+/** Main 1: my face-down SMP-044 (Set last turn) may be Flip Summoned; my face-up monster may change position. */
+function flipFixture(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-006', 0, null)],
+    deckCount: 30,
+    normalSummonUsed: true,
+    monsters: five<CardView>([
+      [0, withStats(up('p0-10', 'SMP-008', 0, 'Attack'), 1600, 900)],
+      [1, up('p0-11', 'SMP-044', 0, 'DefenseDown')],
+    ]),
+  });
+  const opp = oppBasic({
+    monsters: five<CardView>([[2, withStats(up('p1-12', 'SMP-009', 1, 'Attack'), 1700, 1000)]]),
+  });
+  return {
+    view: view({ turnCount: 5, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [
+      { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-11' } },
+      toDefense('p0-10'),
+      endPhase,
+      surrender,
+    ],
+  };
+}
+
+/** A face-up SMP-112 in a Spell/Trap Zone, equipped to `to` (task 4.2d wire field). */
+const equipCard = (instanceId: string, ownerIndex: PlayerIndex, to: string): CardView => ({
+  hidden: false,
+  instanceId,
+  definitionId: 'SMP-112',
+  ownerIndex,
+  position: 'Attack',
+  equippedTo: to,
+});
+
+/** SMP-112 equipped to my monster (+500 ATK) and another copy equipped to the opponent's monster. */
+function equipFixture(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-006', 0, null)],
+    deckCount: 30,
+    monsters: five<CardView>([[0, withStats(up('p0-10', 'SMP-001', 0, 'Attack'), 1700, 800)]]),
+    spellTraps: five<CardView>([[2, equipCard('p0-20', 0, 'p0-10')]]),
+  });
+  const opp = oppBasic({
+    monsters: five<CardView>([[3, withStats(up('p1-13', 'SMP-008', 1, 'Attack'), 2100, 900)]]),
+    spellTraps: five<CardView>([
+      [1, equipCard('p1-21', 1, 'p1-13')],
+      [4, hidden('p1-24', 1)],
+    ]),
+  });
+  return {
+    view: view({ turnCount: 5, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [endPhase, surrender],
+  };
+}
+
+/** SMP-111 "call-from-grave" asks which of my graveyard monsters to Special Summon (the Spell is not a candidate). */
+function gyTarget(): Fixture {
+  const promptId = 'effect-5-7';
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-111', 0, null), up('p0-2', 'SMP-044', 0, null)],
+    deckCount: 30,
+    graveyard: [
+      up('p0-40', 'SMP-003', 0, null),
+      up('p0-41', 'SMP-103', 0, null),
+      up('p0-42', 'SMP-001', 0, null),
+    ],
+  });
+  const opp = oppBasic({
+    monsters: five<CardView>([[2, withStats(up('p1-12', 'SMP-009', 1, 'Attack'), 1700, 1000)]]),
+  });
+  const pick = (id: string): PlayerAction => ({
+    type: 'ResolvePendingPrompt',
+    payload: { playerIndex: 0, promptId, cardInstanceIds: [id] },
+  });
+  return {
+    view: view(
+      {
+        turnCount: 5,
+        turnPlayerIndex: 0,
+        phase: 'Main1',
+        pendingPrompt: {
+          promptId,
+          playerIndex: 0,
+          kind: 'SelectEffectTarget',
+          payload: {
+            cardInstanceId: 'p0-1',
+            effectId: 'call-from-grave',
+            costInstanceIds: [],
+            candidateInstanceIds: ['p0-40', 'p0-42'],
+            count: 1,
+          },
+        },
+      },
+      self,
+      opp,
+    ),
+    legalActions: [pick('p0-40'), pick('p0-42'), surrender],
+  };
+}
+
+/** SMP-111 in hand has two effects (hand / graveyard) and may also be Set: dropping it offers one entry per effect. */
+function specialSummonFixture(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-111', 0, null), up('p0-2', 'SMP-044', 0, null)],
+    deckCount: 30,
+    graveyard: [up('p0-40', 'SMP-003', 0, null)],
+  });
+  return {
+    view: view({ turnCount: 5, turnPlayerIndex: 0, phase: 'Main1' }, self, oppBasic()),
+    legalActions: [
+      activate('p0-1', 'call-from-hand'),
+      activate('p0-1', 'call-from-grave'),
+      ...[0, 1, 2, 3, 4].map((zoneIndex): PlayerAction => ({
+        type: 'SetSpellTrap',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-1', zoneIndex },
+      })),
+      endPhase,
+      surrender,
+    ],
+  };
+}
+
 export function loadFixture(name: FixtureName): Fixture {
   switch (name) {
+    case 'flip':
+      return flipFixture();
+    case 'equip':
+      return equipFixture();
+    case 'gy-target':
+      return gyTarget();
+    case 'special-summon':
+      return specialSummonFixture();
     case 'chain-reaction':
       return chainReaction();
     case 'chain-respond':

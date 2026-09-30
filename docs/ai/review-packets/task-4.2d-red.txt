@@ -1,0 +1,189 @@
+# Task 4.2d — red run (tests written before code), 2026-09-30
+## @yugi/shared
+      Tests  5 failed | 156 passed (161)
+   × Task 4.2d — FlipSummon on the wire > accepts FlipSummon {playerIndex, cardInstanceId} 12ms
+   × task 4.2d mechanic cards > SMP-044: an Effect Monster whose only effect is an OnFlip trigger 1ms
+   × task 4.2d mechanic cards > SMP-111: a Normal Spell with two Special Summon effects, one from the hand and one from the graveyard 1ms
+   × task 4.2d mechanic cards > SMP-112: an Equip Spell that equips to your face-up monster and raises its ATK 1ms
+   × task 4.2d mechanic cards > exist once, parse, and have bilingual effect text 7ms
+ FAIL  src/cards/mech.test.ts > task 4.2d mechanic cards > SMP-044: an Effect Monster whose only effect is an OnFlip trigger
+ FAIL  src/cards/mech.test.ts > task 4.2d mechanic cards > SMP-111: a Normal Spell with two Special Summon effects, one from the hand and one from the graveyard
+ FAIL  src/cards/mech.test.ts > task 4.2d mechanic cards > SMP-112: an Equip Spell that equips to your face-up monster and raises its ATK
+ FAIL  src/cards/mech.test.ts > task 4.2d mechanic cards > exist once, parse, and have bilingual effect text
+ FAIL  src/deck/mech-demo-deck.test.ts [ src/deck/mech-demo-deck.test.ts ]
+ FAIL  src/duel/action-schema.test.ts > Task 4.2d — FlipSummon on the wire > accepts FlipSummon {playerIndex, cardInstanceId}
+ Test Files  3 failed | 9 passed (12)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+## @yugi/game-engine
+      Tests  12 failed | 818 passed (830)
+   × SMP-044 > Flip Summon asks the owner: one answer per opponent monster + decline 23ms
+   × SMP-044 > accept + target: the chosen opponent monster is destroyed 3ms
+   × SMP-044 > decline: nothing is destroyed 2ms
+   × SMP-044 > flipped by an attack and destroyed: still triggers (from the graveyard) for its owner 6ms
+   × SMP-111 > from the graveyard: one monster = chosen at once 2ms
+   × SMP-111 > from the hand: asks which monster (Spells in hand are not candidates), then Special Summons it 12ms
+   × SMP-111 > no empty Monster Zone: NO_FREE_MONSTER_ZONE 2ms
+   × SMP-111 > no monster where the effect looks: NO_VALID_TARGET 8ms
+   × SMP-112 > equips to my face-up monster: +500 ATK, the card stays on the field 14ms
+   × SMP-112 > no face-up monster of mine: NO_VALID_TARGET 8ms
+   × SMP-112 > the boost counts in battle 2ms
+   × SMP-112 > the monster is destroyed: the Equip goes to the graveyard with it 1ms
+   ✓ fuzz: engine invariants hold > an Equip follows its monster to the graveyard in real duels (task 4.2c; rare: 60 seeds × 400 steps)  3902ms
+   ✓ getLegalActions — property (fuzzed duels) > agrees with applyAction on 8 seeds × 200 steps  19572ms
+ FAIL  src/cards/sample/smp-044.test.ts > SMP-044 > Flip Summon asks the owner: one answer per opponent monster + decline
+ FAIL  src/cards/sample/smp-044.test.ts > SMP-044 > accept + target: the chosen opponent monster is destroyed
+ FAIL  src/cards/sample/smp-044.test.ts > SMP-044 > decline: nothing is destroyed
+ FAIL  src/cards/sample/smp-044.test.ts > SMP-044 > flipped by an attack and destroyed: still triggers (from the graveyard) for its owner
+ FAIL  src/cards/sample/smp-111.test.ts > SMP-111 > from the graveyard: one monster = chosen at once
+ FAIL  src/cards/sample/smp-111.test.ts > SMP-111 > from the hand: asks which monster (Spells in hand are not candidates), then Special Summons it
+ FAIL  src/cards/sample/smp-111.test.ts > SMP-111 > no empty Monster Zone: NO_FREE_MONSTER_ZONE
+ FAIL  src/cards/sample/smp-111.test.ts > SMP-111 > no monster where the effect looks: NO_VALID_TARGET
+ FAIL  src/cards/sample/smp-112.test.ts > SMP-112 > equips to my face-up monster: +500 ATK, the card stays on the field
+ FAIL  src/cards/sample/smp-112.test.ts > SMP-112 > no face-up monster of mine: NO_VALID_TARGET
+ FAIL  src/cards/sample/smp-112.test.ts > SMP-112 > the boost counts in battle
+ FAIL  src/cards/sample/smp-112.test.ts > SMP-112 > the monster is destroyed: the Equip goes to the graveyard with it
+ Test Files  3 failed | 50 passed (53)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run
+stdout | src/legal-actions.property.test.ts > getLegalActions — property (fuzzed duels) > agrees with applyAction on 8 seeds × 200 steps
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+## @yugi/api
+      Tests  27 failed | 332 passed (359)
+   × Sandbox scenarios on the task 4.2 mechanics (task 4.2d) > equip-real: the script equipped SMP-112 → equippedTo on the wire, effective ATK +500, CardEquipped sent 2ms
+   × Sandbox scenarios on the task 4.2 mechanics (task 4.2d) > flip-real: FlipSummon is listed for my face-down SMP-044; the OnFlip trigger asks me 11ms
+   × Sandbox scenarios on the task 4.2 mechanics (task 4.2d) > special-summon-real (solo-debug, opponent holds a Set Trap): the opponent never sees which hand card was chosen 1ms
+   × Sandbox scenarios on the task 4.2 mechanics (task 4.2d) > special-summon-real: two effects (hand / graveyard); each opens a target prompt; the chosen monster lands 1ms
+   × chooseAction — task 4.2 mechanics (task 4.2d) > Equip on my monster: picks my strongest monster 7ms
+   × chooseAction — task 4.2 mechanics (task 4.2d) > Special Summon from the graveyard: reads my graveyard monsters 4ms
+   × chooseAction — task 4.2 mechanics (task 4.2d) > Special Summon from the hand: picks my strongest hand monster (not the weakest) 28ms
+   × chooseAction — task 4.2 mechanics (task 4.2d) > never picks FlipSummon, even when it is listed next to EndPhase 3ms
+   × findLeaks — id lists and equippedTo (task 4.2d) > flags an id of the opponent's hand or of a deck in any *InstanceIds list / *InstanceId field 16ms
+   × findLeaks — id lists and equippedTo (task 4.2d) > flags equippedTo on a face-down/hidden card, or pointing at a face-down, missing or non-field card 2ms
+   × fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts 17ms
+   × sample scenarios > equip-real validates against the schema and builds a state (every card id exists) 56ms
+   × sample scenarios > flip-real validates against the schema and builds a state (every card id exists) 2ms
+   × sample scenarios > special-summon-real validates against the schema and builds a state (every card id exists) 5ms
+   × task 4.2 mechanics over HTTP (task 4.2d gate) > fuzz over HTTP with MECH_DEMO_DECK, run 1: FlipSummon / Special Summon / Equip never leak to either viewer 2ms
+   × task 4.2 mechanics over HTTP (task 4.2d gate) > fuzz over HTTP with MECH_DEMO_DECK, run 2: FlipSummon / Special Summon / Equip never leak to either viewer 1ms
+   × task 4.2 mechanics over HTTP (task 4.2d gate) > the runs above really Flip Summoned and used the mechanic Spells 5ms
+   × toEventView > ChainLinkAdded: drops the target ids hidden from the viewer, keeps the others in order (task 4.2d) 4ms
+   × toEventView > forwards event CardEquipped unchanged to both viewers (task 4.2d) 1ms
+   × toEventView > forwards event FlipSummoned unchanged to both viewers (task 4.2d) 1ms
+   × toEventView > forwards event MonsterSpecialSummoned unchanged to both viewers (task 4.2d) 11ms
+   × toEventView > passes public event CardEquipped through unchanged to both viewers 1ms
+   × toEventView > passes public event FlipSummoned through unchanged to both viewers 1ms
+   × toEventView > passes public event MonsterSpecialSummoned through unchanged to both viewers 1ms
+   × toStateView — chain targets hidden from the viewer (task 4.2d) > a link targeting a card of the activator hand: the activator sees it, the opponent does not 14ms
+   × toStateView — equippedTo (task 4.2d) > a face-up Equip on a face-up monster: both viewers see the link 2ms
+   × toStateView — equippedTo (task 4.2d) > points across the table too (an Equip on the opponent monster) 1ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 0 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  1266ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 0: every response to both viewers passes the leak oracle  1067ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 1 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  1855ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 1: every response to both viewers passes the leak oracle  738ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 2 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  1425ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 2: every response to both viewers passes the leak oracle  728ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 3 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  2747ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 3: every response to both viewers passes the leak oracle  926ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 4: every response to both viewers passes the leak oracle  617ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 5: every response to both viewers passes the leak oracle  984ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 6: every response to both viewers passes the leak oracle  483ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 7: every response to both viewers passes the leak oracle  1169ms
+ FAIL  src/modules/dev-sandbox/scenario-to-state.spec.ts > sample scenarios > equip-real validates against the schema and builds a state (every card id exists)
+ FAIL  src/modules/dev-sandbox/scenario-to-state.spec.ts > sample scenarios > flip-real validates against the schema and builds a state (every card id exists)
+ FAIL  src/modules/dev-sandbox/scenario-to-state.spec.ts > sample scenarios > special-summon-real validates against the schema and builds a state (every card id exists)
+ FAIL  src/modules/duels/ai/choose-action.mech.spec.ts > chooseAction — task 4.2 mechanics (task 4.2d) > Equip on my monster: picks my strongest monster
+ FAIL  src/modules/duels/ai/choose-action.mech.spec.ts > chooseAction — task 4.2 mechanics (task 4.2d) > Special Summon from the graveyard: reads my graveyard monsters
+ FAIL  src/modules/duels/ai/choose-action.mech.spec.ts > chooseAction — task 4.2 mechanics (task 4.2d) > Special Summon from the hand: picks my strongest hand monster (not the weakest)
+ FAIL  src/modules/duels/ai/choose-action.mech.spec.ts > chooseAction — task 4.2 mechanics (task 4.2d) > never picks FlipSummon, even when it is listed next to EndPhase
+ FAIL  src/modules/duels/duel-manager.scenario-mech.spec.ts > Sandbox scenarios on the task 4.2 mechanics (task 4.2d) > equip-real: the script equipped SMP-112 → equippedTo on the wire, effective ATK +500, CardEquipped sent
+ FAIL  src/modules/duels/duel-manager.scenario-mech.spec.ts > Sandbox scenarios on the task 4.2 mechanics (task 4.2d) > flip-real: FlipSummon is listed for my face-down SMP-044; the OnFlip trigger asks me
+ FAIL  src/modules/duels/duel-manager.scenario-mech.spec.ts > Sandbox scenarios on the task 4.2 mechanics (task 4.2d) > special-summon-real (solo-debug, opponent holds a Set Trap): the opponent never sees which hand card was chosen
+ FAIL  src/modules/duels/duel-manager.scenario-mech.spec.ts > Sandbox scenarios on the task 4.2 mechanics (task 4.2d) > special-summon-real: two effects (hand / graveyard); each opens a target prompt; the chosen monster lands
+ FAIL  src/modules/duels/duels.e2e.spec.ts > task 4.2 mechanics over HTTP (task 4.2d gate) > fuzz over HTTP with MECH_DEMO_DECK, run 1: FlipSummon / Special Summon / Equip never leak to either viewer
+ FAIL  src/modules/duels/duels.e2e.spec.ts > task 4.2 mechanics over HTTP (task 4.2d gate) > fuzz over HTTP with MECH_DEMO_DECK, run 2: FlipSummon / Special Summon / Equip never leak to either viewer
+ FAIL  src/modules/duels/duels.e2e.spec.ts > task 4.2 mechanics over HTTP (task 4.2d gate) > the runs above really Flip Summoned and used the mechanic Spells
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > ChainLinkAdded: drops the target ids hidden from the viewer, keeps the others in order (task 4.2d)
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards event CardEquipped unchanged to both viewers (task 4.2d)
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards event FlipSummoned unchanged to both viewers (task 4.2d)
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > forwards event MonsterSpecialSummoned unchanged to both viewers (task 4.2d)
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event CardEquipped through unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event FlipSummoned through unchanged to both viewers
+ FAIL  src/modules/duels/event-view.spec.ts > toEventView > passes public event MonsterSpecialSummoned through unchanged to both viewers
+ FAIL  src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts
+ FAIL  src/modules/duels/state-view.mech.spec.ts > toStateView — chain targets hidden from the viewer (task 4.2d) > a link targeting a card of the activator hand: the activator sees it, the opponent does not
+ FAIL  src/modules/duels/state-view.mech.spec.ts > toStateView — equippedTo (task 4.2d) > a face-up Equip on a face-up monster: both viewers see the link
+ FAIL  src/modules/duels/state-view.mech.spec.ts > toStateView — equippedTo (task 4.2d) > points across the table too (an Equip on the opponent monster)
+ FAIL  src/modules/duels/testing/leak-check.spec.ts > findLeaks — id lists and equippedTo (task 4.2d) > flags an id of the opponent's hand or of a deck in any *InstanceIds list / *InstanceId field
+ FAIL  src/modules/duels/testing/leak-check.spec.ts > findLeaks — id lists and equippedTo (task 4.2d) > flags equippedTo on a face-down/hidden card, or pointing at a face-down, missing or non-field card
+ FAIL  src/modules/duels/visibility.spec.ts [ src/modules/duels/visibility.spec.ts ]
+ Test Files  9 failed | 19 passed (28)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts
+⎯⎯⎯⎯⎯⎯ Failed Tests 27 ⎯⎯⎯⎯⎯⎯⎯
+## @yugi/web
+      Tests  31 failed | 538 passed (569)
+   × Flip Summon (task 4.2d) > choosing it sends the listed FlipSummon 1ms
+   × Flip Summon (task 4.2d) > tapping my face-down monster opens a menu with "Lật ngửa" 12ms
+   × a hand Spell with two effects (task 4.2d) > dropping it on my Spell/Trap Zone offers one entry per effect, then Set 4ms
+   × a hand Spell with two effects (task 4.2d) > each entry sends its own effect 4ms
+   × category tables > AI action FlipSummon -> field 0ms
+   × category tables > event CardEquipped -> field 0ms
+   × category tables > event FlipSummoned -> field 1ms
+   × category tables > event MonsterSpecialSummoned -> field 9ms
+   × describeAiAction > words every player action, always naming the AI 13ms
+   × describeEvent > Special Summon from the hand says so 2ms
+   × describeEvent > describes CardEquipped 2ms
+   × describeEvent > describes FlipSummoned 2ms
+   × describeEvent > describes MonsterSpecialSummoned 15ms
+   × graveyard picker for effect targets (task 4.2d) > candidates already on the board get no picker slot (they are clicked where they are) 3ms
+   × graveyard picker for effect targets (task 4.2d) > clicking a picker slot selects it; confirm sends the listed answer 1ms
+   × graveyard picker for effect targets (task 4.2d) > no picker outside a selection 1ms
+   × graveyard picker for effect targets (task 4.2d) > the prompt opens a target selection whose graveyard candidates get picker slots 2ms
+   × information leaks > render model of equip carries no hidden card identity 2ms
+   × information leaks > render model of flip carries no hidden card identity 15ms
+   × information leaks > render model of gy-target carries no hidden card identity 3ms
+   × information leaks > render model of special-summon carries no hidden card identity 3ms
+   × present — Equip relation (task 4.2d) > carries equippedTo on the face-up Equip cards only 9ms
+   × present — Equip relation (task 4.2d) > drops a link whose monster is not rendered (never guesses) 1ms
+   × present — Equip relation (task 4.2d) > lists one link per Equip whose monster is on the board 3ms
+   × present — Equip relation (task 4.2d) > no Equip on the board → no links 1ms
+   × stepsFor > CardEquipped → equip 1ms
+   × stepsFor > FlipSummoned → flipSummon 2ms
+   × stepsFor > MonsterSpecialSummoned → specialSummon 13ms
+   × stepsFor > never puts a hidden card name into a step (captions come from the injected describer only) 8ms
+   × stepsFor — task 4.2d mechanics > Special Summon / Flip Summon / Equip steps carry where to draw, never a definitionId 9ms
+   × test-only fixture cards > flip lists only well-formed player actions 22ms
+ FAIL  src/debug/describe-ai-action.test.ts > describeAiAction > words every player action, always naming the AI
+ FAIL  src/debug/describe-event.test.ts > describeEvent > Special Summon from the hand says so
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes CardEquipped
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes FlipSummoned
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes MonsterSpecialSummoned
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > CardEquipped → equip
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > FlipSummoned → flipSummon
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > MonsterSpecialSummoned → specialSummon
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > never puts a hidden card name into a step (captions come from the injected describer only)
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — task 4.2d mechanics > Special Summon / Flip Summon / Equip steps carry where to draw, never a definitionId
+ FAIL  src/duel/interaction.mech.test.ts > Flip Summon (task 4.2d) > choosing it sends the listed FlipSummon
+ FAIL  src/duel/interaction.mech.test.ts > Flip Summon (task 4.2d) > tapping my face-down monster opens a menu with "Lật ngửa"
+ FAIL  src/duel/interaction.mech.test.ts > a hand Spell with two effects (task 4.2d) > dropping it on my Spell/Trap Zone offers one entry per effect, then Set
+ FAIL  src/duel/interaction.mech.test.ts > a hand Spell with two effects (task 4.2d) > each entry sends its own effect
+ FAIL  src/duel/interaction.mech.test.ts > graveyard picker for effect targets (task 4.2d) > candidates already on the board get no picker slot (they are clicked where they are)
+ FAIL  src/duel/interaction.mech.test.ts > graveyard picker for effect targets (task 4.2d) > clicking a picker slot selects it; confirm sends the listed answer
+ FAIL  src/duel/interaction.mech.test.ts > graveyard picker for effect targets (task 4.2d) > no picker outside a selection
+ FAIL  src/duel/interaction.mech.test.ts > graveyard picker for effect targets (task 4.2d) > the prompt opens a target selection whose graveyard candidates get picker slots
+ FAIL  src/duel/log-entries.test.ts > category tables > AI action FlipSummon -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event CardEquipped -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event FlipSummoned -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event MonsterSpecialSummoned -> field
+ FAIL  src/duel/presenter.chain.test.ts > test-only fixture cards > flip lists only well-formed player actions
+ FAIL  src/duel/presenter.mech.test.ts > present — Equip relation (task 4.2d) > carries equippedTo on the face-up Equip cards only
+ FAIL  src/duel/presenter.mech.test.ts > present — Equip relation (task 4.2d) > drops a link whose monster is not rendered (never guesses)
+ FAIL  src/duel/presenter.mech.test.ts > present — Equip relation (task 4.2d) > lists one link per Equip whose monster is on the board
+ FAIL  src/duel/presenter.mech.test.ts > present — Equip relation (task 4.2d) > no Equip on the board → no links
+ FAIL  src/duel/presenter.test.ts > information leaks > render model of equip carries no hidden card identity
+ FAIL  src/duel/presenter.test.ts > information leaks > render model of flip carries no hidden card identity
+ FAIL  src/duel/presenter.test.ts > information leaks > render model of gy-target carries no hidden card identity
+ FAIL  src/duel/presenter.test.ts > information leaks > render model of special-summon carries no hidden card identity
+ Test Files  8 failed | 25 passed (33)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run
+⎯⎯⎯⎯⎯⎯ Failed Tests 31 ⎯⎯⎯⎯⎯⎯⎯

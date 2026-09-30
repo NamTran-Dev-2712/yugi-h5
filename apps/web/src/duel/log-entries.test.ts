@@ -38,6 +38,9 @@ const EVENT_CATEGORY: Record<EventView['type'], LogCategory> = {
   ChainLinkAdded: 'field',
   ChainLinkFizzled: 'field',
   ChainResolved: 'field',
+  MonsterSpecialSummoned: 'field',
+  FlipSummoned: 'field',
+  CardEquipped: 'field',
 };
 
 const AI_CATEGORY: Record<PlayerAction['type'], LogCategory> = {
@@ -51,6 +54,7 @@ const AI_CATEGORY: Record<PlayerAction['type'], LogCategory> = {
   SetSpellTrap: 'field',
   ActivateEffect: 'field',
   PassPriority: 'turn',
+  FlipSummon: 'field',
 };
 
 describe('category tables', () => {

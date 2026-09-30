@@ -22,14 +22,15 @@ const CHAIN_TYPES = [
   'ChainLinkFizzled',
   'ChainResolved',
 ] as const satisfies readonly GameEvent['type'][];
-/** Engine-only events (task 4.2+): classified but not forwarded until EventView has them (wire task). */
-const ENGINE_ONLY_TYPES = [
+/** Task 4.2a/b/c events: PUBLIC (always face-up), forwarded since task 4.2d. */
+const MECH_TYPES = [
   'MonsterSpecialSummoned',
   'FlipSummoned',
   'CardEquipped',
 ] as const satisfies readonly GameEvent['type'][];
-type EngineOnlyType = (typeof ENGINE_ONLY_TYPES)[number];
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent | { type: EngineOnlyType }>;
+type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
+/** No id is hidden from the viewer (most tests); the ChainLinkAdded target filter has its own tests. */
+const NONE: ReadonlySet<string> = new Set();
 
 /** One fixture per GameEvent type: adding a type to the engine makes this Record fail to typecheck. */
 const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = {
@@ -171,8 +172,7 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
 const asView = (e: PublicEvent): EventView => e;
 
 const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
-  (t): t is PublicEvent['type'] =>
-    t !== 'CardDrawn' && !(ENGINE_ONLY_TYPES as readonly string[]).includes(t),
+  (t): t is PublicEvent['type'] => t !== 'CardDrawn',
 );
 
 describe('toEventView', () => {
@@ -180,36 +180,58 @@ describe('toEventView', () => {
     expect(Object.keys(FIXTURES)).toHaveLength(28);
   });
 
-  it.each(ENGINE_ONLY_TYPES)(
-    'does not forward engine-only event %s yet (task 4.2 containment)',
-    (type) => {
-      for (const viewer of [0, 1] as const) expect(toEventView(FIXTURES[type], viewer)).toBeNull();
-    },
-  );
+  it.each(MECH_TYPES)('forwards event %s unchanged to both viewers (task 4.2d)', (type) => {
+    expect(PUBLIC_TYPES).toContain(type);
+    for (const viewer of [0, 1] as const) {
+      expect(toEventView(FIXTURES[type], viewer, NONE)).toEqual(FIXTURES[type]);
+    }
+  });
+
+  it('ChainLinkAdded: drops the target ids hidden from the viewer, keeps the others in order (task 4.2d)', () => {
+    const event: GameEvent = {
+      ...FIXTURES.ChainLinkAdded,
+      targetInstanceIds: ['p0-gy', 'p0-hand', 'p1-3'],
+    };
+    const hidden = new Set(['p0-hand']);
+    expect(toEventView(event, 1, hidden)).toEqual({
+      ...event,
+      targetInstanceIds: ['p0-gy', 'p1-3'],
+    });
+    expect(toEventView(event, 0, NONE)).toEqual(event);
+    expect(toEventViews([event], 1, hidden)[0]).toMatchObject({
+      targetInstanceIds: ['p0-gy', 'p1-3'],
+    });
+  });
+
+  it('the hidden set only filters target lists: other events are untouched even if they mention a hidden id', () => {
+    const hidden = new Set(['p0-1', 'p0-9']);
+    expect(toEventView(FIXTURES.ChainLinkFizzled, 1, hidden)).toEqual(FIXTURES.ChainLinkFizzled);
+    expect(toEventView(FIXTURES.CardDiscarded, 1, hidden)).toEqual(FIXTURES.CardDiscarded);
+  });
 
   it.each(CHAIN_TYPES)('forwards chain event %s unchanged to both viewers (task 3.4b)', (type) => {
     expect(PUBLIC_TYPES).toContain(type);
     for (const viewer of [0, 1] as const) {
-      expect(toEventView(FIXTURES[type], viewer)).toEqual(FIXTURES[type]);
+      expect(toEventView(FIXTURES[type], viewer, NONE)).toEqual(FIXTURES[type]);
     }
   });
 
   it.each(PUBLIC_TYPES)('passes public event %s through unchanged to both viewers', (type) => {
     const event = FIXTURES[type] as PublicEvent;
     for (const viewer of [0, 1] as const) {
-      expect(toEventView(event, viewer)).toEqual(asView(event));
+      expect(toEventView(event, viewer, NONE)).toEqual(asView(event));
     }
   });
 
   it('forwards every task 3.2 Spell/Trap event (none is dropped any more)', () => {
     for (const type of SPELL_TRAP_TYPES) {
       expect(PUBLIC_TYPES, type).toContain(type);
-      expect(toEventView(FIXTURES[type], 1), type).not.toBeNull();
+      expect(toEventView(FIXTURES[type], 1, NONE), type).not.toBeNull();
     }
   });
 
   it('shows CardDrawn in full to the drawer', () => {
-    expect(toEventView(FIXTURES.CardDrawn, 0)).toEqual({
+    expect(toEventView(FIXTURES.CardDrawn, 0, NONE)).toEqual({
       type: 'CardDrawn',
       playerIndex: 0,
       card: {
@@ -223,27 +245,27 @@ describe('toEventView', () => {
   });
 
   it('shows CardDrawn as a hidden card to the opponent, without the definitionId', () => {
-    const view = toEventView(FIXTURES.CardDrawn, 1);
+    const view = toEventView(FIXTURES.CardDrawn, 1, NONE);
     expect(view).toEqual({
       type: 'CardDrawn',
       playerIndex: 0,
       card: { hidden: true, instanceId: 'p0-1', ownerIndex: 0 },
     });
     expect(JSON.stringify(view)).not.toContain(SECRET);
-    expect(JSON.stringify(toEventView(FIXTURES.CardDrawn, 0))).toContain(SECRET);
+    expect(JSON.stringify(toEventView(FIXTURES.CardDrawn, 0, NONE))).toContain(SECRET);
   });
 
   it('draws for player 1 are symmetric', () => {
     const drawn: GameEvent = { ...FIXTURES.CardDrawn, playerIndex: 1, instanceId: 'p1-9' };
-    expect(JSON.stringify(toEventView(drawn, 0))).not.toContain(SECRET);
-    expect(JSON.stringify(toEventView(drawn, 1))).toContain(SECRET);
+    expect(JSON.stringify(toEventView(drawn, 0, NONE))).not.toContain(SECRET);
+    expect(JSON.stringify(toEventView(drawn, 1, NONE))).toContain(SECRET);
   });
 
   it.each(['MonsterSet', 'SpellTrapSet'] as const)(
     'never leaks a definitionId through the face-down Set event %s',
     (type) => {
       for (const viewer of [0, 1] as const) {
-        const view = toEventView(FIXTURES[type], viewer);
+        const view = toEventView(FIXTURES[type], viewer, NONE);
         expect(view).not.toBeNull();
         expect(JSON.stringify(view)).not.toContain('definitionId');
       }
@@ -252,8 +274,8 @@ describe('toEventView', () => {
 
   it('denies by default: an unclassified event type yields null', () => {
     const unknown = { type: 'FutureEvent', definitionId: SECRET } as unknown as GameEvent;
-    expect(toEventView(unknown, 0)).toBeNull();
-    expect(toEventView(unknown, 1)).toBeNull();
+    expect(toEventView(unknown, 0, NONE)).toBeNull();
+    expect(toEventView(unknown, 1, NONE)).toBeNull();
   });
 
   it('toEventViews keeps order and drops hidden events', () => {
@@ -264,7 +286,7 @@ describe('toEventView', () => {
       FIXTURES.CardDrawn,
       FIXTURES.DamageDealt,
     ];
-    const views = toEventViews(events, 1);
+    const views = toEventViews(events, 1, NONE);
     expect(views.map((v) => v.type)).toEqual(['PhaseChanged', 'CardDrawn', 'DamageDealt']);
     expect(JSON.stringify(views)).not.toContain(SECRET);
   });

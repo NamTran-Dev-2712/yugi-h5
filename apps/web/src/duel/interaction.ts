@@ -1,9 +1,11 @@
 import type { PlayerAction, StateView } from '@yugi/shared';
 import {
   activations,
+  activationsByEffect,
   attackers,
   attackTargets,
   draggableHandCards,
+  flipSummonAction,
   isListed,
   positionOptions,
   promptAnswers,
@@ -16,6 +18,7 @@ import { t } from '../i18n/i18n';
 import {
   hitTest,
   optionRects,
+  pickerSlots,
   pointInRect,
   spellZoneIndexAt,
   zoneIndexAt,
@@ -202,14 +205,13 @@ function dropSpell(
   const set = spellSetOptions(ctx.legalActions, viewer, cardId)
     .filter((o) => o.zoneIndex === zoneIndex)
     .map((o) => o.action);
-  return offer(
-    [
-      { label: strings.activateOption, actions: activations(ctx.legalActions, viewer, cardId) },
-      { label: strings.setSpellOption, actions: set },
-    ],
-    point,
-    ctx,
-  );
+  // Task 4.2d: a card with several effects (e.g. SMP-111) gets one entry per effect, like a Set card (activateSetCard).
+  const byEffect = activationsByEffect(ctx.legalActions, viewer, cardId);
+  const activate =
+    byEffect.length > 1
+      ? byEffect.map((actions, i) => ({ label: t('duel.activateEffectN', { n: i + 1 }), actions }))
+      : [{ label: strings.activateOption, actions: byEffect[0] ?? [] }];
+  return offer([...activate, { label: strings.setSpellOption, actions: set }], point, ctx);
 }
 
 /**
@@ -217,16 +219,12 @@ function dropSpell(
  * at once (or asks for its cost cards); several open the option menu, one entry per effect.
  */
 function activateSetCard(cardId: string, point: Point, ctx: InteractionContext): Transition {
-  const byEffect = new Map<string, PlayerAction[]>();
-  for (const a of activations(ctx.legalActions, ctx.view.viewerIndex, cardId)) {
-    const group = byEffect.get(a.payload.effectId) ?? [];
-    group.push(a);
-    byEffect.set(a.payload.effectId, group);
-  }
-  const groups = [...byEffect.values()].map((actions, i) => ({
-    label: t('duel.activateEffectN', { n: i + 1 }),
-    actions,
-  }));
+  const groups = activationsByEffect(ctx.legalActions, ctx.view.viewerIndex, cardId).map(
+    (actions, i) => ({
+      label: t('duel.activateEffectN', { n: i + 1 }),
+      actions,
+    }),
+  );
   return offer(groups, point, ctx);
 }
 
@@ -333,7 +331,8 @@ function onDown(point: Point, ctx: InteractionContext): Transition {
   if (
     card.zone === 'monster' &&
     (attackers(ctx.legalActions, viewer).includes(card.id) ||
-      positionOptions(ctx.legalActions, viewer, card.id).length > 0)
+      positionOptions(ctx.legalActions, viewer, card.id).length > 0 ||
+      flipSummonAction(ctx.legalActions, viewer, card.id) !== null)
   ) {
     return {
       state: {
@@ -393,21 +392,17 @@ function onUpDraggingAttack(
   const canAttack = attackers(ctx.legalActions, viewer).includes(state.attackerId);
   if (!state.moved || !canAttack) {
     if (state.moved) return stay(IDLE);
-    // A click: open the position menu with what the server listed.
-    const options = positionOptions(ctx.legalActions, viewer, state.attackerId);
+    // A click: open the position menu with what the server listed (+ Flip Summon for a face-down monster, task 4.2d).
+    const flip = flipSummonAction(ctx.legalActions, viewer, state.attackerId);
+    const options: OptionGroup[] = [
+      ...positionOptions(ctx.legalActions, viewer, state.attackerId).map((a) => ({
+        label: a.payload.toPosition === 'Attack' ? strings.toAttackOption : strings.toDefenseOption,
+        actions: [a],
+      })),
+      ...(flip ? [{ label: strings.flipSummonOption, actions: [flip] }] : []),
+    ];
     if (options.length === 0) return stay(IDLE);
-    return {
-      state: {
-        kind: 'choosing-option',
-        anchor: point,
-        options: options.map((a) => ({
-          label:
-            a.payload.toPosition === 'Attack' ? strings.toAttackOption : strings.toDefenseOption,
-          actions: [a],
-        })),
-      },
-      effects: [],
-    };
+    return { state: { kind: 'choosing-option', anchor: point, options }, effects: [] };
   }
   const hit = hitTest(ctx.layout, ctx.model, point);
   const targets = attackTargets(ctx.legalActions, viewer, state.attackerId);
@@ -448,14 +443,29 @@ function onUpSelecting(
     // "Không" on an optional trigger = the listed decline.
     if (state.decline) return emit(state.decline, ctx);
   }
+  const picked = pickerFor(state.candidates, ctx).find((p) => pointInRect(p.rect, point));
   const hit = hitTest(ctx.layout, ctx.model, point);
-  if (hit.kind === 'card' && state.candidates.includes(hit.id)) {
-    const selected = state.selected.includes(hit.id)
-      ? state.selected.filter((id) => id !== hit.id)
-      : [...state.selected, hit.id];
+  const id = picked?.id ?? (hit.kind === 'card' ? hit.id : null);
+  if (id !== null && state.candidates.includes(id)) {
+    const selected = state.selected.includes(id)
+      ? state.selected.filter((x) => x !== id)
+      : [...state.selected, id];
     return stay({ ...state, selected });
   }
   return stay(state);
+}
+
+/**
+ * Task 4.2d: candidates of a selection that are not drawn on the board (a Special Summon from the graveyard) get a slot
+ * in the graveyard picker row, in candidate order; the others are clicked where they are.
+ */
+export function pickerFor(
+  candidates: readonly string[],
+  ctx: InteractionContext,
+): { readonly id: string; readonly rect: Rect }[] {
+  const off = candidates.filter((id) => !ctx.model.cards.some((c) => c.id === id));
+  const slots = pickerSlots(off.length);
+  return off.map((id, i) => ({ id, rect: slots[i]! }));
 }
 
 export function reduce(
@@ -515,6 +525,8 @@ export interface OverlayModel {
   readonly lpTarget: Rect | null;
   readonly candidates: readonly string[];
   readonly selected: readonly string[];
+  /** Task 4.2d: candidates off the board, drawn face-up in a picker row (ids in candidate order). */
+  readonly picker: readonly { readonly id: string; readonly rect: Rect }[];
   readonly ghost: { readonly cardId: string; readonly at: Point } | null;
   readonly arrow: { readonly from: Point; readonly to: Point } | null;
   readonly menu: { readonly rects: readonly Rect[]; readonly labels: readonly string[] } | null;
@@ -532,6 +544,7 @@ const EMPTY_OVERLAY: OverlayModel = {
   lpTarget: null,
   candidates: [],
   selected: [],
+  picker: [],
   ghost: null,
   arrow: null,
   menu: null,
@@ -593,6 +606,7 @@ export function overlayFor(state: InteractionState, ctx: InteractionContext): Ov
         ...EMPTY_OVERLAY,
         candidates: state.candidates,
         selected: state.selected,
+        picker: pickerFor(state.candidates, ctx),
         confirm: {
           enabled: canConfirm(state),
           showCancel: cancellable(state.purpose) || state.decline !== undefined,

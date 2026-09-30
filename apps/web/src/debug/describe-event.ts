@@ -131,6 +131,28 @@ export function describeEvent(event: EventView, ctx: DescribeContext): string {
       });
     case 'ChainResolved':
       return t('event.chainResolved', { count: event.linkCount });
+    // Task 4.2d: the Special/Flip Summoned monster and the Equip Spell are face-up (public).
+    case 'MonsterSpecialSummoned':
+      return t(
+        event.from === 'Hand' ? 'event.specialSummonedHand' : 'event.specialSummonedGraveyard',
+        {
+          player: p(event.playerIndex),
+          card: ctx.cardName(event.definitionId),
+          zone: event.zoneIndex,
+        },
+      );
+    case 'FlipSummoned':
+      return t('event.flipSummoned', {
+        player: p(event.playerIndex),
+        card: ctx.cardName(event.definitionId),
+        zone: event.zoneIndex,
+      });
+    case 'CardEquipped':
+      return t('event.cardEquipped', {
+        player: p(event.playerIndex),
+        card: ctx.cardName(event.definitionId),
+        target: ctx.instanceLabel(event.targetInstanceId),
+      });
     default: {
       const unhandled: never = event;
       return t('event.unknown', { json: JSON.stringify(unhandled) });

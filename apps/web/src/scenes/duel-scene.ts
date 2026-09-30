@@ -10,7 +10,7 @@ import type { AnimationStep } from '../duel/animation-queue';
 import { formatDetail } from '../duel/detail-text';
 import type { SelectionPurpose } from '../duel/interaction';
 import { createInteractionDriver, type InteractionDriver } from '../duel/interaction-driver';
-import { computeLayout, staticRects, type Rect } from '../duel/layout';
+import { computeLayout, pickerPanel, staticRects, type Rect } from '../duel/layout';
 import { filterEntries } from '../duel/log-entries';
 import {
   loadLogPanel,
@@ -22,7 +22,7 @@ import {
   type LogPanelState,
   type LogStorage,
 } from '../duel/log-panel';
-import { present, type CardDetail, type RenderModel } from '../duel/presenter';
+import { pickerCards, present, type CardDetail, type RenderModel } from '../duel/presenter';
 import { animatorHost } from '../duel/services';
 import { strings } from '../duel/strings';
 import { theme } from '../duel/theme';
@@ -275,8 +275,30 @@ export class DuelScene extends Phaser.Scene {
     for (const z of o.zones) outline(z, c.validZone);
     for (const t of o.targets) outline(t, c.target);
     if (o.lpTarget) outline(o.lpTarget, c.target);
+    // Task 4.2d: candidates off the board (graveyard) are drawn in a picker row over the board.
+    const panel = pickerPanel(o.picker.length);
+    if (panel) {
+      const bg = this.add
+        .rectangle(panel.x, panel.y, panel.w, panel.h, c.pickerBg, 0.95)
+        .setOrigin(0, 0);
+      bg.setStrokeStyle(2, c.highlight, 0.8);
+      this.overlay.add(bg);
+      this.overlay.add(
+        this.add.text(panel.x + 8, panel.y + 3, strings.pickerTitle, {
+          fontFamily: theme.fonts.ui,
+          fontSize: `${theme.fontSize.small}px`,
+          color: theme.css.textDim,
+        }),
+      );
+      for (const pc of pickerCards(ctx.view, o.picker, this.controller.lookup)) {
+        const view = createCardView(this, pc);
+        view.on('pointerover', () => this.showDetail(pc.detail));
+        this.overlay.add(view);
+      }
+    }
+    const pickerRect = (id: string): Rect | undefined => o.picker.find((x) => x.id === id)?.rect;
     for (const id of o.candidates) {
-      const r = cardRect(id);
+      const r = cardRect(id) ?? pickerRect(id);
       if (r)
         outline(
           r,
@@ -425,6 +447,7 @@ export class DuelScene extends Phaser.Scene {
     this.drawPiles(model);
     this.drawLp(model);
     this.drawCards(model);
+    this.drawEquipLinks(model);
     this.drawPhase(model, state);
     this.drawButtons(model, state);
     if (model.banner) this.drawBanner(model);
@@ -528,6 +551,21 @@ export class DuelScene extends Phaser.Scene {
       case 'toGraveyard':
         flash(cardRect(step.instanceId), c.dim);
         break;
+      // Task 4.2d.
+      case 'specialSummon':
+        flash(zoneRect(step.playerIndex, step.zoneIndex), c.validZone);
+        pop(zoneRect(step.playerIndex, step.zoneIndex), 'card-frame-monster');
+        break;
+      case 'flipSummon':
+        flash(cardRect(step.instanceId) ?? zoneRect(step.playerIndex, step.zoneIndex), c.highlight);
+        break;
+      case 'equip': {
+        const from = cardRect(step.instanceId);
+        const to = cardRect(step.targetInstanceId);
+        if (from) flash(from, c.equipLink);
+        if (to) flash(to, c.equipLink);
+        break;
+      }
       case 'discard':
       case 'deckOut':
       case 'phase':
@@ -603,6 +641,23 @@ export class DuelScene extends Phaser.Scene {
       view.on('pointerup', () => this.showDetail(c.detail));
       this.dynamic.add(view);
     }
+  }
+
+  /** Task 4.2d [GUESS] G19: a line + outlines tie each face-up Equip card to its monster. */
+  private drawEquipLinks(model: RenderModel): void {
+    const rectOf = (id: string): Rect | undefined => model.cards.find((c) => c.id === id)?.rect;
+    const g = this.add.graphics();
+    const color = theme.colors.equipLink;
+    for (const link of model.equipLinks) {
+      const from = rectOf(link.equipId);
+      const to = rectOf(link.monsterId);
+      if (!from || !to) continue;
+      g.lineStyle(3, color, 0.9);
+      g.lineBetween(from.x + from.w / 2, from.y + from.h / 2, to.x + to.w / 2, to.y + to.h / 2);
+      g.strokeRect(from.x - 2, from.y - 2, from.w + 4, from.h + 4);
+      g.strokeRect(to.x - 2, to.y - 2, to.w + 4, to.h + 4);
+    }
+    this.dynamic.add(g);
   }
 
   private drawPiles(model: RenderModel): void {

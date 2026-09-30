@@ -18,6 +18,7 @@ import type {
   StateView,
   VisibleCardView,
 } from '@yugi/shared';
+import { hiddenIdsFor, visibleIds } from './visibility';
 
 const visible = (c: CardInstance): VisibleCardView => ({
   hidden: false,
@@ -58,12 +59,31 @@ const monsterView = (
  * straight to the graveyard and never sits face-up. Fail closed: the opponent only sees one when it carries an
  * explicit face-up position. [ASSUMED] revisit at task 3.4 (face-up Continuous/activated Traps).
  */
-const backrowView = (c: CardInstance | null, isOwner: boolean): CardView | null => {
+const backrowView = (
+  state: GameState,
+  c: CardInstance | null,
+  isOwner: boolean,
+): CardView | null => {
   if (c === null) return null;
-  return isOwner || c.position === 'Attack' || c.position === 'DefenseUp'
-    ? visible(c)
-    : hiddenCard(c);
+  const faceUp = c.position === 'Attack' || c.position === 'DefenseUp';
+  if (!faceUp) return isOwner ? visible(c) : hiddenCard(c);
+  const equippedTo = equipTarget(state, c);
+  return equippedTo === null ? visible(c) : { ...visible(c), equippedTo };
 };
+
+/**
+ * Task 4.2d: the monster a FACE-UP Equip card is equipped to, only when that monster is face-up in a Monster Zone (either
+ * side). Deny by default: anything else (no link, the monster gone or face-down) sends nothing.
+ */
+function equipTarget(state: GameState, c: CardInstance): string | null {
+  const id = c.equippedTo;
+  if (id === undefined) return null;
+  for (const p of state.players) {
+    const m = p.board.monsterZones.find((z) => z?.instanceId === id);
+    if (m) return m.position === 'Attack' || m.position === 'DefenseUp' ? id : null;
+  }
+  return null;
+}
 
 function mapFive<T, R>(zones: readonly [T, T, T, T, T], fn: (t: T) => R): [R, R, R, R, R] {
   return [fn(zones[0]), fn(zones[1]), fn(zones[2]), fn(zones[3]), fn(zones[4])];
@@ -79,8 +99,8 @@ function toPlayerView(
     monsterZones: mapFive(p.board.monsterZones, (c) =>
       monsterView(state, c, isOwner, cardDefinitions),
     ),
-    spellTrapZones: mapFive(p.board.spellTrapZones, (c) => backrowView(c, isOwner)),
-    fieldZone: backrowView(p.board.fieldZone, isOwner),
+    spellTrapZones: mapFive(p.board.spellTrapZones, (c) => backrowView(state, c, isOwner)),
+    fieldZone: backrowView(state, p.board.fieldZone, isOwner),
   };
   return {
     playerId: p.playerId,
@@ -113,16 +133,17 @@ function promptView(prompt: PendingPrompt | null, viewerIndex: 0 | 1): PendingPr
 /**
  * A chain link is public to both seats (task 3.4b): activating revealed the card — from the hand it now lives in the
  * link, a Set card was flipped face-up, a trigger's card is face-up on the field or in the graveyard. Cost ids and LP
- * paid stay server-side (the costs were public events already; the client does not need them).
+ * paid stay server-side (the costs were public events already; the client does not need them). Task 4.2d: targets the
+ * viewer may not be pointed at (a hand card chosen by a Special Summon) are left out for that viewer only.
  */
-const chainLinkView = (link: ChainLink): ChainLinkView => ({
+const chainLinkView = (link: ChainLink, hidden: ReadonlySet<string>): ChainLinkView => ({
   linkId: link.linkId,
   playerIndex: link.playerIndex,
   card: visible(link.card),
   source: link.source,
   effectId: link.effectId,
   spellSpeed: link.spellSpeed,
-  targetInstanceIds: link.targetInstanceIds,
+  targetInstanceIds: visibleIds(link.targetInstanceIds, hidden),
 });
 
 const chainWindowView = (w: GameState['chainWindow']): ChainWindowView | null =>
@@ -145,6 +166,7 @@ export function toStateView(
   viewerIndex: 0 | 1,
   cardDefinitions: CardResolver,
 ): StateView {
+  const hidden = hiddenIdsFor(state, viewerIndex);
   return {
     matchId: state.matchId,
     version: state.version,
@@ -155,7 +177,7 @@ export function toStateView(
     phase: state.phase,
     winnerIndex: state.winnerIndex,
     pendingPrompt: promptView(state.pendingPrompt, viewerIndex),
-    chain: state.chainStack.map(chainLinkView),
+    chain: state.chainStack.map((link) => chainLinkView(link, hidden)),
     chainWindow: chainWindowView(state.chainWindow),
     players: [
       toPlayerView(state, state.players[0], viewerIndex === 0, cardDefinitions),

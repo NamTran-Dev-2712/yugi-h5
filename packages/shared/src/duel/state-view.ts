@@ -33,6 +33,11 @@ export interface VisibleCardView {
    * absent everywhere else (hand, graveyard, face-down monsters, Spell/Traps).
    */
   readonly effectiveStats?: EffectiveStatsView;
+  /**
+   * Task 4.2d: only on a FACE-UP Equip card in a Spell/Trap Zone — the instanceId of the face-up monster it is equipped
+   * to (either side of the table). Absent everywhere else.
+   */
+  readonly equippedTo?: string;
 }
 
 export type CardView = HiddenCardView | VisibleCardView;

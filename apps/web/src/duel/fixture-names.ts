@@ -13,6 +13,11 @@ export const FIXTURE_NAMES = [
   'chain-reaction',
   'chain-respond',
   'trigger-optional',
+  // Task 4.2d.
+  'flip',
+  'equip',
+  'gy-target',
+  'special-summon',
 ] as const;
 export type FixtureName = (typeof FIXTURE_NAMES)[number];
 

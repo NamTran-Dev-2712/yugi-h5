@@ -144,6 +144,12 @@ export const strings = {
   get toDefenseOption() {
     return t('duel.toDefenseOption');
   },
+  get flipSummonOption() {
+    return t('duel.flipSummonOption');
+  },
+  get pickerTitle() {
+    return t('duel.pickerTitle');
+  },
   get confirm() {
     return t('duel.confirm');
   },

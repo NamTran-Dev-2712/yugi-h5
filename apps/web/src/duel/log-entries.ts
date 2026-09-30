@@ -46,6 +46,11 @@ export function categoryOfEvent(type: EventView['type']): LogCategory {
     case 'DeckOut':
     case 'DuelStarted':
       return 'turn';
+    // Task 4.2d.
+    case 'MonsterSpecialSummoned':
+    case 'FlipSummoned':
+    case 'CardEquipped':
+      return 'field';
     default: {
       const unhandled: never = type;
       throw new Error(`Event chưa có nhóm log: ${String(unhandled)}`);
@@ -62,6 +67,7 @@ export function categoryOfAiAction(type: PlayerAction['type']): LogCategory {
     case 'ResolvePendingPrompt':
     case 'SetSpellTrap':
     case 'ActivateEffect':
+    case 'FlipSummon':
       return 'field';
     case 'DeclareAttack':
     case 'Surrender':

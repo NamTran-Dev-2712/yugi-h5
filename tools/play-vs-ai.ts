@@ -10,6 +10,9 @@
  * reaction windows (else passes) and accepts trigger prompts; the run must see real chain links and windows.
  * Task 4.1: `DECK=batch1` plays both seats with `BATCH1_DEMO_DECK` (card batch 1: basic Spells/Traps + vanilla);
  * the run must see real chain links (the human activates batch-1 Spells/Traps).
+ * Task 4.2d: `DECK=mech` plays both seats with `MECH_DEMO_DECK` (SMP-044 OnFlip, SMP-111 Special Summon, SMP-112 Equip);
+ * the human Sets SMP-044 and Flip Summons it later, and uses the two Spells; the run must see a Flip Summon, a
+ * Special Summon or an Equip, and `equippedTo` on the wire whenever something was equipped.
  */
 import {
   BASE,
@@ -51,6 +54,7 @@ function check(name: string, ok: boolean, detail = ''): void {
 
 const EFFECT_DECK = process.env.DECK === 'effect';
 const BATCH1_DECK = process.env.DECK === 'batch1';
+const MECH_DECK = process.env.DECK === 'mech';
 
 /** Cards of the AI seat still hidden from the human in this very view (hand + face-down monsters and Spells/Traps). */
 function aiHidden(view: ViewV): Set<string> {
@@ -61,13 +65,30 @@ function aiHidden(view: ViewV): Set<string> {
   return ids;
 }
 
+/** One of my hand cards is `definitionId` (the human sees its own hand). */
+function isOwnCard(view: ViewV, instanceId: string, definitionId: string): boolean {
+  return view.players[0].hand.some(
+    (c) => c.instanceId === instanceId && c.definitionId === definitionId,
+  );
+}
+
 function chooseHuman(view: ViewV, legal: Action[]): Action {
   const inWindow = view.chainWindow?.priorityPlayer === 0;
   const rank = (a: Action): number => {
     if (a.type === 'ResolvePendingPrompt') return a.payload.decline === true ? 0.5 : 0;
     if (inWindow) return a.type === 'ActivateEffect' ? 0 : a.type === 'PassPriority' ? 1 : 99;
     if (a.type === 'DeclareAttack') return a.payload.targetInstanceId == null ? 1 : 2;
+    // Task 4.2d (DECK=mech): Flip Summon a Set monster, and Set SMP-044 rather than Summoning it (to flip it later).
+    if (a.type === 'FlipSummon') return 2.5;
+    if (
+      a.type === 'SetMonster' &&
+      MECH_DECK &&
+      isOwnCard(view, a.payload.cardInstanceId, 'SMP-044')
+    )
+      return 2.8;
     if (a.type === 'NormalSummon') return 3;
+    // DECK=mech: the Special Summon / Equip Spells are worth activating, not Setting (a Set Normal Spell is dead).
+    if (a.type === 'ActivateEffect' && MECH_DECK) return 3.9;
     if (a.type === 'SetSpellTrap') return 4;
     if (a.type === 'ActivateEffect') return 5;
     if (a.type === 'EndPhase') return 9;
@@ -96,6 +117,12 @@ async function main(): Promise<void> {
     };
     deck = shared.BATCH1_DEMO_DECK;
     say(`   deck: BATCH1_DEMO_DECK (${deck.length} cards)`);
+  } else if (MECH_DECK) {
+    const shared = (await import('../packages/shared/dist/index.js')) as {
+      MECH_DEMO_DECK: readonly string[];
+    };
+    deck = shared.MECH_DEMO_DECK;
+    say(`   deck: MECH_DEMO_DECK (${deck.length} cards)`);
   }
   const created = await call('POST', '/duels/solo', {
     token,
@@ -128,6 +155,10 @@ async function main(): Promise<void> {
     humanTriggerPrompts: 0,
     aiChainActs: 0,
     effAtk: 0,
+    flipSummons: 0,
+    specialSummons: 0,
+    equips: 0,
+    equippedToOnWire: 0,
   };
   while (res.view.winnerIndex === null) {
     if (res.view.chainWindow?.priorityPlayer === 0) seen.humanWindows++;
@@ -162,6 +193,11 @@ async function main(): Promise<void> {
     const steps = res.aiActions ?? [];
     aiActions += steps.length;
     seen.chainLinks += res.events.filter((e) => e.type === 'ChainLinkAdded').length;
+    seen.flipSummons += res.events.filter((e) => e.type === 'FlipSummoned').length;
+    seen.specialSummons += res.events.filter((e) => e.type === 'MonsterSpecialSummoned').length;
+    seen.equips += res.events.filter((e) => e.type === 'CardEquipped').length;
+    const backrow = res.view.players.flatMap((p) => p.board.spellTrapZones ?? []);
+    if (backrow.some((c) => c?.equippedTo !== undefined)) seen.equippedToOnWire++;
     seen.aiChainActs += steps.filter(
       (s) => s.action.type === 'PassPriority' || s.action.type === 'ActivateEffect',
     ).length;
@@ -209,6 +245,19 @@ async function main(): Promise<void> {
   }
   if (BATCH1_DECK) {
     check('batch-1 chain links were added over HTTP', seen.chainLinks > 0, JSON.stringify(seen));
+  }
+  if (MECH_DECK) {
+    check('a Flip Summon happened over HTTP', seen.flipSummons > 0, JSON.stringify(seen));
+    check(
+      'a Special Summon or an Equip happened over HTTP',
+      seen.specialSummons + seen.equips > 0,
+      JSON.stringify(seen),
+    );
+    check(
+      'equippedTo reached the wire whenever something was equipped',
+      seen.equips === 0 || seen.equippedToOnWire > 0,
+      JSON.stringify(seen),
+    );
   }
 
   const failed = results.filter((r) => !r.ok);

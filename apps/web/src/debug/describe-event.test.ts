@@ -195,6 +195,38 @@ const EXAMPLES: Record<EventView['type'], { event: EventView; text: string }> = 
     event: { type: 'ChainResolved', linkCount: 2 },
     text: 'Chuỗi 2 mắt xích đã xử lý xong',
   },
+  MonsterSpecialSummoned: {
+    event: {
+      type: 'MonsterSpecialSummoned',
+      playerIndex: 0,
+      instanceId: 'p0-9',
+      definitionId: 'SMP-003',
+      zoneIndex: 1,
+      from: 'Graveyard',
+      position: 'Attack',
+    },
+    text: 'P0 Triệu hồi Đặc biệt Name(SMP-003) từ mộ vào ô 1',
+  },
+  FlipSummoned: {
+    event: {
+      type: 'FlipSummoned',
+      playerIndex: 1,
+      instanceId: 'p1-4',
+      definitionId: 'SMP-044',
+      zoneIndex: 2,
+    },
+    text: 'P1 Triệu hồi Lật Name(SMP-044) ở ô 2',
+  },
+  CardEquipped: {
+    event: {
+      type: 'CardEquipped',
+      playerIndex: 0,
+      instanceId: 'p0-20',
+      definitionId: 'SMP-112',
+      targetInstanceId: 'p0-2',
+    },
+    text: 'P0 trang bị Name(SMP-112) cho <p0-2>',
+  },
 };
 
 describe('describeEvent', () => {
@@ -213,6 +245,23 @@ describe('describeEvent', () => {
     );
     expect(text).toBe('P1 rút 1 lá (ẩn)');
     expect(text).not.toContain('Name(');
+  });
+
+  it('Special Summon from the hand says so', () => {
+    expect(
+      describeEvent(
+        {
+          type: 'MonsterSpecialSummoned',
+          playerIndex: 1,
+          instanceId: 'p1-2',
+          definitionId: 'SMP-001',
+          zoneIndex: 0,
+          from: 'Hand',
+          position: 'DefenseUp',
+        },
+        ctx,
+      ),
+    ).toBe('P1 Triệu hồi Đặc biệt Name(SMP-001) từ tay vào ô 0');
   });
 
   it('describes a direct attack (target null)', () => {

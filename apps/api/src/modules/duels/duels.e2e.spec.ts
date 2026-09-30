@@ -6,6 +6,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { createRng, nextInt } from '@yugi/game-engine';
 import {
+  MECH_DEMO_DECK,
   PlayerActionSchema,
   SAMPLE_CARDS,
   STARTER_DECK,
@@ -750,6 +751,66 @@ describe('Spell/Trap over HTTP (task 3.2b gate): no hidden definitionId in any r
 
   it('the HTTP fuzz runs above really sent Spell/Trap actions', () => {
     expect(httpSpellTrapActions).toBeGreaterThan(0);
+  });
+});
+
+describe('task 4.2 mechanics over HTTP (task 4.2d gate)', () => {
+  const sent = new Map<string, number>();
+  const seen = new Map<string, number>();
+  const rawState = async (duelId: string) => (await app.get(DuelService).getDuel(duelId)).state;
+
+  it.each([1, 2])(
+    'fuzz over HTTP with MECH_DEMO_DECK, run %i: FlipSummon / Special Summon / Equip never leak to either viewer',
+    async (run) => {
+      const d = await newDuel({ deck: [...MECH_DEMO_DECK] });
+      const problems: string[] = [];
+      let rng = createRng(`http-mech-${run}`);
+      for (let step = 0; step < 150; step++) {
+        const state = await rawState(d.duelId);
+        if (state.winnerIndex !== null) break;
+        const actor = (state.pendingPrompt?.playerIndex ??
+          state.chainWindow?.priorityPlayer ??
+          state.turnPlayerIndex) as 0 | 1;
+        const legal = ((await legalOf(d, actor)) as PlayerAction[]).filter(
+          (a) => a.type !== 'Surrender',
+        );
+        const mech = legal.filter((a) => a.type === 'FlipSummon' || a.type === 'ActivateEffect');
+        const [roll, r1] = nextInt(rng, 100);
+        const pool = mech.length > 0 && roll < 60 ? mech : legal;
+        const [i, r2] = nextInt(r1, pool.length);
+        rng = r2;
+        const action = pool[i]!;
+        sent.set(action.type, (sent.get(action.type) ?? 0) + 1);
+        const res = await http()
+          .post(`/duels/${d.duelId}/actions`)
+          .set(d.guest.auth)
+          .send({ playerIndex: actor, action })
+          .expect(200);
+        for (const e of res.body.events as { type: string }[]) {
+          seen.set(e.type, (seen.get(e.type) ?? 0) + 1);
+        }
+        const after = await rawState(d.duelId);
+        for (const viewer of [0, 1] as const) {
+          const got = (
+            await http().get(`/duels/${d.duelId}?viewer=${viewer}`).set(d.guest.auth).expect(200)
+          ).body;
+          const body = viewer === actor ? { got, posted: res.body } : { got };
+          for (const v of findLeaks(after, viewer, body)) {
+            problems.push(`${run}.${step} ${action.type} viewer ${viewer}: ${v.path} ${v.reason}`);
+          }
+        }
+      }
+      expect(problems).toEqual([]);
+    },
+    90_000,
+  );
+
+  it('the runs above really Flip Summoned and used the mechanic Spells', () => {
+    console.info('[http mech]', Object.fromEntries(sent), Object.fromEntries(seen));
+    expect(sent.get('FlipSummon') ?? 0).toBeGreaterThan(0);
+    expect(
+      (seen.get('MonsterSpecialSummoned') ?? 0) + (seen.get('CardEquipped') ?? 0),
+    ).toBeGreaterThan(0);
   });
 });
 

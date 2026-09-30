@@ -229,3 +229,42 @@ export function staticRects(layout: BoardLayout): { name: string; rect: Rect }[]
   out.push({ name: 'button.surrender', rect: layout.buttons.surrender });
   return out;
 }
+
+/** Top edge of the graveyard picker row: just above the confirm bar's hint line. */
+const PICKER_BOTTOM = 322 - 10;
+
+/**
+ * Task 4.2d: slots for `count` cards of the graveyard picker (effect targets that are not on the board), a centred row
+ * over the middle of the board, squeezed like the hand when it does not fit. Left-to-right order = candidate order.
+ */
+export function pickerSlots(count: number): Rect[] {
+  if (count <= 0) return [];
+  const w = card.handW;
+  const h = card.handH;
+  const width = BOARD_RIGHT - BOARD_LEFT - 2 * card.handGap;
+  const idealStep = w + card.handGap;
+  const step = count === 1 ? 0 : Math.min(idealStep, (width - w) / (count - 1));
+  const total = w + step * (count - 1);
+  const x0 = BOARD_CENTER - total / 2;
+  return Array.from({ length: count }, (_, i) => ({
+    x: x0 + i * step,
+    y: PICKER_BOTTOM - h,
+    w,
+    h,
+  }));
+}
+
+/** The panel drawn behind `pickerSlots(count)` (room for a title line above the cards); null when empty. */
+export function pickerPanel(count: number): Rect | null {
+  const slots = pickerSlots(count);
+  if (slots.length === 0) return null;
+  const first = slots[0]!;
+  const last = slots[slots.length - 1]!;
+  const pad = card.handGap;
+  return {
+    x: first.x - pad,
+    y: first.y - pad - 18,
+    w: last.x + last.w - first.x + 2 * pad,
+    h: first.h + 2 * pad + 18,
+  };
+}

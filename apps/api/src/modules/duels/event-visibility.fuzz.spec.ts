@@ -15,6 +15,7 @@ import {
   type EffectDefinition,
   type EventView,
   type PlayerAction,
+  type StateView,
 } from '@yugi/shared';
 import { describe, expect, it } from 'vitest';
 import { DuelManager, type SubmitActionResult } from './duel-manager';
@@ -155,8 +156,70 @@ const FUZZ_MONSTERS: readonly CardDefinition[] = [
   }),
 ];
 
+/**
+ * Task 4.2d: Special Summon (hand / graveyard; an OnSummon one so the AI answers a hand-target prompt), Equip, OnFlip —
+ * test-only, next to the real SMP-044 / SMP-111 / SMP-112 (in REAL_EFFECT_CARDS).
+ */
+const FUZZ_MECH: readonly CardDefinition[] = [
+  spell('FZ-SS-HAND', {
+    trigger: { kind: 'Ignition' },
+    target: { kind: 'Card', zone: 'Hand', side: 'self', count: 1, filter: { kind: 'Monster' } },
+    operations: [{ kind: 'SpecialSummon' }],
+  }),
+  spell('FZ-SS-GY', {
+    trigger: { kind: 'Ignition' },
+    target: {
+      kind: 'Card',
+      zone: 'Graveyard',
+      side: 'self',
+      count: 1,
+      filter: { kind: 'Monster' },
+    },
+    operations: [{ kind: 'SpecialSummon', position: 'DefenseUp' }],
+  }),
+  {
+    id: 'FZ-EQ',
+    kind: 'Spell',
+    name: text('FZ-EQ'),
+    subType: 'Equip',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        target: {
+          kind: 'Card',
+          zone: 'MonsterZone',
+          side: 'opponent',
+          count: 1,
+          filter: { kind: 'Monster' },
+        },
+        operations: [{ kind: 'Equip' }],
+      },
+      {
+        id: 'e2',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount: -300, equipped: true }],
+      },
+    ],
+  } as CardDefinition,
+  effectMonster('FZ-FLIP-KILL', 1100, {
+    trigger: { kind: 'OnFlip' },
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  effectMonster('FZ-SUM-SS-HAND', 1000, {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    target: { kind: 'Card', zone: 'Hand', side: 'self', count: 1, filter: { kind: 'Monster' } },
+    operations: [{ kind: 'SpecialSummon' }],
+  }),
+];
+const FLIP_CARDS = new Set(['FZ-FLIP-KILL', 'SMP-044']);
+
 const DEFS = new Map<string, CardDefinition>(
-  [...SAMPLE_CARDS, ...FUZZ_SPELLS, ...FUZZ_CHAIN, ...FUZZ_MONSTERS].map((c) => [c.id, c]),
+  [...SAMPLE_CARDS, ...FUZZ_SPELLS, ...FUZZ_CHAIN, ...FUZZ_MONSTERS, ...FUZZ_MECH].map((c) => [
+    c.id,
+    c,
+  ]),
 );
 const MONSTERS = SAMPLE_CARDS.filter((c) => c.kind === 'Monster').map((c) => c.id);
 
@@ -173,7 +236,7 @@ const REAL_EFFECT_CARDS = SAMPLE_CARDS.filter(
 function deckList(): string[] {
   const deck = ['SMP-101', 'SMP-201', ...REAL_EFFECT_CARDS];
   for (const c of FUZZ_SPELLS) deck.push(c.id, c.id, c.id);
-  for (const c of [...FUZZ_CHAIN, ...FUZZ_MONSTERS]) deck.push(c.id, c.id);
+  for (const c of [...FUZZ_CHAIN, ...FUZZ_MONSTERS, ...FUZZ_MECH]) deck.push(c.id, c.id);
   for (let i = 0; deck.length < 40; i++) deck.push(MONSTERS[i % MONSTERS.length]!);
   return deck;
 }
@@ -192,6 +255,10 @@ const WATCHED = [
   'SpellTrapDestroyed',
   'ChainLinkAdded',
   'ChainResolved',
+  // Task 4.2d.
+  'MonsterSpecialSummoned',
+  'FlipSummoned',
+  'CardEquipped',
 ] as const satisfies readonly EventView['type'][];
 
 interface Stats {
@@ -206,6 +273,15 @@ interface Stats {
   multiLinkChains: number;
   setActivations: number;
   passes: number;
+  /** Task 4.2d coverage. */
+  ssFromHand: number;
+  ssFromGraveyard: number;
+  battleFlipTriggers: number;
+  /** ChainLinkAdded whose targets the two seats received differently (a hand target filtered for the opponent). */
+  filteredTargets: number;
+  /** solo-vs-ai steps whose aiActions were checked, and those with a prompt answer carrying ids. */
+  aiSteps: number;
+  aiPromptAnswers: number;
   events: Map<string, number>;
   violations: LeakViolation[];
 }
@@ -217,6 +293,13 @@ const pick = <T>(rng: RngState, items: readonly T[]): [T, RngState] => {
 
 async function rawState(manager: DuelManager, duelId: string): Promise<GameState> {
   return (await manager.getDuel(duelId)).state;
+}
+
+/** `sub` keeps some of `all`, in the same order. */
+function isSubsequence(sub: readonly string[], all: readonly string[]): boolean {
+  let j = 0;
+  for (const id of all) if (j < sub.length && sub[j] === id) j++;
+  return j === sub.length;
 }
 
 /** Everything viewer `v` would receive after this step, as the HTTP layer would send it. */
@@ -235,7 +318,14 @@ async function checkBothViewers(
       legalActions: await manager.getLegalActions(duelId, viewer),
       events: result?.eventsByViewer[viewer] ?? [],
       ...(result && viewer === sender
-        ? { post: { view: result.view, events: result.events, legal: result.legalActions } }
+        ? {
+            post: {
+              view: result.view,
+              events: result.events,
+              legal: result.legalActions,
+              aiActions: result.aiActions,
+            },
+          }
         : {}),
     };
     stats.violations.push(...findLeaks(state, viewer, payload));
@@ -255,15 +345,29 @@ async function checkBothViewers(
         reason: `${prompt.kind} payload sent to the player who is not asked`,
       });
     }
-    // The chain is public and identical for both seats; effective stats only on face-up monsters.
+    // The chain is public and identical for both seats except the targets (task 4.2d): the activator sees every target,
+    // the other seat a subsequence of them (the hand targets are left out); effective stats only on face-up monsters.
     const otherView = await manager.getView(duelId, (1 - viewer) as 0 | 1);
-    if (JSON.stringify(view.chain) !== JSON.stringify(otherView.chain)) {
+    const noTargets = (chain: StateView['chain']) =>
+      JSON.stringify(chain.map((l) => ({ ...l, targetInstanceIds: [] })));
+    const chainProblem =
+      noTargets(view.chain) !== noTargets(otherView.chain)
+        ? 'the two seats see different chains'
+        : view.chain.some((l, i) => {
+              const raw = state.chainStack[i]?.targetInstanceIds ?? [];
+              const kept = l.targetInstanceIds;
+              if (l.playerIndex === viewer) return JSON.stringify(kept) !== JSON.stringify(raw);
+              return !isSubsequence(kept, raw);
+            })
+          ? 'chain targets are not the activator full list / a subsequence for the other seat'
+          : null;
+    if (chainProblem !== null) {
       stats.violations.push({
         viewer,
         path: '$.view.chain',
         instanceId: null,
         definitionId: '(chain)',
-        reason: 'the two seats see different chains',
+        reason: chainProblem,
       });
     }
     for (const p of view.players) {
@@ -335,6 +439,81 @@ function choose(legal: readonly PlayerAction[], rng: RngState): [PlayerAction, R
   return pick(r1, candidates);
 }
 
+/** Task 4.2d coverage counters for one step. */
+function countMechanics(result: SubmitActionResult, after: GameState, stats: Stats): void {
+  const [seen0, seen1] = result.eventsByViewer;
+  for (const e of seen0) {
+    if (e.type === 'MonsterSpecialSummoned') {
+      if (e.from === 'Hand') stats.ssFromHand++;
+      else stats.ssFromGraveyard++;
+    }
+  }
+  const links = (evs: readonly EventView[]) =>
+    evs.flatMap((e) => (e.type === 'ChainLinkAdded' ? [e.targetInstanceIds.length] : []));
+  const [l0, l1] = [links(seen0), links(seen1)];
+  if (l0.some((n, i) => n !== l1[i])) stats.filteredTargets++;
+  if (seen0.some((e) => e.type === 'MonsterFlipped')) {
+    const linked = seen0.some((e) => e.type === 'ChainLinkAdded' && FLIP_CARDS.has(e.definitionId));
+    const prompt = after.pendingPrompt;
+    const asked =
+      prompt?.kind === 'TriggerActivation' &&
+      FLIP_CARDS.has(
+        (prompt.payload as { trigger: { definitionId: string } }).trigger.definitionId,
+      );
+    if (linked || asked) stats.battleFlipTriggers++;
+  }
+}
+
+/**
+ * Task 4.2d: the same gate in `solo-vs-ai` (human seat 0, AI seat 1): the human's payload includes `aiActions`, where the
+ * AI's prompt answers (e.g. a Special Summon target from its own hand) must not point at its hidden cards.
+ */
+async function fuzzSeedVsAi(seed: number, steps: number, stats: Stats): Promise<void> {
+  let duelN = 0;
+  const manager = new DuelManager({
+    store: new InMemoryDuelStore(),
+    cardDefinitions: (id) => DEFS.get(id),
+    newDuelId: () => `fuzz-ai-${seed}-${++duelN}`,
+  });
+  let rng = createRng(`fuzz-4.2d-ai-${seed}`);
+  const newDuel = async () => {
+    const created = await manager.createDuel({
+      playerIds: ['p0', 'p0:ai'],
+      deckLists: [deckList(), deckList()],
+      seed: `duel-ai-${seed}-${duelN}`,
+      mode: 'solo-vs-ai',
+      ownerId: 'p0',
+      aiSeat: 1,
+    });
+    stats.duels++;
+    await checkBothViewers(manager, created.duelId, null, 0, stats);
+    return created.duelId;
+  };
+  let duelId = await newDuel();
+  for (let step = 0; step < steps; step++) {
+    let state = await rawState(manager, duelId);
+    if (state.winnerIndex !== null) {
+      duelId = await newDuel();
+      state = await rawState(manager, duelId);
+    }
+    expect(actorOf(state)).toBe(0); // the AI always finishes its part inside the request
+    const legal = await manager.getLegalActions(duelId, 0);
+    const [action, r] = choose(legal, rng);
+    rng = r;
+    const result = await manager.submitAction(duelId, 0, action as unknown as Action);
+    stats.steps++;
+    stats.aiSteps += result.aiActions.length;
+    stats.aiPromptAnswers += result.aiActions.filter(
+      (a) =>
+        a.action.type === 'ResolvePendingPrompt' && a.action.payload.cardInstanceIds.length > 0,
+    ).length;
+    for (const e of result.eventsByViewer[0])
+      stats.events.set(e.type, (stats.events.get(e.type) ?? 0) + 1);
+    countMechanics(result, await rawState(manager, duelId), stats);
+    await checkBothViewers(manager, duelId, result, 0, stats);
+  }
+}
+
 async function fuzzSeed(seed: number, stats: Stats): Promise<void> {
   let duelN = 0;
   const manager = new DuelManager({
@@ -404,6 +583,7 @@ async function fuzzSeed(seed: number, stats: Stats): Promise<void> {
       if (e.type === 'ChainLinkAdded' && e.chainIndex >= 2) stats.multiLinkChains++;
     }
     const after = await rawState(manager, duelId);
+    countMechanics(result, after, stats);
     if (after.pendingPrompt?.kind === 'SelectEffectTarget') stats.targetPrompts++;
     if (after.pendingPrompt?.kind === 'TriggerActivation') stats.triggerPrompts++;
     if (after.chainWindow?.reactionTo) stats.reactionWindows++;
@@ -423,6 +603,12 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     multiLinkChains: 0,
     setActivations: 0,
     passes: 0,
+    ssFromHand: 0,
+    ssFromGraveyard: 0,
+    battleFlipTriggers: 0,
+    filteredTargets: 0,
+    aiSteps: 0,
+    aiPromptAnswers: 0,
     events: new Map(),
     violations: [],
   };
@@ -432,6 +618,16 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     async (seed) => {
       const before = stats.violations.length;
       await fuzzSeed(seed, stats);
+      expect(stats.violations.slice(before).slice(0, 5)).toEqual([]);
+    },
+    120_000,
+  );
+
+  it.each(Array.from({ length: Math.ceil(SEEDS / 2) }, (_, i) => i))(
+    'seed %i (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle',
+    async (seed) => {
+      const before = stats.violations.length;
+      await fuzzSeedVsAi(seed, Math.ceil(STEPS / 2), stats);
       expect(stats.violations.slice(before).slice(0, 5)).toEqual([]);
     },
     120_000,
@@ -449,6 +645,12 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
       multiLinkChains: stats.multiLinkChains,
       setActivations: stats.setActivations,
       passes: stats.passes,
+      ssFromHand: stats.ssFromHand,
+      ssFromGraveyard: stats.ssFromGraveyard,
+      battleFlipTriggers: stats.battleFlipTriggers,
+      filteredTargets: stats.filteredTargets,
+      aiSteps: stats.aiSteps,
+      aiPromptAnswers: stats.aiPromptAnswers,
       events: Object.fromEntries(WATCHED.map((t) => [t, stats.events.get(t) ?? 0])),
     });
     for (const t of WATCHED) expect(stats.events.get(t) ?? 0, t).toBeGreaterThan(0);
@@ -461,6 +663,12 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     expect(stats.multiLinkChains, 'multiLinkChains').toBeGreaterThan(0);
     expect(stats.setActivations, 'setActivations').toBeGreaterThan(0);
     expect(stats.passes, 'passes').toBeGreaterThan(0);
+    // Task 4.2d coverage.
+    expect(stats.ssFromHand, 'ssFromHand').toBeGreaterThan(0);
+    expect(stats.ssFromGraveyard, 'ssFromGraveyard').toBeGreaterThan(0);
+    expect(stats.battleFlipTriggers, 'battleFlipTriggers').toBeGreaterThan(0);
+    expect(stats.filteredTargets, 'filteredTargets').toBeGreaterThan(0);
+    expect(stats.aiSteps, 'aiSteps').toBeGreaterThan(0);
     expect(stats.violations).toEqual([]);
   });
 });
