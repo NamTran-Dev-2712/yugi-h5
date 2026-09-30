@@ -30,6 +30,24 @@ function triggerMonster(
   } as CardDefinition;
 }
 
+/** Test-only Normal Spell: Special Summon 1 of your monsters from `zone` (task 4.2a). */
+function ssSpell(id: string, zone: 'Hand' | 'Graveyard'): CardDefinition {
+  return {
+    id,
+    kind: 'Spell',
+    name: { vi: `Golden ${id}`, en: `Golden ${id}` },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        target: { kind: 'Card', zone, side: 'self', count: 1, filter: { kind: 'Monster' } },
+        operations: [{ kind: 'SpecialSummon' }],
+      },
+    ],
+  };
+}
+
 /** Placeholder cards only (no official names). */
 export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
   G_SUM_BURN: triggerMonster(
@@ -50,6 +68,9 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
     { kind: 'OnDestroyed', mandatory: true },
     { kind: 'Damage', amount: 400, target: 'opponent' },
   ),
+  /** Task 4.2a — Special Summon 1 monster from your hand / from your graveyard. */
+  G_SS_HAND: ssSpell('G_SS_HAND', 'Hand'),
+  G_SS_GY: ssSpell('G_SS_GY', 'Graveyard'),
   M1000: monster('M1000', 4, 1000, 1000),
   M1800: monster('M1800', 4, 1800, 600),
   L5: monster('L5', 5, 2100, 1500),
@@ -200,6 +221,12 @@ const TRIGGER_DECK = Array.from(
 /** Continuous effects (task 3.6): P0 runs the buff source, P1 the Spell that destroys it. */
 const CONT_DECK_P0 = Array.from({ length: 40 }, (_, i) => ['G_CONT_BUFF', 'M1800'][i % 2]!);
 const CONT_DECK_P1 = Array.from({ length: 40 }, (_, i) => ['G_KILL', 'M1800'][i % 2]!);
+
+/** Special Summon from the hand / the graveyard (task 4.2a). */
+const SS_DECK = Array.from(
+  { length: 40 },
+  (_, i) => ['G_SS_HAND', 'G_SS_GY', 'M1800', 'G_SUM_BURN'][i % 4]!,
+);
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
 
@@ -698,6 +725,60 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
         payload: { playerIndex: 0, attackerInstanceId: 'p0-17', targetInstanceId: 'p1-3' },
       },
       ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'special-summon-hand-and-graveyard',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-ss-2',
+        playerIds: ['alice', 'bob'],
+        deckLists: [SS_DECK, SS_DECK],
+      },
+    },
+    actions: [
+      // T1 (P0): G_SS_HAND (p0-16) → 3 monsters in hand → target prompt; Special Summon G_SUM_BURN (p0-7): its OnSummon
+      // fires (300 to P1). The Normal Summon is still available: M1800 (p0-26).
+      ...endPhase(0, 2),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-16', effectId: 'e1' },
+      },
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 0, promptId: 'effect-1-3', cardInstanceIds: ['p0-7'] },
+      },
+      // Rejected: no monster in the graveyard yet.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-13', effectId: 'e1' },
+      },
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-26', zoneIndex: 1 } },
+      ...endPhase(0, 4),
+      // T2 (P1): Normal Summon M1800 (p1-18).
+      ...endPhase(1, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-18', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): M1800 vs M1800 → both destroyed; G_SUM_BURN attacks directly (1200). Main2: G_SS_GY (p0-13) brings
+      // back M1800 (p0-26) from the graveyard into the lowest empty zone.
+      ...endPhase(0, 3),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-26', targetInstanceId: 'p1-18' },
+      },
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-7', targetInstanceId: null },
+      },
+      ...endPhase(0, 1),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-13', effectId: 'e1' },
+      },
+      ...endPhase(0, 2),
     ],
   },
 ];

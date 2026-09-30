@@ -24,6 +24,16 @@ export const OperationSchema = z.discriminatedUnion('kind', [
     })
     .strict(),
   z.object({ kind: z.literal('Destroy') }).strict(),
+  /**
+   * Task 4.2a: Special Summons the effect's Card target (a monster in your own hand/graveyard, see the refine in
+   * EffectDefinitionSchema) into your lowest empty Monster Zones. Face-up only; omitted = Attack Position [ASSUMED].
+   */
+  z
+    .object({
+      kind: z.literal('SpecialSummon'),
+      position: z.enum(['Attack', 'DefenseUp']).optional(),
+    })
+    .strict(),
   z
     .object({
       kind: z.literal('ModifyStat'),

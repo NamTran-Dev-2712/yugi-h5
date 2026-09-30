@@ -26,9 +26,23 @@ export function findOnField(state: GameState, instanceId: string): FieldLocation
   return null;
 }
 
+/** Where a card chosen in the hand or graveyard (task 4.2a) currently is. */
+export function findInHandOrGraveyard(
+  state: GameState,
+  playerIndex: 0 | 1,
+  instanceId: string,
+): { card: CardInstance; zone: 'Hand' | 'Graveyard' } | null {
+  const player = state.players[playerIndex];
+  const inHand = player.hand.find((c) => c.instanceId === instanceId);
+  if (inHand) return { card: inHand, zone: 'Hand' };
+  const inGraveyard = player.graveyard.find((c) => c.instanceId === instanceId);
+  return inGraveyard ? { card: inGraveyard, zone: 'Graveyard' } : null;
+}
+
 /**
- * Instance ids that can be chosen for a `Card` target, in zone order. Only field zones exist in task 3.2.
- * A face-down card is a legal target only when the effect has no `filter` (a filter would read its hidden identity).
+ * Instance ids that can be chosen for a `Card` target, in zone order: field zones (task 3.2), your own hand and either
+ * graveyard (task 4.2a; a graveyard is public). A face-down card on the field is a legal target only when the effect has
+ * no `filter` (a filter would read its hidden identity). The opponent's hand and any deck stay unsupported (hidden).
  */
 export function targetCandidates(
   state: GameState,
@@ -36,14 +50,24 @@ export function targetCandidates(
   target: CardTarget,
   ctx: ActionContext,
 ): string[] {
-  if (target.zone !== 'MonsterZone' && target.zone !== 'SpellTrapZone') {
+  const side = sideIndex(controller, target.side);
+  const unsupported = target.zone === 'Deck' || (target.zone === 'Hand' && side !== controller);
+  if (unsupported) {
     throw new EngineError(
       'NOT_ACTIVATABLE',
-      `ActivateEffect rejected: targets in ${target.zone} are not supported yet.`,
+      `ActivateEffect rejected: targets in the ${target.side} ${target.zone} are not supported.`,
     );
   }
-  const board = state.players[sideIndex(controller, target.side)].board;
-  const zone = target.zone === 'MonsterZone' ? board.monsterZones : board.spellTrapZones;
+  const player = state.players[side];
+  const board = player.board;
+  const zone =
+    target.zone === 'Hand'
+      ? player.hand
+      : target.zone === 'Graveyard'
+        ? player.graveyard
+        : target.zone === 'MonsterZone'
+          ? board.monsterZones
+          : board.spellTrapZones;
   const out: string[] = [];
   for (const card of zone) {
     if (card === null) continue;

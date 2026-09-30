@@ -1,0 +1,83 @@
+# task 4.2a — test đỏ trước (trước khi viết code; engine chạy với stub applySpecialSummon rỗng)
+
+## shared: src/effects/effects.test.ts
+   ✓ CardFilter > accepts kind/level/attribute/race 3ms
+   ✓ CardFilter > rejects empty, min>max, unknown attribute, unknown key 1ms
+   ✓ Trigger > accepts OnSummon 0ms
+   ✓ Trigger > accepts OnFlip 0ms
+   ✓ Trigger > accepts Continuous 0ms
+   ✓ Trigger > accepts Ignition 0ms
+   ✓ Trigger > accepts Quick 0ms
+   ✓ Trigger > accepts OnDestroyed 0ms
+   ✓ Trigger > rejects unknown kind, missing kind, extra key 0ms
+   ✓ Trigger > accepts `mandatory` only on OnSummon/OnDestroyed (task 3.5) 8ms
+   ✓ Condition > accepts PhaseIs / IsMyTurn / ZoneCount 2ms
+   ✓ Condition > rejects bad phase, missing field, no bounds, min>max, unknown kind 0ms
+   ✓ Cost > accepts Discard / Tribute / PayLP 0ms
+   ✓ Cost > rejects zero/negative/non-integer/wrong type/unknown kind 0ms
+   ✓ Target > accepts Card and Player 1ms
+   ✓ Target > rejects missing zone/count, bad who, unknown kind 0ms
+   ✓ Operation > accepts Damage / Heal / Draw / Destroy 0ms
+   ✓ Operation > rejects bad amount/target/missing field/unknown kind 0ms
+   ✓ Operation > accepts ModifyStat (task 3.6): atk/def, signed non-zero amount, side, optional filter/excludeSource 0ms
+   ✓ Operation > rejects a malformed ModifyStat 1ms
+   ✓ EffectDefinition > accepts the batch-1 examples 1ms
+   ✓ EffectDefinition > rejects empty/missing operations 0ms
+   ✓ EffectDefinition > rejects empty optional arrays, empty id, unknown trigger 1ms
+   ✓ EffectDefinition > rejects Continuous with cost or target (it never goes on the chain) 0ms
+   ✓ EffectDefinition > trigger effects (OnSummon/OnDestroyed) may only cost PayLP (task 3.5) 0ms
+   ✓ EffectDefinition > Continuous effects hold only continuous operations, other effects only resolve ones (task 3.6) 0ms
+   ✓ EffectDefinition > accepts an effect-level scriptId (task 3.6); operations may be empty only with a scriptId 1ms
+   ✓ EffectDefinition > accepts an optional explicit spellSpeed 1|2|3 (task 3.4), nothing else 1ms
+   ✓ registry (metadata only: no functions) > has one entry per operation kind, metadata only (task 3.2: all batch-1 operations implemented) 1ms
+   ✓ registry (metadata only: no functions) > CONTINUOUS_OPERATION_KINDS = the kinds whose timing is continuous (task 3.6) 0ms
+   × registry (metadata only: no functions) > kind lists match the schemas 8ms
+   ✓ CardDefinition with effects + bilingual text > accepts effects and bilingual effectText 0ms
+   ✓ CardDefinition with effects + bilingual text > rejects string name, half-translated name, empty text 0ms
+   ✓ CardDefinition with effects + bilingual text > rejects duplicate effect ids within a card and invalid effects 0ms
+   ✓ CardDefinition with effects + bilingual text > every sample card has both languages 2ms
+   × SpecialSummon (task 4.2a) > accepts a Monster target in your own hand or graveyard, position Attack / DefenseUp 2ms
+   ✓ SpecialSummon (task 4.2a) > rejects a face-down position, unknown fields, no target, and targets outside your hand/graveyard 0ms
+   ✓ SpecialSummon (task 4.2a) > needs a Monster filter (a Spell/Trap is never Summoned) 0ms
+   × SpecialSummon (task 4.2a) > is a resolve-time operation: never in a Continuous effect 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/effects/effects.test.ts > registry (metadata only: no functions) > kind lists match the schemas
+ FAIL  src/effects/effects.test.ts > SpecialSummon (task 4.2a) > accepts a Monster target in your own hand or graveyard, position Attack / DefenseUp
+ FAIL  src/effects/effects.test.ts > SpecialSummon (task 4.2a) > is a resolve-time operation: never in a Continuous effect
+ Test Files  1 failed (1)
+      Tests  3 failed | 36 passed (39)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/effects/effects.test.ts
+
+## engine: src/effects/operations/special-summon.test.ts
+   × SpecialSummon — from the hand > summons the only monster in the hand face-up in Attack Position, without using the Normal Summon 31ms
+   × SpecialSummon — from the hand > the Normal Summon is still available afterwards 3ms
+   × SpecialSummon — from the hand > asks which monster when several qualify (Spell/Trap cards and the activated card are not candidates) 2ms
+   × SpecialSummon — from the hand > no monster in the hand → NO_VALID_TARGET 17ms
+   × SpecialSummon — from the hand > uses the lowest empty Monster Zone [ASSUMED] 1ms
+   × SpecialSummon — from the hand > five monsters on your field → NO_FREE_MONSTER_ZONE [RULE] (5 zones, no Extra Monster Zone) 1ms
+   × SpecialSummon — from the hand > a Special Summoned monster cannot change position the turn it was Summoned (summonedTurn) 1ms
+   × SpecialSummon — from the graveyard > summons in face-up Defense Position when the operation says so, out of the graveyard 1ms
+   × SpecialSummon — from the graveyard > two targets go to the two lowest empty zones, in target order 1ms
+   × SpecialSummon — from the graveyard > needs as many empty zones as targets at activation → NO_FREE_MONSTER_ZONE 1ms
+   × SpecialSummon — from the graveyard > a target that left the graveyard before its link resolves → the link fizzles 2ms
+   × SpecialSummon — triggers and legal actions > fires the Summoned monster’s OnSummon [RULE]: a new chain after the first one 1ms
+   × SpecialSummon — triggers and legal actions > legalActions list the activation only while a zone is free 6ms
+   × applySpecialSummon (handler) > summons only as many targets as there are empty zones at resolution [ASSUMED], skips cards that moved 2ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the hand > summons the only monster in the hand face-up in Attack Position, without using the Normal Summon
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the hand > the Normal Summon is still available afterwards
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the hand > asks which monster when several qualify (Spell/Trap cards and the activated card are not candidates)
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the hand > no monster in the hand → NO_VALID_TARGET
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the hand > uses the lowest empty Monster Zone [ASSUMED]
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the hand > five monsters on your field → NO_FREE_MONSTER_ZONE [RULE] (5 zones, no Extra Monster Zone)
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the hand > a Special Summoned monster cannot change position the turn it was Summoned (summonedTurn)
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the graveyard > summons in face-up Defense Position when the operation says so, out of the graveyard
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the graveyard > two targets go to the two lowest empty zones, in target order
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the graveyard > needs as many empty zones as targets at activation → NO_FREE_MONSTER_ZONE
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — from the graveyard > a target that left the graveyard before its link resolves → the link fizzles
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — triggers and legal actions > fires the Summoned monster’s OnSummon [RULE]: a new chain after the first one
+ FAIL  src/effects/operations/special-summon.test.ts > SpecialSummon — triggers and legal actions > legalActions list the activation only while a zone is free
+ FAIL  src/effects/operations/special-summon.test.ts > applySpecialSummon (handler) > summons only as many targets as there are empty zones at resolution [ASSUMED], skips cards that moved
+ Test Files  1 failed (1)
+      Tests  14 failed (14)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/effects/operations/special-summon.test.ts

@@ -29,6 +29,7 @@ export const OPERATION_KINDS = [
   'Draw',
   'Destroy',
   'ModifyStat',
+  'SpecialSummon',
 ] as const satisfies readonly OperationKind[];
 
 /**
@@ -70,4 +71,5 @@ export const OPERATION_REGISTRY: Record<OperationKind, OperationEntry> = {
   Draw: { implemented: true, timing: 'resolve' },
   Destroy: { implemented: true, timing: 'resolve' },
   ModifyStat: { implemented: true, timing: 'continuous' },
+  SpecialSummon: { implemented: true, timing: 'resolve' },
 };

@@ -1,0 +1,20 @@
+KILLED   default position Defense
+KILLED   position param ignored
+KILLED   highest empty zone instead of lowest
+SURVIVED equivalent-looking: continue instead of break (expected equivalent)
+KILLED   no summonedTurn stamp (could change position / attack at once)
+KILLED   card stays in the hand too (duplicated)
+KILLED   card stays in the graveyard too (duplicated)
+KILLED   event always says from the hand
+KILLED   zone check never blocks
+KILLED   zone check ignores the target count
+KILLED   ActivateEffect skips the zone check
+KILLED   a trigger skips the zone check
+KILLED   a Special Summon never fires OnSummon
+KILLED   the opponent's hand becomes targetable
+KILLED   graveyard targets read the hand
+KILLED   schema accepts the opponent side
+KILLED   schema accepts a target without Monster filter
+KILLED   schema accepts any zone
+
+17/18 mutants killed

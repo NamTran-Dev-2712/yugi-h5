@@ -261,6 +261,63 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
     ],
   },
 
+  /** Task 4.2a — Level 5 OnSummon mandatory: Special Summon 1 monster from your graveyard (e.g. its own Tribute). */
+  SUM_REVIVE_L5: effectMonster(
+    'SUM_REVIVE_L5',
+    {
+      trigger: { kind: 'OnSummon', mandatory: true },
+      target: {
+        kind: 'Card',
+        zone: 'Graveyard',
+        side: 'self',
+        count: 1,
+        filter: { kind: 'Monster' },
+      },
+      operations: [{ kind: 'SpecialSummon' }],
+    },
+    { level: 5, atk: 2000, def: 1000 },
+  ),
+  /** Task 4.2a — Special Summon 1 monster from your hand (Attack Position by default). */
+  SS_HAND: spell('SS_HAND', {
+    trigger: { kind: 'Ignition' },
+    target: { kind: 'Card', zone: 'Hand', side: 'self', count: 1, filter: { kind: 'Monster' } },
+    operations: [{ kind: 'SpecialSummon' }],
+  }),
+  /** Special Summon 1 monster from your graveyard in face-up Defense Position. */
+  SS_GY_DEF: spell('SS_GY_DEF', {
+    trigger: { kind: 'Ignition' },
+    target: {
+      kind: 'Card',
+      zone: 'Graveyard',
+      side: 'self',
+      count: 1,
+      filter: { kind: 'Monster' },
+    },
+    operations: [{ kind: 'SpecialSummon', position: 'DefenseUp' }],
+  }),
+  /** Special Summon 2 monsters from your graveyard. */
+  SS_GY2: spell('SS_GY2', {
+    trigger: { kind: 'Ignition' },
+    target: {
+      kind: 'Card',
+      zone: 'Graveyard',
+      side: 'self',
+      count: 2,
+      filter: { kind: 'Monster' },
+    },
+    operations: [{ kind: 'SpecialSummon' }],
+  }),
+  /** Quick-Play: Special Summon 1 monster from your graveyard (lets the opponent's Trap race it on the chain). */
+  QP_SS_GY: quickPlay('QP_SS_GY', {
+    target: {
+      kind: 'Card',
+      zone: 'Graveyard',
+      side: 'self',
+      count: 1,
+      filter: { kind: 'Monster' },
+    },
+    operations: [{ kind: 'SpecialSummon' }],
+  }),
   M1: monster('M1'),
   M2: monster('M2', 2, 'Dragon'),
   D: monster('D'),
@@ -492,6 +549,8 @@ export interface FixtureSetup {
   oppSpellTraps?: [number, string, number?][];
   /** Player 0 Spell/Trap Zone cards (face-down); instance ids ms-<zone>. Third item = `setTurn` (omitted = long ago). */
   mySpellTraps?: [number, string, number?][];
+  /** Player 0 graveyard (definition ids, bottom → top); instance ids g0, g1, ... (task 4.2a). */
+  myGraveyard?: string[];
   /** Player 0 deck (definition ids) — defaults to 40 × D. */
   deck?: string[];
   myLp?: number;
@@ -553,6 +612,7 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
       {
         ...p0,
         hand,
+        graveyard: (s.myGraveyard ?? []).map((d, i) => inst(`g${i}`, d)),
         lifePoints: s.myLp ?? p0.lifePoints,
         board: { ...p0.board, monsterZones: monsterZones0, spellTrapZones: spellTrapZones0 },
       },

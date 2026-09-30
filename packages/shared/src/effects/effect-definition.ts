@@ -59,5 +59,18 @@ export const EffectDefinitionSchema = z
       (e.cost ?? []).every((c) => c.kind === 'PayLP'),
     // Task 3.5: a trigger is activated by the engine, which cannot pick cost cards (no cost prompt yet).
     { message: 'Trigger effects (OnSummon/OnDestroyed) may only cost PayLP for now' },
+  )
+  .refine(
+    (e) =>
+      !e.operations.some((o) => o.kind === 'SpecialSummon') ||
+      (e.target?.kind === 'Card' &&
+        (e.target.zone === 'Hand' || e.target.zone === 'Graveyard') &&
+        e.target.side === 'self' &&
+        e.target.filter?.kind === 'Monster'),
+    // Task 4.2a [DECISION]: only your own monsters (no change of control yet), from places the engine can read.
+    {
+      message:
+        'SpecialSummon needs a Card target in your own Hand or Graveyard with filter kind Monster',
+    },
   );
 export type EffectDefinition = z.infer<typeof EffectDefinitionSchema>;

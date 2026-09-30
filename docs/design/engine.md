@@ -103,6 +103,10 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 - Test: `packages/game-engine/src/rules/trap-activation.test.ts`, `actions/handlers/quick-play-and-speed.test.ts`; golden `set-trap-quickplay-counter-chain`.
 - **Cửa sổ phản ứng** (task 3.4c): sau `DeclareAttack` và sau `NormalSummon`/`SetMonster`, đối thủ được một cửa sổ để kích hoạt lá Set — xem mục "Cửa sổ phản ứng" dưới "Chain stack".
 
+### Mã lỗi thêm ở task 4.2a
+
+`NO_FREE_MONSTER_ZONE` (effect có `SpecialSummon` mà số ô quái trống < `target.count`).
+
 ### Mã lỗi thêm ở task 3.6
 
 `CONTINUOUS_NOT_ACTIVATABLE` (effect có `trigger.kind === 'Continuous'`: kiểm trước mọi luật kích hoạt khác, kể cả với quái trên sân —
@@ -124,6 +128,9 @@ như vậy không kích hoạt).
 Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `definitionId`, lá úp), `EffectActivated`/`EffectResolved {playerIndex,instanceId,definitionId,effectId}`, `CardSentToGraveyard {ownerIndex,instanceId,definitionId,from:'Hand'|'SpellTrapZone'}` (lá dùng xong; `SpellTrapZone` từ task 3.4), `LifePointsRecovered {playerIndex,amount}` (Heal), `LifePointsPaid {playerIndex,amount}` (cost PayLP), `SpellTrapDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (Destroy lên Spell/Trap; quái vẫn dùng `MonsterDestroyed`). Thứ tự khi kích hoạt: `EffectActivated` → event của cost (`LifePointsPaid`/`CardDiscarded`/`MonsterTributed`) → event của từng operation (`CardDrawn`, `DamageDealt`, `LifePointsRecovered`, `MonsterDestroyed`…) → `EffectResolved` → `CardSentToGraveyard` → `DuelEnded` (nếu có, luôn cuối). Damage/Heal/Draw dùng lại `DamageDealt`/`CardDrawn`/`DeckOut`+`DuelEnded` sẵn có. **Các event này chưa được API forward** (xem `event-visibility.md`).
 
 Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
+
+Task 4.2a thêm: `MonsterSpecialSummoned {playerIndex,instanceId,definitionId,zoneIndex,from:'Hand'|'Graveyard',position}`
+(phát trong lúc link resolve, giữa `ChainLinkAdded` và `EffectResolved`). **Chưa được API forward** (engine-only).
 
 Event là **fact đã xảy ra**, không phải instruction cho FE — FE tự quyết định animate thế nào
 từ fact đó.
@@ -306,6 +313,27 @@ Trigger **không** do `ActivateEffect` kích hoạt: engine tự khởi phát t�
 - `activation-candidates.ts` bỏ effect `Continuous` (không bao giờ vào `legalActions`).
 - Test: `effects/continuous.test.ts`, `effects/effect-scripts/registry.test.ts`, `operations/registry-sync.test.ts`; golden
   `continuous-atk-buff`; fuzz: bất biến "chỉ số hiệu lực ≥ 0 và = chỉ số in khi không có nguồn", thống kê `continuousApplied`.
+
+## Special Summon (task 4.2a)
+
+Engine-only (chưa lên wire). Chủ dự án chốt 2026-09-30: **chỉ là operation**, không có action `SpecialSummon` của người chơi
+(summon "tự thân" kiểu "được Special Summon nếu…" cần DSL điều kiện riêng, để dành).
+
+- Operation `SpecialSummon{position?: 'Attack' | 'DefenseUp'}` (`effects/operations/special-summon.ts`) tác động lên target `Card`
+  của effect. Schema chỉ cho **quái của chính mình ở tay hoặc mộ** (`zone: Hand|Graveyard`, `side: 'self'`, `filter.kind: 'Monster'`)
+  `[DECISION]`. Không cho úp (sẽ lộ `definitionId` qua event); mặc định `Attack` `[ASSUMED]` (luật thật: người chơi chọn).
+- `targetCandidates` (`effects/targets.ts`) đọc được **tay của mình** và **mộ** (công khai). Tay đối thủ / Deck ⇒ `NOT_ACTIVATABLE`.
+- Lúc resolve: mỗi target còn ở tay/mộ được đặt vào ô quái **trống thấp nhất** của controller `[ASSUMED]`, lá dựng mới (không mang
+  dấu cũ), `summonedTurn = turnCount` ⇒ không đổi thế và (theo luật hiện có của repo `JUST_SUMMONED_CANNOT_ATTACK`) không tấn công
+  trong lượt đó. **Không** tốn quyền Normal Summon `[RULE]`. Hết ô giữa chừng ⇒ lá còn lại ở yên `[ASSUMED]`; target đã rời chỗ ⇒
+  bỏ qua (hết target ⇒ `ChainLinkFizzled` như mọi link).
+- Lúc kích hoạt (và `readyTrigger`): số ô quái trống < `target.count` ⇒ `NO_FREE_MONSTER_ZONE` (trigger: không kích hoạt) `[RULE]`.
+  5 ô, không Extra Monster Zone (C1).
+- Event `MonsterSpecialSummoned {playerIndex, instanceId, definitionId, zoneIndex, from: 'Hand'|'Graveyard', position}`.
+  `collectTriggers` coi nó là Summon ⇒ bắn `OnSummon` `[RULE]` (chain mới sau chain đang resolve). **Không** mở cửa sổ phản ứng
+  Summon 3.4c cho Special Summon giữa chain `[ASSUMED]`.
+- Test: `effects/operations/special-summon.test.ts`; golden `special-summon-hand-and-graveyard`; fuzz `SSH`/`SSG`, thống kê
+  `specialSummons`, bất biến "chỉ lá Monster đứng trong ô quái" và "Special Summon không tốn Normal Summon".
 
 ## Replay
 

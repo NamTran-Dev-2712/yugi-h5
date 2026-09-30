@@ -766,3 +766,28 @@ boolean`; `EventView` + 3 event chain (shape engine); `StateView.chain: ChainLin
   `[vitest-worker]: Timeout calling "onTaskUpdate"` (1 "unhandled error") khi một file chạy đồng bộ liên tục > ~200 s; mọi
   test vẫn pass (đã xác minh sau 3.8: 201/201). Không phải lỗi engine/api — không điều tra lại; đọc dòng `Tests` thay vì mã thoát.
   Tương tự, `pnpm test` toàn workspace (turbo chạy song song) có lần api thoát mã 1 dù 320/320 pass; chạy lại xanh.
+
+## 2026-09-30 — Tách 4.2 thành 4.2a/4.2b/4.2c; Special Summon chỉ là operation (task 4.2a)
+
+- **Tách 4.2 (L)** `[DECISION]` (chủ dự án chốt trong phiên plan): 4.2a Special Summon, 4.2b Flip Summon + Flip effect, 4.2c
+  Equip Spell. Mỗi task có file đỏ, golden, fuzz, mutant, review packet và commit riêng. Các số sau (4.3…) giữ nguyên.
+- **Không có action `SpecialSummon`** `[DECISION]`: luật YGO không có "Special Summon tự do"; summon tự thân ("được Special Summon
+  nếu …") cần DSL điều kiện riêng, để dành tới khi có lá cần. Chỉ thêm operation `SpecialSummon{position?}`.
+- **Nguồn: quái của chính mình ở tay hoặc mộ** `[DECISION]` (refine ở shared: target `Card` `Hand|Graveyard`, `side:'self'`,
+  `filter.kind:'Monster'`). Mộ đối thủ để dành: quái đổi người điều khiển thì `operations/destroy.ts` (gửi vào mộ theo _bên sân_,
+  không theo `ownerIndex`) và bất biến fuzz "lá nằm ở vùng của chủ" đều phải xem lại. Extra Deck: Fusion (4.5).
+- **`targetCandidates` đọc thêm tay mình và mộ hai bên**; tay đối thủ và Deck vẫn `NOT_ACTIVATABLE` (thông tin ẩn). Lá trong tay
+  được chọn làm target lộ `instanceId` qua `ChainLinkAdded.targetInstanceIds` (không lộ `definitionId`; lá lên sân ngay khi resolve).
+  Engine-only nên chưa đi qua HTTP; xem lại ở task nối wire.
+- **Chỗ đặt/tư thế** `[ASSUMED]` G17: ô quái trống thấp nhất, mặc định `Attack` (luật thật cho người chơi chọn; operation không có
+  input lúc resolve). Không cho úp (lộ `definitionId` qua event). Thiếu ô lúc resolve ⇒ summon số lá vừa ô.
+- **Kiểm ô trống lúc kích hoạt** `[RULE]` (`lacksSummonZones`, dùng ở `prepare` và `readyTrigger`), mã lỗi mới
+  `NO_FREE_MONSTER_ZONE` — đặt cạnh kiểm "Destroy cần target Card", không phải luật mới trong handler khác.
+- **Special Summon là Summon** `[RULE]`: `MonsterSpecialSummoned` bắn `OnSummon` (chain mới sau chain đang resolve), đặt
+  `summonedTurn` (không đổi thế; và theo luật có sẵn của repo `JUST_SUMMONED_CANNOT_ATTACK` — không tấn công trong lượt đó). Không
+  tốn Normal Summon `[RULE]`. Không mở cửa sổ phản ứng Summon (3.4c) cho Special Summon giữa chain `[ASSUMED]` G17.
+- **Containment**: event mới `toEventView` trả `null` (spec: `ENGINE_ONLY_TYPES`), web thêm 1 câu i18n cho mã lỗi. Không đổi
+  `PlayerActionSchema`/`EventView`/`StateView`.
+- **Fuzz**: thêm 2 lá vào pool làm loãng lá Speed 2 ⇒ test độ phủ "có chain ≥ 2 link" trên 10 seed mặc định không còn đạt (trước đó
+  cũng sát ngưỡng: 30 seed chỉ 2 seed đạt). Test độ phủ chuyển sang 30 seed cố định riêng (không đổi engine/deck để "cho qua").
+  **Hệ quả:** 4.2b/4.2c dùng cùng mẫu; task nối wire phải thêm `MonsterSpecialSummoned` vào `EventView` + animation/log.

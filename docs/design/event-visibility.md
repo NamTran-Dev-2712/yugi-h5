@@ -16,33 +16,34 @@ raw events never leave the class.
 
 ## Table (25 engine events)
 
-| Event               | Sensitive fields         | Class          | Note                                                                                                        |
-| ------------------- | ------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------- |
-| DuelStarted         | —                        | PUBLIC         |                                                                                                             |
-| CardDrawn           | instanceId, definitionId | **OWNER_ONLY** | The only event that reveals a hidden card. View shape: `{type, playerIndex, card: CardView}`.               |
-| DeckOut             | —                        | PUBLIC         |                                                                                                             |
-| CardDiscarded       | definitionId             | PUBLIC         | Goes to the graveyard (public) `[RULE]`.                                                                    |
-| PhaseChanged        | —                        | PUBLIC         |                                                                                                             |
-| TurnChanged         | —                        | PUBLIC         |                                                                                                             |
-| NormalSummoned      | definitionId             | PUBLIC         | Face-up.                                                                                                    |
-| MonsterSet          | — (no definitionId)      | PUBLIC         | `[ASSUMED]` Reveals which hand `instanceId` was Set; StateView already shows hidden hand ids.               |
-| MonsterTributed     | definitionId             | PUBLIC         | `[ASSUMED]` Graveyard is public, so Tributing a face-down monster reveals it.                               |
-| PositionChanged     | definitionId             | PUBLIC         | Only face-up monsters can change.                                                                           |
-| MonsterFlipped      | definitionId             | PUBLIC         | Flipping is public.                                                                                         |
-| AttackDeclared      | instance ids only        | PUBLIC         | Target may be face-down but only its id is sent.                                                            |
-| MonsterDestroyed    | definitionId             | PUBLIC         | `[ASSUMED]` Goes to the graveyard, so a destroyed face-down monster is revealed.                            |
-| DamageDealt         | —                        | PUBLIC         |                                                                                                             |
-| DuelEnded           | —                        | PUBLIC         |                                                                                                             |
-| SpellTrapSet        | — (no definitionId)      | PUBLIC         | Task 3.2 (forwarded since 3.2b). Like `MonsterSet`: face-down Set, only the hand `instanceId` and the zone. |
-| EffectActivated     | definitionId             | PUBLIC         | Activating a Spell from the hand reveals it `[RULE]`.                                                       |
-| EffectResolved      | definitionId             | PUBLIC         | Same card as `EffectActivated` (already revealed).                                                          |
-| CardSentToGraveyard | definitionId             | PUBLIC         | Used Spell/Trap → graveyard (public); `from` may be `SpellTrapZone` since 3.4.                              |
-| LifePointsRecovered | —                        | PUBLIC         | No card data.                                                                                               |
-| LifePointsPaid      | —                        | PUBLIC         | No card data (LP cost).                                                                                     |
-| SpellTrapDestroyed  | definitionId             | PUBLIC         | `[ASSUMED]` Destroyed face-down Spell/Trap is revealed by the graveyard (like `MonsterDestroyed`).          |
-| ChainLinkAdded      | definitionId, targets    | PUBLIC         | Task 3.3, forwarded since 3.4b. Same card as the `EffectActivated` just before it; targets are field ids.   |
-| ChainLinkFizzled    | definitionId             | PUBLIC         | Task 3.3, forwarded since 3.4b. Already-revealed chain card; no effect.                                     |
-| ChainResolved       | —                        | PUBLIC         | Task 3.3, forwarded since 3.4b. No card data.                                                               |
+| Event                  | Sensitive fields         | Class                      | Note                                                                                                                                                          |
+| ---------------------- | ------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DuelStarted            | —                        | PUBLIC                     |                                                                                                                                                               |
+| CardDrawn              | instanceId, definitionId | **OWNER_ONLY**             | The only event that reveals a hidden card. View shape: `{type, playerIndex, card: CardView}`.                                                                 |
+| DeckOut                | —                        | PUBLIC                     |                                                                                                                                                               |
+| CardDiscarded          | definitionId             | PUBLIC                     | Goes to the graveyard (public) `[RULE]`.                                                                                                                      |
+| PhaseChanged           | —                        | PUBLIC                     |                                                                                                                                                               |
+| TurnChanged            | —                        | PUBLIC                     |                                                                                                                                                               |
+| NormalSummoned         | definitionId             | PUBLIC                     | Face-up.                                                                                                                                                      |
+| MonsterSet             | — (no definitionId)      | PUBLIC                     | `[ASSUMED]` Reveals which hand `instanceId` was Set; StateView already shows hidden hand ids.                                                                 |
+| MonsterTributed        | definitionId             | PUBLIC                     | `[ASSUMED]` Graveyard is public, so Tributing a face-down monster reveals it.                                                                                 |
+| PositionChanged        | definitionId             | PUBLIC                     | Only face-up monsters can change.                                                                                                                             |
+| MonsterFlipped         | definitionId             | PUBLIC                     | Flipping is public.                                                                                                                                           |
+| AttackDeclared         | instance ids only        | PUBLIC                     | Target may be face-down but only its id is sent.                                                                                                              |
+| MonsterDestroyed       | definitionId             | PUBLIC                     | `[ASSUMED]` Goes to the graveyard, so a destroyed face-down monster is revealed.                                                                              |
+| DamageDealt            | —                        | PUBLIC                     |                                                                                                                                                               |
+| DuelEnded              | —                        | PUBLIC                     |                                                                                                                                                               |
+| SpellTrapSet           | — (no definitionId)      | PUBLIC                     | Task 3.2 (forwarded since 3.2b). Like `MonsterSet`: face-down Set, only the hand `instanceId` and the zone.                                                   |
+| EffectActivated        | definitionId             | PUBLIC                     | Activating a Spell from the hand reveals it `[RULE]`.                                                                                                         |
+| EffectResolved         | definitionId             | PUBLIC                     | Same card as `EffectActivated` (already revealed).                                                                                                            |
+| CardSentToGraveyard    | definitionId             | PUBLIC                     | Used Spell/Trap → graveyard (public); `from` may be `SpellTrapZone` since 3.4.                                                                                |
+| LifePointsRecovered    | —                        | PUBLIC                     | No card data.                                                                                                                                                 |
+| LifePointsPaid         | —                        | PUBLIC                     | No card data (LP cost).                                                                                                                                       |
+| SpellTrapDestroyed     | definitionId             | PUBLIC                     | `[ASSUMED]` Destroyed face-down Spell/Trap is revealed by the graveyard (like `MonsterDestroyed`).                                                            |
+| ChainLinkAdded         | definitionId, targets    | PUBLIC                     | Task 3.3, forwarded since 3.4b. Same card as the `EffectActivated` just before it; targets are field ids.                                                     |
+| ChainLinkFizzled       | definitionId             | PUBLIC                     | Task 3.3, forwarded since 3.4b. Already-revealed chain card; no effect.                                                                                       |
+| ChainResolved          | —                        | PUBLIC                     | Task 3.3, forwarded since 3.4b. No card data.                                                                                                                 |
+| MonsterSpecialSummoned | definitionId             | PUBLIC (not forwarded yet) | Task 4.2a, engine-only: always face-up, from your hand (the card is revealed) or the public graveyard. `toEventView` returns `null` until `EventView` has it. |
 
 > Task 3.2b wired the seven Spell/Trap events (task 3.2 had them classified but dropped). The gate that came with
 > it: `event-visibility.fuzz.spec.ts` (seeded fuzz through `DuelManager`) and the Spell/Trap cases in `duels.e2e.spec.ts`

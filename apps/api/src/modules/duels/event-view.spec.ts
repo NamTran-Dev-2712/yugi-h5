@@ -22,7 +22,12 @@ const CHAIN_TYPES = [
   'ChainLinkFizzled',
   'ChainResolved',
 ] as const satisfies readonly GameEvent['type'][];
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
+/** Engine-only events (task 4.2+): classified but not forwarded until EventView has them (wire task). */
+const ENGINE_ONLY_TYPES = [
+  'MonsterSpecialSummoned',
+] as const satisfies readonly GameEvent['type'][];
+type EngineOnlyType = (typeof ENGINE_ONLY_TYPES)[number];
+type PublicEvent = Exclude<GameEvent, CardDrawnEvent | { type: EngineOnlyType }>;
 
 /** One fixture per GameEvent type: adding a type to the engine makes this Record fail to typecheck. */
 const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = {
@@ -43,6 +48,15 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
     instanceId: 'p0-3',
     definitionId: SECRET,
     zoneIndex: 1,
+  },
+  MonsterSpecialSummoned: {
+    type: 'MonsterSpecialSummoned',
+    playerIndex: 0,
+    instanceId: 'p0-3',
+    definitionId: SECRET,
+    zoneIndex: 1,
+    from: 'Graveyard',
+    position: 'Attack',
   },
   MonsterSet: { type: 'MonsterSet', playerIndex: 0, instanceId: 'p0-4', zoneIndex: 2 },
   MonsterTributed: {
@@ -141,13 +155,21 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
 const asView = (e: PublicEvent): EventView => e;
 
 const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
-  (t) => t !== 'CardDrawn',
+  (t): t is PublicEvent['type'] =>
+    t !== 'CardDrawn' && !(ENGINE_ONLY_TYPES as readonly string[]).includes(t),
 );
 
 describe('toEventView', () => {
   it('covers every engine event type', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(25);
+    expect(Object.keys(FIXTURES)).toHaveLength(26);
   });
+
+  it.each(ENGINE_ONLY_TYPES)(
+    'does not forward engine-only event %s yet (task 4.2 containment)',
+    (type) => {
+      for (const viewer of [0, 1] as const) expect(toEventView(FIXTURES[type], viewer)).toBeNull();
+    },
+  );
 
   it.each(CHAIN_TYPES)('forwards chain event %s unchanged to both viewers (task 3.4b)', (type) => {
     expect(PUBLIC_TYPES).toContain(type);

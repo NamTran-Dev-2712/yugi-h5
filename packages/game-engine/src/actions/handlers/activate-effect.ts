@@ -14,6 +14,7 @@ import { pushLink, settle } from '../../effects/chain.js';
 import { conditionsHold } from '../../effects/conditions.js';
 import { payCosts, planCosts, type CostStep } from '../../effects/costs.js';
 import { scriptFor } from '../../effects/effect-scripts/registry.js';
+import { lacksSummonZones } from '../../effects/operations/special-summon.js';
 import { spellSpeedOf } from '../../effects/spell-speed.js';
 import { targetCandidates } from '../../effects/targets.js';
 import type { ActionContext, ActivateEffectAction, ResolvePendingPromptAction } from '../types.js';
@@ -186,6 +187,8 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
   const needsCardTarget = effect.operations.some((o) => o.kind === 'Destroy');
   if (needsCardTarget && effect.target?.kind !== 'Card')
     return fail('NOT_ACTIVATABLE', 'the effect destroys cards but declares no Card target.');
+  if (lacksSummonZones(state, playerIndex, effect))
+    fail('NO_FREE_MONSTER_ZONE', 'not enough empty Monster Zones for the Special Summon.');
 
   if (!conditionsHold(state, playerIndex, effect.condition))
     return fail('CONDITION_NOT_MET', "the effect's conditions are not met.");

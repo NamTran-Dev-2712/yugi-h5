@@ -29,8 +29,11 @@ describe('fuzz: engine invariants hold', () => {
     let triggerLinks = 0;
     let triggerPrompts = 0;
     let continuousApplied = 0;
+    let specialSummons = 0;
     const byType: Record<string, number> = {};
-    for (const seed of SEEDS.slice(0, 10)) {
+    // Own fixed seeds (not FUZZ_SEEDS): coverage is statistical; 30 seeds keep every feature reached (task 4.2a
+    // widened it from 10 when two more cards in the pool thinned out the multi-link chains).
+    for (const seed of Array.from({ length: 30 }, (_, i) => `fuzz-${i + 1}`)) {
       const result = runFuzz({ seed, steps: STEPS });
       if (!result.ok) throw new Error(formatFuzzFailure(result));
       rejected += result.stats.rejected;
@@ -42,6 +45,7 @@ describe('fuzz: engine invariants hold', () => {
       triggerLinks += result.stats.triggerLinks;
       triggerPrompts += result.stats.triggerPrompts;
       continuousApplied += result.stats.continuousApplied;
+      specialSummons += result.stats.specialSummons;
       for (const [type, n] of Object.entries(result.stats.accepted)) {
         accepted += n;
         byType[type] = (byType[type] ?? 0) + n;
@@ -72,6 +76,8 @@ describe('fuzz: engine invariants hold', () => {
     expect(triggerPrompts, 'no TriggerActivation prompt').toBeGreaterThan(0);
     // Task 3.6: Continuous effects actually modify stats on the board.
     expect(continuousApplied, 'no Continuous modifier in force').toBeGreaterThan(0);
+    // Task 4.2a: effects Special Summon monsters from the hand / graveyard.
+    expect(specialSummons, 'no Special Summon').toBeGreaterThan(0);
   });
 
   it('is deterministic: same seed → identical action log and stats', () => {

@@ -296,6 +296,7 @@ describe('registry (metadata only: no functions)', () => {
       'Draw',
       'Heal',
       'ModifyStat',
+      'SpecialSummon',
     ]);
   });
 });
@@ -344,5 +345,50 @@ describe('CardDefinition with effects + bilingual text', () => {
         expect(c.effectText.en.length).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+describe('SpecialSummon (task 4.2a)', () => {
+  const ss = (target: unknown, op: Record<string, unknown> = {}) => ({
+    id: 'x',
+    trigger: { kind: 'Ignition' },
+    target,
+    operations: [{ kind: 'SpecialSummon', ...op }],
+  });
+  const fromHand = {
+    kind: 'Card',
+    zone: 'Hand',
+    side: 'self',
+    count: 1,
+    filter: { kind: 'Monster' },
+  };
+  it('accepts a Monster target in your own hand or graveyard, position Attack / DefenseUp', () => {
+    ok(EffectDefinitionSchema, ss(fromHand));
+    ok(EffectDefinitionSchema, ss({ ...fromHand, zone: 'Graveyard', count: 2 }));
+    ok(EffectDefinitionSchema, ss(fromHand, { position: 'Attack' }));
+    ok(EffectDefinitionSchema, ss(fromHand, { position: 'DefenseUp' }));
+    ok(EffectDefinitionSchema, ss({ ...fromHand, filter: { kind: 'Monster', level: { max: 4 } } }));
+  });
+  it('rejects a face-down position, unknown fields, no target, and targets outside your hand/graveyard', () => {
+    bad(EffectDefinitionSchema, ss(fromHand, { position: 'DefenseDown' }));
+    bad(EffectDefinitionSchema, ss(fromHand, { bogus: 1 }));
+    bad(EffectDefinitionSchema, { ...ss(fromHand), target: undefined });
+    bad(EffectDefinitionSchema, ss({ ...fromHand, zone: 'MonsterZone' }));
+    bad(EffectDefinitionSchema, ss({ ...fromHand, zone: 'Deck' }));
+    bad(EffectDefinitionSchema, ss({ ...fromHand, side: 'opponent' }));
+    bad(EffectDefinitionSchema, ss({ kind: 'Player', who: 'self' }));
+  });
+  it('needs a Monster filter (a Spell/Trap is never Summoned)', () => {
+    bad(EffectDefinitionSchema, ss({ ...fromHand, filter: undefined }));
+    bad(EffectDefinitionSchema, ss({ ...fromHand, filter: { level: { max: 4 } } }));
+    bad(EffectDefinitionSchema, ss({ ...fromHand, filter: { kind: 'Spell' } }));
+  });
+  it('is a resolve-time operation: never in a Continuous effect', () => {
+    bad(EffectDefinitionSchema, {
+      id: 'x',
+      trigger: { kind: 'Continuous' },
+      operations: [{ kind: 'SpecialSummon' }],
+    });
+    expect(OPERATION_REGISTRY.SpecialSummon).toEqual({ implemented: true, timing: 'resolve' });
   });
 });

@@ -87,6 +87,30 @@ handler function đăng ký sẵn trong engine.
 }
 ```
 
+## Special Summon (task 4.2a)
+
+- Operation `SpecialSummon{position?: 'Attack' | 'DefenseUp'}` chạy lúc resolve, tác động lên target `Card` của effect. Refine: target
+  phải là `Card` ở `Hand` hoặc `Graveyard`, `side: 'self'`, `filter.kind === 'Monster'` `[DECISION]` (chưa đổi người điều khiển).
+- Target `Card` giờ đọc được **tay của mình** và **mộ** (hai bên, công khai); tay đối thủ và Deck vẫn không (thông tin ẩn).
+- Engine: ô quái trống thấp nhất `[ASSUMED]`; không tốn Normal Summon `[RULE]`; bắn `OnSummon` `[RULE]`; thiếu ô ⇒
+  `NO_FREE_MONSTER_ZONE`. Chi tiết: `engine.md` mục "Special Summon".
+- Không có **action** Special Summon (chủ dự án chốt 2026-09-30); summon "tự thân" cần DSL điều kiện riêng, chưa có.
+
+```json
+{
+  "id": "revive",
+  "trigger": { "kind": "Ignition" },
+  "target": {
+    "kind": "Card",
+    "zone": "Graveyard",
+    "side": "self",
+    "count": 1,
+    "filter": { "kind": "Monster" }
+  },
+  "operations": [{ "kind": "SpecialSummon", "position": "DefenseUp" }]
+}
+```
+
 ## Schema (nguồn thật: `packages/shared/src/effects/*.ts`)
 
 Mỗi `kind` là một `z.object({ kind: z.literal(...), ...field })` `.strict()` gộp bằng
@@ -115,14 +139,14 @@ tiêu chí, `level.min ≤ level.max`.
 
 ## Kind đã có (batch 1)
 
-| Loại      | Kind → field                                                                                                                                                                                                 |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip`, `Continuous`, `Ignition`, `Quick`                                                                                                    |
-| Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                                                                                                            |
-| Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                                                                                                        |
-| Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                                                                                                            |
-| Operation | `Damage{amount, target}`, `Heal{amount, target}`, `Draw{count, target}`, `Destroy` (tác động lên `target` Card của effect); continuous: `ModifyStat{stat, amount, side, filter?, excludeSource?}` (task 3.6) |
-| Filter    | `kind` (Monster/Spell/Trap), `level{min?,max?}`, `attribute`, `race`                                                                                                                                         |
+| Loại      | Kind → field                                                                                                                                                                                                                                                                        |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip`, `Continuous`, `Ignition`, `Quick`                                                                                                                                                                           |
+| Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                                                                                                                                                                                   |
+| Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                                                                                                                                                                               |
+| Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                                                                                                                                                                                   |
+| Operation | `Damage{amount, target}`, `Heal{amount, target}`, `Draw{count, target}`, `Destroy` (tác động lên `target` Card của effect), `SpecialSummon{position?}` (task 4.2a, target Card ở tay/mộ của mình); continuous: `ModifyStat{stat, amount, side, filter?, excludeSource?}` (task 3.6) |
+| Filter    | `kind` (Monster/Spell/Trap), `level{min?,max?}`, `attribute`, `race`                                                                                                                                                                                                                |
 
 `zone`: `Hand|Deck|Graveyard|MonsterZone|SpellTrapZone`; `side`/`who`/operation `target`: `self|opponent`;
 `phase`: `Draw|Standby|Main1|Battle|Main2|End`.
@@ -133,7 +157,7 @@ tiêu chí, `level.min ≤ level.max`.
 - **Condition**: `LPCompare`, `HasCardIn(zone, filter)`, `ChainLength`, `PositionIs`, `OncePerTurn`.
 - **Cost**: `Banish`, `SendToGY`, `Reveal`.
 - **Target**: `AllMatching(filter)`.
-- **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `SpecialSummon`, `ChangePosition`, `Negate`/`NegateAttack`, `Shuffle`, `Search`, `Equip`, `SkipPhase`. (`ModifyStat` continuous đã có ở 3.6; bản
+- **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `ChangePosition`, `Negate`/`NegateAttack`, `Shuffle`, `Search`, `Equip`, `SkipPhase`. (`ModifyStat` continuous đã có ở 3.6; bản
   "tới hết lượt" chạy lúc resolve cần Duration, chưa có.) Continuous "chặn một loại hành động" (vd cấm tấn công) chưa có.
 - **Filter**: `atk(min/max)`, `position`, `nameContains`, `tag`.
 - **Duration**: `ThisTurn`, `UntilEndPhase`, `WhileOnField`, `Permanent` (batch 3).

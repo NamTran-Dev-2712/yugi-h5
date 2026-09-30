@@ -13,6 +13,7 @@ import { openReactionWindow, pushLink, type CanActivate } from './chain.js';
 import { conditionsHold } from './conditions.js';
 import { payCosts, planCosts, type CostStep } from './costs.js';
 import { scriptFor } from './effect-scripts/registry.js';
+import { lacksSummonZones } from './operations/special-summon.js';
 import { spellSpeedOf } from './spell-speed.js';
 import { targetCandidates } from './targets.js';
 
@@ -86,7 +87,8 @@ export function collectTriggers(
   if (state.winnerIndex !== null) return [];
   const fired: PendingTrigger[] = [];
   for (const event of events) {
-    if (event.type === 'NormalSummoned') {
+    // Task 4.2a: a Special Summon is a Summon too [RULE].
+    if (event.type === 'NormalSummoned' || event.type === 'MonsterSpecialSummoned') {
       for (const effect of effectsOf(event.definitionId, 'OnSummon', ctx)) {
         fired.push({
           playerIndex: event.playerIndex,
@@ -157,6 +159,7 @@ export function readyTrigger(
   } else if (effect.operations.some((o) => o.kind === 'Destroy')) {
     return null; // malformed effect (Destroy without a Card target), as in ActivateEffect
   }
+  if (lacksSummonZones(state, trigger.playerIndex, effect)) return null; // [RULE] no room to Special Summon (4.2a)
   return {
     effect,
     spellSpeed: spellSpeedOf(definition, effect),

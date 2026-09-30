@@ -85,6 +85,20 @@ export interface AttackDeclaredEvent {
   readonly targetInstanceId: string | null;
 }
 
+/**
+ * Task 4.2a: an effect Special Summoned a monster from its controller's hand or graveyard, always face-up (so
+ * `definitionId` leaks nothing). Does not use the Normal Summon of the turn.
+ */
+export interface MonsterSpecialSummonedEvent {
+  readonly type: 'MonsterSpecialSummoned';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+  readonly from: 'Hand' | 'Graveyard';
+  readonly position: Extract<CardPosition, 'Attack' | 'DefenseUp'>;
+}
+
 /** A monster destroyed by battle, sent to its owner's graveyard. Public zone, so `definitionId` is included even if it was face-down. */
 export interface MonsterDestroyedEvent {
   readonly type: 'MonsterDestroyed';
@@ -219,6 +233,7 @@ export type GameEvent =
   | PhaseChangedEvent
   | TurnChangedEvent
   | NormalSummonedEvent
+  | MonsterSpecialSummonedEvent
   | MonsterSetEvent
   | MonsterTributedEvent
   | PositionChangedEvent

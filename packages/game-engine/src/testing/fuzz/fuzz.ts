@@ -123,6 +123,23 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  // Task 4.2a — Special Summon one of your monsters from the hand / from the graveyard (face-up Defense).
+  SSH: spell('SSH', {
+    trigger: { kind: 'Ignition' },
+    target: { kind: 'Card', zone: 'Hand', side: 'self', count: 1, filter: { kind: 'Monster' } },
+    operations: [{ kind: 'SpecialSummon' }],
+  }),
+  SSG: spell('SSG', {
+    trigger: { kind: 'Ignition' },
+    target: {
+      kind: 'Card',
+      zone: 'Graveyard',
+      side: 'self',
+      count: 1,
+      filter: { kind: 'Monster' },
+    },
+    operations: [{ kind: 'SpecialSummon', position: 'DefenseUp' }],
+  }),
   SPH: spell('SPH', {
     trigger: { kind: 'Ignition' },
     scriptId: 'test.halve-opponent-lp',
@@ -237,6 +254,8 @@ export interface FuzzStats {
   readonly triggerPrompts: number;
   /** States (between actions) where a Continuous effect changed some monster's ATK/DEF (task 3.6). */
   readonly continuousApplied: number;
+  /** Monsters Special Summoned by an effect (task 4.2a). */
+  readonly specialSummons: number;
 }
 
 export type FuzzResult =
@@ -757,6 +776,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let triggerLinks = 0;
   let triggerPrompts = 0;
   let continuousApplied = 0;
+  let specialSummons = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -828,6 +848,26 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       next.pendingPrompt !== state?.pendingPrompt
     )
       triggerPrompts++;
+    // Task 4.2a: only monster cards ever stand in a Monster Zone; a Special Summon never uses the Normal Summon.
+    for (const i of [0, 1] as const) {
+      for (const c of monstersOf(next, i)) {
+        if (FUZZ_DEFS[c.definitionId]?.kind !== 'Monster')
+          return fail(step, `non-monster ${c.definitionId} (${c.instanceId}) in a Monster Zone`);
+      }
+    }
+    for (const e of result.events) {
+      if (e.type !== 'MonsterSpecialSummoned') continue;
+      specialSummons++;
+      const before = state?.players[e.playerIndex];
+      if (
+        before &&
+        state?.turnCount === next.turnCount &&
+        !before.hasNormalSummonedThisTurn &&
+        next.players[e.playerIndex].hasNormalSummonedThisTurn &&
+        !result.events.some((x) => x.type === 'NormalSummoned' || x.type === 'MonsterSet')
+      )
+        return fail(step, `Special Summon of ${e.instanceId} used the Normal Summon`);
+    }
     for (const e of result.events) {
       if (e.type !== 'ChainLinkAdded') continue;
       if (e.spellSpeed === 3) speed3Links++;
@@ -860,6 +900,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       triggerLinks,
       triggerPrompts,
       continuousApplied,
+      specialSummons,
     },
   };
 }
