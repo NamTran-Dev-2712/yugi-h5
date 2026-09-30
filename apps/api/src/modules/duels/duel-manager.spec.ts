@@ -1,4 +1,4 @@
-import { applyAction, type Action, type GameState } from '@yugi/game-engine';
+import { applyAction, getLegalActions, type Action, type GameState } from '@yugi/game-engine';
 import { SAMPLE_CARDS, type CardDefinition } from '@yugi/shared';
 import { describe, expect, it } from 'vitest';
 import { DuelServiceError } from './duel-errors';
@@ -141,6 +141,27 @@ describe('DuelManager.submitAction', () => {
       } as Action),
       'FORBIDDEN_ACTION',
     );
+  });
+
+  it('keeps the engine-only FlipSummon off the wire (task 4.2b): never listed, refused with FORBIDDEN_ACTION', async () => {
+    const { manager, duelId } = await setup();
+    await toMain1(manager, duelId);
+    const card = (await stateOf(manager, duelId)).players[0].hand[0]!.instanceId;
+    await manager.submitAction(duelId, 0, {
+      type: 'SetMonster',
+      payload: { playerIndex: 0, cardInstanceId: card, zoneIndex: 0 },
+    });
+    for (let i = 0; i < 4; i++) await manager.submitAction(duelId, 0, endPhase(0));
+    for (let i = 0; i < 6; i++) await manager.submitAction(duelId, 1, endPhase(1));
+    await toMain1(manager, duelId); // turn 3: the monster Set on turn 1 may be Flip Summoned
+    const flip: Action = { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: card } };
+    const engineLists = getLegalActions(await stateOf(manager, duelId), 0, {
+      cardDefinitions: resolver,
+    });
+    expect(engineLists).toContainEqual(flip);
+    const offered = await manager.getLegalActions(duelId, 0);
+    expect(offered.some((a) => (a.type as string) === 'FlipSummon')).toBe(false);
+    await expectDuelError(manager.submitAction(duelId, 0, flip), 'FORBIDDEN_ACTION');
   });
 
   it('leaves state, version and log untouched when the engine rejects', async () => {

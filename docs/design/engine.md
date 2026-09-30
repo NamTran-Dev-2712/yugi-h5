@@ -67,7 +67,7 @@ tạo object mới (spread), không mutate.
 
 **`ActionContext.cardDefinitions: (definitionId) => CardDefinition | undefined`** (bắt buộc trong type) — caller (apps/api) truyền resolver tra `packages/shared`; engine không hardcode lá bài. `applyAction` có overload: `StartDuel`/`Draw`/`EndPhase` không cần ctx; mọi Action khác **bắt buộc** ctx (type-level). Caller không qua type (JS/cast) thiếu ctx → `NO_CARD_RESOLVER`; resolver trả `undefined` → `CARD_DEFINITION_NOT_FOUND`.
 
-`ChangePosition` (task 1.5): đổi quái **ngửa** của chính người gọi giữa `Attack` ↔ `DefenseUp`; `toPosition` tường minh (không toggle) để client dùng view cũ không đổi nhầm. Chỉ Main1/Main2, turn player, không winner/prompt. Không tiêu tốn quyền Normal Summon. Mỗi quái tối đa 1 lần/lượt; không đổi quái vừa Summon/Tribute/Set trong lượt; không đổi quái đã tấn công trong lượt `[RULE]`. Trạng thái theo quái lưu bằng **dấu lượt** trên `CardInstance` (`summonedTurn`/`positionChangedTurn`/`attackedTurn` = `turnCount`), tự hết hiệu lực khi sang lượt khác, không cần reset (`resetTurnFlags` không đụng tới); `summon.ts` dựng `CardInstance` mới khi đặt quái nên không thừa dấu cũ. Mã lỗi: `INVALID_POSITION` (đích `DefenseDown`), `NOT_A_MONSTER` (lá phép/bẫy trên sân), `CARD_NOT_ON_FIELD` (tay/mộ/quái đối thủ/id lạ), `MONSTER_FACE_DOWN`, `SAME_POSITION`, `POSITION_ALREADY_CHANGED`, `SUMMONED_THIS_TURN`, `ATTACKED_THIS_TURN`. Quái úp: lật bằng Flip Summon (task sau), không phải ChangePosition.
+`ChangePosition` (task 1.5): đổi quái **ngửa** của chính người gọi giữa `Attack` ↔ `DefenseUp`; `toPosition` tường minh (không toggle) để client dùng view cũ không đổi nhầm. Chỉ Main1/Main2, turn player, không winner/prompt. Không tiêu tốn quyền Normal Summon. Mỗi quái tối đa 1 lần/lượt; không đổi quái vừa Summon/Tribute/Set trong lượt; không đổi quái đã tấn công trong lượt `[RULE]`. Trạng thái theo quái lưu bằng **dấu lượt** trên `CardInstance` (`summonedTurn`/`positionChangedTurn`/`attackedTurn` = `turnCount`), tự hết hiệu lực khi sang lượt khác, không cần reset (`resetTurnFlags` không đụng tới); `summon.ts` dựng `CardInstance` mới khi đặt quái nên không thừa dấu cũ. Mã lỗi: `INVALID_POSITION` (đích `DefenseDown`), `NOT_A_MONSTER` (lá phép/bẫy trên sân), `CARD_NOT_ON_FIELD` (tay/mộ/quái đối thủ/id lạ), `MONSTER_FACE_DOWN`, `SAME_POSITION`, `POSITION_ALREADY_CHANGED`, `SUMMONED_THIS_TURN`, `ATTACKED_THIS_TURN`. Quái úp: lật bằng `FlipSummon` (task 4.2b), không phải ChangePosition.
 
 `DeclareAttack` (task 1.6, mở rộng flip-on-attack ở task 1.8): payload `{ playerIndex, attackerInstanceId, targetInstanceId?: string | null }` (`targetInstanceId` bỏ trống/`null` = tấn công trực tiếp). Chỉ Battle Phase, turn player, quái **ngửa và đang ở Attack Position** của chính mình, chưa tấn công trong lượt (`attackedTurn`), không vừa Summon/Set trong lượt (`summonedTurn`); lượt 1 bị cấm trừ khi `ruleset.firstTurnAttack`. Tấn công trực tiếp chỉ hợp lệ khi sân đối thủ **không có quái nào** (kể cả úp) `[RULE, RULES-REVIEW-SHEET dòng 29]`; nếu có quái mà không chỉ định target → `MUST_TARGET_MONSTER`. Target là bất kỳ quái nào trên sân đối thủ, **kể cả úp** (task 1.8): nếu target đang face-down (`DefenseDown`), engine lật nó lên (`position: 'DefenseUp'`, giữ Defense — không tự chuyển Attack) trước khi tính damage, phát `MonsterFlipped { ownerIndex, instanceId, definitionId, zoneIndex }` **ngay sau** `AttackDeclared` và **trước** `MonsterDestroyed`/`DamageDealt` (để UI animate lật trước khi thấy kết quả combat). `summonedTurn`/`positionChangedTurn` của quái đối thủ không ảnh hưởng việc nó bị target/lật — hai dấu đó chỉ chặn hành động chủ động của chính quái đó. Chưa làm Flip Effect thật (chờ effect system); event chỉ mang đủ thông tin để hook sau. Damage/destroy sau khi lật dùng nguyên logic ATK-vs-DEF theo `RULES-REVIEW-SHEET.md` dòng 30-34 (không theo bảng brief gốc ở 2 dòng ATK-vs-DEF, xem ADR 2026-09-22): ATK-vs-ATK bên mạnh hơn thắng và đối phương mất hiệu số, bằng nhau cả hai bị phá không ai mất LP; ATK-vs-DEF: ATK>DEF chỉ phá quái thủ không ai mất LP, ATK<DEF không quái nào bị phá và bên tấn công mất hiệu số, ATK==DEF `[ASSUMED]` không gì xảy ra. LP damage clamp về 0 (`Math.max(0, ...)`). Quái tấn công còn sống thì ghi `attackedTurn = turnCount`. Mã lỗi mới (1.6): `FIRST_TURN_ATTACK_BANNED`, `ATTACKER_IN_DEFENSE_POSITION`, `JUST_SUMMONED_CANNOT_ATTACK`, `MUST_TARGET_MONSTER`, `INVALID_TARGET` (tái dùng `ATTACKED_THIS_TURN`, `CARD_NOT_ON_FIELD`, `NOT_A_MONSTER`, `MONSTER_FACE_DOWN` có sẵn); `TARGET_FACE_DOWN` đã bị xoá ở task 1.8 (target úp giờ hợp lệ, không còn reject).
 
@@ -89,6 +89,7 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 | `SetSpellTrap`         | M2 (task 3.2 ✅)                                           | `{playerIndex, cardInstanceId, zoneIndex}`; Spell/Trap từ tay vào ô 0–4, úp (`DefenseDown`), ghi `setTurn`; không giới hạn/lượt, không tốn Normal Summon; Main1/Main2; Field Spell chưa hỗ trợ                                              |
 | `ActivateEffect`       | M2 (task 3.2 ✅; lên chain từ 3.3; lá Set từ 3.4)          | `{playerIndex, cardInstanceId, effectId, costInstanceIds?}`; Normal Spell/Quick-Play ở tay, Trap/Quick-Play đã Set (mục C11); target chọn qua prompt `SelectEffectTarget` (không có `targetInstanceIds` trong payload); xem `effect-dsl.md` |
 | `ResolvePendingPrompt` | M1 (task 1.11 ✅, hand limit) / M2 (target/chain response) | `{playerIndex, promptId, cardInstanceIds}`; trả lời `PendingPrompt` hiện tại; xem mục PendingPrompt                                                                                                                                         |
+| `FlipSummon`           | P4 (task 4.2b ✅, engine-only)                             | `{playerIndex, cardInstanceId}`; lật quái úp của mình lên Tư thế Công ở Main Phase; xem mục "Flip Summon + OnFlip"                                                                                                                          |
 | `PassPriority`         | M2 (task 3.3 ✅, engine-only)                              | `{playerIndex}`; chỉ `chainWindow.priorityPlayer`; pass thứ 2 liên tiếp resolve cả chain; xem mục Chain stack                                                                                                                               |
 
 ### Kích hoạt Trap/Spell — hợp đồng C11 (✅ xong: phần tay ở task 3.2, Trap/Quick-Play đã Set ở task 3.4)
@@ -102,6 +103,10 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 - `ruleset.allowTrapActivationFromHand` (mặc định `false`): khi `false`, Trap trên tay chỉ có `SetSpellTrap`, không có `ActivateEffect` (`TRAP_NOT_SET`); `true` hiện vẫn `NOT_ACTIVATABLE` (chưa hỗ trợ).
 - Test: `packages/game-engine/src/rules/trap-activation.test.ts`, `actions/handlers/quick-play-and-speed.test.ts`; golden `set-trap-quickplay-counter-chain`.
 - **Cửa sổ phản ứng** (task 3.4c): sau `DeclareAttack` và sau `NormalSummon`/`SetMonster`, đối thủ được một cửa sổ để kích hoạt lá Set — xem mục "Cửa sổ phản ứng" dưới "Chain stack".
+
+### Mã lỗi thêm ở task 4.2b
+
+`MONSTER_FACE_UP` (FlipSummon lên quái đang ngửa).
 
 ### Mã lỗi thêm ở task 4.2a
 
@@ -128,6 +133,8 @@ như vậy không kích hoạt).
 Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `definitionId`, lá úp), `EffectActivated`/`EffectResolved {playerIndex,instanceId,definitionId,effectId}`, `CardSentToGraveyard {ownerIndex,instanceId,definitionId,from:'Hand'|'SpellTrapZone'}` (lá dùng xong; `SpellTrapZone` từ task 3.4), `LifePointsRecovered {playerIndex,amount}` (Heal), `LifePointsPaid {playerIndex,amount}` (cost PayLP), `SpellTrapDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (Destroy lên Spell/Trap; quái vẫn dùng `MonsterDestroyed`). Thứ tự khi kích hoạt: `EffectActivated` → event của cost (`LifePointsPaid`/`CardDiscarded`/`MonsterTributed`) → event của từng operation (`CardDrawn`, `DamageDealt`, `LifePointsRecovered`, `MonsterDestroyed`…) → `EffectResolved` → `CardSentToGraveyard` → `DuelEnded` (nếu có, luôn cuối). Damage/Heal/Draw dùng lại `DamageDealt`/`CardDrawn`/`DeckOut`+`DuelEnded` sẵn có. **Các event này chưa được API forward** (xem `event-visibility.md`).
 
 Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
+
+Task 4.2b thêm: `FlipSummoned {playerIndex,instanceId,definitionId,zoneIndex}` (Flip Summon; trigger OnFlip/OnSummon theo sau). **Chưa được API forward**.
 
 Task 4.2a thêm: `MonsterSpecialSummoned {playerIndex,instanceId,definitionId,zoneIndex,from:'Hand'|'Graveyard',position}`
 (phát trong lúc link resolve, giữa `ChainLinkAdded` và `EffectResolved`). **Chưa được API forward** (engine-only).
@@ -334,6 +341,25 @@ Engine-only (chưa lên wire). Chủ dự án chốt 2026-09-30: **chỉ là ope
   Summon 3.4c cho Special Summon giữa chain `[ASSUMED]`.
 - Test: `effects/operations/special-summon.test.ts`; golden `special-summon-hand-and-graveyard`; fuzz `SSH`/`SSG`, thống kê
   `specialSummons`, bất biến "chỉ lá Monster đứng trong ô quái" và "Special Summon không tốn Normal Summon".
+
+## Flip Summon + OnFlip (task 4.2b)
+
+Engine-only (chưa lên wire: API lọc khỏi `legalActions` và từ chối `FORBIDDEN_ACTION`, `apps/api/src/modules/duels/wire-actions.ts`).
+
+- **`FlipSummon {playerIndex, cardInstanceId}`** `[RULE]`: turn player, Main1/Main2, không prompt/cửa sổ chain; quái **úp** của chính mình
+  (ngửa ⇒ `MONSTER_FACE_UP`), không phải quái Set trong lượt này (`SUMMONED_THIS_TURN`), chưa đổi thế trong lượt
+  (`POSITION_ALREADY_CHANGED`, phòng thủ: hiện chưa có gì úp quái lại). Lá Phép/Bẫy ⇒ `NOT_A_MONSTER`; tay/quái đối thủ/id lạ ⇒
+  `CARD_NOT_ON_FIELD`. Kết quả: `position: 'Attack'`, ghi `positionChangedTurn` (không đổi thế lại trong lượt); `summonedTurn` giữ nguyên
+  ⇒ quái Set từ lượt trước **tấn công được** ngay trong lượt Flip Summon. **Không** tốn Normal Summon. Event `FlipSummoned {playerIndex,
+instanceId, definitionId, zoneIndex}`; `version` +1.
+- Sau đó y như Normal Summon (`summon.ts`): trigger của quái lên chain trước; không trigger nào ⇒ cửa sổ phản ứng `Summon` (3.4c).
+- **`OnFlip`** (`effects/triggers.ts`), optional/mandatory như 3.5:
+  - `FlipSummoned` ⇒ `OnFlip` **và** `OnSummon` của quái (theo thứ tự effect trên lá) `[RULE]`: "khi được triệu hồi" gồm Normal/Special/Flip.
+  - `MonsterFlipped` (bị tấn công, 1.8) ⇒ `OnFlip`, kiểm **sau** damage step: quái còn ngửa ở ô ⇒ nguồn `MonsterZone`; đã bị trận đó
+    phá (ở mộ chủ) ⇒ nguồn `Graveyard`, **vẫn kích hoạt** `[RULE]`. `OnFlip` và `OnDestroyed` của cùng lá: theo thứ tự event (lật trước) G15.
+  - Quái ngửa bị tấn công: không lật ⇒ không bắn.
+- Test: `actions/handlers/flip-summon.test.ts`; golden `flip-summon-and-battle-flip-effect`; fuzz `MF`/`MFO` + generator FlipSummon,
+  thống kê `flipSummons`/`flipLinks`.
 
 ## Replay
 

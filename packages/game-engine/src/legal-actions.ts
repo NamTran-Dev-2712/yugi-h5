@@ -133,6 +133,11 @@ function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] 
   out.push(...activationCandidates(state, seat, ctx));
 
   for (const monster of ownMonsters) {
+    // Task 4.2b: every own monster may be tried (face-up ones are rejected by the engine, not filtered here).
+    out.push({
+      type: 'FlipSummon',
+      payload: { playerIndex: seat, cardInstanceId: monster.instanceId },
+    });
     for (const toPosition of ['Attack', 'DefenseUp'] as const) {
       out.push({
         type: 'ChangePosition',

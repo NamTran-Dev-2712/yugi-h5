@@ -138,7 +138,7 @@ Mỗi batch là 1 phiên nhỏ, theo `card-and-effect-plan.md`.
 | ---- | ---------------------------------------------------------------------------------------------- | ------ | ------ |
 | 4.1  | Batch 1: 20 vanilla + 10 spell/trap cơ bản (✅ nháp; data TS, CSV để sau — ADR 2026-09-30)     | Shared | M      |
 | 4.2a | Special Summon — chỉ operation, từ tay/mộ của mình (✅ nháp; tách từ 4.2 gốc — ADR 2026-09-30) | Engine | M      |
-| 4.2b | Flip Summon (action) + Flip effect (`OnFlip`)                                                  | Engine | M      |
+| 4.2b | Flip Summon (action) + Flip effect (`OnFlip`) (✅ nháp)                                        | Engine | M      |
 | 4.2c | Equip Spell (`Equip` + `ModifyStat.equipped`, rời sân theo quái; không thêm Duration)          | Engine | M      |
 | 4.3  | Field Spell + Continuous Spell/Trap đầy đủ                                                     | Engine | M      |
 | 4.4  | Counter Trap (Speed 3)                                                                         | Engine | M      |

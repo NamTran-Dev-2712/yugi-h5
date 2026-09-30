@@ -85,6 +85,15 @@ export interface AttackDeclaredEvent {
   readonly targetInstanceId: string | null;
 }
 
+/** Task 4.2b: a face-down monster was Flip Summoned (now face-up in Attack Position, so `definitionId` is public). */
+export interface FlipSummonedEvent {
+  readonly type: 'FlipSummoned';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
 /**
  * Task 4.2a: an effect Special Summoned a monster from its controller's hand or graveyard, always face-up (so
  * `definitionId` leaks nothing). Does not use the Normal Summon of the turn.
@@ -234,6 +243,7 @@ export type GameEvent =
   | TurnChangedEvent
   | NormalSummonedEvent
   | MonsterSpecialSummonedEvent
+  | FlipSummonedEvent
   | MonsterSetEvent
   | MonsterTributedEvent
   | PositionChangedEvent

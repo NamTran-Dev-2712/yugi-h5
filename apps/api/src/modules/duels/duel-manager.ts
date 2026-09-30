@@ -24,6 +24,7 @@ import { toEventViews } from './event-view';
 import type { DuelMode, DuelSession, DuelStore } from './duel-store';
 import type { DuelMeta } from './duel-access';
 import { toStateView } from './state-view';
+import { ENGINE_ONLY_ACTIONS, toPlayerActions } from './wire-actions';
 
 export interface CreateDuelConfig {
   readonly playerIds: readonly [string, string];
@@ -269,7 +270,11 @@ export class DuelManager {
 
   submitAction(duelId: string, playerIndex: 0 | 1, action: Action): Promise<SubmitActionResult> {
     // State-independent checks first: they must not queue behind other work.
-    if (action.type === 'StartDuel' || action.type === 'Draw') {
+    if (
+      action.type === 'StartDuel' ||
+      action.type === 'Draw' ||
+      ENGINE_ONLY_ACTIONS.has(action.type)
+    ) {
       return Promise.reject(
         new DuelServiceError(
           'FORBIDDEN_ACTION',
@@ -396,11 +401,8 @@ export class DuelManager {
   }
 
   private legalActionsOf(state: GameState, seat: 0 | 1): PlayerAction[] {
-    const actions = getLegalActions(state, seat, { cardDefinitions: this.cardDefinitions });
-    // The engine never lists StartDuel/Draw; the filter narrows the type to the wire shape (PlayerActionSchema).
-    return actions.filter(
-      (a) => a.type !== 'StartDuel' && a.type !== 'Draw',
-    ) as unknown as PlayerAction[];
+    // Narrowed to the wire shape (PlayerActionSchema): no StartDuel/Draw, no engine-only action (wire-actions.ts).
+    return toPlayerActions(getLegalActions(state, seat, { cardDefinitions: this.cardDefinitions }));
   }
 
   /** Who owns the duel and in which mode; no game state, safe for access checks. */

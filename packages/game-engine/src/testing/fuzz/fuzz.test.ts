@@ -30,6 +30,8 @@ describe('fuzz: engine invariants hold', () => {
     let triggerPrompts = 0;
     let continuousApplied = 0;
     let specialSummons = 0;
+    let flipSummons = 0;
+    let flipLinks = 0;
     const byType: Record<string, number> = {};
     // Own fixed seeds (not FUZZ_SEEDS): coverage is statistical; 30 seeds keep every feature reached (task 4.2a
     // widened it from 10 when two more cards in the pool thinned out the multi-link chains).
@@ -46,6 +48,8 @@ describe('fuzz: engine invariants hold', () => {
       triggerPrompts += result.stats.triggerPrompts;
       continuousApplied += result.stats.continuousApplied;
       specialSummons += result.stats.specialSummons;
+      flipSummons += result.stats.flipSummons;
+      flipLinks += result.stats.flipLinks;
       for (const [type, n] of Object.entries(result.stats.accepted)) {
         accepted += n;
         byType[type] = (byType[type] ?? 0) + n;
@@ -61,6 +65,7 @@ describe('fuzz: engine invariants hold', () => {
       'SetSpellTrap',
       'ActivateEffect',
       'PassPriority',
+      'FlipSummon',
     ]) {
       expect(byType[type] ?? 0, `${type} never accepted`).toBeGreaterThan(0);
     }
@@ -78,6 +83,9 @@ describe('fuzz: engine invariants hold', () => {
     expect(continuousApplied, 'no Continuous modifier in force').toBeGreaterThan(0);
     // Task 4.2a: effects Special Summon monsters from the hand / graveyard.
     expect(specialSummons, 'no Special Summon').toBeGreaterThan(0);
+    // Task 4.2b: Flip Summons happen and flip effects reach the chain.
+    expect(flipSummons, 'no Flip Summon').toBeGreaterThan(0);
+    expect(flipLinks, 'no OnFlip link').toBeGreaterThan(0);
   });
 
   it('is deterministic: same seed → identical action log and stats', () => {
@@ -101,7 +109,16 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
       return action.type === onType ? corrupt(result) : result;
     };
   }
-  const detect = (apply: ApplyFn): FuzzResult => runFuzz({ seed: 'fuzz-1', steps: 300, apply });
+  // First failing run over fixed seeds (task 4.2b: one seed stopped reaching an open chain window once the action mix
+  // gained FlipSummon; the scenarios these breaks need are rare, not the checker weaker).
+  const detect = (apply: ApplyFn): FuzzResult => {
+    let last: FuzzResult | null = null;
+    for (let i = 1; i <= 30; i++) {
+      last = runFuzz({ seed: `fuzz-${i}`, steps: 300, apply });
+      if (!last.ok) return last;
+    }
+    return last!;
+  };
 
   it('flags a card that disappears', () => {
     const r = detect(

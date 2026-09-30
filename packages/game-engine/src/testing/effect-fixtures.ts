@@ -261,6 +261,34 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
     ],
   },
 
+  /** Task 4.2b — OnFlip mandatory: 400 damage to the opponent (ATK 1000 / DEF 1000). */
+  FLIP_BURN: effectMonster('FLIP_BURN', {
+    trigger: { kind: 'OnFlip', mandatory: true },
+    operations: [{ kind: 'Damage', amount: 400, target: 'opponent' }],
+  }),
+  /** OnFlip optional: destroy 1 of the opponent's monsters. */
+  FLIP_KILL: effectMonster('FLIP_KILL', {
+    trigger: { kind: 'OnFlip' },
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  /** `e1` OnFlip mandatory (draw 1) + `e2` OnDestroyed mandatory (300 damage): both fire when destroyed by an attack. */
+  FLIP_DES: {
+    ...monster('FLIP_DES'),
+    category: 'Effect',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'OnFlip', mandatory: true },
+        operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+      },
+      {
+        id: 'e2',
+        trigger: { kind: 'OnDestroyed', mandatory: true },
+        operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+      },
+    ],
+  } as CardDefinition,
   /** Task 4.2a — Level 5 OnSummon mandatory: Special Summon 1 monster from your graveyard (e.g. its own Tribute). */
   SUM_REVIVE_L5: effectMonster(
     'SUM_REVIVE_L5',

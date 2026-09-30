@@ -123,6 +123,16 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  // Task 4.2b — Flip effects: OnFlip mandatory (300 damage) / optional with a target (destroy 1 opponent monster).
+  MF: effectMonster('MF', 3, 1000, 1500, {
+    trigger: { kind: 'OnFlip', mandatory: true },
+    operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+  }),
+  MFO: effectMonster('MFO', 2, 600, 1200, {
+    trigger: { kind: 'OnFlip' },
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
   // Task 4.2a — Special Summon one of your monsters from the hand / from the graveyard (face-up Defense).
   SSH: spell('SSH', {
     trigger: { kind: 'Ignition' },
@@ -256,6 +266,9 @@ export interface FuzzStats {
   readonly continuousApplied: number;
   /** Monsters Special Summoned by an effect (task 4.2a). */
   readonly specialSummons: number;
+  /** Flip Summons, and OnFlip effects put on the chain (task 4.2b). */
+  readonly flipSummons: number;
+  readonly flipLinks: number;
 }
 
 export type FuzzResult =
@@ -575,6 +588,16 @@ function nextAction(state: GameState, rand: Rand): Action {
             toPosition: rand.pick(['Attack', 'DefenseUp'] as const),
           },
         };
+  // Task 4.2b: mostly a face-down monster of the player (face-up ones must be rejected).
+  const flipSummon = (): Action | null => {
+    if (own.length === 0) return null;
+    const faceDown = own.filter((c) => c.position === 'DefenseDown');
+    const pool = faceDown.length > 0 && rand.chance(0.85) ? faceDown : own;
+    return {
+      type: 'FlipSummon',
+      payload: { playerIndex: p, cardInstanceId: rand.pick(pool).instanceId },
+    };
+  };
   const attack = (): Action | null => {
     if (own.length === 0) return null;
     const direct = opp.length === 0 || rand.chance(0.1);
@@ -593,6 +616,7 @@ function nextAction(state: GameState, rand: Rand): Action {
     if (r < 60) return plausibleFromHand(state, rand, 'SetMonster');
     if (r < 70) return plausibleSetSpellTrap(state, rand);
     if (r < 85) return plausibleActivate(state, rand);
+    if (r < 93) return flipSummon();
     return changePosition();
   };
 
@@ -777,6 +801,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let triggerPrompts = 0;
   let continuousApplied = 0;
   let specialSummons = 0;
+  let flipSummons = 0;
+  let flipLinks = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -855,6 +881,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
           return fail(step, `non-monster ${c.definitionId} (${c.instanceId}) in a Monster Zone`);
       }
     }
+    flipSummons += result.events.filter((e) => e.type === 'FlipSummoned').length;
     for (const e of result.events) {
       if (e.type !== 'MonsterSpecialSummoned') continue;
       specialSummons++;
@@ -871,7 +898,11 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
     for (const e of result.events) {
       if (e.type !== 'ChainLinkAdded') continue;
       if (e.spellSpeed === 3) speed3Links++;
-      if (e.linkId.startsWith('trigger-')) triggerLinks++;
+      if (e.linkId.startsWith('trigger-')) {
+        triggerLinks++;
+        const eff = FUZZ_DEFS[e.definitionId]?.effects?.find((x) => x.id === e.effectId);
+        if (eff?.trigger.kind === 'OnFlip') flipLinks++;
+      }
       if (
         state?.players.some((p) =>
           p.board.spellTrapZones.some((c) => c?.instanceId === e.instanceId),
@@ -901,6 +932,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       triggerPrompts,
       continuousApplied,
       specialSummons,
+      flipSummons,
+      flipLinks,
     },
   };
 }

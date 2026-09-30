@@ -189,6 +189,7 @@
   "error.engine.CONTINUOUS_NOT_ACTIVATABLE": "Hiệu ứng liên tục không cần kích hoạt: nó tự có hiệu lực khi lá nằm ngửa trên sân.",
   "error.engine.UNKNOWN_SCRIPT": "Hiệu ứng này dùng một script chưa có trong game nên không kích hoạt được.",
   "error.engine.NO_FREE_MONSTER_ZONE": "Không còn ô quái trống để Triệu hồi Đặc biệt.",
+  "error.engine.MONSTER_FACE_UP": "Chỉ quái đang úp mới Triệu hồi Lật được.",
 
   "error.api.NOT_OWNER": "Bạn không có quyền điều khiển trận này.",
   "error.api.PLAYER_MISMATCH": "Hành động không thuộc về người chơi này.",

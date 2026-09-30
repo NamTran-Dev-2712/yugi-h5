@@ -68,6 +68,8 @@ export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | n
     // Engine-only for now (task 4.2a; no card of the pool Special Summons yet): classified PUBLIC (always face-up) in
     // docs/design/event-visibility.md, but not forwarded until EventView has it (wire task).
     case 'MonsterSpecialSummoned':
+    // Task 4.2b: FlipSummoned is PUBLIC (face-up), engine-only like above.
+    case 'FlipSummoned':
       return null;
 
     default: {

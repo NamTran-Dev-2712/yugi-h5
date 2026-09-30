@@ -9,7 +9,8 @@ const TriggeredSchemaFields = { mandatory: z.boolean().optional() };
 export const TriggerSchema = z.discriminatedUnion('kind', [
   /** When this monster is Normal Summoned (Tribute Summon included; a Set is not a Summon) [RULE]. */
   z.object({ kind: z.literal('OnSummon'), ...TriggeredSchemaFields }).strict(),
-  z.object({ kind: z.literal('OnFlip') }).strict(),
+  /** When this monster is flipped face-up: Flip Summon, or flipped by an attack (task 4.2b). */
+  z.object({ kind: z.literal('OnFlip'), ...TriggeredSchemaFields }).strict(),
   z.object({ kind: z.literal('Continuous') }).strict(),
   z.object({ kind: z.literal('Ignition') }).strict(),
   z.object({ kind: z.literal('Quick') }).strict(),

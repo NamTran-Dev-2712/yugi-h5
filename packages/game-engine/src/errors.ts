@@ -50,7 +50,8 @@ export type EngineErrorCode =
   | 'INVALID_TRIGGER_ANSWER'
   | 'CONTINUOUS_NOT_ACTIVATABLE'
   | 'UNKNOWN_SCRIPT'
-  | 'NO_FREE_MONSTER_ZONE';
+  | 'NO_FREE_MONSTER_ZONE'
+  | 'MONSTER_FACE_UP';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */
 export class EngineError extends Error {

@@ -90,6 +90,9 @@ function perturb(action: Action, ids: string[], int: (n: number) => number): Act
         },
       });
       break;
+    case 'FlipSummon':
+      out.push({ ...action, payload: { ...action.payload, cardInstanceId: pick() } });
+      break;
     case 'ChangePosition':
       out.push({ ...action, payload: { ...p, cardInstanceId: pick() } } as Action);
       out.push({ ...action, payload: { ...action.payload, toPosition: 'DefenseUp' } });
@@ -165,6 +168,7 @@ function junk(seat: 0 | 1, ids: string[], int: (n: number) => number): Action[] 
       type: 'ChangePosition',
       payload: { playerIndex: seat, cardInstanceId: pick(), toPosition: 'Attack' },
     },
+    { type: 'FlipSummon', payload: { playerIndex: seat, cardInstanceId: pick() } },
     {
       type: 'DeclareAttack',
       payload: { playerIndex: seat, attackerInstanceId: pick(), targetInstanceId: pick() },

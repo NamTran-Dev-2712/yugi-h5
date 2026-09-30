@@ -20,7 +20,7 @@ function monster(id: string, level: number, atk: number, def: number): CardDefin
 function triggerMonster(
   id: string,
   atk: number,
-  trigger: { kind: 'OnSummon' | 'OnDestroyed'; mandatory?: boolean },
+  trigger: { kind: 'OnSummon' | 'OnDestroyed' | 'OnFlip'; mandatory?: boolean },
   operation: NonNullable<CardDefinition['effects']>[number]['operations'][number],
 ): CardDefinition {
   return {
@@ -66,6 +66,13 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
     'G_DES_BURN',
     1000,
     { kind: 'OnDestroyed', mandatory: true },
+    { kind: 'Damage', amount: 400, target: 'opponent' },
+  ),
+  /** Task 4.2b — OnFlip mandatory: 400 damage to the opponent (ATK 1000 / DEF 1000). */
+  G_FLIP_BURN: triggerMonster(
+    'G_FLIP_BURN',
+    1000,
+    { kind: 'OnFlip', mandatory: true },
     { kind: 'Damage', amount: 400, target: 'opponent' },
   ),
   /** Task 4.2a — Special Summon 1 monster from your hand / from your graveyard. */
@@ -227,6 +234,9 @@ const SS_DECK = Array.from(
   { length: 40 },
   (_, i) => ['G_SS_HAND', 'G_SS_GY', 'M1800', 'G_SUM_BURN'][i % 4]!,
 );
+
+/** Flip Summon + flip effects (task 4.2b). */
+const FLIP_DECK = Array.from({ length: 40 }, (_, i) => ['G_FLIP_BURN', 'M1800', 'M1000'][i % 3]!);
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
 
@@ -779,6 +789,44 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
         payload: { playerIndex: 0, cardInstanceId: 'p0-13', effectId: 'e1' },
       },
       ...endPhase(0, 2),
+    ],
+  },
+  {
+    name: 'flip-summon-and-battle-flip-effect',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-flip-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [FLIP_DECK, FLIP_DECK],
+      },
+    },
+    actions: [
+      // T1 (P0): Set G_FLIP_BURN (p0-12). Rejected: Flip Summon on the turn it was Set.
+      ...endPhase(0, 2),
+      { type: 'SetMonster', payload: { playerIndex: 0, cardInstanceId: 'p0-12', zoneIndex: 0 } },
+      { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-12' } },
+      ...endPhase(0, 4),
+      // T2 (P1): Set G_FLIP_BURN (p1-24).
+      ...endPhase(1, 2),
+      { type: 'SetMonster', payload: { playerIndex: 1, cardInstanceId: 'p1-24', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): Flip Summon p0-12 → its OnFlip: 400 to P1. Rejected: changing its position again this turn.
+      // It then attacks the face-down p1-24 → flipped → P1's OnFlip: 400 to P0 (1000 vs DEF 1000: nothing destroyed).
+      ...endPhase(0, 2),
+      { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-12' } },
+      {
+        type: 'ChangePosition',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-12', toPosition: 'DefenseUp' },
+      },
+      ...endPhase(0, 1),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-12', targetInstanceId: 'p1-24' },
+      },
+      ...endPhase(0, 3),
     ],
   },
 ];

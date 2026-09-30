@@ -43,6 +43,7 @@ raw events never leave the class.
 | ChainLinkAdded         | definitionId, targets    | PUBLIC                     | Task 3.3, forwarded since 3.4b. Same card as the `EffectActivated` just before it; targets are field ids.                                                     |
 | ChainLinkFizzled       | definitionId             | PUBLIC                     | Task 3.3, forwarded since 3.4b. Already-revealed chain card; no effect.                                                                                       |
 | ChainResolved          | —                        | PUBLIC                     | Task 3.3, forwarded since 3.4b. No card data.                                                                                                                 |
+| FlipSummoned           | definitionId             | PUBLIC (not forwarded yet) | Task 4.2b, engine-only: the monster is now face-up. `toEventView` returns `null` until `EventView` has it.                                                    |
 | MonsterSpecialSummoned | definitionId             | PUBLIC (not forwarded yet) | Task 4.2a, engine-only: always face-up, from your hand (the card is revealed) or the public graveyard. `toEventView` returns `null` until `EventView` has it. |
 
 > Task 3.2b wired the seven Spell/Trap events (task 3.2 had them classified but dropped). The gate that came with

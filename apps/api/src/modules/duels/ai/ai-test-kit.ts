@@ -8,6 +8,7 @@ import {
 } from '@yugi/game-engine';
 import type { CardDefinition, PlayerAction, StateView } from '@yugi/shared';
 import { toStateView } from '../state-view';
+import { toPlayerActions } from '../wire-actions';
 
 /** Test-only helpers: build engine states with a chosen board, then look at them through the AI's eyes. */
 
@@ -181,9 +182,7 @@ export function situation(state: GameState, seat: 0 | 1 = AI_SEAT): AiSituation 
   return {
     state,
     view: toStateView(state, seat, aiCtx.cardDefinitions),
-    legalActions: getLegalActions(state, seat, aiCtx).filter(
-      (a) => a.type !== 'StartDuel' && a.type !== 'Draw',
-    ) as unknown as PlayerAction[],
+    legalActions: toPlayerActions(getLegalActions(state, seat, aiCtx)),
   };
 }
 

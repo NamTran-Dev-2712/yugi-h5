@@ -1,0 +1,24 @@
+KILLED   flips into Defense instead of Attack
+KILLED   no positionChangedTurn stamp (could change position again)
+KILLED   face-up monsters can be Flip Summoned
+KILLED   a monster Set this turn can be Flip Summoned
+KILLED   any phase allowed
+KILLED   off-turn Flip Summon allowed
+KILLED   Spell/Trap reported as CARD_NOT_ON_FIELD
+KILLED   Flip Summon fires no trigger
+KILLED   no Summon reaction window after a Flip Summon
+KILLED   version not bumped
+KILLED   Flip Summon uses the Normal Summon
+KILLED   Flip Summon does not fire OnSummon
+KILLED   Flip Summon does not fire OnFlip
+KILLED   a flip by an attack never fires OnFlip
+KILLED   a flip monster destroyed by that battle does not fire
+KILLED   a surviving flipped monster looked up in the graveyard
+KILLED   readyTrigger refuses OnFlip
+KILLED   every effect fires whatever its trigger kind
+KILLED   legalActions never offer FlipSummon
+KILLED   schema: OnFlip without mandatory
+KILLED   schema: OnFlip may cost Discard/Tribute
+KILLED   api offers / accepts the engine-only FlipSummon
+
+22/22 mutants killed

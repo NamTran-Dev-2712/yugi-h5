@@ -6,9 +6,10 @@ import {
   type ActionContext,
   type GameState,
 } from '@yugi/game-engine';
-import { STARTER_DECK, type CardDefinition, type PlayerAction } from '@yugi/shared';
+import { STARTER_DECK, type CardDefinition } from '@yugi/shared';
 import { lookupCard } from '../card-pool';
 import { toStateView } from '../state-view';
+import { toPlayerActions } from '../wire-actions';
 import { createAiRng } from './ai-rng';
 import { chooseAction, type AiPolicy } from './choose-action';
 
@@ -69,9 +70,7 @@ export function simulate(options: SimOptions): SimResult {
       state.pendingPrompt?.playerIndex ??
       state.chainWindow?.priorityPlayer ??
       state.turnPlayerIndex;
-    const legal = getLegalActions(state, seat, ctx).filter(
-      (a) => a.type !== 'StartDuel' && a.type !== 'Draw',
-    ) as unknown as PlayerAction[];
+    const legal = toPlayerActions(getLegalActions(state, seat, ctx));
     const action = options.policies[seat]({
       view: toStateView(state, seat, cards),
       legalActions: legal,

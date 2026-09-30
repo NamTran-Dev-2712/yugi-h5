@@ -46,13 +46,13 @@ describe('Trigger', () => {
     bad(TriggerSchema, {});
     bad(TriggerSchema, { kind: 'OnSummon', by: 'Battle' });
   });
-  it('accepts `mandatory` only on OnSummon/OnDestroyed (task 3.5)', () => {
-    for (const kind of ['OnSummon', 'OnDestroyed']) {
+  it('accepts `mandatory` only on OnSummon/OnDestroyed (task 3.5) and OnFlip (task 4.2b)', () => {
+    for (const kind of ['OnSummon', 'OnDestroyed', 'OnFlip']) {
       ok(TriggerSchema, { kind, mandatory: true });
       ok(TriggerSchema, { kind, mandatory: false });
       bad(TriggerSchema, { kind, mandatory: 'yes' });
     }
-    for (const kind of ['OnFlip', 'Continuous', 'Ignition', 'Quick'])
+    for (const kind of ['Continuous', 'Ignition', 'Quick'])
       bad(TriggerSchema, { kind, mandatory: true });
   });
 });
@@ -198,7 +198,7 @@ describe('EffectDefinition', () => {
     bad(EffectDefinitionSchema, { ...base, target: { kind: 'Player', who: 'self' } });
   });
   it('trigger effects (OnSummon/OnDestroyed) may only cost PayLP (task 3.5)', () => {
-    for (const kind of ['OnSummon', 'OnDestroyed']) {
+    for (const kind of ['OnSummon', 'OnDestroyed', 'OnFlip']) {
       const base = { id: 'x', trigger: { kind }, operations: [draw] };
       ok(EffectDefinitionSchema, { ...base, cost: [{ kind: 'PayLP', amount: 100 }] });
       bad(EffectDefinitionSchema, { ...base, cost: [{ kind: 'Discard', count: 1 }] });
@@ -345,6 +345,26 @@ describe('CardDefinition with effects + bilingual text', () => {
         expect(c.effectText.en.length).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+describe('OnFlip (task 4.2b)', () => {
+  const flip = (trigger: unknown, cost?: unknown) => ({
+    id: 'x',
+    trigger,
+    ...(cost ? { cost } : {}),
+    operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+  });
+  it('accepts mandatory true/false/omitted', () => {
+    ok(EffectDefinitionSchema, flip({ kind: 'OnFlip' }));
+    ok(EffectDefinitionSchema, flip({ kind: 'OnFlip', mandatory: true }));
+    ok(EffectDefinitionSchema, flip({ kind: 'OnFlip', mandatory: false }));
+    bad(EffectDefinitionSchema, flip({ kind: 'OnFlip', mandatory: 'yes' }));
+  });
+  it('like the other triggers, may only cost PayLP (the engine cannot pick cost cards)', () => {
+    ok(EffectDefinitionSchema, flip({ kind: 'OnFlip' }, [{ kind: 'PayLP', amount: 100 }]));
+    bad(EffectDefinitionSchema, flip({ kind: 'OnFlip' }, [{ kind: 'Discard', count: 1 }]));
+    bad(EffectDefinitionSchema, flip({ kind: 'OnFlip' }, [{ kind: 'Tribute', count: 1 }]));
   });
 });
 

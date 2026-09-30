@@ -1,0 +1,67 @@
+# task 4.2b — test đỏ trước (trước khi viết code)
+
+## shared: src/effects/effects.test.ts
+   ✓ CardFilter > accepts kind/level/attribute/race 3ms
+   ✓ CardFilter > rejects empty, min>max, unknown attribute, unknown key 1ms
+   ✓ Trigger > accepts OnSummon 0ms
+   ✓ Trigger > accepts OnFlip 0ms
+   ✓ Trigger > accepts Continuous 0ms
+   ✓ Trigger > accepts Ignition 0ms
+   ✓ Trigger > accepts Quick 0ms
+   ✓ Trigger > accepts OnDestroyed 0ms
+   ✓ Trigger > rejects unknown kind, missing kind, extra key 0ms
+   ✓ Trigger > accepts `mandatory` only on OnSummon/OnDestroyed (task 3.5) 1ms
+   ✓ Condition > accepts PhaseIs / IsMyTurn / ZoneCount 0ms
+   ✓ Condition > rejects bad phase, missing field, no bounds, min>max, unknown kind 0ms
+   ✓ Cost > accepts Discard / Tribute / PayLP 0ms
+   ✓ Cost > rejects zero/negative/non-integer/wrong type/unknown kind 0ms
+   ✓ Target > accepts Card and Player 0ms
+   ✓ Target > rejects missing zone/count, bad who, unknown kind 0ms
+   ✓ Operation > accepts Damage / Heal / Draw / Destroy 0ms
+   ✓ Operation > rejects bad amount/target/missing field/unknown kind 0ms
+   ✓ Operation > accepts ModifyStat (task 3.6): atk/def, signed non-zero amount, side, optional filter/excludeSource 0ms
+   ✓ Operation > rejects a malformed ModifyStat 2ms
+   ✓ EffectDefinition > accepts the batch-1 examples 1ms
+   ✓ EffectDefinition > rejects empty/missing operations 0ms
+   ✓ EffectDefinition > rejects empty optional arrays, empty id, unknown trigger 1ms
+   ✓ EffectDefinition > rejects Continuous with cost or target (it never goes on the chain) 1ms
+   ✓ EffectDefinition > trigger effects (OnSummon/OnDestroyed) may only cost PayLP (task 3.5) 1ms
+   ✓ EffectDefinition > Continuous effects hold only continuous operations, other effects only resolve ones (task 3.6) 0ms
+   ✓ EffectDefinition > accepts an effect-level scriptId (task 3.6); operations may be empty only with a scriptId 0ms
+   ✓ EffectDefinition > accepts an optional explicit spellSpeed 1|2|3 (task 3.4), nothing else 1ms
+   ✓ registry (metadata only: no functions) > has one entry per operation kind, metadata only (task 3.2: all batch-1 operations implemented) 1ms
+   ✓ registry (metadata only: no functions) > CONTINUOUS_OPERATION_KINDS = the kinds whose timing is continuous (task 3.6) 0ms
+   ✓ registry (metadata only: no functions) > kind lists match the schemas 0ms
+   ✓ CardDefinition with effects + bilingual text > accepts effects and bilingual effectText 0ms
+   ✓ CardDefinition with effects + bilingual text > rejects string name, half-translated name, empty text 0ms
+   ✓ CardDefinition with effects + bilingual text > rejects duplicate effect ids within a card and invalid effects 0ms
+   ✓ CardDefinition with effects + bilingual text > every sample card has both languages 2ms
+   × OnFlip (task 4.2b) > accepts mandatory true/false/omitted 12ms
+   × OnFlip (task 4.2b) > like the other triggers, may only cost PayLP (the engine cannot pick cost cards) 1ms
+   ✓ SpecialSummon (task 4.2a) > accepts a Monster target in your own hand or graveyard, position Attack / DefenseUp 1ms
+   ✓ SpecialSummon (task 4.2a) > rejects a face-down position, unknown fields, no target, and targets outside your hand/graveyard 0ms
+   ✓ SpecialSummon (task 4.2a) > needs a Monster filter (a Spell/Trap is never Summoned) 0ms
+   ✓ SpecialSummon (task 4.2a) > is a resolve-time operation: never in a Continuous effect 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  2 failed | 39 passed (41)
+
+## engine: src/actions/handlers/flip-summon.test.ts
+   × FlipSummon — the action > turns a face-down monster face-up in Attack Position, without using the Normal Summon 14ms
+   × FlipSummon — the action > keeps the Normal Summon available afterwards 2ms
+   × FlipSummon — the action > cannot change position again this turn, but may attack (it was Set on an earlier turn) [RULE] 2ms
+   × FlipSummon — the action > rejects a face-up monster (MONSTER_FACE_UP), a monster Set this turn, a Spell/Trap, other cards 9ms
+   × FlipSummon — the action > rejects outside the Main Phases, off-turn, with a prompt pending, after the duel, in a chain window 3ms
+   × FlipSummon — the action > opens the Summon reaction window for an opponent holding a Set Trap (task 3.4c) 1ms
+   × FlipSummon — the action > legalActions list FlipSummon for face-down monsters only 8ms
+   × OnFlip — Flip Summon > a mandatory OnFlip goes on the chain and resolves (400 to the opponent) 1ms
+   × OnFlip — Flip Summon > an optional OnFlip asks its owner (TriggerActivation) 2ms
+   × OnFlip — Flip Summon > a Flip Summon is a Summon: the monster’s OnSummon fires too [RULE] 2ms
+   × OnFlip — flipped by an attack > fires even when the monster is destroyed by that battle (from the graveyard), after damage [RULE] 4ms
+   × OnFlip — flipped by an attack > fires from the Monster Zone when the monster survives 4ms
+   × OnFlip — flipped by an attack > OnFlip and OnDestroyed of the same card: event order, flip first [ASSUMED G15] 7ms
+   ✓ OnFlip — flipped by an attack > a face-up monster that is attacked does not fire OnFlip 5ms
+   × collectTriggers — flips > FlipSummoned fires OnFlip and OnSummon; MonsterFlipped only OnFlip 1ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  14 failed | 1 passed (15)

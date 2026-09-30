@@ -791,3 +791,25 @@ boolean`; `EventView` + 3 event chain (shape engine); `StateView.chain: ChainLin
 - **Fuzz**: thêm 2 lá vào pool làm loãng lá Speed 2 ⇒ test độ phủ "có chain ≥ 2 link" trên 10 seed mặc định không còn đạt (trước đó
   cũng sát ngưỡng: 30 seed chỉ 2 seed đạt). Test độ phủ chuyển sang 30 seed cố định riêng (không đổi engine/deck để "cho qua").
   **Hệ quả:** 4.2b/4.2c dùng cùng mẫu; task nối wire phải thêm `MonsterSpecialSummoned` vào `EventView` + animation/log.
+
+## 2026-09-30 — Flip Summon + OnFlip (task 4.2b)
+
+- **Thêm action `FlipSummon`** (chủ dự án chốt trong phiên plan; trước đó quái chỉ lật khi bị tấn công). Luật `[RULE]`: turn player,
+  Main1/Main2, quái úp của mình, không phải quái Set trong lượt này (`SUMMONED_THIS_TURN`), chưa đổi thế trong lượt; lên Tư thế Công.
+  Mã mới `MONSTER_FACE_UP` (tách khỏi `MONSTER_FACE_DOWN` của ChangePosition cho rõ nghĩa); tái dùng mã có sẵn cho phần còn lại.
+- **Dấu lượt**: ghi `positionChangedTurn` (không đổi thế lại trong lượt `[RULE]`), **không** đụng `summonedTurn`: quái Set từ lượt trước
+  tấn công được ngay sau khi Flip Summon `[RULE]` (luật "vừa triệu hồi không tấn công" của repo chỉ đọc `summonedTurn`).
+- **Không tốn Normal Summon** `[RULE]`. Sau Flip Summon: trigger trước, không trigger nào lên chain ⇒ cửa sổ phản ứng Summon (3.4c) —
+  y như `summon.ts` (chép cấu trúc gọi `collectTriggers`/`runTriggers`/`settle`/`openReactionWindow`, không chép luật).
+- **`OnFlip`**: `trigger.mandatory?` như 3.5, cost chỉ `PayLP` (refine mở rộng). Nguồn khởi phát: `FlipSummoned` và `MonsterFlipped`
+  (task 1.8, bị tấn công). Với `MonsterFlipped`, nguồn link tính trên state **sau** damage step: còn ở ô ⇒ `MonsterZone`; bị trận đó phá
+  ⇒ `Graveyard` và **vẫn kích hoạt** `[RULE]` (hiệu ứng Lật của quái bị phá khi bị tấn công vẫn chạy). Không cắm code vào
+  `resolve-attack.ts` (suy từ event như 3.5).
+- **Flip Summon là Summon** `[RULE]`: `FlipSummoned` bắn cả `OnSummon` ("khi được triệu hồi" gồm Normal/Special/Flip). Hỏi lại trong
+  review packet; nếu chủ dự án muốn `OnSummon` chỉ = Normal Summon thì đổi 1 dòng ở `collectTriggers` (+ test).
+- **API containment**: `PlayerActionSchema` chưa có `FlipSummon` ⇒ `apps/api/src/modules/duels/wire-actions.ts` (`ENGINE_ONLY_ACTIONS`,
+  `toPlayerActions`) thay 3 chỗ lọc `StartDuel`/`Draw` chép tay (DuelManager, `ai/simulate.ts`, `ai-test-kit.ts`); `submitAction` từ chối
+  `FORBIDDEN_ACTION`. Task nối wire chỉ cần xoá tên khỏi set + thêm schema.
+- **Fuzz**: generator thêm FlipSummon (8% nhánh Main Phase) ⇒ test "checker bắt engine hỏng" với 1 seed không còn gặp cửa sổ chain mở ⇒
+  `detect` thử tối đa 30 seed cố định, lấy lần fail đầu (không nới checker).
+  **Hệ quả:** 4.2c dùng lại; nối wire FlipSummon = `PlayerActionSchema` + `EventView` + UI (chạm quái úp → menu "Lật").

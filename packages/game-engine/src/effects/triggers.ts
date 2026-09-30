@@ -22,6 +22,8 @@ import { targetCandidates } from './targets.js';
  * (the events of the step), read from the card's own `EffectDefinition`:
  * - `OnSummon`: the card was Normal Summoned (Tribute Summon included; a Set is not a Summon) [RULE].
  * - `OnDestroyed`: the card was destroyed (battle or effect) and is in its owner's graveyard.
+ * - `OnFlip` (task 4.2b): the monster was Flip Summoned, or flipped face-up by an attack (even if that battle then
+ *   destroyed it: it activates from the graveyard) [RULE]. A Flip Summon (and a Special Summon, 4.2a) is also a Summon.
  * A `mandatory` trigger goes on the chain by itself; an optional one asks its owner (`TriggerActivation` prompt), and so
  * does a trigger with more target candidates than it needs. Links use the ordinary chain (`pushLink`); the caller then
  * settles priority. Order [RULE]: the turn player's triggers first, then the opponent's; [ASSUMED] G15 within one
@@ -72,10 +74,32 @@ export interface ReadyTrigger {
 
 function effectsOf(
   definitionId: string,
-  kind: 'OnSummon' | 'OnDestroyed',
+  kinds: readonly TriggeredKind[],
   ctx: ActionContext,
 ): EffectDefinition[] {
-  return (ctx.cardDefinitions(definitionId)?.effects ?? []).filter((e) => e.trigger.kind === kind);
+  // Card order: a Flip Summon fires the card's OnFlip and OnSummon effects in the order the card lists them.
+  return (ctx.cardDefinitions(definitionId)?.effects ?? []).filter((e) =>
+    (kinds as readonly string[]).includes(e.trigger.kind),
+  );
+}
+
+type TriggeredKind = 'OnSummon' | 'OnDestroyed' | 'OnFlip';
+
+/**
+ * Where a monster flipped by an attack is NOW (task 4.2b): still face-up in its zone, or already in its owner's graveyard
+ * (destroyed by that battle — its flip effect still activates [RULE]); null when it is anywhere else.
+ */
+function flippedSource(
+  state: GameState,
+  ownerIndex: 0 | 1,
+  instanceId: string,
+  zoneIndex: number,
+): PendingTrigger['source'] | null {
+  const owner = state.players[ownerIndex];
+  if (owner.board.monsterZones[zoneIndex]?.instanceId === instanceId)
+    return { zone: 'MonsterZone', zoneIndex };
+  if (owner.graveyard.some((c) => c.instanceId === instanceId)) return { zone: 'Graveyard' };
+  return null;
 }
 
 /** Triggers fired by `events`, in chain order (turn player first, then event order). Cards without triggers: none. */
@@ -89,7 +113,7 @@ export function collectTriggers(
   for (const event of events) {
     // Task 4.2a: a Special Summon is a Summon too [RULE].
     if (event.type === 'NormalSummoned' || event.type === 'MonsterSpecialSummoned') {
-      for (const effect of effectsOf(event.definitionId, 'OnSummon', ctx)) {
+      for (const effect of effectsOf(event.definitionId, ['OnSummon'], ctx)) {
         fired.push({
           playerIndex: event.playerIndex,
           instanceId: event.instanceId,
@@ -98,8 +122,31 @@ export function collectTriggers(
           source: { zone: 'MonsterZone', zoneIndex: event.zoneIndex },
         });
       }
+    } else if (event.type === 'FlipSummoned') {
+      // Task 4.2b: a Flip Summon flips the monster AND Summons it [RULE].
+      for (const effect of effectsOf(event.definitionId, ['OnFlip', 'OnSummon'], ctx)) {
+        fired.push({
+          playerIndex: event.playerIndex,
+          instanceId: event.instanceId,
+          definitionId: event.definitionId,
+          effectId: effect.id,
+          source: { zone: 'MonsterZone', zoneIndex: event.zoneIndex },
+        });
+      }
+    } else if (event.type === 'MonsterFlipped') {
+      const source = flippedSource(state, event.ownerIndex, event.instanceId, event.zoneIndex);
+      if (source === null) continue;
+      for (const effect of effectsOf(event.definitionId, ['OnFlip'], ctx)) {
+        fired.push({
+          playerIndex: event.ownerIndex,
+          instanceId: event.instanceId,
+          definitionId: event.definitionId,
+          effectId: effect.id,
+          source,
+        });
+      }
     } else if (event.type === 'MonsterDestroyed' || event.type === 'SpellTrapDestroyed') {
-      for (const effect of effectsOf(event.definitionId, 'OnDestroyed', ctx)) {
+      for (const effect of effectsOf(event.definitionId, ['OnDestroyed'], ctx)) {
         fired.push({
           playerIndex: event.ownerIndex,
           instanceId: event.instanceId,
@@ -137,7 +184,12 @@ export function readyTrigger(
   const definition = ctx.cardDefinitions(trigger.definitionId);
   const effect = definition?.effects?.find((e) => e.id === trigger.effectId);
   if (!definition || !effect) return null;
-  if (effect.trigger.kind !== 'OnSummon' && effect.trigger.kind !== 'OnDestroyed') return null;
+  if (
+    effect.trigger.kind !== 'OnSummon' &&
+    effect.trigger.kind !== 'OnDestroyed' &&
+    effect.trigger.kind !== 'OnFlip'
+  )
+    return null;
   // Task 3.6: a script nobody registered never activates (as in ActivateEffect's UNKNOWN_SCRIPT).
   if (effect.scriptId !== undefined && !scriptFor(effect.scriptId)) return null;
   if (!conditionsHold(state, trigger.playerIndex, effect.condition)) return null;

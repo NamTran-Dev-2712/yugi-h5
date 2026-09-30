@@ -87,6 +87,12 @@ handler function đăng ký sẵn trong engine.
 }
 ```
 
+## Flip effect (task 4.2b)
+
+- `OnFlip{mandatory?}` giờ chạy thật: bắn khi quái được **Flip Summon** (action `FlipSummon`) hoặc **bị lật do bị tấn công**, kể cả khi trận
+  đó phá nó (kích hoạt từ mộ) `[RULE]`. Flip Summon cũng bắn `OnSummon`. Như trigger khác: chỉ cost `PayLP`; optional thì hỏi chủ lá.
+  Chi tiết: `engine.md` mục "Flip Summon + OnFlip".
+
 ## Special Summon (task 4.2a)
 
 - Operation `SpecialSummon{position?: 'Attack' | 'DefenseUp'}` chạy lúc resolve, tác động lên target `Card` của effect. Refine: target
@@ -141,7 +147,7 @@ tiêu chí, `level.min ≤ level.max`.
 
 | Loại      | Kind → field                                                                                                                                                                                                                                                                        |
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip`, `Continuous`, `Ignition`, `Quick`                                                                                                                                                                           |
+| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip{mandatory?}` (task 4.2b), `Continuous`, `Ignition`, `Quick`                                                                                                                                                   |
 | Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                                                                                                                                                                                   |
 | Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                                                                                                                                                                               |
 | Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                                                                                                                                                                                   |

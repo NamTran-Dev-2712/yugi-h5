@@ -55,10 +55,12 @@ export const EffectDefinitionSchema = z
   })
   .refine(
     (e) =>
-      (e.trigger.kind !== 'OnSummon' && e.trigger.kind !== 'OnDestroyed') ||
+      (e.trigger.kind !== 'OnSummon' &&
+        e.trigger.kind !== 'OnDestroyed' &&
+        e.trigger.kind !== 'OnFlip') ||
       (e.cost ?? []).every((c) => c.kind === 'PayLP'),
-    // Task 3.5: a trigger is activated by the engine, which cannot pick cost cards (no cost prompt yet).
-    { message: 'Trigger effects (OnSummon/OnDestroyed) may only cost PayLP for now' },
+    // Task 3.5 (OnFlip: 4.2b): a trigger is activated by the engine, which cannot pick cost cards (no cost prompt yet).
+    { message: 'Trigger effects (OnSummon/OnDestroyed/OnFlip) may only cost PayLP for now' },
   )
   .refine(
     (e) =>

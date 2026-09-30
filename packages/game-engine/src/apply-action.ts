@@ -5,6 +5,7 @@ import { applyDeclareAttack } from './actions/handlers/declare-attack.js';
 import { applySetSpellTrap } from './actions/handlers/set-spell-trap.js';
 import { applyDraw } from './actions/handlers/draw.js';
 import { applyEndPhase } from './actions/handlers/end-phase.js';
+import { applyFlipSummon } from './actions/handlers/flip-summon.js';
 import { applyNormalSummon, applySetMonster } from './actions/handlers/summon.js';
 import { applyPassPriority } from './actions/handlers/pass-priority.js';
 import { applyResolvePendingPrompt } from './actions/handlers/resolve-pending-prompt.js';
@@ -93,6 +94,8 @@ export function applyAction(
       return applyNormalSummon(state, action, requireContext(action, ctx));
     case 'SetMonster':
       return applySetMonster(state, action, requireContext(action, ctx));
+    case 'FlipSummon':
+      return applyFlipSummon(state, action, requireContext(action, ctx));
     case 'DeclareAttack':
       return applyDeclareAttack(state, action, requireContext(action, ctx));
     case 'SetSpellTrap':

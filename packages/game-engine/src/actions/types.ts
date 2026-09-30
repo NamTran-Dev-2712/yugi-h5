@@ -73,6 +73,18 @@ export interface ChangePositionAction {
 }
 
 /**
+ * Task 4.2b: Flip Summons one of the caller's face-down monsters: face-up Attack Position. Does not use the Normal Summon.
+ */
+export interface FlipSummonAction {
+  readonly type: 'FlipSummon';
+  readonly payload: {
+    readonly playerIndex: 0 | 1;
+    /** `CardInstance.instanceId` of a face-down monster on the caller's own field. */
+    readonly cardInstanceId: string;
+  };
+}
+
+/**
  * A face-up Attack Position monster declares an attack on an opponent's monster, or
  * directly on their life points if their field is empty. `targetInstanceId` omitted/null
  * means a direct attack; the engine still validates that a direct attack is legal (the
@@ -168,6 +180,7 @@ export type Action =
   | NormalSummonAction
   | SetMonsterAction
   | ChangePositionAction
+  | FlipSummonAction
   | DeclareAttackAction
   | SurrenderAction
   | ResolvePendingPromptAction
