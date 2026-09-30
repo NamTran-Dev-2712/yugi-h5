@@ -721,3 +721,24 @@ boolean`; `EventView` + 3 event chain (shape engine); `StateView.chain: ChainLin
 - **Kiểm chứng**: xem `docs/ai/review-packets/task-3.7.md`.
   **Hệ quả:** 3.8 thêm lá thật (Trap/Quick-Play/trigger) vào pool ⇒ luồng HTTP thật mở cửa sổ; khi đó chụp lại bằng Sandbox + chạy
   `play-vs-ai`. Đổi bố cục khi có tư liệu = sửa presenter/card-view/theme.
+
+## 2026-09-28 — 10 lá effect thật (task 3.8): STARTER_DECK giữ nguyên, deck demo riêng, Continuous đặt trên quái
+
+- **`STARTER_DECK` không đổi** `[DECISION]` (chủ dự án chọn trong phiên plan): AI server chưa bao giờ tự Set/kích hoạt Phép/Bẫy
+  (ADR 3.2b/3.4b) ⇒ Phép/Bẫy trong deck của AI là bài chết; đổi deck mặc định còn làm lệch test tỉ lệ thắng AI, e2e,
+  `play-duel*`. Thay vào đó: **`EFFECT_DEMO_DECK`** (40 lá, `packages/shared/src/deck/effect-demo-deck.ts`) gửi qua body `deck` sẵn có
+  của `POST /duels/solo` (API 0 dòng đổi) + 3 scenario Sandbox trên lá thật (`chain-reaction-real`, `trigger-optional-real`,
+  `continuous-real`). Lá mới thêm vào CUỐI dãy quái nên `STARTER_DECK` (14 quái đầu × 3) giữ nguyên (có test).
+- **Continuous đặt trên quái** (SMP-022/023): refine 3.6 cho phép, nguồn là lá ngửa trên sân ⇒ chơi được thật ngay; kích hoạt lá
+  Phép/Bẫy Liên tục vẫn là P4 (ADR 3.6).
+- **SMP-201 giữ placeholder** (vô hiệu tấn công cần operation Negate — P4); Bẫy có effect thật là lá mới SMP-202/203.
+- **Id**: quái tiếp dãy `SMP-019…023` (dãy 0xx là quái), Phép `SMP-102…104`, Bẫy `SMP-202…203`. Mọi lá Tier B (chỉ DSL, không `scriptId`).
+  Tên/chỉ số là placeholder tự đặt, không có `[REF]` về lá thật của Yugi H5.
+- **Test mỗi lá nằm ở engine** (`packages/game-engine/src/cards/sample/<id>.test.ts`, helper `testing/sample-card-kit.ts`): shared không
+  chạy được engine; test dùng `SAMPLE_CARDS` thật qua `applyAction` (lấy từ `dist` của shared — mutation phải build lại shared).
+- **AI không mở rộng**: mô phỏng AI-vs-AI với `EFFECT_DEMO_DECK` (AI thật: mọi ván kết thúc, 0 bị từ chối, 0 đầu hàng; có wrapper Set
+  trước: AI giữ cửa sổ, kích hoạt Bẫy/Quick-Play thật, trả lời trigger) — không kẹt `AiNoActionError`.
+- **Quan sát UI (chưa sửa, ngoài phạm vi)**: trong cửa sổ phản ứng tấn công đã có ≥1 mắt xích, banner vẫn ghi "Đối thủ tấn công…"
+  (vì `reactionTo` giữ tới khi cửa sổ đóng, ADR 3.4c) thay vì "chuỗi N mắt xích"; ảnh `task-3.8-screens/03-*`.
+  **Hệ quả:** P4 thêm lá theo cùng mẫu (data + 1 file test engine/lá + mutant dữ liệu `tools/mutants-3.8.mjs`); muốn AI dùng Phép/Bẫy
+  thì mới cân nhắc đưa chúng vào `STARTER_DECK`.

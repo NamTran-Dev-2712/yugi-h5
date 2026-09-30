@@ -5,6 +5,9 @@
  *   node --experimental-strip-types tools/play-vs-ai.ts
  * The human plays a simple, legal-only policy taken from `legalActions` (attack directly, else attack, else summon,
  * else end the phase), so every action it sends must be accepted. After MAX_ACTIONS it surrenders to end the duel.
+ * Task 3.8: `DECK=effect` plays both seats with `EFFECT_DEMO_DECK` (real effect cards; read from the BUILT shared
+ * package, so run `pnpm build` or `pnpm dev` first). The human then also Sets Spells/Traps, activates in chain /
+ * reaction windows (else passes) and accepts trigger prompts; the run must see real chain links and windows.
  */
 import {
   BASE,
@@ -44,19 +47,26 @@ function check(name: string, ok: boolean, detail = ''): void {
   if (!ok) say(`   FAIL  ${name}${detail ? ` — ${detail}` : ''}`);
 }
 
-/** Cards of the AI seat still hidden from the human in this very view (hand + face-down monsters). */
+const EFFECT_DECK = process.env.DECK === 'effect';
+
+/** Cards of the AI seat still hidden from the human in this very view (hand + face-down monsters and Spells/Traps). */
 function aiHidden(view: ViewV): Set<string> {
   const p = view.players[1];
   const ids = new Set<string>(p.hand.filter((c) => c.hidden).map((c) => c.instanceId));
   for (const c of p.board.monsterZones) if (c?.hidden) ids.add(c.instanceId);
+  for (const c of p.board.spellTrapZones ?? []) if (c?.hidden) ids.add(c.instanceId);
   return ids;
 }
 
 function chooseHuman(view: ViewV, legal: Action[]): Action {
+  const inWindow = view.chainWindow?.priorityPlayer === 0;
   const rank = (a: Action): number => {
-    if (a.type === 'ResolvePendingPrompt') return 0;
+    if (a.type === 'ResolvePendingPrompt') return a.payload.decline === true ? 0.5 : 0;
+    if (inWindow) return a.type === 'ActivateEffect' ? 0 : a.type === 'PassPriority' ? 1 : 99;
     if (a.type === 'DeclareAttack') return a.payload.targetInstanceId == null ? 1 : 2;
     if (a.type === 'NormalSummon') return 3;
+    if (a.type === 'SetSpellTrap') return 4;
+    if (a.type === 'ActivateEffect') return 5;
     if (a.type === 'EndPhase') return 9;
     return 99; // Surrender/SetMonster/ChangePosition only if nothing better
   };
@@ -70,7 +80,18 @@ async function main(): Promise<void> {
   say(`play-vs-ai against ${BASE}`);
   const guest = await call('POST', '/auth/guest');
   const token = (guest.json as { accessToken: string }).accessToken;
-  const created = await call('POST', '/duels/solo', { token, body: { mode: 'solo-vs-ai' } });
+  let deck: readonly string[] | undefined;
+  if (EFFECT_DECK) {
+    const shared = (await import('../packages/shared/dist/index.js')) as {
+      EFFECT_DEMO_DECK: readonly string[];
+    };
+    deck = shared.EFFECT_DEMO_DECK;
+    say(`   deck: EFFECT_DEMO_DECK (${deck.length} cards)`);
+  }
+  const created = await call('POST', '/duels/solo', {
+    token,
+    body: { mode: 'solo-vs-ai', ...(deck ? { deck } : {}) },
+  });
   check('POST /duels/solo mode solo-vs-ai → 201', created.status === 201, `${created.status}`);
   let res = created.json as Response;
   const duelId = res.duelId ?? '';
@@ -92,7 +113,18 @@ async function main(): Promise<void> {
   let aiTurns = 0;
   let lastVersion = res.view.version;
   let surrendered = false;
+  const seen = {
+    chainLinks: 0,
+    humanWindows: 0,
+    humanTriggerPrompts: 0,
+    aiChainActs: 0,
+    effAtk: 0,
+  };
   while (res.view.winnerIndex === null) {
+    if (res.view.chainWindow?.priorityPlayer === 0) seen.humanWindows++;
+    if (res.view.pendingPrompt?.kind === 'TriggerActivation') seen.humanTriggerPrompts++;
+    const board = res.view.players.flatMap((p) => p.board.monsterZones);
+    if (board.some((c) => c?.effectiveStats !== undefined)) seen.effAtk++;
     if (humanActions >= MAX_ACTIONS && !surrendered) {
       surrendered = true;
       say(`   ${MAX_ACTIONS} actions reached: the human surrenders to end the duel`);
@@ -120,6 +152,10 @@ async function main(): Promise<void> {
     if (leaks.length > 0) check(`no leak after #${humanActions}`, false, leaks.join('; '));
     const steps = res.aiActions ?? [];
     aiActions += steps.length;
+    seen.chainLinks += res.events.filter((e) => e.type === 'ChainLinkAdded').length;
+    seen.aiChainActs += steps.filter(
+      (s) => s.action.type === 'PassPriority' || s.action.type === 'ActivateEffect',
+    ).length;
     if (steps.length > 0) aiTurns++;
     if (steps.some((s) => s.action.type === 'Surrender')) check('AI never surrenders', false);
     if (steps.some((s) => s.action.payload.playerIndex !== 1))
@@ -135,8 +171,12 @@ async function main(): Promise<void> {
       check('version grows', false, `${lastVersion} → ${res.view.version}`);
     lastVersion = res.view.version;
     if (res.view.winnerIndex === null) {
-      const prompt = res.view.pendingPrompt;
-      const humanToAct = prompt ? prompt.playerIndex === 0 : res.view.turnPlayerIndex === 0;
+      // Same "who acts" as the server: prompt, then chain priority, then the turn player.
+      const actor =
+        res.view.pendingPrompt?.playerIndex ??
+        res.view.chainWindow?.priorityPlayer ??
+        res.view.turnPlayerIndex;
+      const humanToAct = actor === 0;
       if (!humanToAct)
         check('control is back with the human', false, `turnPlayer ${res.view.turnPlayerIndex}`);
       if (!res.legalActions.every((a) => a.payload.playerIndex === 0)) {
@@ -152,6 +192,12 @@ async function main(): Promise<void> {
     body: { playerIndex: 0, action: { type: 'EndPhase', payload: { playerIndex: 0 } } },
   });
   check('actions after the end are refused (409)', after.status === 409, `${after.status}`);
+  say(`   effect stats: ${JSON.stringify(seen)}`);
+  if (EFFECT_DECK) {
+    check('real chain links were added over HTTP', seen.chainLinks > 0, JSON.stringify(seen));
+    check('the human held a chain / reaction window', seen.humanWindows > 0, JSON.stringify(seen));
+    check('effective ATK/DEF reached the wire', seen.effAtk > 0, JSON.stringify(seen));
+  }
 
   const failed = results.filter((r) => !r.ok);
   say(

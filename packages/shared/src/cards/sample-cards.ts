@@ -67,6 +67,120 @@ export const SAMPLE_CARDS: CardDefinition[] = [
     atk,
     def,
   })),
+  // Task 3.8 — first real effect cards (Tier B, effect DSL only). Placeholder names, no Konami IP.
+  {
+    id: 'SMP-019',
+    kind: 'Monster',
+    name: { vi: 'Ong Bắp Cày Lửa', en: 'Firebrand Hornet' },
+    category: 'Effect',
+    attribute: 'FIRE',
+    race: 'Insect',
+    level: 4,
+    atk: 1400,
+    def: 900,
+    effectText: {
+      vi: 'Khi lá này được Triệu hồi Thường: gây 300 sát thương cho đối thủ (bắt buộc).',
+      en: 'When this card is Normal Summoned: inflict 300 damage to your opponent (mandatory).',
+    },
+    effects: [
+      {
+        id: 'burn-on-summon',
+        trigger: { kind: 'OnSummon', mandatory: true },
+        operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-020',
+    kind: 'Monster',
+    name: { vi: 'Thợ Săn Rừng Bẫy', en: 'Snarewood Tracker' },
+    category: 'Effect',
+    attribute: 'EARTH',
+    race: 'Warrior',
+    level: 3,
+    atk: 1000,
+    def: 800,
+    effectText: {
+      vi: 'Khi lá này được Triệu hồi Thường: bạn có thể chọn 1 lá Phép/Bẫy đối thủ điều khiển; phá huỷ nó.',
+      en: 'When this card is Normal Summoned: you can target 1 Spell/Trap your opponent controls; destroy it.',
+    },
+    effects: [
+      {
+        id: 'break-backrow',
+        trigger: { kind: 'OnSummon' },
+        target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-021',
+    kind: 'Monster',
+    name: { vi: 'Bướm Đêm Tro', en: 'Ashen Moth' },
+    category: 'Effect',
+    attribute: 'DARK',
+    race: 'Insect',
+    level: 3,
+    atk: 900,
+    def: 600,
+    effectText: {
+      vi: 'Khi lá này bị phá huỷ và đưa vào Mộ: chủ của nó rút 1 lá (bắt buộc).',
+      en: 'When this card is destroyed and sent to the Graveyard: its owner draws 1 card (mandatory).',
+    },
+    effects: [
+      {
+        id: 'draw-on-destroyed',
+        trigger: { kind: 'OnDestroyed', mandatory: true },
+        operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-022',
+    kind: 'Monster',
+    name: { vi: 'Chỉ Huy Cờ Hiệu', en: 'Banner Captain' },
+    category: 'Effect',
+    attribute: 'LIGHT',
+    race: 'Warrior',
+    level: 4,
+    atk: 1500,
+    def: 1000,
+    effectText: {
+      vi: 'Khi lá này ngửa trên sân: các quái thú ngửa khác bạn điều khiển tăng 300 ATK.',
+      en: 'While this card is face-up on the field: other face-up monsters you control gain 300 ATK.',
+    },
+    effects: [
+      {
+        id: 'rally-atk',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          { kind: 'ModifyStat', stat: 'atk', amount: 300, side: 'self', excludeSource: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'SMP-023',
+    kind: 'Monster',
+    name: { vi: 'Hồn Ma Đầm Lầy', en: 'Bog Wraith' },
+    category: 'Effect',
+    attribute: 'DARK',
+    race: 'Zombie',
+    level: 4,
+    atk: 1300,
+    def: 1200,
+    effectText: {
+      vi: 'Khi lá này ngửa trên sân: quái thú ngửa đối thủ điều khiển giảm 300 ATK.',
+      en: 'While this card is face-up on the field: face-up monsters your opponent controls lose 300 ATK.',
+    },
+    effects: [
+      {
+        id: 'sap-atk',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount: -300, side: 'opponent' }],
+      },
+    ],
+  },
   {
     id: 'SMP-101',
     kind: 'Spell',
@@ -85,6 +199,58 @@ export const SAMPLE_CARDS: CardDefinition[] = [
     ],
   },
   {
+    id: 'SMP-102',
+    kind: 'Spell',
+    name: { vi: 'Mũi Tên Chớp Nhoáng', en: 'Flash Arrow' },
+    subType: 'QuickPlay',
+    effectText: {
+      vi: 'Gây 500 sát thương cho đối thủ.',
+      en: 'Inflict 500 damage to your opponent.',
+    },
+    effects: [
+      {
+        id: 'flash-burn',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Damage', amount: 500, target: 'opponent' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-103',
+    kind: 'Spell',
+    name: { vi: 'Mạch Nước Ấm', en: 'Warm Spring' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Hồi 1000 LP.',
+      en: 'Gain 1000 LP.',
+    },
+    effects: [
+      {
+        id: 'heal',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'Heal', amount: 1000, target: 'self' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-104',
+    kind: 'Spell',
+    name: { vi: 'Kho Báu Chiến Trường', en: 'Battlefield Cache' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Chi phí: bỏ 1 lá bài trên tay. Rút 2 lá.',
+      en: 'Cost: discard 1 card. Draw 2 cards.',
+    },
+    effects: [
+      {
+        id: 'dig',
+        trigger: { kind: 'Ignition' },
+        cost: [{ kind: 'Discard', count: 1 }],
+        operations: [{ kind: 'Draw', count: 2, target: 'self' }],
+      },
+    ],
+  },
+  {
     id: 'SMP-201',
     kind: 'Trap',
     name: { vi: 'Rào Chắn Hộ Vệ', en: 'Guardian Barrier' },
@@ -93,5 +259,40 @@ export const SAMPLE_CARDS: CardDefinition[] = [
       vi: 'Placeholder: hiệu ứng vô hiệu hoá tấn công, sẽ định nghĩa bằng effect DSL.',
       en: 'Placeholder: negate-attack effect defined via effect DSL.',
     },
+  },
+  {
+    id: 'SMP-202',
+    kind: 'Trap',
+    name: { vi: 'Hố Sụt Bất Ngờ', en: 'Sudden Sinkhole' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Chọn 1 quái thú đối thủ điều khiển; phá huỷ nó.',
+      en: 'Target 1 monster your opponent controls; destroy it.',
+    },
+    effects: [
+      {
+        id: 'sinkhole',
+        trigger: { kind: 'Quick' },
+        target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-203',
+    kind: 'Trap',
+    name: { vi: 'Tia Lửa Phản Công', en: 'Counterspark' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Gây 800 sát thương cho đối thủ.',
+      en: 'Inflict 800 damage to your opponent.',
+    },
+    effects: [
+      {
+        id: 'counterspark',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'Damage', amount: 800, target: 'opponent' }],
+      },
+    ],
   },
 ];

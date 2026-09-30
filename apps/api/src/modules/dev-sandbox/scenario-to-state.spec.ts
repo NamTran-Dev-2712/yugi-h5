@@ -308,11 +308,21 @@ describe('sample scenarios', () => {
     .filter((f) => f.endsWith('.json'))
     .map((f) => f.replace(/\.json$/, ''));
 
-  it('ships the three named scenarios', () => {
-    expect(names.sort()).toEqual(['attack-defense', 'chain-basic', 'tribute-summon']);
+  const SHIPPED = [
+    'attack-defense',
+    'chain-basic',
+    // Task 3.8: scenarios on the real effect cards.
+    'chain-reaction-real',
+    'continuous-real',
+    'tribute-summon',
+    'trigger-optional-real',
+  ];
+
+  it('ships the named scenarios', () => {
+    expect(names.sort()).toEqual(SHIPPED);
   });
 
-  it.each(['tribute-summon', 'attack-defense', 'chain-basic'])(
+  it.each(SHIPPED)(
     '%s validates against the schema and builds a state (every card id exists)',
     (name) => {
       expect(() => build(sample(name))).not.toThrow();

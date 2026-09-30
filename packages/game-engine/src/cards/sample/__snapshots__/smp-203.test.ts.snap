@@ -1,0 +1,53 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-203 Counterspark > answers an attack: 800 to the attacker’s controller, then the attack resolves 1`] = `
+[
+  {
+    "definitionId": "SMP-203",
+    "effectId": "counterspark",
+    "instanceId": "os-0",
+    "playerIndex": 1,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-203",
+    "effectId": "counterspark",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "spellSpeed": 2,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "amount": 800,
+    "playerIndex": 0,
+    "type": "DamageDealt",
+  },
+  {
+    "definitionId": "SMP-203",
+    "effectId": "counterspark",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-203",
+    "from": "SpellTrapZone",
+    "instanceId": "os-0",
+    "ownerIndex": 1,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+  {
+    "amount": 2000,
+    "playerIndex": 1,
+    "type": "DamageDealt",
+  },
+]
+`;

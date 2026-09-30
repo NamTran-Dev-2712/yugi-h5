@@ -1,0 +1,27 @@
+KILLED   SMP-019 becomes optional
+KILLED   SMP-019 burns 400
+KILLED   SMP-019 burns its controller
+KILLED   SMP-020 becomes mandatory
+KILLED   SMP-020 targets its own backrow
+KILLED   SMP-020 targets monsters
+KILLED   SMP-021 fires on Summon instead
+KILLED   SMP-021 becomes optional
+KILLED   SMP-021 draws for the other player
+KILLED   SMP-022 buffs itself too
+KILLED   SMP-022 buffs DEF
+KILLED   SMP-022 buffs the opponent
+KILLED   SMP-023 saps 200
+KILLED   SMP-023 saps its own side
+KILLED   SMP-102 is a Normal Spell
+KILLED   SMP-102 burns its controller
+KILLED   SMP-103 heals the opponent
+KILLED   SMP-103 has a Quick trigger
+KILLED   SMP-104 costs nothing
+KILLED   SMP-104 draws 1
+KILLED   SMP-202 targets own monsters
+KILLED   SMP-202 is a Counter Trap
+KILLED   SMP-203 burns 700
+KILLED   deck of 41 cards
+KILLED   deck without Counterspark
+
+25/25 mutants killed

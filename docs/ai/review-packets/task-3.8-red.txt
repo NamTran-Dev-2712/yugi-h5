@@ -1,0 +1,40 @@
+
+[31m[1mCaused by: Error[22m: Failed to load url ./effect-demo-deck.js (resolved id: ./effect-demo-deck.js) in E:/code/game/turn_battle/yugi-h5/packages/shared/src/deck/effect-demo-deck.test.ts. Does the file exist?[39m
+[90m [2m❯[22m loadAndTransform ../../node_modules/.pnpm/vite@7.3.6_@types+node@22.2_194e501776750d489097a3705aac3374/node_modules/vite/dist/node/chunks/config.js:[2m22739:33[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [2mno tests[22m
+[2m   Start at [22m 21:20:27
+[2m   Duration [22m 991ms[2m (transform 114ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 410ms)[22m
+
+undefined
+E:\code\game\turn_battle\yugi-h5\packages\shared:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/deck/effect-demo-deck.test.ts
+[31m[1mAssertionError[22m: expected 'CARD_DEFINITION_NOT_FOUND' to be 'TRAP_NOT_SET' // Object.is equality[39m
+
+Expected: [32m"TRAP_NOT_SET"[39m
+Received: [31m"CARD_DEFINITION_NOT_FOUND"[39m
+
+[36m [2m❯[22m expectEngineError src/testing/expect-engine-error.ts:[2m15:40[22m[39m
+    [90m 13| [39m    [33mEngineError[39m[33m,[39m
+    [90m 14| [39m  )[33m;[39m
+    [90m 15| [39m  [34mexpect[39m((thrown [35mas[39m [33mEngineError[39m)[33m.[39mcode)[33m.[39m[34mtoBe[39m(code)[33m;[39m
+    [90m   | [39m                                       [31m^[39m
+    [90m 16| [39m}
+    [90m 17| [39m
+[90m [2m❯[22m src/cards/sample/smp-203.test.ts:[2m57:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/38]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m10 failed[39m[22m[90m (10)[39m
+[2m      Tests [22m [1m[31m38 failed[39m[22m[2m | [22m[1m[32m3 passed[39m[22m[90m (41)[39m
+[2m   Start at [22m 21:20:30
+[2m   Duration [22m 3.57s[2m (transform 1.64s, setup 0ms, collect 26.22s, tests 772ms, environment 3ms, prepare 2.76s)[22m
+
+undefined
+E:\code\game\turn_battle\yugi-h5\packages\game-engine:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/cards/sample

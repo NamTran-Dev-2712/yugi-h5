@@ -1,0 +1,52 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-202 Sudden Sinkhole > answers an attack: the attacker is destroyed, the attack stops (no damage) 1`] = `
+[
+  {
+    "definitionId": "SMP-202",
+    "effectId": "sinkhole",
+    "instanceId": "os-0",
+    "playerIndex": 1,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-202",
+    "effectId": "sinkhole",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "spellSpeed": 2,
+    "targetInstanceIds": [
+      "m0-0",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "BIG",
+    "instanceId": "m0-0",
+    "ownerIndex": 0,
+    "type": "MonsterDestroyed",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-202",
+    "effectId": "sinkhole",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-202",
+    "from": "SpellTrapZone",
+    "instanceId": "os-0",
+    "ownerIndex": 1,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

@@ -1,0 +1,60 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-021 Ashen Moth > destroyed by battle: its owner (the opponent here) draws 1 after the damage step 1`] = `
+[
+  {
+    "attackerInstanceId": "m0-0",
+    "playerIndex": 0,
+    "targetInstanceId": "o0-2",
+    "type": "AttackDeclared",
+  },
+  {
+    "definitionId": "SMP-021",
+    "instanceId": "o0-2",
+    "ownerIndex": 1,
+    "type": "MonsterDestroyed",
+    "zoneIndex": 2,
+  },
+  {
+    "amount": 1100,
+    "playerIndex": 1,
+    "type": "DamageDealt",
+  },
+  {
+    "definitionId": "SMP-021",
+    "effectId": "draw-on-destroyed",
+    "instanceId": "o0-2",
+    "playerIndex": 1,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-021",
+    "effectId": "draw-on-destroyed",
+    "instanceId": "o0-2",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 1,
+    "spellSpeed": 1,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "D",
+    "instanceId": "p1-18",
+    "playerIndex": 1,
+    "type": "CardDrawn",
+  },
+  {
+    "definitionId": "SMP-021",
+    "effectId": "draw-on-destroyed",
+    "instanceId": "o0-2",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 1,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

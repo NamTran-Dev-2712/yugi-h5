@@ -1,0 +1,192 @@
+/**
+ * Task 3.8 screenshots: the chain UI of task 3.7 on the REAL Sandbox page against the REAL API, with the real sample
+ * cards (no DEV fixture, no FIX-* cards), driven with REAL mouse events in headless Edge (Chrome DevTools Protocol):
+ *  - `chain-reaction-real`: the AI attacks → my reaction banner, "Bỏ qua", my Set SMP-202/SMP-102 outlined; tap
+ *    Sudden Sinkhole (C13: no dialog) → chain banner with 1 link (I still hold Flash Arrow); "Bỏ qua" → resolves.
+ *  - `trigger-optional-real`: the script Summoned SMP-020 → TriggerActivation Yes/No overlay; pick the AI's Set card,
+ *    "Kích hoạt" → the AI answers with Counterspark.
+ *  - `continuous-real`: effective ATK on the board (green up / red down) and printed vs effective in the detail panel.
+ * Needs the API, the web dev server and Edge; no dependencies.
+ *   API_BASE is not used here: the page talks to VITE_API_BASE_URL of the dev server.
+ *   WEB_BASE=http://localhost:5173 node --experimental-strip-types tools/ui-chain-real-shots.ts
+ * Logical coordinates are the 1280x720 duel frame (layout.ts), mapped onto the canvas as it sits in the page.
+ */
+import { spawn } from 'node:child_process';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+const EDGE =
+  process.env.EDGE ?? 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+const WEB = process.env.WEB_BASE ?? 'http://localhost:5173';
+const OUT = process.env.OUT ?? 'docs/ai/review-packets/task-3.8-screens';
+const PORT = 9339;
+mkdirSync(OUT, { recursive: true });
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+const profile = mkdtempSync(join(tmpdir(), 'yugi-edge-'));
+const edge = spawn(
+  EDGE,
+  [
+    '--headless=new',
+    '--disable-gpu',
+    `--remote-debugging-port=${PORT}`,
+    `--user-data-dir=${profile}`,
+    'about:blank',
+  ],
+  { stdio: 'ignore' },
+);
+
+async function pageSocket(): Promise<WebSocket> {
+  for (let i = 0; i < 50; i++) {
+    try {
+      const list = (await (await fetch(`http://127.0.0.1:${PORT}/json`)).json()) as {
+        type: string;
+        webSocketDebuggerUrl: string;
+      }[];
+      const page = list.find((t) => t.type === 'page');
+      if (page) {
+        const ws = new WebSocket(page.webSocketDebuggerUrl);
+        await new Promise<void>((res, rej) => {
+          ws.onopen = () => res();
+          ws.onerror = () => rej(new Error('ws error'));
+        });
+        return ws;
+      }
+    } catch {
+      /* Edge not ready yet */
+    }
+    await sleep(200);
+  }
+  throw new Error('Edge devtools not reachable');
+}
+
+const ws = await pageSocket();
+let nextId = 1;
+const waiting = new Map<number, (v: unknown) => void>();
+ws.onmessage = (m) => {
+  const msg = JSON.parse(String(m.data)) as { id?: number; result?: unknown };
+  if (msg.id !== undefined) waiting.get(msg.id)?.(msg.result);
+};
+function cdp(method: string, params: Record<string, unknown> = {}): Promise<unknown> {
+  const id = nextId++;
+  return new Promise((res) => {
+    waiting.set(id, res);
+    ws.send(JSON.stringify({ id, method, params }));
+  });
+}
+async function run<T>(expression: string): Promise<T> {
+  const r = (await cdp('Runtime.evaluate', {
+    expression,
+    awaitPromise: true,
+    returnByValue: true,
+  })) as { result: { value: T } };
+  return r.result.value;
+}
+async function shot(name: string): Promise<void> {
+  const r = (await cdp('Page.captureScreenshot', { format: 'png' })) as { data: string };
+  writeFileSync(join(OUT, `${name}.png`), Buffer.from(r.data, 'base64'));
+  console.log(`  saved ${name}.png`);
+}
+
+type P = readonly [number, number];
+let toPage = (p: P): P => p;
+async function measureCanvas(): Promise<void> {
+  const r = await run<{ x: number; y: number; w: number; h: number }>(
+    `(() => { const c = document.querySelector('canvas').getBoundingClientRect();
+      return { x: c.left, y: c.top, w: c.width, h: c.height }; })()`,
+  );
+  toPage = ([x, y]) => [r.x + (x * r.w) / 1280, r.y + (y * r.h) / 720];
+}
+const mouse = (type: 'mousePressed' | 'mouseMoved' | 'mouseReleased', p: P): Promise<unknown> => {
+  const [x, y] = toPage(p);
+  return cdp('Input.dispatchMouseEvent', {
+    type,
+    x,
+    y,
+    button: type === 'mouseMoved' ? 'none' : 'left',
+    buttons: type === 'mouseReleased' ? 0 : 1,
+    clickCount: type === 'mouseMoved' ? 0 : 1,
+  });
+};
+async function click(p: P, wait = 2500): Promise<void> {
+  await mouse('mouseMoved', p);
+  await mouse('mousePressed', p);
+  await mouse('mouseReleased', p);
+  await sleep(wait);
+}
+async function hover(p: P): Promise<void> {
+  await mouse('mouseMoved', p);
+  await sleep(300);
+}
+const press = (label: string): Promise<unknown> =>
+  run(
+    `[...document.querySelectorAll('button')].find((b) => b.textContent === ${JSON.stringify(label)})?.click()`,
+  );
+async function load(name: string): Promise<void> {
+  await run(`(() => {
+    const s = document.querySelector('select');
+    s.value = ${JSON.stringify(name)};
+    s.dispatchEvent(new Event('change'));
+  })()`);
+  await press('Nạp');
+  await sleep(5000); // load + the AI's opening actions (fast=1)
+  await measureCanvas();
+}
+
+// layout.ts: zone rows start at x=406, step 96, zone 84x104. Own Spell/Trap row y=516, own monsters y=402,
+// opponent monsters y=214, opponent Spell/Trap y=100. "Bỏ qua" (= "Phase tiếp theo" slot) 1032,476 232x56;
+// overlay Confirm 480,350 150x42.
+const col = (i: number): number => 406 + i * 96 + 42;
+const selfSpellZone = (i: number): P => [col(i), 568];
+const selfZone = (i: number): P => [col(i), 454];
+const oppZone = (i: number): P => [col(i), 266];
+const oppSpellZone = (i: number): P => [col(i), 152];
+const PASS: P = [1148, 504];
+const CONFIRM: P = [555, 371];
+
+try {
+  await cdp('Page.enable');
+  await cdp('Emulation.setDeviceMetricsOverride', {
+    width: 1300,
+    height: 1240,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await cdp('Page.navigate', { url: `${WEB}/dev/sandbox.html?fast=1` });
+  await sleep(2500);
+
+  console.log('chain-reaction-real');
+  await load('chain-reaction-real');
+  await shot('01-ai-attacks-reaction-banner-pass-two-set-cards');
+  await hover(selfSpellZone(1));
+  await shot('02-hover-sudden-sinkhole-detail');
+  await click(selfSpellZone(1));
+  await shot('03-tap-sinkhole-chain-1-link-priority-back');
+  await click(PASS, 5000);
+  await shot('04-pass-chain-resolves-attacker-destroyed');
+  await press('Đóng ván');
+  await sleep(500);
+
+  console.log('trigger-optional-real');
+  await load('trigger-optional-real');
+  await shot('05-trigger-yes-no-overlay');
+  await click(oppSpellZone(1), 600);
+  await shot('06-trigger-target-chosen');
+  await click(CONFIRM, 5000);
+  await shot('07-trigger-activated-ai-answers-counterspark');
+  await press('Đóng ván');
+  await sleep(500);
+
+  console.log('continuous-real');
+  await load('continuous-real');
+  await shot('08-continuous-effective-atk-board');
+  await hover(selfZone(1));
+  await shot('09-detail-printed-vs-effective-buffed');
+  await hover(oppZone(1));
+  await shot('10-detail-printed-vs-effective-sapped');
+} finally {
+  ws.close();
+  edge.kill();
+}
+process.exit(0);

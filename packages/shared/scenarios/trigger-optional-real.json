@@ -1,0 +1,34 @@
+{
+  "name": "trigger-optional-real",
+  "seed": "sandbox-trigger-optional-real",
+  "players": [
+    {
+      "lp": 8000,
+      "hand": ["SMP-020", "SMP-019", "SMP-104", "SMP-006"],
+      "deck": ["SMP-005", "SMP-006", "SMP-007", "SMP-008", "SMP-009", "SMP-010"],
+      "field": { "monsters": [], "spellTraps": [] },
+      "gy": []
+    },
+    {
+      "lp": 8000,
+      "hand": ["SMP-007", "SMP-012"],
+      "deck": ["SMP-004", "SMP-005", "SMP-009", "SMP-010", "SMP-012", "SMP-011"],
+      "field": {
+        "monsters": [{ "card": "SMP-008", "zone": 2, "position": "Attack" }],
+        "spellTraps": [
+          { "card": "SMP-201", "zone": 1, "position": "DefenseDown" },
+          { "card": "SMP-203", "zone": 3, "position": "DefenseDown" }
+        ]
+      },
+      "gy": []
+    }
+  ],
+  "turn": { "count": 3, "player": 0 },
+  "phase": "Main1",
+  "script": [
+    {
+      "type": "NormalSummon",
+      "payload": { "playerIndex": 0, "cardInstanceId": "p0-0", "zoneIndex": 2 }
+    }
+  ]
+}

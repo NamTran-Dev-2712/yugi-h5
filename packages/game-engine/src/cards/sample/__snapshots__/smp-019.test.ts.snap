@@ -1,0 +1,48 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-019 Firebrand Hornet > Normal Summon: the trigger goes on the chain by itself and burns the opponent for 300 1`] = `
+[
+  {
+    "definitionId": "SMP-019",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "NormalSummoned",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-019",
+    "effectId": "burn-on-summon",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-019",
+    "effectId": "burn-on-summon",
+    "instanceId": "h0",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "amount": 300,
+    "playerIndex": 1,
+    "type": "DamageDealt",
+  },
+  {
+    "definitionId": "SMP-019",
+    "effectId": "burn-on-summon",
+    "instanceId": "h0",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

@@ -11,6 +11,7 @@ export * from './effects/effect-definition.js';
 export * from './effects/registry.js';
 export * from './deck/validate-deck.js';
 export * from './deck/starter-deck.js';
+export * from './deck/effect-demo-deck.js';
 export * from './rules/ruleset-config.js';
 export * from './duel/state-view.js';
 export * from './duel/event-view.js';

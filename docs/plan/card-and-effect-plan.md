@@ -45,13 +45,14 @@ Thêm primitive mới = `/new-effect-type` (1 handler nhỏ + test), không sử
 
 ## Thứ tự batch
 
-| Batch | Nội dung                                                                                                      | Phase |
-| ----- | ------------------------------------------------------------------------------------------------------------- | ----- |
-| 0     | 5 card mẫu hiện có + ~10 vanilla để chạy vertical slice                                                       | P2    |
-| 1     | 20 vanilla (đủ level 1–8, đủ thuộc tính/race) + 10 Spell/Trap cơ bản (Damage/Heal/Draw/Destroy/Negate summon) | P4    |
-| 2     | Trigger (OnSummon/OnFlip/OnDestroyed), Continuous, Quick-Play, Equip                                          | P4    |
-| 3     | Field, Counter Trap, Special Summon, Fusion/Ritual mẫu                                                        | P4    |
-| 4+    | Bộ card lớn hơn theo nhu cầu deck AI/PvE (mỗi lô 20–30 lá)                                                    | P8–P9 |
+| Batch | Nội dung                                                                                                                                                                                                                                                       | Phase |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 0     | 5 card mẫu hiện có + ~10 vanilla để chạy vertical slice                                                                                                                                                                                                        | P2    |
+| 3.8   | **Xong (nháp, task 3.8)**: 10 lá effect đầu tiên `SMP-019…023`, `SMP-102…104`, `SMP-202…203` (Tier B, chỉ DSL) + `EFFECT_DEMO_DECK`; test mỗi lá ở `packages/game-engine/src/cards/sample/<id>.test.ts` (engine chạy được data thật; shared không chạy engine) | P3    |
+| 1     | 20 vanilla (đủ level 1–8, đủ thuộc tính/race) + 10 Spell/Trap cơ bản (Damage/Heal/Draw/Destroy/Negate summon)                                                                                                                                                  | P4    |
+| 2     | Trigger (OnSummon/OnFlip/OnDestroyed), Continuous, Quick-Play, Equip                                                                                                                                                                                           | P4    |
+| 3     | Field, Counter Trap, Special Summon, Fusion/Ritual mẫu                                                                                                                                                                                                         | P4    |
+| 4+    | Bộ card lớn hơn theo nhu cầu deck AI/PvE (mỗi lô 20–30 lá)                                                                                                                                                                                                     | P8–P9 |
 
 ## Import hàng loạt (không viết tay từng lá)
 

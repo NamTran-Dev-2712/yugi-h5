@@ -160,12 +160,18 @@ const DEFS = new Map<string, CardDefinition>(
 );
 const MONSTERS = SAMPLE_CARDS.filter((c) => c.kind === 'Monster').map((c) => c.id);
 
+/** Task 3.8: the real effect cards of the sample pool (triggers, Continuous, Quick-Play, Traps, a cost). */
+const REAL_EFFECT_CARDS = SAMPLE_CARDS.filter(
+  (c) => (c.effects?.length ?? 0) > 0 && c.id !== 'SMP-101',
+).map((c) => c.id);
+
 /**
- * 40 cards: SMP-101, SMP-201, every fuzz Spell ×3 (the 3.2 paths stay covered), every chain responder and effect
- * monster ×2, then plain monsters if any room is left.
+ * SMP-101, SMP-201, every real effect card of task 3.8 ×1, every fuzz Spell ×3 (the 3.2 paths stay covered), every
+ * chain responder and effect monster ×2, then plain monsters if any room is left under 40 (the engine does not check
+ * the deck size; the list may run past 40).
  */
 function deckList(): string[] {
-  const deck = ['SMP-101', 'SMP-201'];
+  const deck = ['SMP-101', 'SMP-201', ...REAL_EFFECT_CARDS];
   for (const c of FUZZ_SPELLS) deck.push(c.id, c.id, c.id);
   for (const c of [...FUZZ_CHAIN, ...FUZZ_MONSTERS]) deck.push(c.id, c.id);
   for (let i = 0; deck.length < 40; i++) deck.push(MONSTERS[i % MONSTERS.length]!);
