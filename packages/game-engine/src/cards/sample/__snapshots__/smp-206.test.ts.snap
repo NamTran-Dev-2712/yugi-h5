@@ -1,0 +1,53 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-206 Battle Flare > answers the opponent attack in the Battle Phase: 1000 damage, then the attack resolves 1`] = `
+[
+  {
+    "definitionId": "SMP-206",
+    "effectId": "battle-flare",
+    "instanceId": "os-0",
+    "playerIndex": 1,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-206",
+    "effectId": "battle-flare",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "spellSpeed": 2,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "amount": 1000,
+    "playerIndex": 0,
+    "type": "DamageDealt",
+  },
+  {
+    "definitionId": "SMP-206",
+    "effectId": "battle-flare",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-206",
+    "from": "SpellTrapZone",
+    "instanceId": "os-0",
+    "ownerIndex": 1,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+  {
+    "amount": 2000,
+    "playerIndex": 1,
+    "type": "DamageDealt",
+  },
+]
+`;

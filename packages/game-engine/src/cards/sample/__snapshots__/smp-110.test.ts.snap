@@ -1,0 +1,59 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-110 Lifespark Exchange > discards a monster, then 600 damage and 600 LP gain 1`] = `
+[
+  {
+    "definitionId": "SMP-110",
+    "effectId": "lifespark",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "definitionId": "M1",
+    "instanceId": "h1",
+    "playerIndex": 0,
+    "type": "CardDiscarded",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-110",
+    "effectId": "lifespark",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 2,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "amount": 600,
+    "playerIndex": 1,
+    "type": "DamageDealt",
+  },
+  {
+    "amount": 600,
+    "playerIndex": 0,
+    "type": "LifePointsRecovered",
+  },
+  {
+    "definitionId": "SMP-110",
+    "effectId": "lifespark",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-110",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

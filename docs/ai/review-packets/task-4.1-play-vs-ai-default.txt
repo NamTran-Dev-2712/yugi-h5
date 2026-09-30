@@ -1,0 +1,5 @@
+play-vs-ai against http://localhost:3100
+   effect stats: {"chainLinks":0,"humanWindows":0,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":59}
+
+human actions 62, AI actions 42 over 6 responses, winner 0, turns 13
+71/71 checks passed

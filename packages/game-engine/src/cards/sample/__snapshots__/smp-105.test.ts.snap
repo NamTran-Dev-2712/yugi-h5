@@ -1,0 +1,52 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-105 Canopy Gale > destroys the only opponent Spell/Trap (target chosen automatically) 1`] = `
+[
+  {
+    "definitionId": "SMP-105",
+    "effectId": "gale-sweep",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-105",
+    "effectId": "gale-sweep",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "os-0",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "SMP-201",
+    "instanceId": "os-0",
+    "ownerIndex": 1,
+    "type": "SpellTrapDestroyed",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-105",
+    "effectId": "gale-sweep",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-105",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

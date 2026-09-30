@@ -1,0 +1,6 @@
+play-vs-ai against http://localhost:3100
+   deck: EFFECT_DEMO_DECK (40 cards)
+   effect stats: {"chainLinks":4,"humanWindows":1,"humanTriggerPrompts":0,"aiChainActs":1,"effAtk":52}
+
+human actions 55, AI actions 59 over 8 responses, winner 1, turns 14
+67/67 checks passed

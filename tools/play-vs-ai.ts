@@ -8,6 +8,8 @@
  * Task 3.8: `DECK=effect` plays both seats with `EFFECT_DEMO_DECK` (real effect cards; read from the BUILT shared
  * package, so run `pnpm build` or `pnpm dev` first). The human then also Sets Spells/Traps, activates in chain /
  * reaction windows (else passes) and accepts trigger prompts; the run must see real chain links and windows.
+ * Task 4.1: `DECK=batch1` plays both seats with `BATCH1_DEMO_DECK` (card batch 1: basic Spells/Traps + vanilla);
+ * the run must see real chain links (the human activates batch-1 Spells/Traps).
  */
 import {
   BASE,
@@ -48,6 +50,7 @@ function check(name: string, ok: boolean, detail = ''): void {
 }
 
 const EFFECT_DECK = process.env.DECK === 'effect';
+const BATCH1_DECK = process.env.DECK === 'batch1';
 
 /** Cards of the AI seat still hidden from the human in this very view (hand + face-down monsters and Spells/Traps). */
 function aiHidden(view: ViewV): Set<string> {
@@ -87,6 +90,12 @@ async function main(): Promise<void> {
     };
     deck = shared.EFFECT_DEMO_DECK;
     say(`   deck: EFFECT_DEMO_DECK (${deck.length} cards)`);
+  } else if (BATCH1_DECK) {
+    const shared = (await import('../packages/shared/dist/index.js')) as {
+      BATCH1_DEMO_DECK: readonly string[];
+    };
+    deck = shared.BATCH1_DEMO_DECK;
+    say(`   deck: BATCH1_DEMO_DECK (${deck.length} cards)`);
   }
   const created = await call('POST', '/duels/solo', {
     token,
@@ -197,6 +206,9 @@ async function main(): Promise<void> {
     check('real chain links were added over HTTP', seen.chainLinks > 0, JSON.stringify(seen));
     check('the human held a chain / reaction window', seen.humanWindows > 0, JSON.stringify(seen));
     check('effective ATK/DEF reached the wire', seen.effAtk > 0, JSON.stringify(seen));
+  }
+  if (BATCH1_DECK) {
+    check('batch-1 chain links were added over HTTP', seen.chainLinks > 0, JSON.stringify(seen));
   }
 
   const failed = results.filter((r) => !r.ok);

@@ -1,0 +1,52 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-108 Giantfall > destroys a face-up Level 5+ opponent monster, leaves the Level 4 one 1`] = `
+[
+  {
+    "definitionId": "SMP-108",
+    "effectId": "giant-fall",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-108",
+    "effectId": "giant-fall",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "o0-1",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "SMP-015",
+    "instanceId": "o0-1",
+    "ownerIndex": 1,
+    "type": "MonsterDestroyed",
+    "zoneIndex": 1,
+  },
+  {
+    "definitionId": "SMP-108",
+    "effectId": "giant-fall",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-108",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

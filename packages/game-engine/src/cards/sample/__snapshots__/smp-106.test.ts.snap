@@ -1,0 +1,57 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-106 Toll of the Blade > pays 1000 LP on activation, then destroys the opponent monster 1`] = `
+[
+  {
+    "definitionId": "SMP-106",
+    "effectId": "toll-strike",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "amount": 1000,
+    "playerIndex": 0,
+    "type": "LifePointsPaid",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-106",
+    "effectId": "toll-strike",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "o0-0",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "M1",
+    "instanceId": "o0-0",
+    "ownerIndex": 1,
+    "type": "MonsterDestroyed",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-106",
+    "effectId": "toll-strike",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-106",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

@@ -1,0 +1,57 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-204 Tollgate Snare > my Set copy in my turn: pays 500 LP, destroys the opponent Spell/Trap 1`] = `
+[
+  {
+    "definitionId": "SMP-204",
+    "effectId": "toll-snare",
+    "instanceId": "ms-1",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "amount": 500,
+    "playerIndex": 0,
+    "type": "LifePointsPaid",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-204",
+    "effectId": "toll-snare",
+    "instanceId": "ms-1",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 2,
+    "targetInstanceIds": [
+      "os-0",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "SMP-201",
+    "instanceId": "os-0",
+    "ownerIndex": 1,
+    "type": "SpellTrapDestroyed",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-204",
+    "effectId": "toll-snare",
+    "instanceId": "ms-1",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-204",
+    "from": "SpellTrapZone",
+    "instanceId": "ms-1",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

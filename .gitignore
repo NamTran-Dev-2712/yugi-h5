@@ -192,6 +192,7 @@ sketch
 [Bb]in
 [Ii]nclude
 [Ll]ib
+!tools/lib/
 [Ll]ib64
 [Ll]ocal
 [Ss]cripts

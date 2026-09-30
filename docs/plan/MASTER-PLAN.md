@@ -134,14 +134,14 @@ Task con:
 
 Mỗi batch là 1 phiên nhỏ, theo `card-and-effect-plan.md`.
 
-| #   | Task                                                        | Lớp    | Độ khó |
-| --- | ----------------------------------------------------------- | ------ | ------ |
-| 4.1 | Batch 1: 20 vanilla + 10 spell/trap cơ bản (CSV → validate) | Shared | M      |
-| 4.2 | Special Summon + Flip effect + Equip Spell                  | Engine | L      |
-| 4.3 | Field Spell + Continuous Spell/Trap đầy đủ                  | Engine | M      |
-| 4.4 | Counter Trap (Speed 3)                                      | Engine | M      |
-| 4.5 | Fusion (Polymerization-like, Extra Deck)                    | Engine | L      |
-| 4.7 | Batch 2/3: trigger, continuous, quirk nhiều lá              | Shared | M/lô   |
+| #   | Task                                                                                       | Lớp    | Độ khó |
+| --- | ------------------------------------------------------------------------------------------ | ------ | ------ |
+| 4.1 | Batch 1: 20 vanilla + 10 spell/trap cơ bản (✅ nháp; data TS, CSV để sau — ADR 2026-09-30) | Shared | M      |
+| 4.2 | Special Summon + Flip effect + Equip Spell                                                 | Engine | L      |
+| 4.3 | Field Spell + Continuous Spell/Trap đầy đủ                                                 | Engine | M      |
+| 4.4 | Counter Trap (Speed 3)                                                                     | Engine | M      |
+| 4.5 | Fusion (Polymerization-like, Extra Deck)                                                   | Engine | L      |
+| 4.7 | Batch 2/3: trigger, continuous, quirk nhiều lá                                             | Shared | M/lô   |
 
 Done: mỗi batch có test tự động sinh cho từng lá; parity-board cập nhật.
 

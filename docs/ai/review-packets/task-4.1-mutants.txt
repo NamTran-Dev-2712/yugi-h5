@@ -1,0 +1,33 @@
+KILLED   SMP-024 ATK 400
+KILLED   SMP-036 becomes Level 4
+KILLED   SMP-041 DEF 2700
+KILLED   SMP-032 FIRE (only 2 WATER left)
+KILLED   SMP-040 Level 7 (only one Level 8 left)
+KILLED   SMP-105 targets own backrow
+KILLED   SMP-105 targets monsters
+KILLED   SMP-106 pays 800
+KILLED   SMP-106 costs nothing
+KILLED   SMP-106 targets own monster
+KILLED   SMP-107 without "I control no monster"
+KILLED   SMP-107 without "opponent has a monster"
+KILLED   SMP-107 allows 1 own monster
+KILLED   SMP-108 hits Level 4
+KILLED   SMP-108 without filter
+KILLED   SMP-109 costs nothing
+KILLED   SMP-109 burns 1200
+KILLED   SMP-110 discard any card
+KILLED   SMP-110 without the heal
+KILLED   SMP-110 becomes a Normal Spell
+KILLED   SMP-204 costs nothing
+KILLED   SMP-204 targets own backrow
+KILLED   SMP-205 draws before healing
+KILLED   SMP-205 draws 2
+KILLED   SMP-206 any phase
+KILLED   SMP-206 burns its controller
+KILLED   SMP-207 allows 3 cards
+KILLED   SMP-207 without condition
+KILLED   SMP-207 becomes a Continuous Trap
+KILLED   deck without Last Reserve
+KILLED   deck with a non-batch-1 card
+
+31/31 mutants killed

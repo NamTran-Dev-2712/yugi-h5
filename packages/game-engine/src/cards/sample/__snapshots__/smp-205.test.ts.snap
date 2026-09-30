@@ -1,0 +1,54 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-205 Second Wind > my Set copy in my turn: +1000 LP, then draws 1 1`] = `
+[
+  {
+    "definitionId": "SMP-205",
+    "effectId": "second-wind",
+    "instanceId": "ms-0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-205",
+    "effectId": "second-wind",
+    "instanceId": "ms-0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 2,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "amount": 1000,
+    "playerIndex": 0,
+    "type": "LifePointsRecovered",
+  },
+  {
+    "definitionId": "D",
+    "instanceId": "p0-17",
+    "playerIndex": 0,
+    "type": "CardDrawn",
+  },
+  {
+    "definitionId": "SMP-205",
+    "effectId": "second-wind",
+    "instanceId": "ms-0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-205",
+    "from": "SpellTrapZone",
+    "instanceId": "ms-0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

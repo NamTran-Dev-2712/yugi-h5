@@ -1,0 +1,55 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-107 Desperate Muster > empty field vs. an opponent monster: draws 2 1`] = `
+[
+  {
+    "definitionId": "SMP-107",
+    "effectId": "muster-draw",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-107",
+    "effectId": "muster-draw",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "D",
+    "instanceId": "p0-17",
+    "playerIndex": 0,
+    "type": "CardDrawn",
+  },
+  {
+    "definitionId": "D",
+    "instanceId": "p0-27",
+    "playerIndex": 0,
+    "type": "CardDrawn",
+  },
+  {
+    "definitionId": "SMP-107",
+    "effectId": "muster-draw",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-107",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

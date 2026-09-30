@@ -742,3 +742,27 @@ boolean`; `EventView` + 3 event chain (shape engine); `StateView.chain: ChainLin
   (vì `reactionTo` giữ tới khi cửa sổ đóng, ADR 3.4c) thay vì "chuỗi N mắt xích"; ảnh `task-3.8-screens/03-*`.
   **Hệ quả:** P4 thêm lá theo cùng mẫu (data + 1 file test engine/lá + mutant dữ liệu `tools/mutants-3.8.mjs`); muốn AI dùng Phép/Bẫy
   thì mới cân nhắc đưa chúng vào `STARTER_DECK`.
+
+## 2026-09-30 — Card batch 1 (task 4.1): data TS (không CSV), deck demo riêng, Negate dời; dọn `.gitignore`; vitest RPC timeout
+
+- **Không làm pipeline CSV** `[DECISION]` (chủ dự án chốt trong phiên plan; lệch MASTER-PLAN "CSV → validate" và
+  `card-and-effect-plan.md` mục "Import hàng loạt"): 30 lá thêm thẳng vào `sample-cards.ts` như 3.8 (vanilla dạng bảng
+  tuple như SMP-004…018). Zod đã validate mọi lá qua test chung; CSV + `cards:build/validate` để task riêng khi bộ bài lớn
+  hơn (batch 4+, 20–30 lá/lô).
+- **20 vanilla SMP-024…043** (Tier A): Level 1–8 mỗi level ≥ 2 lá, đủ 6 thuộc tính, 17 race (thêm Aqua, Machine, Thunder,
+  Plant, Reptile, Beast-Warrior, Psychic, Dinosaur, Fish). Chỉ số placeholder tự đặt, cân theo level (Lv1–4 ≤ 1900 ATK,
+  Lv7–8 ≥ 2300; có test). Test Tier A chung ở engine (`cards/sample/vanilla.test.ts`: mọi quái Normal không effect của
+  `SAMPLE_CARDS` Triệu hồi được với đúng số tribute `[RULE]`, tấn công trực tiếp = ATK, snapshot bảng chỉ số), không 1 file/lá.
+- **10 Spell/Trap SMP-105…110, SMP-204…207** (Tier B, chỉ DSL có sẵn, **engine 0 dòng**): phá Phép/Bẫy, cost PayLP/Tribute/
+  Discard có filter, condition ZoneCount kép (AND)/PhaseIs/ZoneCount tay, target có filter level, 2 operation nối tiếp, Quick-Play,
+  4 Bẫy. Không dùng target `Player` (engine chưa đọc). **"Negate summon"** của batch 1 trong card-and-effect-plan **dời** sang
+  task có primitive `Negate` (4.4 / `/new-effect-type`) — không tự thêm primitive trong task data.
+- **`BATCH1_DEMO_DECK`** (40 lá: 10 Phép/Bẫy × 2 + 20 vanilla batch 1) theo mẫu `EFFECT_DEMO_DECK`, gửi qua body `deck`;
+  `STARTER_DECK` không đổi (ADR 3.8). `tools/play-vs-ai.ts` thêm `DECK=batch1`.
+- **`.gitignore`**: dòng `[Ll]ib` (mẫu VirtualEnv) bỏ qua mọi thư mục `lib` nên `tools/lib/http.ts` chưa từng vào git (4 script
+  `tools/` gãy trên máy sạch). Thêm `!tools/lib/` ngay sau (không sửa mẫu gốc: có thể đang chặn thư mục khác có chủ đích);
+  kiểm bằng `git checkout-index` ra thư mục sạch: 4 script nạp được module, chỉ còn lỗi mạng khi không có API.
+- **Fuzz leak dài thoát mã 1 dù pass**: `FUZZ_SEEDS=200 FUZZ_STEPS=400` trên `event-visibility.fuzz.spec.ts` có thể báo
+  `[vitest-worker]: Timeout calling "onTaskUpdate"` (1 "unhandled error") khi một file chạy đồng bộ liên tục > ~200 s; mọi
+  test vẫn pass (đã xác minh sau 3.8: 201/201). Không phải lỗi engine/api — không điều tra lại; đọc dòng `Tests` thay vì mã thoát.
+  Tương tự, `pnpm test` toàn workspace (turbo chạy song song) có lần api thoát mã 1 dù 320/320 pass; chạy lại xanh.

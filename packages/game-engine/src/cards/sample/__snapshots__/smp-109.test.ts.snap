@@ -1,0 +1,55 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-109 Sacrificial Bolt > tributes 1 of my monsters, then 1000 damage to the opponent 1`] = `
+[
+  {
+    "definitionId": "SMP-109",
+    "effectId": "sacrifice-bolt",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "definitionId": "M1",
+    "instanceId": "m0-2",
+    "ownerIndex": 0,
+    "type": "MonsterTributed",
+    "zoneIndex": 2,
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-109",
+    "effectId": "sacrifice-bolt",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "amount": 1000,
+    "playerIndex": 1,
+    "type": "DamageDealt",
+  },
+  {
+    "definitionId": "SMP-109",
+    "effectId": "sacrifice-bolt",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-109",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

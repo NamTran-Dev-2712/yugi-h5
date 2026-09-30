@@ -1,0 +1,105 @@
+# Task 4.1 — RED run (tests written before the card data)
+## engine: src/cards/sample
+   × SMP-109 Sacrificial Bolt > no monster to tribute: INVALID_COST, not listed 25ms
+   × SMP-109 Sacrificial Bolt > cannot tribute an opponent monster 10ms
+   × SMP-109 Sacrificial Bolt > listed once per monster I could tribute 49ms
+   × SMP-110 Lifespark Exchange > discards a monster, then 600 damage and 600 LP gain 62ms
+   × SMP-110 Lifespark Exchange > a Spell is not a valid discard (cost filter: Monster) 30ms
+   × SMP-110 Lifespark Exchange > listed only with the monster as the cost 58ms
+   × SMP-110 Lifespark Exchange > Set earlier: answers the opponent attack (Spell Speed 2) 15ms
+ ✓ src/cards/sample/vanilla.test.ts (38 tests) 151ms
+   × SMP-206 Battle Flare > answers the opponent attack in the Battle Phase: 1000 damage, then the attack resolves 13ms
+   × SMP-206 Battle Flare > in the Main Phase: CONDITION_NOT_MET, and a Summon opens no reaction window for it 8ms
+   × SMP-206 Battle Flare > my own Set copy in my Battle Phase is listed and burns the opponent 7ms
+   × SMP-206 Battle Flare > passing lets the attack through untouched 3ms
+   × SMP-106 Toll of the Blade > pays 1000 LP on activation, then destroys the opponent monster 10ms
+   × SMP-106 Toll of the Blade > a face-down monster is a legal target (no filter) 2ms
+   × SMP-106 Toll of the Blade > exactly 1000 LP: cannot pay (INVALID_COST), not listed 7ms
+   × SMP-106 Toll of the Blade > no opponent monster: NO_VALID_TARGET (my own monster is not a target) 2ms
+ ✓ src/cards/sample/smp-203.test.ts (4 tests) 19ms
+   × SMP-105 Canopy Gale > destroys the only opponent Spell/Trap (target chosen automatically) 10ms
+   × SMP-105 Canopy Gale > two opponent Spells/Traps: asks which one, destroys only that one 1ms
+   × SMP-105 Canopy Gale > no opponent Spell/Trap: NO_VALID_TARGET and not listed 9ms
+   × SMP-105 Canopy Gale > my own Spell/Trap is never a target 3ms
+   × SMP-205 Second Wind > my Set copy in my turn: +1000 LP, then draws 1 12ms
+   × SMP-205 Second Wind > answers the opponent attack: its controller heals and draws before the damage 3ms
+   × SMP-205 Second Wind > from the hand: TRAP_NOT_SET 7ms
+   × SMP-107 Desperate Muster > empty field vs. an opponent monster: draws 2 11ms
+   × SMP-107 Desperate Muster > a face-down opponent monster counts too 2ms
+   × SMP-107 Desperate Muster > I control a monster: CONDITION_NOT_MET, not listed 8ms
+   × SMP-107 Desperate Muster > the opponent controls no monster: CONDITION_NOT_MET 3ms
+ ✓ src/cards/sample/smp-103.test.ts (4 tests) 16ms
+   × SMP-207 Last Reserve > 2 cards in hand: draws 2 10ms
+   × SMP-207 Last Reserve > 3 cards in hand: CONDITION_NOT_MET, not listed 7ms
+   × SMP-207 Last Reserve > empty hand: allowed (only a maximum) 1ms
+   × SMP-207 Last Reserve > from the hand: TRAP_NOT_SET 2ms
+ ✓ src/cards/sample/smp-023.test.ts (4 tests) 11ms
+ ✓ src/cards/sample/smp-019.test.ts (3 tests) 14ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 41 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/cards/sample/smp-105.test.ts > SMP-105 Canopy Gale > destroys the only opponent Spell/Trap (target chosen automatically)
+ FAIL  src/cards/sample/smp-105.test.ts > SMP-105 Canopy Gale > two opponent Spells/Traps: asks which one, destroys only that one
+ FAIL  src/cards/sample/smp-105.test.ts > SMP-105 Canopy Gale > no opponent Spell/Trap: NO_VALID_TARGET and not listed
+ FAIL  src/cards/sample/smp-105.test.ts > SMP-105 Canopy Gale > my own Spell/Trap is never a target
+ FAIL  src/cards/sample/smp-106.test.ts > SMP-106 Toll of the Blade > pays 1000 LP on activation, then destroys the opponent monster
+ FAIL  src/cards/sample/smp-106.test.ts > SMP-106 Toll of the Blade > a face-down monster is a legal target (no filter)
+ FAIL  src/cards/sample/smp-106.test.ts > SMP-106 Toll of the Blade > exactly 1000 LP: cannot pay (INVALID_COST), not listed
+ FAIL  src/cards/sample/smp-106.test.ts > SMP-106 Toll of the Blade > no opponent monster: NO_VALID_TARGET (my own monster is not a target)
+ FAIL  src/cards/sample/smp-107.test.ts > SMP-107 Desperate Muster > empty field vs. an opponent monster: draws 2
+ FAIL  src/cards/sample/smp-107.test.ts > SMP-107 Desperate Muster > a face-down opponent monster counts too
+ FAIL  src/cards/sample/smp-107.test.ts > SMP-107 Desperate Muster > I control a monster: CONDITION_NOT_MET, not listed
+ FAIL  src/cards/sample/smp-107.test.ts > SMP-107 Desperate Muster > the opponent controls no monster: CONDITION_NOT_MET
+ FAIL  src/cards/sample/smp-108.test.ts > SMP-108 Giantfall > destroys a face-up Level 5+ opponent monster, leaves the Level 4 one
+ FAIL  src/cards/sample/smp-108.test.ts > SMP-108 Giantfall > a Level 5+ opponent monster in face-up Defense is a target too
+ FAIL  src/cards/sample/smp-108.test.ts > SMP-108 Giantfall > only Level 4 or lower: NO_VALID_TARGET, not listed
+ FAIL  src/cards/sample/smp-108.test.ts > SMP-108 Giantfall > a face-down Level 5+ monster is not a target
+ FAIL  src/cards/sample/smp-108.test.ts > SMP-108 Giantfall > my own Level 5+ monster is not a target
+ FAIL  src/cards/sample/smp-109.test.ts > SMP-109 Sacrificial Bolt > tributes 1 of my monsters, then 1000 damage to the opponent
+ FAIL  src/cards/sample/smp-109.test.ts > SMP-109 Sacrificial Bolt > a face-down monster of mine can be tributed
+ FAIL  src/cards/sample/smp-109.test.ts > SMP-109 Sacrificial Bolt > no monster to tribute: INVALID_COST, not listed
+ FAIL  src/cards/sample/smp-109.test.ts > SMP-109 Sacrificial Bolt > cannot tribute an opponent monster
+ FAIL  src/cards/sample/smp-109.test.ts > SMP-109 Sacrificial Bolt > listed once per monster I could tribute
+ FAIL  src/cards/sample/smp-110.test.ts > SMP-110 Lifespark Exchange > discards a monster, then 600 damage and 600 LP gain
+ FAIL  src/cards/sample/smp-110.test.ts > SMP-110 Lifespark Exchange > a Spell is not a valid discard (cost filter: Monster)
+ FAIL  src/cards/sample/smp-110.test.ts > SMP-110 Lifespark Exchange > listed only with the monster as the cost
+ FAIL  src/cards/sample/smp-110.test.ts > SMP-110 Lifespark Exchange > Set earlier: answers the opponent attack (Spell Speed 2)
+ FAIL  src/cards/sample/smp-204.test.ts > SMP-204 Tollgate Snare > my Set copy in my turn: pays 500 LP, destroys the opponent Spell/Trap
+ FAIL  src/cards/sample/smp-204.test.ts > SMP-204 Tollgate Snare > answers the opponent Normal Summon by destroying their Set card
+ FAIL  src/cards/sample/smp-204.test.ts > SMP-204 Tollgate Snare > not enough LP (exactly 500): INVALID_COST
+ FAIL  src/cards/sample/smp-204.test.ts > SMP-204 Tollgate Snare > no opponent Spell/Trap: NO_VALID_TARGET; Set this turn: TRAP_SET_THIS_TURN
+ FAIL  src/cards/sample/smp-205.test.ts > SMP-205 Second Wind > my Set copy in my turn: +1000 LP, then draws 1
+ FAIL  src/cards/sample/smp-205.test.ts > SMP-205 Second Wind > answers the opponent attack: its controller heals and draws before the damage
+ FAIL  src/cards/sample/smp-205.test.ts > SMP-205 Second Wind > from the hand: TRAP_NOT_SET
+ FAIL  src/cards/sample/smp-206.test.ts > SMP-206 Battle Flare > answers the opponent attack in the Battle Phase: 1000 damage, then the attack resolves
+ FAIL  src/cards/sample/smp-206.test.ts > SMP-206 Battle Flare > in the Main Phase: CONDITION_NOT_MET, and a Summon opens no reaction window for it
+ FAIL  src/cards/sample/smp-206.test.ts > SMP-206 Battle Flare > my own Set copy in my Battle Phase is listed and burns the opponent
+ FAIL  src/cards/sample/smp-206.test.ts > SMP-206 Battle Flare > passing lets the attack through untouched
+ FAIL  src/cards/sample/smp-207.test.ts > SMP-207 Last Reserve > 2 cards in hand: draws 2
+ FAIL  src/cards/sample/smp-207.test.ts > SMP-207 Last Reserve > 3 cards in hand: CONDITION_NOT_MET, not listed
+ FAIL  src/cards/sample/smp-207.test.ts > SMP-207 Last Reserve > empty hand: allowed (only a maximum)
+ FAIL  src/cards/sample/smp-207.test.ts > SMP-207 Last Reserve > from the hand: TRAP_NOT_SET
+ Test Files  10 failed | 11 passed (21)
+      Tests  41 failed | 79 passed (120)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/cards/sample
+## shared: batch1 + demo deck
+   × card batch 1 > every id exists exactly once in SAMPLE_CARDS 10ms
+   × card batch 1 > 20 vanilla monsters: Normal, no effect data, Level 1–8 each at least twice, all 6 attributes 1ms
+   × card batch 1 > vanilla stats scale with Level (tribute-free Level 1–4 stay at 1900 ATK or less) 0ms
+   × card batch 1 > 10 Spells/Traps: 6 Spells + 4 Traps, each with effect data and bilingual text 0ms
+ FAIL  src/deck/batch1-demo-deck.test.ts [ src/deck/batch1-demo-deck.test.ts ]
+Error: Cannot find module './batch1-demo-deck.js' imported from 'E:/code/game/turn_battle/yugi-h5/packages/shared/src/deck/batch1-demo-deck.test.ts'
+Caused by: Error: Failed to load url ./batch1-demo-deck.js (resolved id: ./batch1-demo-deck.js) in E:/code/game/turn_battle/yugi-h5/packages/shared/src/deck/batch1-demo-deck.test.ts. Does the file exist?
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/cards/batch1.test.ts > card batch 1 > every id exists exactly once in SAMPLE_CARDS
+AssertionError: SMP-024: expected false to be true // Object.is equality
+ FAIL  src/cards/batch1.test.ts > card batch 1 > 20 vanilla monsters: Normal, no effect data, Level 1–8 each at least twice, all 6 attributes
+Error: missing SMP-024
+     19|   if (!card) throw new Error(`missing ${id}`);
+ FAIL  src/cards/batch1.test.ts > card batch 1 > vanilla stats scale with Level (tribute-free Level 1–4 stay at 1900 ATK or less)
+Error: missing SMP-024
+     19|   if (!card) throw new Error(`missing ${id}`);
+ FAIL  src/cards/batch1.test.ts > card batch 1 > 10 Spells/Traps: 6 Spells + 4 Traps, each with effect data and bilingual text
+Error: missing SMP-105
+     19|   if (!card) throw new Error(`missing ${id}`);
+ Test Files  2 failed (2)
+      Tests  4 failed (4)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/cards/batch1.test.ts src/deck/batch1-demo-deck.test.ts
