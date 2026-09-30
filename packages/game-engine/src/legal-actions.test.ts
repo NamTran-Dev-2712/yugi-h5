@@ -247,20 +247,47 @@ describe('getLegalActions — scenarios', () => {
   });
 });
 
+/**
+ * Task 4.2d chore — the old check (mean of 20 calls < 300 ms) failed whenever the whole workspace tested in parallel:
+ * measured 24 ms alone vs a 277 ms median under `pnpm test` (CPU shared ~10×), and 20+ calls then also hit vitest's 5 s
+ * default timeout; a time ratio against a cheap dry-run drifted as well (2300–2800 alone, ~7900 under load). Timing
+ * measures the machine. The cost is now bounded by WORK, which is deterministic: the card-definition lookups one call
+ * makes (every Summon/Attack dry-run reads definitions, so a combinatorial blow-up of the candidates multiplies them).
+ * LOOKUP_BUDGET ≈ ×2 the count measured when written. A very loose median time stays as a last-resort guard.
+ */
+const LOOKUP_BUDGET = 3500; // measured 1712 (task 4.2d)
+const SLOW_GUARD_MS = 2000;
+
 describe('getLegalActions — worst-case cost', () => {
-  it('a full board with a level-7 hand stays fast', () => {
+  it('a full board with a level-7 hand stays cheap (bounded work, deterministic)', () => {
     const s = setup({
       phase: 'Main1',
       hand: ['M7', 'M7', 'M5', 'M5', 'M4', 'M4', 'M4'],
       mine: [0, 1, 2, 3, 4].map((i) => onField(`f${i}`, 0)),
       theirs: [0, 1, 2, 3, 4].map((i) => onField(`e${i}`, 1)),
     });
-    const started = performance.now();
-    const runs = 20;
-    let size = 0;
-    for (let i = 0; i < runs; i++) size = legal(s).length;
-    const perCallMs = (performance.now() - started) / runs;
-    console.info(`getLegalActions full board: ${size} actions, ${perCallMs.toFixed(2)} ms/call`);
-    expect(perCallMs).toBeLessThan(300);
-  });
+    let lookups = 0;
+    const counting: ActionContext = {
+      cardDefinitions: (id) => {
+        lookups++;
+        return DEFS[id];
+      },
+    };
+    const listed = getLegalActions(s, 0, counting);
+    expect(listed).toEqual(legal(s)); // counting changes nothing
+    const samples: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      const t0 = performance.now();
+      legal(s);
+      samples.push(performance.now() - t0);
+    }
+    const medianMs = [...samples].sort((a, b) => a - b)[2]!;
+    console.info(
+      `getLegalActions full board: ${listed.length} actions, ${lookups} definition lookups, ` +
+        `median ${medianMs.toFixed(2)} ms/call`,
+    );
+    expect(listed.length).toBe(107);
+    expect(lookups).toBeLessThanOrEqual(LOOKUP_BUDGET);
+    expect(medianMs).toBeLessThan(SLOW_GUARD_MS);
+  }, 60_000);
 });

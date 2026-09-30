@@ -24,10 +24,14 @@ const checked: AiPolicy = (input) => {
   return answer;
 };
 
+/** Task 4.2d: let the vitest worker answer its RPC between games (a long synchronous test starves it under load). */
+const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 describe('AI vs AI simulation', () => {
-  it('every game finishes, nothing is rejected, nobody surrenders', () => {
+  it('every game finishes, nothing is rejected, nobody surrenders', async () => {
     const results: SimResult[] = [];
     for (let i = OFFSET; i < OFFSET + GAMES; i++) {
+      await yieldToWorker();
       results.push(simulate({ seed: `aa-${i}`, policies: [checked, checked] }));
     }
     const s = summarize(results);
@@ -44,11 +48,12 @@ describe('AI vs AI simulation', () => {
 });
 
 describe('AI strength', () => {
-  it('beats a uniformly random legal-action player by a wide margin (seats alternated)', () => {
+  it('beats a uniformly random legal-action player by a wide margin (seats alternated)', async () => {
     let aiWins = 0;
     let randomWins = 0;
     const results: SimResult[] = [];
     for (let i = OFFSET; i < OFFSET + GAMES; i++) {
+      await yieldToWorker();
       const aiSeat = (i % 2) as 0 | 1;
       const policies = aiSeat === 0 ? [checked, randomPolicy] : [randomPolicy, checked];
       const r = simulate({ seed: `ar-${i}`, policies: [policies[0]!, policies[1]!] });

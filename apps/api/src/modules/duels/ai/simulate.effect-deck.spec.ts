@@ -52,9 +52,13 @@ const setsFirst =
     return inner(input);
   };
 
-function run(prefix: string, policy: AiPolicy): SimResult[] {
+/** Task 4.2d: let the vitest worker answer its RPC between games (a long synchronous test starves it under load). */
+const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
+async function run(prefix: string, policy: AiPolicy): Promise<SimResult[]> {
   const results: SimResult[] = [];
   for (let i = OFFSET; i < OFFSET + GAMES; i++) {
+    await yieldToWorker();
     results.push(
       simulate({ seed: `${prefix}-${i}`, policies: [policy, policy], deck: EFFECT_DEMO_DECK }),
     );
@@ -63,9 +67,9 @@ function run(prefix: string, policy: AiPolicy): SimResult[] {
 }
 
 describe('AI vs AI with EFFECT_DEMO_DECK (task 3.8, real sample cards)', () => {
-  it('the server AI as-is: every game finishes, nothing refused, never surrenders', () => {
+  it('the server AI as-is: every game finishes, nothing refused, never surrenders', async () => {
     const { seen, policy } = tracked();
-    const s = summarize(run('ed', policy));
+    const s = summarize(await run('ed', policy));
     console.info(
       `[AI vs AI effect deck] games=${s.games} finished=${s.finished} meanTurns=${s.meanTurns.toFixed(1)}`,
       seen,
@@ -75,9 +79,9 @@ describe('AI vs AI with EFFECT_DEMO_DECK (task 3.8, real sample cards)', () => {
     expect(s.surrenders).toBe(0);
   }, 600_000);
 
-  it('with Set cards: the AI holds windows, activates real Traps/Quick-Plays, answers triggers', () => {
+  it('with Set cards: the AI holds windows, activates real Traps/Quick-Plays, answers triggers', async () => {
     const { seen, policy } = tracked();
-    const s = summarize(run('eds', setsFirst(policy)));
+    const s = summarize(await run('eds', setsFirst(policy)));
     console.info(
       `[AI vs AI effect deck, sets first] games=${s.games} finished=${s.finished} meanTurns=${s.meanTurns.toFixed(1)}`,
       seen,

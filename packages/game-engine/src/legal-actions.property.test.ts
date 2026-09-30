@@ -185,13 +185,17 @@ function junk(seat: 0 | 1, ids: string[], int: (n: number) => number): Action[] 
   ];
 }
 
+/** Task 4.2d: let the vitest worker answer its RPC between seeds (a long synchronous test starves it under load). */
+const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 describe('getLegalActions — property (fuzzed duels)', () => {
-  it(`agrees with applyAction on ${SEEDS} seeds × ${STEPS} steps`, () => {
+  it(`agrees with applyAction on ${SEEDS} seeds × ${STEPS} steps`, async () => {
     let statesChecked = 0;
     let listedTotal = 0;
     let negativesTotal = 0;
 
     for (let s = 0; s < SEEDS; s++) {
+      await yieldToWorker();
       const seed = `legal-prop-${s}`;
       const int = makeInt(`neg-${seed}`);
       const result = runFuzz({

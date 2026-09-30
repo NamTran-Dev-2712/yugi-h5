@@ -12,13 +12,16 @@ const SEED_COUNT = Number(process.env['FUZZ_SEEDS'] ?? 10);
 const STEPS = Number(process.env['FUZZ_STEPS'] ?? 300);
 const SEEDS = Array.from({ length: SEED_COUNT }, (_, i) => `fuzz-${i + 1}`);
 
+/** Task 4.2d: let the vitest worker answer its RPC between seeds (a long synchronous test starves it under load). */
+const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 describe('fuzz: engine invariants hold', () => {
   it.each(SEEDS)('seed %s', (seed) => {
     const result = runFuzz({ seed, steps: STEPS });
     expect(result.ok, formatFuzzFailure(result)).toBe(true);
   });
 
-  it('actually exercises the engine (not all rejections, duels finish, attacks happen)', () => {
+  it('actually exercises the engine (not all rejections, duels finish, attacks happen)', async () => {
     let accepted = 0;
     let rejected = 0;
     let duelsEnded = 0;
@@ -37,6 +40,7 @@ describe('fuzz: engine invariants hold', () => {
     // Own fixed seeds (not FUZZ_SEEDS): coverage is statistical; 30 seeds keep every feature reached (task 4.2a
     // widened it from 10 when two more cards in the pool thinned out the multi-link chains).
     for (const seed of Array.from({ length: 30 }, (_, i) => `fuzz-${i + 1}`)) {
+      await yieldToWorker();
       const result = runFuzz({ seed, steps: STEPS });
       if (!result.ok) throw new Error(formatFuzzFailure(result));
       rejected += result.stats.rejected;
@@ -90,17 +94,19 @@ describe('fuzz: engine invariants hold', () => {
     expect(flipLinks, 'no OnFlip link').toBeGreaterThan(0);
     // Task 4.2c: Equip Spells get equipped, and some follow their monster to the graveyard.
     expect(equips, 'no Equip').toBeGreaterThan(0);
-  });
+    // Task 4.2d: explicit timeout — ~2 s alone, 3–6× slower while the whole workspace tests in parallel.
+  }, 120_000);
 
-  it('an Equip follows its monster to the graveyard in real duels (task 4.2c; rare: 60 seeds × 400 steps)', () => {
+  it('an Equip follows its monster to the graveyard in real duels (task 4.2c; rare: 60 seeds × 400 steps)', async () => {
     let detached = 0;
     for (let i = 1; i <= 60; i++) {
+      await yieldToWorker();
       const result = runFuzz({ seed: `fuzz-${i}`, steps: 400 });
       if (!result.ok) throw new Error(formatFuzzFailure(result));
       detached += result.stats.equipsDetached;
     }
     expect(detached).toBeGreaterThan(0);
-  });
+  }, 120_000);
 
   it('is deterministic: same seed → identical action log and stats', () => {
     const a = runFuzz({ seed: 'determinism', steps: 200 });

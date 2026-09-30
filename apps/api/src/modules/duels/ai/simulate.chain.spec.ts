@@ -111,10 +111,14 @@ const setsFirst =
     return inner(input);
   };
 
+/** Task 4.2d: let the vitest worker answer its RPC between games (a long synchronous test starves it under load). */
+const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 describe('AI vs AI with chain material (task 3.4b)', () => {
-  it('every game finishes; the AI answers windows and trigger prompts from legalActions', () => {
+  it('every game finishes; the AI answers windows and trigger prompts from legalActions', async () => {
     const results: SimResult[] = [];
     for (let i = OFFSET; i < OFFSET + GAMES; i++) {
+      await yieldToWorker();
       results.push(
         simulate({
           seed: `ac-${i}`,
