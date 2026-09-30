@@ -47,15 +47,21 @@ const NONE: Stats = { atk: 0, def: 0 };
 const isFaceUp = (card: CardInstance): boolean =>
   card.position === 'Attack' || card.position === 'DefenseUp';
 
-/** Face-up monsters on the relative `side` matching the filter, minus the source itself when `excludeSource`. */
+/**
+ * Face-up monsters on the relative `side` matching the filter, minus the source itself when `excludeSource`; or (task 4.2c,
+ * `equipped`) only the monster the source Equip Spell is equipped to.
+ */
 const modifyStat: ContinuousHandler<'ModifyStat'> = (op, active, target, ctx) => {
+  const delta: Stats = op.stat === 'atk' ? { atk: op.amount, def: 0 } : { atk: 0, def: op.amount };
+  if (op.equipped) return target.card.instanceId === active.source.equippedTo ? delta : NONE;
+  if (op.side === undefined) return NONE; // the schema requires side or equipped
   if (target.controller !== sideIndex(active.controller, op.side)) return NONE;
   if (op.excludeSource && target.card.instanceId === active.source.instanceId) return NONE;
   if (op.filter) {
     const def = ctx.cardDefinitions(target.card.definitionId);
     if (!def || !matchesFilter(def, op.filter)) return NONE;
   }
-  return op.stat === 'atk' ? { atk: op.amount, def: 0 } : { atk: 0, def: op.amount };
+  return delta;
 };
 
 /**

@@ -134,16 +134,16 @@ Task con:
 
 Mỗi batch là 1 phiên nhỏ, theo `card-and-effect-plan.md`.
 
-| #    | Task                                                                                           | Lớp    | Độ khó |
-| ---- | ---------------------------------------------------------------------------------------------- | ------ | ------ |
-| 4.1  | Batch 1: 20 vanilla + 10 spell/trap cơ bản (✅ nháp; data TS, CSV để sau — ADR 2026-09-30)     | Shared | M      |
-| 4.2a | Special Summon — chỉ operation, từ tay/mộ của mình (✅ nháp; tách từ 4.2 gốc — ADR 2026-09-30) | Engine | M      |
-| 4.2b | Flip Summon (action) + Flip effect (`OnFlip`) (✅ nháp)                                        | Engine | M      |
-| 4.2c | Equip Spell (`Equip` + `ModifyStat.equipped`, rời sân theo quái; không thêm Duration)          | Engine | M      |
-| 4.3  | Field Spell + Continuous Spell/Trap đầy đủ                                                     | Engine | M      |
-| 4.4  | Counter Trap (Speed 3)                                                                         | Engine | M      |
-| 4.5  | Fusion (Polymerization-like, Extra Deck)                                                       | Engine | L      |
-| 4.7  | Batch 2/3: trigger, continuous, quirk nhiều lá                                                 | Shared | M/lô   |
+| #    | Task                                                                                            | Lớp    | Độ khó |
+| ---- | ----------------------------------------------------------------------------------------------- | ------ | ------ |
+| 4.1  | Batch 1: 20 vanilla + 10 spell/trap cơ bản (✅ nháp; data TS, CSV để sau — ADR 2026-09-30)      | Shared | M      |
+| 4.2a | Special Summon — chỉ operation, từ tay/mộ của mình (✅ nháp; tách từ 4.2 gốc — ADR 2026-09-30)  | Engine | M      |
+| 4.2b | Flip Summon (action) + Flip effect (`OnFlip`) (✅ nháp)                                         | Engine | M      |
+| 4.2c | Equip Spell (`Equip` + `ModifyStat.equipped`, rời sân theo quái; không thêm Duration) (✅ nháp) | Engine | M      |
+| 4.3  | Field Spell + Continuous Spell/Trap đầy đủ                                                      | Engine | M      |
+| 4.4  | Counter Trap (Speed 3)                                                                          | Engine | M      |
+| 4.5  | Fusion (Polymerization-like, Extra Deck)                                                        | Engine | L      |
+| 4.7  | Batch 2/3: trigger, continuous, quirk nhiều lá                                                  | Shared | M/lô   |
 
 Done: mỗi batch có test tự động sinh cho từng lá; parity-board cập nhật.
 

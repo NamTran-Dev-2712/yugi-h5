@@ -104,6 +104,10 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 - Test: `packages/game-engine/src/rules/trap-activation.test.ts`, `actions/handlers/quick-play-and-speed.test.ts`; golden `set-trap-quickplay-counter-chain`.
 - **Cửa sổ phản ứng** (task 3.4c): sau `DeclareAttack` và sau `NormalSummon`/`SetMonster`, đối thủ được một cửa sổ để kích hoạt lá Set — xem mục "Cửa sổ phản ứng" dưới "Chain stack".
 
+### Mã lỗi thêm ở task 4.2c
+
+`NO_FREE_SPELL_TRAP_ZONE` (Equip Spell từ tay khi 5 ô Phép/Bẫy đều có lá).
+
 ### Mã lỗi thêm ở task 4.2b
 
 `MONSTER_FACE_UP` (FlipSummon lên quái đang ngửa).
@@ -133,6 +137,8 @@ như vậy không kích hoạt).
 Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `definitionId`, lá úp), `EffectActivated`/`EffectResolved {playerIndex,instanceId,definitionId,effectId}`, `CardSentToGraveyard {ownerIndex,instanceId,definitionId,from:'Hand'|'SpellTrapZone'}` (lá dùng xong; `SpellTrapZone` từ task 3.4), `LifePointsRecovered {playerIndex,amount}` (Heal), `LifePointsPaid {playerIndex,amount}` (cost PayLP), `SpellTrapDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (Destroy lên Spell/Trap; quái vẫn dùng `MonsterDestroyed`). Thứ tự khi kích hoạt: `EffectActivated` → event của cost (`LifePointsPaid`/`CardDiscarded`/`MonsterTributed`) → event của từng operation (`CardDrawn`, `DamageDealt`, `LifePointsRecovered`, `MonsterDestroyed`…) → `EffectResolved` → `CardSentToGraveyard` → `DuelEnded` (nếu có, luôn cuối). Damage/Heal/Draw dùng lại `DamageDealt`/`CardDrawn`/`DeckOut`+`DuelEnded` sẵn có. **Các event này chưa được API forward** (xem `event-visibility.md`).
 
 Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
+
+Task 4.2c thêm: `CardEquipped {playerIndex,instanceId,definitionId,targetInstanceId}` (lá Equip gắn vào quái). Equip rời sân theo quái dùng lại `CardSentToGraveyard {from:'SpellTrapZone'}`. **Chưa được API forward**.
 
 Task 4.2b thêm: `FlipSummoned {playerIndex,instanceId,definitionId,zoneIndex}` (Flip Summon; trigger OnFlip/OnSummon theo sau). **Chưa được API forward**.
 
@@ -360,6 +366,28 @@ instanceId, definitionId, zoneIndex}`; `version` +1.
   - Quái ngửa bị tấn công: không lật ⇒ không bắn.
 - Test: `actions/handlers/flip-summon.test.ts`; golden `flip-summon-and-battle-flip-effect`; fuzz `MF`/`MFO` + generator FlipSummon,
   thống kê `flipSummons`/`flipLinks`.
+
+## Equip Spell (task 4.2c)
+
+Engine-only (chưa lên wire). Chủ dự án chốt 2026-09-30: **không thêm Duration**. Continuous đã có nghĩa "khi lá còn ngửa trên sân" (tính
+lại mỗi lần đọc); cái còn thiếu chỉ là phạm vi "quái được trang bị" ⇒ `ModifyStat.equipped`.
+
+- **Kích hoạt**: Spell `subType: 'Equip'` từ **tay**, trigger `Ignition`, Main1/Main2 của mình (như Normal Spell). Cần 1 ô Phép/Bẫy trống
+  (`NO_FREE_SPELL_TRAP_ZONE`); lá vào **ô trống thấp nhất** `[ASSUMED]` G18, **ngửa ngay lúc kích hoạt**, `ChainLink.source =
+{zone:'SpellTrapZone', zoneIndex}` (đi đường lá Set của 3.4). Equip đã Set ⇒ `NOT_ACTIVATABLE` (backlog, cùng Normal Spell đã Set).
+- **Target** (schema): `Card` `MonsterZone`, `count: 1`, `filter.kind: 'Monster'` — filter loại quái úp ⇒ chỉ trang bị quái **ngửa** `[RULE]`,
+  bên mình hoặc đối thủ (lá Equip vẫn nằm ở sân người kích hoạt).
+- **Resolve** (`effects/operations/equip.ts`): target còn ngửa trên sân và lá Equip còn ngửa ở ô ⇒ ghi `CardInstance.equippedTo =
+target.instanceId`, event `CardEquipped {playerIndex, instanceId, definitionId, targetInstanceId}`; `resolveChain` **không** đưa lá có
+  `equippedTo` vào mộ. Target mất trước khi resolve ⇒ `ChainLinkFizzled` + lá vào mộ `[RULE]`. Lá Equip bị phá trong lúc chờ ⇒ không làm gì.
+- **Hiệu ứng**: effect `Continuous` `ModifyStat{stat, amount, equipped: true}` (không `side`/`filter`/`excludeSource`) — `effectiveStats` chỉ
+  cộng cho quái có `instanceId === source.equippedTo`. Lá Equip bị phá riêng ⇒ lần đọc sau hết buff (không có code gỡ).
+- **Rời sân theo quái** `[RULE]` (`state/detach-equips.ts`, chạy ở cuối **mọi** `applyAction`): lá có `equippedTo` trỏ tới quái không còn ngửa
+  trong ô quái (bị phá, bị Tribute, …) ⇒ vào mộ chủ, `CardSentToGraveyard {from:'SpellTrapZone'}` (trước `DuelEnded` nếu có). `[ASSUMED]`
+  G18: "gửi vào mộ", không phải "bị phá" (không bắn `OnDestroyed`). Không chuyển Equip sang quái khác.
+- `OperationContext.sourceInstanceId` (mới): lá đang resolve (Equip tự gắn chính nó).
+- Test: `effects/operations/equip.test.ts`; golden `equip-buff-and-detach`; fuzz `EQP`/`EQW`, bất biến "Phép/Bẫy ngửa ⇔ có link, hoặc
+  đang trang bị cho quái ngửa trên sân" + "`equippedTo` chỉ ở ô Phép/Bẫy", thống kê `equips`/`equipsDetached`.
 
 ## Replay
 

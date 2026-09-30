@@ -151,8 +151,9 @@ describe('Operation', () => {
     bad(OperationSchema, { ...base, filter: {} });
     bad(OperationSchema, { ...base, excludeSource: 'yes' });
     bad(OperationSchema, { ...base, target: 'self' });
+    // Task 4.2c: `side` is optional on the operation (`equipped` is the alternative); the effect refine needs one of them.
     const { side: _side, ...noSide } = base;
-    bad(OperationSchema, noSide);
+    bad(EffectDefinitionSchema, { id: 'x', trigger: { kind: 'Continuous' }, operations: [noSide] });
   });
 });
 
@@ -294,6 +295,7 @@ describe('registry (metadata only: no functions)', () => {
       'Damage',
       'Destroy',
       'Draw',
+      'Equip',
       'Heal',
       'ModifyStat',
       'SpecialSummon',
@@ -410,5 +412,78 @@ describe('SpecialSummon (task 4.2a)', () => {
       operations: [{ kind: 'SpecialSummon' }],
     });
     expect(OPERATION_REGISTRY.SpecialSummon).toEqual({ implemented: true, timing: 'resolve' });
+  });
+});
+
+describe('Equip + ModifyStat.equipped (task 4.2c)', () => {
+  const equipTarget = {
+    kind: 'Card',
+    zone: 'MonsterZone',
+    side: 'self',
+    count: 1,
+    filter: { kind: 'Monster' },
+  };
+  const attach = (target: unknown = equipTarget) => ({
+    id: 'attach',
+    trigger: { kind: 'Ignition' },
+    target,
+    operations: [{ kind: 'Equip' }],
+  });
+  const buff = (op: Record<string, unknown> = {}) => ({
+    id: 'buff',
+    trigger: { kind: 'Continuous' },
+    operations: [{ kind: 'ModifyStat', stat: 'atk', amount: 500, equipped: true, ...op }],
+  });
+  const equipSpell = (effects: unknown[], subType = 'Equip') => ({
+    id: 'EQ',
+    kind: 'Spell',
+    name: { vi: 'Trang bị', en: 'Equip' },
+    subType,
+    effects,
+  });
+
+  it('Equip needs exactly one face-up monster target (MonsterZone, count 1, filter kind Monster), either side', () => {
+    ok(EffectDefinitionSchema, attach());
+    ok(EffectDefinitionSchema, attach({ ...equipTarget, side: 'opponent' }));
+    bad(EffectDefinitionSchema, attach({ ...equipTarget, count: 2 }));
+    bad(EffectDefinitionSchema, attach({ ...equipTarget, zone: 'SpellTrapZone' }));
+    bad(EffectDefinitionSchema, attach({ ...equipTarget, filter: undefined }));
+    bad(EffectDefinitionSchema, attach({ ...equipTarget, filter: { race: 'Warrior' } }));
+    bad(EffectDefinitionSchema, { ...attach(), target: undefined });
+    bad(EffectDefinitionSchema, { ...attach(), operations: [{ kind: 'Equip', bogus: 1 }] });
+    expect(OPERATION_REGISTRY.Equip).toEqual({ implemented: true, timing: 'resolve' });
+  });
+
+  it('ModifyStat takes either `side` or `equipped: true`, never both; equipped has no filter/excludeSource', () => {
+    ok(EffectDefinitionSchema, buff());
+    ok(EffectDefinitionSchema, buff({ equipped: undefined, side: 'self' }));
+    bad(EffectDefinitionSchema, buff({ side: 'self' }));
+    bad(EffectDefinitionSchema, buff({ equipped: undefined }));
+    bad(EffectDefinitionSchema, buff({ equipped: false }));
+    bad(EffectDefinitionSchema, buff({ filter: { race: 'Warrior' } }));
+    bad(EffectDefinitionSchema, buff({ excludeSource: true }));
+  });
+
+  it('Equip / equipped belong to Equip Spells only', () => {
+    ok(CardDefinitionSchema, equipSpell([attach(), buff()]));
+    bad(CardDefinitionSchema, equipSpell([attach(), buff()], 'Normal'));
+    bad(CardDefinitionSchema, equipSpell([buff()], 'Continuous'));
+    bad(CardDefinitionSchema, {
+      id: 'M',
+      kind: 'Monster',
+      name: { vi: 'Q', en: 'M' },
+      category: 'Effect',
+      attribute: 'DARK',
+      race: 'Fiend',
+      level: 4,
+      atk: 1000,
+      def: 1000,
+      effects: [buff()],
+    });
+    // A plain `side` ModifyStat stays fine on any card.
+    ok(
+      CardDefinitionSchema,
+      equipSpell([buff({ equipped: undefined, side: 'self' })], 'Continuous'),
+    );
   });
 });

@@ -8,6 +8,8 @@ export interface OperationContext {
   readonly controller: 0 | 1;
   /** Cards chosen for the effect's `Card` target (empty when it has none). */
   readonly targetInstanceIds: readonly string[];
+  /** Task 4.2c: the card whose effect resolves (an Equip Spell equips itself). */
+  readonly sourceInstanceId: string;
 }
 
 export interface OperationResult {

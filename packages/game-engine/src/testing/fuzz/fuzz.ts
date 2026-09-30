@@ -123,6 +123,9 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  // Task 4.2c — Equip Spells: +500 ATK to one of yours / −500 ATK to one of the opponent's (clamps at 0).
+  EQP: equipSpell('EQP', 'self', 500),
+  EQW: equipSpell('EQW', 'opponent', -500),
   // Task 4.2b — Flip effects: OnFlip mandatory (300 damage) / optional with a target (destroy 1 opponent monster).
   MF: effectMonster('MF', 3, 1000, 1500, {
     trigger: { kind: 'OnFlip', mandatory: true },
@@ -209,6 +212,28 @@ function trap(
   };
 }
 
+function equipSpell(id: string, side: 'self' | 'opponent', amount: number): CardDefinition {
+  return {
+    id,
+    kind: 'Spell',
+    name: { vi: `Fuzz ${id}`, en: `Fuzz ${id}` },
+    subType: 'Equip',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        target: { kind: 'Card', zone: 'MonsterZone', side, count: 1, filter: { kind: 'Monster' } },
+        operations: [{ kind: 'Equip' }],
+      },
+      {
+        id: 'e2',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount, equipped: true }],
+      },
+    ],
+  } as CardDefinition;
+}
+
 function effectMonster(
   id: string,
   level: number,
@@ -266,6 +291,9 @@ export interface FuzzStats {
   readonly continuousApplied: number;
   /** Monsters Special Summoned by an effect (task 4.2a). */
   readonly specialSummons: number;
+  /** Equip Spells equipped, and Equip Spells that followed their monster to the graveyard (task 4.2c). */
+  readonly equips: number;
+  readonly equipsDetached: number;
   /** Flip Summons, and OnFlip effects put on the chain (task 4.2b). */
   readonly flipSummons: number;
   readonly flipLinks: number;
@@ -696,12 +724,30 @@ export function checkStateInvariants(
   for (const link of state.chainStack) {
     if (link.card.position !== null) return `chain link ${link.linkId} card has a position`;
   }
-  // Task 3.4: a Spell/Trap is face-up on the field only while its own link (from that zone) waits on the chain.
+  // Task 3.4: a Spell/Trap is face-up on the field only while its own link (from that zone) waits on the chain —
+  // or (task 4.2c) while it is equipped to a monster that is face-up on the field (no orphan Equip after any action).
+  const faceUpMonsterIds = new Set(
+    [0, 1].flatMap((i) =>
+      monstersOf(state, i as 0 | 1)
+        .filter((c) => c.position !== 'DefenseDown')
+        .map((c) => c.instanceId),
+    ),
+  );
   for (const i of [0, 1] as const) {
-    const zones = state.players[i].board.spellTrapZones;
+    const p = state.players[i];
+    for (const c of [...p.hand, ...p.deck, ...p.graveyard, ...monstersOf(state, i)]) {
+      if (c.equippedTo !== undefined)
+        return `card ${c.instanceId} outside a Spell/Trap Zone has equippedTo`;
+    }
+    const zones = p.board.spellTrapZones;
     for (let z = 0; z < zones.length; z++) {
       const c = zones[z];
       if (!c || c.position === 'DefenseDown') continue;
+      if (c.equippedTo !== undefined) {
+        if (!faceUpMonsterIds.has(c.equippedTo))
+          return `Equip ${c.instanceId} in zone ${z} is equipped to ${c.equippedTo}, not a face-up monster`;
+        continue;
+      }
       const waiting = state.chainStack.some(
         (l) =>
           l.card.instanceId === c.instanceId &&
@@ -802,6 +848,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let continuousApplied = 0;
   let specialSummons = 0;
   let flipSummons = 0;
+  let equips = 0;
+  let equipsDetached = 0;
   let flipLinks = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
@@ -882,6 +930,15 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       }
     }
     flipSummons += result.events.filter((e) => e.type === 'FlipSummoned').length;
+    equips += result.events.filter((e) => e.type === 'CardEquipped').length;
+    const wasEquipped = new Set(
+      (state?.players ?? []).flatMap((p) =>
+        p.board.spellTrapZones.flatMap((c) => (c?.equippedTo !== undefined ? [c.instanceId] : [])),
+      ),
+    );
+    equipsDetached += result.events.filter(
+      (e) => e.type === 'CardSentToGraveyard' && wasEquipped.has(e.instanceId),
+    ).length;
     for (const e of result.events) {
       if (e.type !== 'MonsterSpecialSummoned') continue;
       specialSummons++;
@@ -934,6 +991,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       specialSummons,
       flipSummons,
       flipLinks,
+      equips,
+      equipsDetached,
     },
   };
 }

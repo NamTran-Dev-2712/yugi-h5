@@ -26,6 +26,12 @@ export interface CardInstance {
   readonly attackedTurn?: number;
   /** Turn this Spell/Trap was Set (written by SetSpellTrap; task 3.4 reads it for `trapSetTurnDelay`). */
   readonly setTurn?: number;
+  /**
+   * Task 4.2c: on a face-up Equip Spell, the `instanceId` of the monster it is equipped to. Cleared (fresh instance) when
+   * the card leaves the field; an Equip whose monster left the field or turned face-down is sent to the graveyard
+   * (`state/detach-equips.ts`).
+   */
+  readonly equippedTo?: string;
 }
 
 export type PlayerZoneKey = 'hand' | 'deck' | 'graveyard' | 'banished' | 'extraDeck';

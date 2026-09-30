@@ -1,0 +1,71 @@
+# task 4.2c — test đỏ trước (trước khi viết code; engine chạy với stub detachOrphanEquips rỗng)
+
+## shared: src/effects/effects.test.ts
+   ✓ CardFilter > accepts kind/level/attribute/race 3ms
+   ✓ CardFilter > rejects empty, min>max, unknown attribute, unknown key 3ms
+   ✓ Trigger > accepts OnSummon 0ms
+   ✓ Trigger > accepts OnFlip 0ms
+   ✓ Trigger > accepts Continuous 0ms
+   ✓ Trigger > accepts Ignition 0ms
+   ✓ Trigger > accepts Quick 0ms
+   ✓ Trigger > accepts OnDestroyed 0ms
+   ✓ Trigger > rejects unknown kind, missing kind, extra key 0ms
+   ✓ Trigger > accepts `mandatory` only on OnSummon/OnDestroyed (task 3.5) and OnFlip (task 4.2b) 1ms
+   ✓ Condition > accepts PhaseIs / IsMyTurn / ZoneCount 0ms
+   ✓ Condition > rejects bad phase, missing field, no bounds, min>max, unknown kind 0ms
+   ✓ Cost > accepts Discard / Tribute / PayLP 0ms
+   ✓ Cost > rejects zero/negative/non-integer/wrong type/unknown kind 0ms
+   ✓ Target > accepts Card and Player 0ms
+   ✓ Target > rejects missing zone/count, bad who, unknown kind 0ms
+   ✓ Operation > accepts Damage / Heal / Draw / Destroy 0ms
+   ✓ Operation > rejects bad amount/target/missing field/unknown kind 0ms
+   ✓ Operation > accepts ModifyStat (task 3.6): atk/def, signed non-zero amount, side, optional filter/excludeSource 0ms
+   ✓ Operation > rejects a malformed ModifyStat 2ms
+   ✓ EffectDefinition > accepts the batch-1 examples 1ms
+   ✓ EffectDefinition > rejects empty/missing operations 0ms
+   ✓ EffectDefinition > rejects empty optional arrays, empty id, unknown trigger 1ms
+   ✓ EffectDefinition > rejects Continuous with cost or target (it never goes on the chain) 0ms
+   ✓ EffectDefinition > trigger effects (OnSummon/OnDestroyed) may only cost PayLP (task 3.5) 1ms
+   ✓ EffectDefinition > Continuous effects hold only continuous operations, other effects only resolve ones (task 3.6) 0ms
+   ✓ EffectDefinition > accepts an effect-level scriptId (task 3.6); operations may be empty only with a scriptId 0ms
+   ✓ EffectDefinition > accepts an optional explicit spellSpeed 1|2|3 (task 3.4), nothing else 1ms
+   ✓ registry (metadata only: no functions) > has one entry per operation kind, metadata only (task 3.2: all batch-1 operations implemented) 2ms
+   ✓ registry (metadata only: no functions) > CONTINUOUS_OPERATION_KINDS = the kinds whose timing is continuous (task 3.6) 0ms
+   × registry (metadata only: no functions) > kind lists match the schemas 12ms
+   ✓ CardDefinition with effects + bilingual text > accepts effects and bilingual effectText 1ms
+   ✓ CardDefinition with effects + bilingual text > rejects string name, half-translated name, empty text 0ms
+   ✓ CardDefinition with effects + bilingual text > rejects duplicate effect ids within a card and invalid effects 0ms
+   ✓ CardDefinition with effects + bilingual text > every sample card has both languages 2ms
+   ✓ OnFlip (task 4.2b) > accepts mandatory true/false/omitted 0ms
+   ✓ OnFlip (task 4.2b) > like the other triggers, may only cost PayLP (the engine cannot pick cost cards) 0ms
+   ✓ SpecialSummon (task 4.2a) > accepts a Monster target in your own hand or graveyard, position Attack / DefenseUp 1ms
+   ✓ SpecialSummon (task 4.2a) > rejects a face-down position, unknown fields, no target, and targets outside your hand/graveyard 1ms
+   ✓ SpecialSummon (task 4.2a) > needs a Monster filter (a Spell/Trap is never Summoned) 1ms
+   ✓ SpecialSummon (task 4.2a) > is a resolve-time operation: never in a Continuous effect 0ms
+   × Equip + ModifyStat.equipped (task 4.2c) > Equip needs exactly one face-up monster target (MonsterZone, count 1, filter kind Monster), either side 1ms
+   × Equip + ModifyStat.equipped (task 4.2c) > ModifyStat takes either `side` or `equipped: true`, never both; equipped has no filter/excludeSource 1ms
+   × Equip + ModifyStat.equipped (task 4.2c) > Equip / equipped belong to Equip Spells only 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  4 failed | 40 passed (44)
+
+## engine: src/effects/operations/equip.test.ts
+   × Equip — activation and attachment > goes face-up into a Spell/Trap Zone, equips the only face-up monster and stays on the field 8ms
+   × Equip — activation and attachment > uses the lowest empty Spell/Trap Zone [ASSUMED]; all five full → NO_FREE_SPELL_TRAP_ZONE 1ms
+   × Equip — activation and attachment > only a face-up monster can be equipped [RULE]: face-down only → NO_VALID_TARGET 4ms
+   × Equip — activation and attachment > is a Main Phase action from the hand; a Set Equip Spell is not activatable (backlog) 1ms
+   × Equip — activation and attachment > asks which monster when several qualify; only the equipped one is modified 0ms
+   × Equip — activation and attachment > can target the opponent’s monster (lowering its ATK); the Equip stays on MY side of the field 0ms
+   × Equip — activation and attachment > target gone before it resolves → the link fizzles and the Equip goes to the graveyard [RULE] 0ms
+   × Equip — activation and attachment > Equip destroyed in response → nothing equipped, the monster keeps its printed ATK 1ms
+   × Equip — leaves the field with its monster > equipped monster destroyed by battle → the Equip is sent to the graveyard (not destroyed) [ASSUMED G18] 7ms
+   × Equip — leaves the field with its monster > the Equip’s ATK counts in battle: 1500 beats a 1000 monster 12ms
+   × Equip — leaves the field with its monster > equipped (opponent) monster destroyed by an effect → my Equip goes to MY graveyard 6ms
+   × Equip — leaves the field with its monster > equipped monster Tributed → the Equip goes to the graveyard 2ms
+   × Equip — leaves the field with its monster > Equip destroyed on its own → the monster loses the bonus at once (nothing stored) 1ms
+   ✓ detachOrphanEquips > returns the very same state when every Equip has its monster 1ms
+   × detachOrphanEquips > sends an Equip whose monster is gone, or face-down, to its owner’s graveyard 1ms
+   × Equip — legal actions > lists the activation only when there is a face-up monster to equip and a free zone 4ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  15 failed | 1 passed (16)

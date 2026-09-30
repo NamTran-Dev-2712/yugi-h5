@@ -1,0 +1,20 @@
+KILLED   Equip never records its monster
+KILLED   no check that the Equip is still on the field (destroyed in response)
+KILLED   CardEquipped names the wrong monster
+KILLED   equipped buff applies to every monster
+KILLED   equipped ModifyStat ignored
+KILLED   a resolved Equip goes to the graveyard at once
+KILLED   Equip Spells not activatable from the hand
+KILLED   activation allowed with all Spell/Trap Zones full
+KILLED   highest empty zone instead of lowest
+KILLED   Equip placed face-down
+KILLED   Equip stays in the hand too (duplicated)
+KILLED   a face-down monster keeps its Equip
+KILLED   detached Equip vanishes instead of reaching the graveyard
+KILLED   nothing is ever detached
+KILLED   applyAction never runs the detach rule
+KILLED   schema: Equip with several targets
+KILLED   schema: equipped with side/filter
+KILLED   schema: Equip effects on any card
+
+18/18 mutants killed

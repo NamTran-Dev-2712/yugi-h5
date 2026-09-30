@@ -317,7 +317,7 @@ describe('applySpecialSummon (handler)', () => {
     const out = applySpecialSummon(
       state,
       { kind: 'SpecialSummon' },
-      { controller: 0, targetInstanceIds: ['nowhere', 'g1', 'g0'] },
+      { controller: 0, targetInstanceIds: ['nowhere', 'g1', 'g0'], sourceInstanceId: 'h0' },
     );
     expect(out.state.players[0].board.monsterZones[4]?.instanceId).toBe('g1');
     expect(out.state.players[0].graveyard.map((c) => c.instanceId)).toEqual(['g0']);

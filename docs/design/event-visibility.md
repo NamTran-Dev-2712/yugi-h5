@@ -43,6 +43,7 @@ raw events never leave the class.
 | ChainLinkAdded         | definitionId, targets    | PUBLIC                     | Task 3.3, forwarded since 3.4b. Same card as the `EffectActivated` just before it; targets are field ids.                                                     |
 | ChainLinkFizzled       | definitionId             | PUBLIC                     | Task 3.3, forwarded since 3.4b. Already-revealed chain card; no effect.                                                                                       |
 | ChainResolved          | —                        | PUBLIC                     | Task 3.3, forwarded since 3.4b. No card data.                                                                                                                 |
+| CardEquipped           | definitionId, target id  | PUBLIC (not forwarded yet) | Task 4.2c, engine-only: a face-up Equip Spell on a face-up monster. `toEventView` returns `null` until `EventView` has it.                                    |
 | FlipSummoned           | definitionId             | PUBLIC (not forwarded yet) | Task 4.2b, engine-only: the monster is now face-up. `toEventView` returns `null` until `EventView` has it.                                                    |
 | MonsterSpecialSummoned | definitionId             | PUBLIC (not forwarded yet) | Task 4.2a, engine-only: always face-up, from your hand (the card is revealed) or the public graveyard. `toEventView` returns `null` until `EventView` has it. |
 

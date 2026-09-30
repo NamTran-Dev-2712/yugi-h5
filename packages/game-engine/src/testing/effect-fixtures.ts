@@ -46,6 +46,33 @@ export function trap(
   };
 }
 
+/** Test-only Equip Spell (task 4.2c): `e1` equips to 1 face-up monster on `side`, `e2` modifies the equipped monster. */
+export function equipSpell(
+  id: string,
+  side: 'self' | 'opponent',
+  modify: { stat: 'atk' | 'def'; amount: number },
+): CardDefinition {
+  return {
+    id,
+    kind: 'Spell',
+    name: text(id),
+    subType: 'Equip',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        target: { kind: 'Card', zone: 'MonsterZone', side, count: 1, filter: { kind: 'Monster' } },
+        operations: [{ kind: 'Equip' }],
+      },
+      {
+        id: 'e2',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', ...modify, equipped: true }],
+      },
+    ],
+  } as CardDefinition;
+}
+
 export function monster(id: string, level = 4, race = 'Warrior'): CardDefinition {
   return {
     id,
@@ -261,6 +288,10 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
     ],
   },
 
+  /** Task 4.2c — Equip Spell: equip to 1 of your face-up monsters; it gains 500 ATK. */
+  EQ_POWER: equipSpell('EQ_POWER', 'self', { stat: 'atk', amount: 500 }),
+  /** Equip Spell: equip to 1 of the opponent's face-up monsters; it loses 500 ATK. */
+  EQ_WEAK: equipSpell('EQ_WEAK', 'opponent', { stat: 'atk', amount: -500 }),
   /** Task 4.2b — OnFlip mandatory: 400 damage to the opponent (ATK 1000 / DEF 1000). */
   FLIP_BURN: effectMonster('FLIP_BURN', {
     trigger: { kind: 'OnFlip', mandatory: true },

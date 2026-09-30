@@ -59,6 +59,8 @@ interface Prepared {
   /** Candidate ids for the effect's `Card` target; null when the effect has no Card target. */
   readonly candidates: readonly string[] | null;
   readonly targetCount: number;
+  /** Task 4.2c: an Equip Spell from the hand is placed face-up in this Spell/Trap Zone on activation; null otherwise. */
+  readonly placeInZone: number | null;
 }
 
 const fail = (code: EngineErrorCode, reason: string): never => {
@@ -126,14 +128,10 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
         ? fail('NOT_ACTIVATABLE', 'Trap activation from the hand is not supported.')
         : fail('TRAP_NOT_SET', `"${definition.name.en}" is a Trap: Set it first.`);
     }
-    // Normal Spell: Ignition, Main Phase only. Quick-Play Spell: Quick, any phase of your turn.
-    trigger =
-      definition.subType === 'Normal'
-        ? 'Ignition'
-        : definition.subType === 'QuickPlay'
-          ? 'Quick'
-          : null;
-    if (definition.subType === 'Normal' && state.phase !== 'Main1' && state.phase !== 'Main2')
+    // Normal / Equip Spell (task 4.2c): Ignition, Main Phase only. Quick-Play Spell: Quick, any phase of your turn.
+    const mainPhaseOnly = definition.subType === 'Normal' || definition.subType === 'Equip';
+    trigger = mainPhaseOnly ? 'Ignition' : definition.subType === 'QuickPlay' ? 'Quick' : null;
+    if (mainPhaseOnly && state.phase !== 'Main1' && state.phase !== 'Main2')
       fail('WRONG_PHASE', `only allowed in a Main Phase (current phase: ${state.phase}).`);
   } else {
     // A face-up card is already on the chain (or resolving): it cannot be activated again.
@@ -175,6 +173,14 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
       fail('SPELL_SET_THIS_TURN', `"${definition.name.en}" was Set this turn.`);
   }
 
+  // Task 4.2c [RULE]: an Equip Spell stays on the field, so it needs a Spell/Trap Zone ([ASSUMED] the lowest empty one).
+  let placeInZone: number | null = null;
+  if (source.zone === 'Hand' && definition.kind === 'Spell' && definition.subType === 'Equip') {
+    placeInZone = state.players[playerIndex].board.spellTrapZones.findIndex((c) => c === null);
+    if (placeInZone === -1)
+      fail('NO_FREE_SPELL_TRAP_ZONE', 'no empty Spell/Trap Zone for the Equip Spell.');
+  }
+
   // [RULE] a chain link must be Spell Speed 2+ and at least the speed of the link it responds to.
   const spellSpeed = spellSpeedOf(definition, effect);
   const top = state.chainStack.at(-1);
@@ -206,7 +212,17 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
         `needs ${targetCount} target(s), only ${candidates.length} available.`,
       );
   }
-  return { request, card, source, effect, spellSpeed, costPlan, candidates, targetCount };
+  return {
+    request,
+    card,
+    source,
+    effect,
+    spellSpeed,
+    costPlan,
+    candidates,
+    targetCount,
+    placeInZone,
+  };
 }
 
 /** The card in `player`'s hand, or Set in their Spell/Trap Zone. */
@@ -253,7 +269,10 @@ function activate(
   targetInstanceIds: readonly string[],
   ctx: ActionContext,
 ): Result {
-  const { request, card, source, effect, costPlan, spellSpeed } = prepared;
+  const { request, card, effect, costPlan, spellSpeed, placeInZone } = prepared;
+  // An Equip Spell from the hand goes face-up into its zone at once and waits there, like an activated Set card.
+  const source: ChainLinkSource =
+    placeInZone === null ? prepared.source : { zone: 'SpellTrapZone', zoneIndex: placeInZone };
   const { playerIndex } = request;
   const events: GameEvent[] = [
     {
@@ -267,15 +286,30 @@ function activate(
 
   // From the hand the card leaves it (it lives in the link); a Set card flips face-up and stays in its zone [RULE].
   const player = state.players[playerIndex];
+  const leftHand =
+    prepared.source.zone === 'Hand'
+      ? player.hand.filter((c) => c.instanceId !== card.instanceId)
+      : player.hand;
+  const placed: CardInstance = {
+    instanceId: card.instanceId,
+    definitionId: card.definitionId,
+    ownerIndex: card.ownerIndex,
+    position: 'Attack',
+  };
   const activated: PlayerState =
     source.zone === 'Hand'
-      ? { ...player, hand: player.hand.filter((c) => c.instanceId !== card.instanceId) }
+      ? { ...player, hand: leftHand }
       : {
           ...player,
+          hand: leftHand,
           board: {
             ...player.board,
             spellTrapZones: player.board.spellTrapZones.map((slot, i) =>
-              i === source.zoneIndex ? { ...card, position: 'Attack' } : slot,
+              i === source.zoneIndex
+                ? placeInZone === null
+                  ? { ...card, position: 'Attack' }
+                  : placed
+                : slot,
             ) as unknown as PlayerState['board']['spellTrapZones'],
           },
         };

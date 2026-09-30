@@ -161,6 +161,8 @@ function sendToGraveyard(state: GameState, link: ChainLink): Result {
   } else {
     const inZone = owner.board.spellTrapZones[source.zoneIndex];
     if (inZone?.instanceId !== card.instanceId) return { state, events: [] };
+    // Task 4.2c: an Equip Spell that got equipped stays on the field with its monster.
+    if (inZone.equippedTo !== undefined) return { state, events: [] };
     next = {
       ...owner,
       graveyard: [...owner.graveyard, toGraveyard(inZone)],
@@ -220,7 +222,11 @@ function resolveLink(state: GameState, link: ChainLink, ctx: ActionContext): Res
 
   let current = state;
   const events: GameEvent[] = [];
-  const opCtx: OperationContext = { controller: link.playerIndex, targetInstanceIds };
+  const opCtx: OperationContext = {
+    controller: link.playerIndex,
+    targetInstanceIds,
+    sourceInstanceId: link.card.instanceId,
+  };
   for (const op of effect.operations) {
     if (current.winnerIndex !== null) break; // the duel ended mid-effect: later operations never run
     // Continuous operations never resolve (the schema keeps them out of chainable effects; task 3.6).

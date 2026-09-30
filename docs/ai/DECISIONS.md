@@ -813,3 +813,29 @@ boolean`; `EventView` + 3 event chain (shape engine); `StateView.chain: ChainLin
 - **Fuzz**: generator thêm FlipSummon (8% nhánh Main Phase) ⇒ test "checker bắt engine hỏng" với 1 seed không còn gặp cửa sổ chain mở ⇒
   `detect` thử tối đa 30 seed cố định, lấy lần fail đầu (không nới checker).
   **Hệ quả:** 4.2c dùng lại; nối wire FlipSummon = `PlayerActionSchema` + `EventView` + UI (chạm quái úp → menu "Lật").
+
+## 2026-09-30 — Equip Spell (task 4.2c): không Duration, ModifyStat.equipped, luật trạng thái "Equip theo quái"
+
+- **Không thêm Duration** `[DECISION]` (chủ dự án chốt trong phiên plan; lệch brief "cần Duration `WhileOnField`"): effect `Continuous` đã có
+  nghĩa "khi lá còn ngửa trên sân" và tính lại mỗi lần đọc (3.6); cái thiếu chỉ là phạm vi ⇒ `ModifyStat.equipped: true`. `ThisTurn`/
+  `UntilEndPhase`/`Permanent` cần lưu modifier vào state — để dành tới khi có lá cần.
+- **Schema**: `ModifyStat.side` thành optional (đúng một trong `side` / `equipped`, refine ở `EffectDefinitionSchema` vì phần tử
+  `discriminatedUnion` không được là `ZodEffects`); operation `Equip` (không field) cần target `Card` `MonsterZone` `count 1`
+  `filter.kind 'Monster'` (filter loại quái úp ⇒ chỉ quái ngửa `[RULE]`); `Equip`/`equipped` chỉ trên Spell `Equip` — refine đặt ở
+  `CardDefinitionSchema` (union thành `ZodEffects`; không chỗ nào dùng `.options`, chỉ `parse`). **Đổi test cũ có chủ đích**: "ModifyStat
+  thiếu `side`" giờ bị bắt ở mức effect thay vì mức operation.
+- **Kích hoạt**: Equip Spell từ tay = `Ignition`, Main Phase (như Normal Spell). Lá **vào ô Phép/Bẫy ngay lúc kích hoạt** (ngửa), link có
+  `source: SpellTrapZone` — tái dùng trọn đường lá Set của 3.4 (bị phá trong lúc chờ, không vào mộ hai lần, bảo toàn lá của fuzz). Ô trống
+  thấp nhất `[ASSUMED]` G18 (action không có `zoneIndex`; thêm khi nối wire nếu UI cần thả vào ô cụ thể). Hết ô ⇒ `NO_FREE_SPELL_TRAP_ZONE`.
+  Equip đã Set ⇒ `NOT_ACTIVATABLE` (backlog cùng Normal Spell đã Set).
+- **Quan hệ Equip ↔ quái = `CardInstance.equippedTo`** (optional, trên lá Equip) — không thêm field top-level vào `GameState` nên
+  `scenario-to-state` và golden cũ không đổi. `OperationContext.sourceInstanceId` (mới, dữ liệu thuần) cho operation biết lá đang resolve.
+- **Rời sân theo quái = luật trạng thái chạy sau mọi action** (`state/detach-equips.ts`, gọi ở `applyAction` sau `dispatch`), thay vì cắm vào
+  từng chỗ làm quái rời sân (combat, `Destroy`, cost/Tribute Summon, …) — một chỗ, không quên chỗ nào. Trả lại **đúng object state** khi không
+  có gì để gỡ (không phá tham chiếu). Trong một action, lá Equip mồ côi có thể tồn tại tạm tới cuối action — vô hại vì `effectiveStats` chỉ cộng
+  cho quái còn trên sân. `[ASSUMED]` G18: lá được **gửi vào mộ** (`CardSentToGraveyard`), không "bị phá" (không bắn `OnDestroyed`).
+- **Containment**: event `CardEquipped` `null` ở `toEventView`; web 1 câu i18n. `toStateView` dựng lá tường minh nên `equippedTo` không đi ra wire.
+- **Fuzz**: bất biến 3.4 nới thành "Phép/Bẫy ngửa ⇔ có link từ ô đó, **hoặc** đang trang bị cho quái ngửa trên sân" + "`equippedTo` chỉ ở ô
+  Phép/Bẫy". "Equip theo quái vào mộ" hiếm trong fuzz ngẫu nhiên (5/25 lần Equip trên 60 seed × 400 bước) ⇒ test độ phủ riêng 60×400 (~3 s).
+  **Hệ quả:** nối wire cần `CardEquipped` trong `EventView` + `equippedTo` (hoặc tương đương) trong `StateView` để UI vẽ quan hệ; luật "theo
+  bàn cờ" mới (vd Field Spell 4.3) thêm vào sau `dispatch` như `detachOrphanEquips`.

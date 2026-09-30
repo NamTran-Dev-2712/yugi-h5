@@ -74,5 +74,39 @@ export const EffectDefinitionSchema = z
       message:
         'SpecialSummon needs a Card target in your own Hand or Graveyard with filter kind Monster',
     },
+  )
+  .refine(
+    (e) =>
+      !e.operations.some((o) => o.kind === 'Equip') ||
+      (e.target?.kind === 'Card' &&
+        e.target.zone === 'MonsterZone' &&
+        e.target.count === 1 &&
+        e.target.filter?.kind === 'Monster'),
+    // Task 4.2c [RULE]: one monster; the filter also keeps face-down monsters out (an Equip needs a face-up monster).
+    { message: 'Equip needs a Card target: 1 monster in a MonsterZone, with filter kind Monster' },
+  )
+  .refine(
+    (e) =>
+      e.operations.every(
+        (o) =>
+          o.kind !== 'ModifyStat' ||
+          (o.equipped === true
+            ? o.side === undefined && o.filter === undefined && o.excludeSource === undefined
+            : o.side !== undefined),
+      ),
+    // Task 4.2c: either every face-up monster on a side (filtered), or only the equipped monster.
+    {
+      message:
+        'ModifyStat needs exactly one of side / equipped (equipped takes no filter/excludeSource)',
+    },
   );
+
+/** True when the effect only makes sense on an Equip Spell (task 4.2c): it equips, or modifies the equipped monster. */
+export function isEquipEffect(effect: {
+  operations: readonly { kind: string; equipped?: true | undefined }[];
+}): boolean {
+  return effect.operations.some(
+    (o) => o.kind === 'Equip' || (o.kind === 'ModifyStat' && o.equipped === true),
+  );
+}
 export type EffectDefinition = z.infer<typeof EffectDefinitionSchema>;

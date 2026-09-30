@@ -48,6 +48,35 @@ function ssSpell(id: string, zone: 'Hand' | 'Graveyard'): CardDefinition {
   };
 }
 
+/** Test-only Equip Spell (task 4.2c): equip to 1 of your face-up monsters, +500 ATK. */
+function equipSpell(id: string): CardDefinition {
+  return {
+    id,
+    kind: 'Spell',
+    name: { vi: `Golden ${id}`, en: `Golden ${id}` },
+    subType: 'Equip',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        target: {
+          kind: 'Card',
+          zone: 'MonsterZone',
+          side: 'self',
+          count: 1,
+          filter: { kind: 'Monster' },
+        },
+        operations: [{ kind: 'Equip' }],
+      },
+      {
+        id: 'e2',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount: 500, equipped: true }],
+      },
+    ],
+  };
+}
+
 /** Placeholder cards only (no official names). */
 export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
   G_SUM_BURN: triggerMonster(
@@ -68,6 +97,8 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
     { kind: 'OnDestroyed', mandatory: true },
     { kind: 'Damage', amount: 400, target: 'opponent' },
   ),
+  /** Task 4.2c — Equip Spell: +500 ATK to one of your face-up monsters. */
+  G_EQ_POWER: equipSpell('G_EQ_POWER'),
   /** Task 4.2b — OnFlip mandatory: 400 damage to the opponent (ATK 1000 / DEF 1000). */
   G_FLIP_BURN: triggerMonster(
     'G_FLIP_BURN',
@@ -237,6 +268,9 @@ const SS_DECK = Array.from(
 
 /** Flip Summon + flip effects (task 4.2b). */
 const FLIP_DECK = Array.from({ length: 40 }, (_, i) => ['G_FLIP_BURN', 'M1800', 'M1000'][i % 3]!);
+
+/** Equip Spells (task 4.2c). */
+const EQUIP_DECK = Array.from({ length: 40 }, (_, i) => ['G_EQ_POWER', 'M1000', 'M1800'][i % 3]!);
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
 
@@ -825,6 +859,45 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
       {
         type: 'DeclareAttack',
         payload: { playerIndex: 0, attackerInstanceId: 'p0-12', targetInstanceId: 'p1-24' },
+      },
+      ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'equip-buff-and-detach',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-eq-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [EQUIP_DECK, EQUIP_DECK],
+      },
+    },
+    actions: [
+      // T1 (P0): rejected — G_EQ_POWER (p0-21) with no face-up monster to equip. Then Summon M1000 (p0-31) and equip it:
+      // the Equip stays face-up in Spell/Trap Zone 0, M1000 is now 1500 ATK.
+      ...endPhase(0, 2),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-21', effectId: 'e1' },
+      },
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-31', zoneIndex: 0 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-21', effectId: 'e1' },
+      },
+      ...endPhase(0, 4),
+      // T2 (P1): Summon M1800 (p1-2).
+      ...endPhase(1, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-2', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): the equipped M1000 (1500) attacks M1800 → destroyed, 300 to P0; its Equip follows it to the graveyard.
+      ...endPhase(0, 3),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-31', targetInstanceId: 'p1-2' },
       },
       ...endPhase(0, 3),
     ],

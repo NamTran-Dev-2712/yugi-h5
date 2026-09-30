@@ -22,6 +22,7 @@ import type {
   SurrenderAction,
 } from './actions/types.js';
 import type { GameEvent } from './events/types.js';
+import { detachOrphanEquips } from './state/detach-equips.js';
 import type { GameState } from './state/types.js';
 
 export interface ApplyActionResult {
@@ -79,6 +80,23 @@ export function applyAction(
     );
   }
 
+  // Task 4.2c: rules that follow from the board after every action (an Equip whose monster left the field goes to the
+  // graveyard), kept ahead of a final DuelEnded.
+  const result = dispatch(state, action, ctx);
+  const detached = detachOrphanEquips(result.state);
+  if (detached.events.length === 0) return result;
+  const ended = result.events.filter((e) => e.type === 'DuelEnded');
+  return {
+    state: detached.state,
+    events: [...result.events.filter((e) => e.type !== 'DuelEnded'), ...detached.events, ...ended],
+  };
+}
+
+function dispatch(
+  state: GameState,
+  action: Exclude<Action, StartDuelAction>,
+  ctx: ActionContext | undefined,
+): ApplyActionResult {
   switch (action.type) {
     case 'Draw':
       return applyDraw(state, action);

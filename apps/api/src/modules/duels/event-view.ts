@@ -70,6 +70,8 @@ export function toEventView(event: GameEvent, viewerIndex: 0 | 1): EventView | n
     case 'MonsterSpecialSummoned':
     // Task 4.2b: FlipSummoned is PUBLIC (face-up), engine-only like above.
     case 'FlipSummoned':
+    // Task 4.2c: CardEquipped is PUBLIC (a face-up Equip on a face-up monster), engine-only like above.
+    case 'CardEquipped':
       return null;
 
     default: {

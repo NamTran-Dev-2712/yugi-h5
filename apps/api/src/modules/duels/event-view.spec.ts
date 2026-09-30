@@ -26,6 +26,7 @@ const CHAIN_TYPES = [
 const ENGINE_ONLY_TYPES = [
   'MonsterSpecialSummoned',
   'FlipSummoned',
+  'CardEquipped',
 ] as const satisfies readonly GameEvent['type'][];
 type EngineOnlyType = (typeof ENGINE_ONLY_TYPES)[number];
 type PublicEvent = Exclude<GameEvent, CardDrawnEvent | { type: EngineOnlyType }>;
@@ -65,6 +66,13 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
     instanceId: 'p0-4',
     definitionId: SECRET,
     zoneIndex: 2,
+  },
+  CardEquipped: {
+    type: 'CardEquipped',
+    playerIndex: 0,
+    instanceId: 'p0-9',
+    definitionId: SECRET,
+    targetInstanceId: 'p1-3',
   },
   MonsterSet: { type: 'MonsterSet', playerIndex: 0, instanceId: 'p0-4', zoneIndex: 2 },
   MonsterTributed: {
@@ -169,7 +177,7 @@ const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
 
 describe('toEventView', () => {
   it('covers every engine event type', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(27);
+    expect(Object.keys(FIXTURES)).toHaveLength(28);
   });
 
   it.each(ENGINE_ONLY_TYPES)(

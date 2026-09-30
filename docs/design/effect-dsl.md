@@ -87,6 +87,36 @@ handler function đăng ký sẵn trong engine.
 }
 ```
 
+## Equip Spell (task 4.2c)
+
+- Lá `subType: 'Equip'` gồm 2 effect: (1) `Ignition` + target `Card` `MonsterZone` `count: 1` `filter: {kind: 'Monster'}` + operation `Equip`;
+  (2) `Continuous` + `ModifyStat{…, equipped: true}`. Refine: `Equip` cần đúng target đó; `ModifyStat` có đúng một trong `side` / `equipped`
+  (`equipped` không kèm `filter`/`excludeSource`); `Equip`/`equipped` chỉ được có trên Equip Spell (refine ở `CardDefinitionSchema`).
+- Engine: lá ngửa vào ô Phép/Bẫy lúc kích hoạt, gắn vào quái lúc resolve, ở lại sân; quái rời sân (hoặc bị úp) ⇒ lá Equip vào mộ.
+  Chi tiết: `engine.md` mục "Equip Spell".
+
+```json
+[
+  {
+    "id": "e1",
+    "trigger": { "kind": "Ignition" },
+    "target": {
+      "kind": "Card",
+      "zone": "MonsterZone",
+      "side": "self",
+      "count": 1,
+      "filter": { "kind": "Monster" }
+    },
+    "operations": [{ "kind": "Equip" }]
+  },
+  {
+    "id": "e2",
+    "trigger": { "kind": "Continuous" },
+    "operations": [{ "kind": "ModifyStat", "stat": "atk", "amount": 500, "equipped": true }]
+  }
+]
+```
+
 ## Flip effect (task 4.2b)
 
 - `OnFlip{mandatory?}` giờ chạy thật: bắn khi quái được **Flip Summon** (action `FlipSummon`) hoặc **bị lật do bị tấn công**, kể cả khi trận
@@ -145,14 +175,14 @@ tiêu chí, `level.min ≤ level.max`.
 
 ## Kind đã có (batch 1)
 
-| Loại      | Kind → field                                                                                                                                                                                                                                                                        |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip{mandatory?}` (task 4.2b), `Continuous`, `Ignition`, `Quick`                                                                                                                                                   |
-| Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                                                                                                                                                                                   |
-| Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                                                                                                                                                                               |
-| Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                                                                                                                                                                                   |
-| Operation | `Damage{amount, target}`, `Heal{amount, target}`, `Draw{count, target}`, `Destroy` (tác động lên `target` Card của effect), `SpecialSummon{position?}` (task 4.2a, target Card ở tay/mộ của mình); continuous: `ModifyStat{stat, amount, side, filter?, excludeSource?}` (task 3.6) |
-| Filter    | `kind` (Monster/Spell/Trap), `level{min?,max?}`, `attribute`, `race`                                                                                                                                                                                                                |
+| Loại      | Kind → field                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip{mandatory?}` (task 4.2b), `Continuous`, `Ignition`, `Quick`                                                                                                                                                                                                                                                                              |
+| Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                                                                                                                                                                                                                                                                                                              |
+| Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                                                                                                                                                                                                                                                                                                          |
+| Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                                                                                                                                                                                                                                                                                                              |
+| Operation | `Damage{amount, target}`, `Heal{amount, target}`, `Draw{count, target}`, `Destroy` (tác động lên `target` Card của effect), `SpecialSummon{position?}` (task 4.2a, target Card ở tay/mộ của mình), `Equip` (task 4.2c, gắn chính lá Equip Spell vào 1 quái ngửa); continuous: `ModifyStat{stat, amount, side, filter?, excludeSource?}` (task 3.6) hoặc `ModifyStat{stat, amount, equipped: true}` (task 4.2c) |
+| Filter    | `kind` (Monster/Spell/Trap), `level{min?,max?}`, `attribute`, `race`                                                                                                                                                                                                                                                                                                                                           |
 
 `zone`: `Hand|Deck|Graveyard|MonsterZone|SpellTrapZone`; `side`/`who`/operation `target`: `self|opponent`;
 `phase`: `Draw|Standby|Main1|Battle|Main2|End`.
@@ -163,10 +193,11 @@ tiêu chí, `level.min ≤ level.max`.
 - **Condition**: `LPCompare`, `HasCardIn(zone, filter)`, `ChainLength`, `PositionIs`, `OncePerTurn`.
 - **Cost**: `Banish`, `SendToGY`, `Reveal`.
 - **Target**: `AllMatching(filter)`.
-- **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `ChangePosition`, `Negate`/`NegateAttack`, `Shuffle`, `Search`, `Equip`, `SkipPhase`. (`ModifyStat` continuous đã có ở 3.6; bản
+- **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `ChangePosition`, `Negate`/`NegateAttack`, `Shuffle`, `Search`, `SkipPhase`. (`ModifyStat` continuous đã có ở 3.6; bản
   "tới hết lượt" chạy lúc resolve cần Duration, chưa có.) Continuous "chặn một loại hành động" (vd cấm tấn công) chưa có.
 - **Filter**: `atk(min/max)`, `position`, `nameContains`, `tag`.
-- **Duration**: `ThisTurn`, `UntilEndPhase`, `WhileOnField`, `Permanent` (batch 3).
+- **Duration**: `ThisTurn`, `UntilEndPhase`, `Permanent` (batch 3; cần lưu modifier vào state). **`WhileOnField` cố ý không thêm** (chủ dự án
+  chốt 2026-09-30, task 4.2c): effect `Continuous` đã là "khi lá còn ngửa trên sân"; Equip dùng `ModifyStat.equipped`.
 
 Ví dụ trong bản spec cũ dùng tên `DrawCard`/`DealDamage`/`ModifyAtk`/`NegateAttack`: batch 1 dùng `Draw`/`Damage`
 (theo bảng plan); các kind còn lại đổi tên/định hình khi được thêm.

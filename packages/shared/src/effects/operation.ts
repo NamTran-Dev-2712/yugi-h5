@@ -45,10 +45,18 @@ export const OperationSchema = z.discriminatedUnion('kind', [
         .min(-10000)
         .max(10000)
         .refine((n) => n !== 0, { message: 'amount must not be 0' }),
-      side: SideSchema,
+      /** Relative to the card's controller. Exactly one of `side` / `equipped` (refine in EffectDefinitionSchema). */
+      side: SideSchema.optional(),
+      /** Task 4.2c: only the monster this Equip Spell is equipped to (no `filter`/`excludeSource`). */
+      equipped: z.literal(true).optional(),
       filter: CardFilterSchema.optional(),
       excludeSource: z.boolean().optional(),
     })
     .strict(),
+  /**
+   * Task 4.2c: equips this card (an Equip Spell) to the effect's Card target — one face-up monster (refine in
+   * EffectDefinitionSchema). The card then stays on the field, linked to that monster, until either leaves the field.
+   */
+  z.object({ kind: z.literal('Equip') }).strict(),
 ]);
 export type Operation = z.infer<typeof OperationSchema>;

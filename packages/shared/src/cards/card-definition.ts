@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EffectDefinitionSchema } from '../effects/effect-definition.js';
+import { EffectDefinitionSchema, isEquipEffect } from '../effects/effect-definition.js';
 
 /**
  * Static, author-time definition of a card. Runtime state (position, zone,
@@ -74,9 +74,17 @@ export const TrapCardDefinitionSchema = CardDefinitionBaseSchema.extend({
 });
 export type TrapCardDefinition = z.infer<typeof TrapCardDefinitionSchema>;
 
-export const CardDefinitionSchema = z.discriminatedUnion('kind', [
-  MonsterCardDefinitionSchema,
-  SpellCardDefinitionSchema,
-  TrapCardDefinitionSchema,
-]);
+export const CardDefinitionSchema = z
+  .discriminatedUnion('kind', [
+    MonsterCardDefinitionSchema,
+    SpellCardDefinitionSchema,
+    TrapCardDefinitionSchema,
+  ])
+  .refine(
+    (card) =>
+      (card.kind === 'Spell' && card.subType === 'Equip') ||
+      !(card.effects ?? []).some(isEquipEffect),
+    // Task 4.2c: Equip / ModifyStat.equipped only mean something on an Equip Spell.
+    { message: 'Equip and ModifyStat.equipped belong to Equip Spells only' },
+  );
 export type CardDefinition = z.infer<typeof CardDefinitionSchema>;

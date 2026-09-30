@@ -85,6 +85,15 @@ export interface AttackDeclaredEvent {
   readonly targetInstanceId: string | null;
 }
 
+/** Task 4.2c: an Equip Spell (face-up in its controller's Spell/Trap Zone) was equipped to a face-up monster. */
+export interface CardEquippedEvent {
+  readonly type: 'CardEquipped';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly targetInstanceId: string;
+}
+
 /** Task 4.2b: a face-down monster was Flip Summoned (now face-up in Attack Position, so `definitionId` is public). */
 export interface FlipSummonedEvent {
   readonly type: 'FlipSummoned';
@@ -244,6 +253,7 @@ export type GameEvent =
   | NormalSummonedEvent
   | MonsterSpecialSummonedEvent
   | FlipSummonedEvent
+  | CardEquippedEvent
   | MonsterSetEvent
   | MonsterTributedEvent
   | PositionChangedEvent

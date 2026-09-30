@@ -2,6 +2,7 @@ import type { ResolveOperationKind } from '@yugi/shared';
 import { applyDamage } from './damage.js';
 import { applyDestroy } from './destroy.js';
 import { applyDrawOperation } from './draw.js';
+import { applyEquip } from './equip.js';
 import { applyHeal } from './heal.js';
 import { applySpecialSummon } from './special-summon.js';
 import type { OperationHandler } from './types.js';
@@ -17,4 +18,5 @@ export const OPERATION_HANDLERS: { readonly [K in ResolveOperationKind]: Operati
   Draw: applyDrawOperation,
   Destroy: applyDestroy,
   SpecialSummon: applySpecialSummon,
+  Equip: applyEquip,
 };

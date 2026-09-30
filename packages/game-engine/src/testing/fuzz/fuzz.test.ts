@@ -32,6 +32,7 @@ describe('fuzz: engine invariants hold', () => {
     let specialSummons = 0;
     let flipSummons = 0;
     let flipLinks = 0;
+    let equips = 0;
     const byType: Record<string, number> = {};
     // Own fixed seeds (not FUZZ_SEEDS): coverage is statistical; 30 seeds keep every feature reached (task 4.2a
     // widened it from 10 when two more cards in the pool thinned out the multi-link chains).
@@ -50,6 +51,7 @@ describe('fuzz: engine invariants hold', () => {
       specialSummons += result.stats.specialSummons;
       flipSummons += result.stats.flipSummons;
       flipLinks += result.stats.flipLinks;
+      equips += result.stats.equips;
       for (const [type, n] of Object.entries(result.stats.accepted)) {
         accepted += n;
         byType[type] = (byType[type] ?? 0) + n;
@@ -86,6 +88,18 @@ describe('fuzz: engine invariants hold', () => {
     // Task 4.2b: Flip Summons happen and flip effects reach the chain.
     expect(flipSummons, 'no Flip Summon').toBeGreaterThan(0);
     expect(flipLinks, 'no OnFlip link').toBeGreaterThan(0);
+    // Task 4.2c: Equip Spells get equipped, and some follow their monster to the graveyard.
+    expect(equips, 'no Equip').toBeGreaterThan(0);
+  });
+
+  it('an Equip follows its monster to the graveyard in real duels (task 4.2c; rare: 60 seeds × 400 steps)', () => {
+    let detached = 0;
+    for (let i = 1; i <= 60; i++) {
+      const result = runFuzz({ seed: `fuzz-${i}`, steps: 400 });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      detached += result.stats.equipsDetached;
+    }
+    expect(detached).toBeGreaterThan(0);
   });
 
   it('is deterministic: same seed → identical action log and stats', () => {
