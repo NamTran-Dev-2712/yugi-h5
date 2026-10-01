@@ -15,9 +15,10 @@ Khối "Ghi chú đọc kèm" đầu mỗi ADR cho biết phần nào đã bị 
 | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------- |
 | Engine: phase, draw, summon, tribute, đổi thế, combat, thắng/thua    | `docs/design/engine.md`, `docs/plan/rules-coverage.md`, `RULES-REVIEW-SHEET.md`    | 020–030                      |
 | Engine: mã lỗi, `ActionContext`, prompt (`PendingPrompt`)            | `docs/design/engine.md`                                                            | 022, 030                     |
-| Effect DSL: schema, operation, cost, target, condition               | `docs/design/effect-dsl.md`, `docs/plan/card-and-effect-plan.md`                   | 046, 047, 053, 059, 061      |
-| Chain, Spell Speed, lá Set, cửa sổ phản ứng                          | `docs/design/engine.md` (Chain stack)                                              | 018, 049, 050, 051, 054      |
+| Effect DSL: schema, operation, cost, target, condition               | `docs/design/effect-dsl.md`, `docs/plan/card-and-effect-plan.md`                   | 046, 047, 053, 059, 061, 063 |
+| Chain, Spell Speed, lá Set, cửa sổ phản ứng                          | `docs/design/engine.md` (Chain stack)                                              | 018, 049, 050, 051, 054, 063 |
 | Trigger (OnSummon/OnDestroyed/OnFlip), Continuous, `scriptId`, Equip | `docs/design/effect-dsl.md`                                                        | 052, 053, 060, 061           |
+| Field Spell, lá Continuous Spell/Trap ở lại sân, Field Zone          | `docs/design/engine.md` (Field Spell + lá ở lại sân)                               | 053, 061, 063                |
 | `legalActions`                                                       | `docs/design/protocol.md`                                                          | 037                          |
 | Golden replay, fuzz, mutation test, test chập chờn                   | `docs/plan/testing-strategy.md`                                                    | 031, 058, 062                |
 | Wire: StateView, EventView, rò thông tin, lọc theo ghế               | `docs/design/event-visibility.md`, `docs/design/protocol.md`                       | 032, 034, 048, 055, 062      |

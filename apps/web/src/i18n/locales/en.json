@@ -197,7 +197,8 @@
   "error.engine.UNKNOWN_SCRIPT": "This effect uses a script the game does not know, so it cannot be activated.",
   "error.engine.NO_FREE_MONSTER_ZONE": "There is no empty Monster Zone for this Special Summon.",
   "error.engine.MONSTER_FACE_UP": "Only a face-down monster can be Flip Summoned.",
-  "error.engine.NO_FREE_SPELL_TRAP_ZONE": "There is no empty Spell/Trap Zone for this Equip Spell.",
+  "error.engine.NO_FREE_SPELL_TRAP_ZONE": "There is no empty Spell/Trap Zone for this card.",
+  "error.engine.FIELD_ZONE_OCCUPIED": "Your Field Zone already holds a card.",
 
   "error.api.NOT_OWNER": "You do not control this duel.",
   "error.api.PLAYER_MISMATCH": "That action does not belong to this player.",

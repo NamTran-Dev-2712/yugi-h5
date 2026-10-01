@@ -26,6 +26,10 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   **không** sửa engine/deck/checker để "cho qua" (ADR 059, 060, 061).
 - Test kiểm `EngineError.code`, không kiểm câu chữ message (ADR 022). Golden đỏ = hành vi đổi; chỉ `UPDATE_GOLDEN=1` sau
   khi đọc diff (ADR 031).
+- `UPDATE_GOLDEN=1` ghi lại **mọi** file golden ở dạng `JSON.stringify` thô ⇒ chạy xong phải
+  `pnpm exec prettier --write "packages/game-engine/src/__golden__/*.json"` rồi mới đọc `git diff` (ADR 063).
+- Thêm lá vào pool fuzz có thể làm test "checker bắt engine hỏng" bắt lỗi bằng **bất biến khác** (thông báo khác): thu hẹp
+  phép phá cho đúng bất biến cần chứng minh, không nới regex (ADR 063).
 - Đổi shape một field (vd `name` → `{vi,en}`): template literal nhận object không làm `tsc` đỏ (`[object Object]`) ⇒ grep
   mọi nơi dùng (ADR 046, 055).
 

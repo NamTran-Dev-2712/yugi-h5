@@ -16,14 +16,16 @@ describe('getLegalActions — Spell/Trap (task 3.2)', () => {
     );
   });
 
-  it('lists ActivateEffect for a Normal Spell (and not for a Trap, a Continuous Spell, or in the wrong phase)', () => {
+  it('lists ActivateEffect for a Normal / Continuous Spell (and not for a Trap, a Continuous-only effect, or in the wrong phase)', () => {
     const activate = (hand: string[], phase: 'Main1' | 'Battle' = 'Main1') =>
       ofType(getLegalActions(fixtureState({ hand, phase }), 0, fixtureCtx), 'ActivateEffect');
     expect(activate(['DRAW'])).toEqual([
       { type: 'ActivateEffect', payload: { playerIndex: 0, cardInstanceId: 'h0', effectId: 'e1' } },
     ]);
     expect(activate(['TRAP'])).toEqual([]);
-    expect(activate(['CONT'])).toEqual([]);
+    // Task 4.3: a Continuous Spell card is activated like a Normal Spell; an effect that is itself Continuous never is.
+    expect(activate(['CONT'])).toEqual(activate(['DRAW']));
+    expect(activate(['CONT_SPELL_BUFF'])).toEqual([]);
     expect(activate(['DRAW'], 'Battle')).toEqual([]);
   });
 

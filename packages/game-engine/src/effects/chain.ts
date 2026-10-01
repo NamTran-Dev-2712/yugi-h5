@@ -1,4 +1,4 @@
-import { isContinuousOperationKind } from '@yugi/shared';
+import { isContinuousOperationKind, staysOnField } from '@yugi/shared';
 import type { ActionContext } from '../actions/types.js';
 import { EngineError } from '../errors.js';
 import type { GameEvent } from '../events/types.js';
@@ -149,11 +149,17 @@ const toGraveyard = (c: CardInstance): CardInstance => ({
 /**
  * After its link, the activated card goes to its owner's graveyard: from the link itself (activated from the hand), or
  * out of its Spell/Trap Zone. A Set card that already left its zone mid-chain (destroyed) is not sent again.
+ * Task 4.3 [RULE]: a Continuous Spell/Trap or Field Spell (read from the card's sub type, `staysOnField`) stays face-up
+ * where it is — its Continuous effects hold from now on.
  */
-function sendToGraveyard(state: GameState, link: ChainLink): Result {
+function sendToGraveyard(state: GameState, link: ChainLink, ctx: ActionContext): Result {
   const { source, card } = link;
   // A trigger's card never moved (task 3.5): it stays on the field / in the graveyard.
   if (source.zone === 'MonsterZone' || source.zone === 'Graveyard') return { state, events: [] };
+  const definition = ctx.cardDefinitions(card.definitionId);
+  if (definition && staysOnField(definition)) return { state, events: [] };
+  // Only a Field Spell is ever activated in the Field Zone, and it stays (above); nothing to send from there.
+  if (source.zone === 'FieldZone') return { state, events: [] };
   const owner = state.players[card.ownerIndex];
   let next: PlayerState;
   if (source.zone === 'Hand') {
@@ -252,7 +258,8 @@ function resolveLink(state: GameState, link: ChainLink, ctx: ActionContext): Res
 }
 
 /**
- * Resolves every link, top (last activated) first. Each card goes to its owner's graveyard after its link. If the duel
+ * Resolves every link, top (last activated) first. Each card goes to its owner's graveyard after its link (unless it
+ * stays on the field: Equip 4.2c, Continuous/Field 4.3). If the duel
  * ends mid-chain the remaining links do not resolve (their cards still go to the graveyard) and `DuelEnded` is last.
  */
 export function resolveChain(state: GameState, ctx: ActionContext): Result {
@@ -267,7 +274,7 @@ export function resolveChain(state: GameState, ctx: ActionContext): Result {
       current = out.state;
       events.push(...out.events);
     }
-    const spent = sendToGraveyard(current, link);
+    const spent = sendToGraveyard(current, link, ctx);
     current = spent.state;
     events.push(...spent.events);
   }

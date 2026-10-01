@@ -443,8 +443,53 @@
           "effectId": "e1"
         }
       },
-      "ok": false,
-      "errorCode": "NOT_ACTIVATABLE"
+      "ok": true,
+      "version": 12,
+      "events": [
+        {
+          "type": "EffectActivated",
+          "playerIndex": 1,
+          "instanceId": "p1-19",
+          "definitionId": "G_DRAW",
+          "effectId": "e1"
+        },
+        {
+          "type": "ChainLinkAdded",
+          "linkId": "link-2-11",
+          "chainIndex": 1,
+          "playerIndex": 1,
+          "instanceId": "p1-19",
+          "definitionId": "G_DRAW",
+          "effectId": "e1",
+          "spellSpeed": 1,
+          "targetInstanceIds": []
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-16",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "EffectResolved",
+          "linkId": "link-2-11",
+          "playerIndex": 1,
+          "instanceId": "p1-19",
+          "definitionId": "G_DRAW",
+          "effectId": "e1"
+        },
+        {
+          "type": "CardSentToGraveyard",
+          "ownerIndex": 1,
+          "instanceId": "p1-19",
+          "definitionId": "G_DRAW",
+          "from": "SpellTrapZone"
+        },
+        {
+          "type": "ChainResolved",
+          "linkCount": 1
+        }
+      ]
     },
     {
       "action": {
@@ -454,7 +499,7 @@
         }
       },
       "ok": true,
-      "version": 12,
+      "version": 13,
       "events": [
         {
           "type": "PhaseChanged",
@@ -472,7 +517,7 @@
         }
       },
       "ok": true,
-      "version": 13,
+      "version": 14,
       "events": [
         {
           "type": "PhaseChanged",
@@ -490,7 +535,7 @@
         }
       },
       "ok": true,
-      "version": 14,
+      "version": 15,
       "events": [
         {
           "type": "PhaseChanged",
@@ -508,7 +553,7 @@
         }
       },
       "ok": true,
-      "version": 15,
+      "version": 16,
       "events": [
         {
           "type": "PhaseChanged",
@@ -815,19 +860,7 @@
         "lifePoints": 8000,
         "board": {
           "monsterZones": [null, null, null, null, null],
-          "spellTrapZones": [
-            null,
-            null,
-            {
-              "instanceId": "p1-19",
-              "definitionId": "G_DRAW",
-              "ownerIndex": 1,
-              "position": "DefenseDown",
-              "setTurn": 2
-            },
-            null,
-            null
-          ],
+          "spellTrapZones": [null, null, null, null, null],
           "fieldZone": null
         },
         "hand": [
@@ -860,15 +893,15 @@
             "definitionId": "M1000",
             "position": null,
             "ownerIndex": 1
-          }
-        ],
-        "deck": [
+          },
           {
             "instanceId": "p1-16",
             "definitionId": "M1000",
             "position": null,
             "ownerIndex": 1
-          },
+          }
+        ],
+        "deck": [
           {
             "instanceId": "p1-24",
             "definitionId": "M1000",
@@ -1068,7 +1101,14 @@
             "ownerIndex": 1
           }
         ],
-        "graveyard": [],
+        "graveyard": [
+          {
+            "instanceId": "p1-19",
+            "definitionId": "G_DRAW",
+            "ownerIndex": 1,
+            "position": null
+          }
+        ],
         "banished": [],
         "extraDeck": [],
         "hasNormalSummonedThisTurn": false
@@ -1078,6 +1118,6 @@
     "chainWindow": null,
     "pendingPrompt": null,
     "winnerIndex": null,
-    "version": 15
+    "version": 16
   }
 }

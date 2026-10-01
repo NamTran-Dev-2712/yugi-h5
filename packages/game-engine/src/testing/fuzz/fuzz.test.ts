@@ -108,6 +108,27 @@ describe('fuzz: engine invariants hold', () => {
     expect(detached).toBeGreaterThan(0);
   }, 120_000);
 
+  it('Field Spells and Continuous Spells/Traps are really played (task 4.3; own seeds: 60 × 400 steps)', async () => {
+    const total = {
+      fieldSpellSets: 0,
+      fieldSpellLinks: 0,
+      fieldSpellsReplaced: 0,
+      fieldSpellsDestroyed: 0,
+      continuousCardsStayed: 0,
+      setNormalSpellLinks: 0,
+    };
+    for (let i = 1; i <= 60; i++) {
+      await yieldToWorker();
+      const result = runFuzz({ seed: `fuzz-${i}`, steps: 400 });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const key of Object.keys(total) as (keyof typeof total)[])
+        total[key] += result.stats[key];
+    }
+    console.log(`fuzz 4.3 coverage: ${JSON.stringify(total)}`);
+    for (const [key, n] of Object.entries(total))
+      expect(n, `${key} never happened`).toBeGreaterThan(0);
+  }, 120_000);
+
   it('is deterministic: same seed → identical action log and stats', () => {
     const a = runFuzz({ seed: 'determinism', steps: 200 });
     const b = runFuzz({ seed: 'determinism', steps: 200 });
@@ -215,9 +236,11 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
   });
 
   it('flags a chain window left open for a player who cannot respond', () => {
+    // Only a window with links on the chain (task 4.3: with more cards in the pool the first hit used to be an
+    // activation answered inside an EMPTY reaction window, which the reaction-window invariant reports instead).
     const r = detect(
       broken('ActivateEffect', ({ state, events }) =>
-        state.chainWindow
+        state.chainWindow && state.chainStack.length > 0
           ? {
               events,
               state: {

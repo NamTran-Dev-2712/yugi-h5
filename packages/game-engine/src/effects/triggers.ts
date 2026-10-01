@@ -145,7 +145,11 @@ export function collectTriggers(
           source,
         });
       }
-    } else if (event.type === 'MonsterDestroyed' || event.type === 'SpellTrapDestroyed') {
+    } else if (
+      event.type === 'MonsterDestroyed' ||
+      event.type === 'SpellTrapDestroyed' ||
+      event.type === 'FieldSpellDestroyed'
+    ) {
       for (const effect of effectsOf(event.definitionId, ['OnDestroyed'], ctx)) {
         fired.push({
           playerIndex: event.ownerIndex,

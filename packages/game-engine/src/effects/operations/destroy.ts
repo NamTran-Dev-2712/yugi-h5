@@ -10,7 +10,8 @@ const withSlotCleared = <T>(zones: Five<T | null>, index: number): Five<T | null
 
 /**
  * Destroys the effect's chosen targets that are still on the field: they go to their OWNER's graveyard.
- * Monsters emit `MonsterDestroyed`, Spells/Traps `SpellTrapDestroyed`. A target that already left the field is skipped.
+ * Monsters emit `MonsterDestroyed`, Spells/Traps `SpellTrapDestroyed`, the card in a Field Zone `FieldSpellDestroyed`
+ * (task 4.3). A target that already left the field is skipped.
  */
 export const applyDestroy: OperationHandler<'Destroy'> = (state, _op, ctx) => {
   let players: [PlayerState, PlayerState] = [state.players[0], state.players[1]];
@@ -29,19 +30,28 @@ export const applyDestroy: OperationHandler<'Destroy'> = (state, _op, ctx) => {
     const board =
       at.zone === 'MonsterZone'
         ? { ...owner.board, monsterZones: withSlotCleared(owner.board.monsterZones, at.zoneIndex) }
-        : {
-            ...owner.board,
-            spellTrapZones: withSlotCleared(owner.board.spellTrapZones, at.zoneIndex),
-          };
+        : at.zone === 'FieldZone'
+          ? { ...owner.board, fieldZone: null }
+          : {
+              ...owner.board,
+              spellTrapZones: withSlotCleared(owner.board.spellTrapZones, at.zoneIndex),
+            };
     const nextOwner: PlayerState = { ...owner, board, graveyard: [...owner.graveyard, buried] };
     players = at.ownerIndex === 0 ? [nextOwner, players[1]] : [players[0], nextOwner];
-    events.push({
-      type: at.zone === 'MonsterZone' ? 'MonsterDestroyed' : 'SpellTrapDestroyed',
+    const gone = {
       ownerIndex: at.ownerIndex,
       instanceId: buried.instanceId,
       definitionId: buried.definitionId,
-      zoneIndex: at.zoneIndex,
-    });
+    };
+    events.push(
+      at.zone === 'FieldZone'
+        ? { type: 'FieldSpellDestroyed', ...gone }
+        : {
+            type: at.zone === 'MonsterZone' ? 'MonsterDestroyed' : 'SpellTrapDestroyed',
+            ...gone,
+            zoneIndex: at.zoneIndex,
+          },
+    );
   }
   return { state: { ...state, players }, events };
 };

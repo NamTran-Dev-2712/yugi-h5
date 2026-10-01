@@ -149,6 +149,16 @@ export interface SpellTrapSetEvent {
   readonly zoneIndex: number;
 }
 
+/**
+ * Task 4.3: a Field Spell was Set face-down in its controller's Field Zone (one slot, so no `zoneIndex`; no
+ * `definitionId`: the card is face-down). Not a `SpellTrapSet`: that one names a Spell/Trap Zone.
+ */
+export interface FieldSpellSetEvent {
+  readonly type: 'FieldSpellSet';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+}
+
 /** A Spell's effect is activated from the hand (the card is revealed by activating it, so `definitionId` is public). */
 export interface EffectActivatedEvent {
   readonly type: 'EffectActivated';
@@ -167,13 +177,16 @@ export interface EffectResolvedEvent {
   readonly effectId: string;
 }
 
-/** A used Spell/Trap went to its owner's graveyard: from the hand, or from the Spell/Trap Zone it was flipped in (3.4). */
+/**
+ * A used Spell/Trap went to its owner's graveyard: from the hand, or from the Spell/Trap Zone it was flipped in (3.4).
+ * Task 4.3: `FieldZone` = a Field Spell replaced by its controller's new one (sent, not destroyed).
+ */
 export interface CardSentToGraveyardEvent {
   readonly type: 'CardSentToGraveyard';
   readonly ownerIndex: 0 | 1;
   readonly instanceId: string;
   readonly definitionId: string;
-  readonly from: 'Hand' | 'SpellTrapZone';
+  readonly from: 'Hand' | 'SpellTrapZone' | 'FieldZone';
 }
 
 export interface LifePointsRecoveredEvent {
@@ -196,6 +209,14 @@ export interface SpellTrapDestroyedEvent {
   readonly instanceId: string;
   readonly definitionId: string;
   readonly zoneIndex: number;
+}
+
+/** Task 4.3: the card in a Field Zone destroyed by an effect, sent to its owner's graveyard (public: `definitionId`). */
+export interface FieldSpellDestroyedEvent {
+  readonly type: 'FieldSpellDestroyed';
+  readonly ownerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
 }
 
 /** An activation became a chain link (cost already paid, targets fixed). The card is public from activation on. */
@@ -262,12 +283,14 @@ export type GameEvent =
   | MonsterDestroyedEvent
   | DamageDealtEvent
   | SpellTrapSetEvent
+  | FieldSpellSetEvent
   | EffectActivatedEvent
   | EffectResolvedEvent
   | CardSentToGraveyardEvent
   | LifePointsRecoveredEvent
   | LifePointsPaidEvent
   | SpellTrapDestroyedEvent
+  | FieldSpellDestroyedEvent
   | ChainLinkAddedEvent
   | ChainLinkFizzledEvent
   | ChainResolvedEvent

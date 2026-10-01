@@ -141,7 +141,8 @@ Mỗi batch là 1 phiên nhỏ, theo `card-and-effect-plan.md`.
 | 4.2b | Flip Summon (action) + Flip effect (`OnFlip`) (✅ nháp)                                                                            | Engine         | M      |
 | 4.2c | Equip Spell (`Equip` + `ModifyStat.equipped`, rời sân theo quái; không thêm Duration) (✅ nháp)                                    | Engine         | M      |
 | 4.2d | Nối wire 4.2a/b/c: FlipSummon + 3 event + `equippedTo` + lọc target tay + UI + 3 lá (SMP-044/111/112) + `MECH_DEMO_DECK` (✅ nháp) | API+Shared+Web | M/L    |
-| 4.3  | Field Spell + Continuous Spell/Trap đầy đủ                                                                                         | Engine         | M      |
+| 4.3  | Field Spell + Continuous Spell/Trap đầy đủ + Phép Speed 1 đã Set; 4 lá SMP-113/114/115/208 (✅ nháp, engine-only)                  | Engine+Shared  | M      |
+| 4.3b | Nối wire 4.3: event Field Zone trong `EventView`, UI ô Field, lá thật vào deck demo + scenario Sandbox, fuzz leak với lá Field úp  | API+Shared+Web | M      |
 | 4.4  | Counter Trap (Speed 3)                                                                                                             | Engine         | M      |
 | 4.5  | Fusion (Polymerization-like, Extra Deck)                                                                                           | Engine         | L      |
 | 4.7  | Batch 2/3: trigger, continuous, quirk nhiều lá                                                                                     | Shared         | M/lô   |

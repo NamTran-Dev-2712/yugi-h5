@@ -14,7 +14,7 @@ import {
   OPERATION_REGISTRY,
   TRIGGER_KINDS,
 } from './registry.js';
-import { CardDefinitionSchema } from '../cards/card-definition.js';
+import { CardDefinitionSchema, staysOnField } from '../cards/card-definition.js';
 import { SAMPLE_CARDS } from '../cards/sample-cards.js';
 
 const ok = (s: { safeParse: (v: unknown) => { success: boolean } }, v: unknown) =>
@@ -180,7 +180,8 @@ describe('EffectDefinition', () => {
     });
   });
   it('rejects empty/missing operations', () => {
-    bad(EffectDefinitionSchema, { id: 'x', trigger: { kind: 'Ignition' }, operations: [] });
+    // Task 4.3: an empty Ignition/Quick effect is a card activation (checked per card); other triggers stay rejected.
+    bad(EffectDefinitionSchema, { id: 'x', trigger: { kind: 'OnSummon' }, operations: [] });
     bad(EffectDefinitionSchema, { id: 'x', trigger: { kind: 'Ignition' } });
   });
   it('rejects empty optional arrays, empty id, unknown trigger', () => {
@@ -480,10 +481,90 @@ describe('Equip + ModifyStat.equipped (task 4.2c)', () => {
       def: 1000,
       effects: [buff()],
     });
-    // A plain `side` ModifyStat stays fine on any card.
+    // A plain `side` ModifyStat stays fine on any card (task 4.3: next to the effect that activates the card).
     ok(
       CardDefinitionSchema,
-      equipSpell([buff({ equipped: undefined, side: 'self' })], 'Continuous'),
+      equipSpell(
+        [
+          { id: 'activate', trigger: { kind: 'Ignition' }, operations: [] },
+          buff({ equipped: undefined, side: 'self' }),
+        ],
+        'Continuous',
+      ),
     );
+  });
+});
+
+describe('task 4.3 — cards that stay on the field (Continuous Spell/Trap, Field Spell)', () => {
+  const activate = (trigger = 'Ignition') => ({
+    id: 'activate',
+    trigger: { kind: trigger },
+    operations: [],
+  });
+  const aura = {
+    id: 'aura',
+    trigger: { kind: 'Continuous' },
+    operations: [{ kind: 'ModifyStat', stat: 'atk', amount: 300, side: 'self' }],
+  };
+  const heal = {
+    id: 'heal',
+    trigger: { kind: 'Ignition' },
+    operations: [{ kind: 'Heal', amount: 500, target: 'self' }],
+  };
+  const card = (kind: 'Spell' | 'Trap', subType: string, effects: unknown[], extra = {}) => ({
+    id: 'X',
+    kind,
+    name: { vi: 'Lá', en: 'Card' },
+    subType,
+    effects,
+    ...extra,
+  });
+
+  it('an Ignition/Quick effect may be empty (card activation); any other trigger may not', () => {
+    ok(EffectDefinitionSchema, activate('Ignition'));
+    ok(EffectDefinitionSchema, activate('Quick'));
+    for (const trigger of ['OnSummon', 'OnDestroyed', 'OnFlip', 'Continuous'])
+      bad(EffectDefinitionSchema, activate(trigger));
+  });
+
+  it('an empty activation effect only on a Continuous Spell/Trap or Field Spell that has a Continuous effect', () => {
+    ok(CardDefinitionSchema, card('Spell', 'Continuous', [activate(), aura]));
+    ok(CardDefinitionSchema, card('Spell', 'Field', [activate(), aura]));
+    ok(CardDefinitionSchema, card('Trap', 'Continuous', [activate('Quick'), aura]));
+    for (const subType of ['Normal', 'QuickPlay', 'Equip', 'Ritual'])
+      bad(CardDefinitionSchema, card('Spell', subType, [activate(), aura]));
+    for (const subType of ['Normal', 'Counter'])
+      bad(CardDefinitionSchema, card('Trap', subType, [activate('Quick'), aura]));
+    bad(CardDefinitionSchema, card('Spell', 'Continuous', [activate()]));
+    bad(CardDefinitionSchema, card('Spell', 'Field', [activate()]));
+  });
+
+  it('a Field Spell needs a Continuous effect or a scriptId', () => {
+    bad(CardDefinitionSchema, card('Spell', 'Field', [heal]));
+    bad(CardDefinitionSchema, { ...card('Spell', 'Field', []), effects: undefined });
+    ok(CardDefinitionSchema, card('Spell', 'Field', [heal, aura]));
+    ok(CardDefinitionSchema, card('Spell', 'Field', [{ ...heal, scriptId: 'some.script' }]));
+    ok(CardDefinitionSchema, card('Spell', 'Field', [heal], { scriptId: 'card.script' }));
+  });
+
+  it('a Spell/Trap with a Continuous effect needs the effect that activates it (Spell: Ignition, Trap: Quick)', () => {
+    bad(CardDefinitionSchema, card('Spell', 'Continuous', [aura]));
+    bad(CardDefinitionSchema, card('Spell', 'Field', [aura]));
+    bad(CardDefinitionSchema, card('Trap', 'Continuous', [aura]));
+    bad(CardDefinitionSchema, card('Trap', 'Continuous', [activate('Ignition'), aura]));
+    bad(CardDefinitionSchema, card('Spell', 'Continuous', [activate('Quick'), aura]));
+    // The activation may do something of its own when it resolves.
+    ok(CardDefinitionSchema, card('Spell', 'Continuous', [heal, aura]));
+  });
+
+  it('staysOnField reads the sub type', () => {
+    expect(staysOnField({ kind: 'Spell', subType: 'Continuous' })).toBe(true);
+    expect(staysOnField({ kind: 'Spell', subType: 'Field' })).toBe(true);
+    expect(staysOnField({ kind: 'Trap', subType: 'Continuous' })).toBe(true);
+    for (const subType of ['Normal', 'QuickPlay', 'Equip', 'Ritual'])
+      expect(staysOnField({ kind: 'Spell', subType })).toBe(false);
+    for (const subType of ['Normal', 'Counter'])
+      expect(staysOnField({ kind: 'Trap', subType })).toBe(false);
+    expect(staysOnField({ kind: 'Monster' })).toBe(false);
   });
 });

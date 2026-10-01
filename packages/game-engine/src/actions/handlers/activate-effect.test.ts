@@ -477,7 +477,7 @@ describe('ActivateEffect — validation', () => {
   it('card kind / subtype / effect / trigger', () => {
     expectEngineError(() => run({ hand: ['M1'] }), 'NOT_A_SPELL_TRAP');
     expectEngineError(() => run({ hand: ['TRAP'] }), 'TRAP_NOT_SET');
-    expectEngineError(() => run({ hand: ['CONT'] }), 'NOT_ACTIVATABLE');
+    // Task 4.3: a Continuous Spell (`CONT`) is activatable now — see rules/continuous-activation.test.ts.
     expectEngineError(() => run({ hand: ['ODD_TRIGGER'] }), 'NOT_ACTIVATABLE');
     expectEngineError(() => run({ hand: ['NO_EFFECT'] }), 'EFFECT_NOT_FOUND');
     expectEngineError(
@@ -486,14 +486,16 @@ describe('ActivateEffect — validation', () => {
     );
   });
 
-  it('a Normal Spell already Set on the field is not activatable yet: NOT_ACTIVATABLE (was CARD_NOT_IN_HAND before 3.4)', () => {
+  it('a Normal Spell already Set on the field is activated from its zone (task 4.3; was NOT_ACTIVATABLE since 3.4)', () => {
     const s = fixtureState({ hand: ['DRAW'] });
     const set = applyAction(
       s,
       { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'h0', zoneIndex: 0 } },
       fixtureCtx,
     ).state;
-    expectEngineError(() => applyAction(set, activate('h0'), fixtureCtx), 'NOT_ACTIVATABLE');
+    const { state } = applyAction(set, activate('h0'), fixtureCtx);
+    expect(state.players[0].graveyard.map((c) => c.instanceId)).toEqual(['h0']);
+    expect(state.players[0].board.spellTrapZones[0]).toBeNull();
   });
 
   it('is deterministic and never mutates its input', () => {

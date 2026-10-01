@@ -1,0 +1,1141 @@
+
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/packages/game-engine
+
+ ❯ src/cards/sample/smp-115.test.ts (4 tests | 2 failed) 18ms
+   ✓ SMP-115 > from the hand: 600 damage, then the graveyard 5ms
+   × SMP-115 > Set, then activated from its zone on the same turn: 600 damage, graveyard from the Spell/Trap Zone 9ms
+     → ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+   × SMP-115 > Set on an earlier turn: activated in Main Phase 2, not in the Battle Phase 2ms
+     → ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+   ✓ SMP-115 > the opponent cannot activate their Set copy on my turn 1ms
+ ❯ src/cards/sample/smp-208.test.ts (4 tests | 4 failed) 19ms
+   × SMP-208 > a Trap: not from the hand, not on the turn it was Set 12ms
+     → expected 'NOT_ACTIVATABLE' to be 'TRAP_SET_THIS_TURN' // Object.is equality
+   × SMP-208 > Set on an earlier turn: flips, stays face-up, the opponent's monsters lose 300 ATK (mine do not) 4ms
+     → ActivateEffect rejected: a Continuous Trap cannot be activated from the SpellTrapZone yet.
+   × SMP-208 > the penalty counts in battle 1ms
+     → ActivateEffect rejected: a Continuous Trap cannot be activated from the SpellTrapZone yet.
+   × SMP-208 > face-up it cannot be activated again; its Continuous effect is never activated 1ms
+     → ActivateEffect rejected: a Continuous Trap cannot be activated from the SpellTrapZone yet.
+ ❯ src/cards/sample/smp-113.test.ts (5 tests | 5 failed) 17ms
+   × SMP-113 > activated from the hand: stays face-up in the Field Zone, WIND monsters of BOTH sides gain 300 ATK 11ms
+     → ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+   × SMP-113 > Set first (no bonus while face-down), then activated from the Field Zone 2ms
+     → SetSpellTrap rejected: Field Spells are not supported yet.
+   × SMP-113 > the bonus counts in battle: my WIND 700 + 300 ties an EARTH 1000 1ms
+     → ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+   × SMP-113 > its Continuous effect is never activated; face-up it cannot be activated again 2ms
+     → ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+   × SMP-113 > destroyed by SMP-105 ("destroy 1 Spell/Trap"): the bonus is gone 1ms
+     → ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+ ❯ src/cards/sample/smp-114.test.ts (4 tests | 4 failed) 22ms
+   × SMP-114 > activated from the hand: stays face-up in the lowest empty Spell/Trap Zone; only MY Warriors gain 300 ATK 10ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+   × SMP-114 > Set first, then activated in place on the same turn 3ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the SpellTrapZone yet.
+   × SMP-114 > two copies stack 1ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+   × SMP-114 > not in the Battle Phase; its Continuous effect is never activated 6ms
+     → expected 'NOT_ACTIVATABLE' to be 'WRONG_PHASE' // Object.is equality
+ ❯ src/rules/set-spell-activation.test.ts (11 tests | 8 failed) 32ms
+   × a Set Normal Spell > is activated on the turn it was Set: flips, resolves, goes to the graveyard from its zone 10ms
+     → ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+   × a Set Normal Spell > is activated on a later turn too, in Main Phase 2 2ms
+     → ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+   × a Set Normal Spell > while its link waits it sits face-up in its zone (source: that zone) 1ms
+     → ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+   × a Set Normal Spell > only in a Main Phase: WRONG_PHASE in the Battle Phase 6ms
+     → expected 'NOT_ACTIVATABLE' to be 'WRONG_PHASE' // Object.is equality
+   × a Set Normal Spell > only on its controller's turn: NOT_TURN_PLAYER, even while they hold priority in a window 1ms
+     → expected 'NOT_ACTIVATABLE' to be 'NOT_TURN_PLAYER' // Object.is equality
+   ✓ a Set Normal Spell > never keeps a chain window open for the opponent (it is not a response) 3ms
+   × a Set Normal Spell > cannot be chained to anything, not even by the turn player: SPELL_SPEED_TOO_LOW 2ms
+     → expected 'NOT_ACTIVATABLE' to be 'SPELL_SPEED_TOO_LOW' // Object.is equality
+   × a Set Normal Spell > with a target to choose: stays face-down while the prompt is open, then flips and resolves 1ms
+     → ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+   × a Set Normal Spell > shows up in legalActions 4ms
+     → expected [ { type: 'EndPhase', …(1) }, …(1) ] to deep equally contain { type: 'ActivateEffect', …(1) }
+   ✓ Set cards that still wait or still cannot be activated > a Quick-Play Spell Set this turn: SPELL_SET_THIS_TURN (unchanged) 1ms
+   ✓ Set cards that still wait or still cannot be activated > a Set Equip Spell: NOT_ACTIVATABLE (backlog) 0ms
+ ❯ src/rules/continuous-activation.test.ts (15 tests | 12 failed) 46ms
+   × Continuous Spell — activating the card > from the hand: placed face-up in the lowest empty Spell/Trap Zone, stays after resolving, the bonus holds 14ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+   × Continuous Spell — activating the card > while its link waits the card is already face-up in its zone (source: that zone) 1ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+   × Continuous Spell — activating the card > what the activation does resolves first, then the card stays 1ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+   × Continuous Spell — activating the card > needs an empty Spell/Trap Zone: NO_FREE_SPELL_TRAP_ZONE 6ms
+     → expected 'NOT_ACTIVATABLE' to be 'NO_FREE_SPELL_TRAP_ZONE' // Object.is equality
+   × Continuous Spell — activating the card > Set first, then activated in place — even on the turn it was Set [RULE] 1ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the SpellTrapZone yet.
+   × Continuous Spell — activating the card > Spell Speed 1: Main Phase of your own turn only, from the hand or Set 1ms
+     → expected 'NOT_ACTIVATABLE' to be 'WRONG_PHASE' // Object.is equality
+   × Continuous Spell — activating the card > a face-up Continuous Spell is never activated again; its Continuous effect is never activated at all 1ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+   × Continuous Spell — activating the card > a Continuous Spell without any Continuous effect still stays (the sub type decides, not the effects) 1ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+   ✓ Continuous Spell — activating the card > a Normal Spell still goes to the graveyard after it resolves (nothing stays) 3ms
+   × Continuous Trap — activating the card > cannot be activated from the hand (C11), nor on the turn it was Set (trapSetTurnDelay) 2ms
+     → expected 'NOT_ACTIVATABLE' to be 'TRAP_SET_THIS_TURN' // Object.is equality
+   × Continuous Trap — activating the card > Set on an earlier turn: flips face-up in any phase, stays after resolving, the penalty holds 1ms
+     → ActivateEffect rejected: a Continuous Trap cannot be activated from the SpellTrapZone yet.
+   × Continuous Trap — activating the card > the opponent chains it (Spell Speed 2) to my Spell; both resolve, the Trap stays face-up 8ms
+     → expected null to match object { priorityPlayer: 1 }
+   ✓ Continuous Trap — activating the card > a face-up Continuous Trap is never activated again and holds no window open 1ms
+   ✓ Continuous Spell/Trap — leaving the field > destroyed later: SpellTrapDestroyed, graveyard, the effect stops with the next read 2ms
+   × Continuous Spell/Trap — leaving the field > destroyed while its link waits: the activation still resolves, the card is not sent twice, no bonus 1ms
+     → ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+ ❯ src/rules/field-spell.test.ts (20 tests | 19 failed) 48ms
+   × Field Spell — Set > goes face-down into the Field Zone (not a Spell/Trap Zone), stamps the turn, leaves the hand 11ms
+     → SetSpellTrap rejected: Field Spells are not supported yet.
+   × Field Spell — Set > the event never carries a definitionId (the card is face-down) 2ms
+     → SetSpellTrap rejected: Field Spells are not supported yet.
+   × Field Spell — Set > the Field Zone has one slot: only zoneIndex 0 is accepted 6ms
+     → expected 'NOT_ACTIVATABLE' to be 'INVALID_ZONE' // Object.is equality
+   × Field Spell — Set > a full Spell/Trap row does not block it, and a Set Field Spell gives no bonus 1ms
+     → SetSpellTrap rejected: Field Spells are not supported yet.
+   × Field Spell — Set > legalActions offers exactly one Set for a Field Spell in the hand, plus its activation 5ms
+     → expected [] to deeply equal [ { type: 'SetSpellTrap', …(1) } ]
+   × Field Spell — activation > from the hand: lands face-up in the Field Zone, stays after resolving, the bonus applies to both sides at once 1ms
+     → ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+   × Field Spell — activation > while its link waits, the card is already face-up in the Field Zone and the link says so 1ms
+     → ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+   × Field Spell — activation > a Set Field Spell is activated from the Field Zone — even on the turn it was Set [RULE] 2ms
+     → SetSpellTrap rejected: Field Spells are not supported yet.
+   × Field Spell — activation > only in your own Main Phase: WRONG_PHASE in the Battle Phase, NOT_TURN_PLAYER for the other player 2ms
+     → expected 'NOT_ACTIVATABLE' to be 'WRONG_PHASE' // Object.is equality
+   ✓ Field Spell — activation > a Set Field Spell of the opponent does not hold a reaction window open 1ms
+   × Field Spell — activation > a face-up Field Spell is never activated again; its Continuous effect is never activated at all 1ms
+     → expected 'CARD_NOT_IN_HAND' to be 'NOT_ACTIVATABLE' // Object.is equality
+   × Field Spell — activation > each player has their own Field Spell: both hold, and mine does not touch theirs 2ms
+     → expected 1000 to be 600 // Object.is equality
+   × Field Spell — replacing your own > activating a new one from the hand sends the old one to the graveyard; its bonus is gone, the new one holds 2ms
+     → expected [ 1000, 1000 ] to deeply equal [ 1500, 1500 ]
+   × Field Spell — replacing your own > a Set (face-down) old one is replaced too; Setting a new one replaces as well 1ms
+     → ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+   × Field Spell — replacing your own > activating the Set card itself replaces nothing 0ms
+     → ActivateEffect rejected: card mf is neither in your hand nor Set in your Spell/Trap Zone.
+   × Field Spell — replacing your own > ruleset.fieldSpellReplace false: an occupied Field Zone rejects FIELD_ZONE_OCCUPIED (an empty one is fine) 1ms
+     → expected 'NOT_ACTIVATABLE' to be 'FIELD_ZONE_OCCUPIED' // Object.is equality
+   × Field Spell — leaving the field > "destroy 1 Spell/Trap" can target it: FieldSpellDestroyed, owner's graveyard, the bonus stops 1ms
+     → expected 1000 to be 1500 // Object.is equality
+   × Field Spell — leaving the field > a face-down Field Spell is a legal target next to the Spell/Trap Zone cards (prompt lists both) 4ms
+     → expected undefined to match object { candidateInstanceIds: [ …(2) ] }
+   × Field Spell — leaving the field > a destroyed Field Spell fires its OnDestroyed trigger 1ms
+     → ActivateEffect rejected: needs 1 target(s), only 0 available.
+   × Field Spell — leaving the field > destroyed while its link waits: the link still resolves, the card is not sent again, no bonus ever applies 1ms
+     → ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 54 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Spell — activating the card > from the hand: placed face-up in the lowest empty Spell/Trap Zone, stays after resolving, the bonus holds
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/continuous-activation.test.ts:33:3
+ ❯ src/rules/continuous-activation.test.ts:62:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Spell — activating the card > while its link waits the card is already face-up in its zone (source: that zone)
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/continuous-activation.test.ts:33:3
+ ❯ src/rules/continuous-activation.test.ts:84:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Spell — activating the card > what the activation does resolves first, then the card stays
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/continuous-activation.test.ts:33:3
+ ❯ src/rules/continuous-activation.test.ts:98:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Spell — activating the card > needs an empty Spell/Trap Zone: NO_FREE_SPELL_TRAP_ZONE
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'NO_FREE_SPELL_TRAP_ZONE' // Object.is equality
+
+Expected: "NO_FREE_SPELL_TRAP_ZONE"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/continuous-activation.test.ts:116:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Spell — activating the card > Set first, then activated in place — even on the turn it was Set [RULE]
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/continuous-activation.test.ts:33:3
+ ❯ src/rules/continuous-activation.test.ts:122:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Spell — activating the card > Spell Speed 1: Main Phase of your own turn only, from the hand or Set
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'WRONG_PHASE' // Object.is equality
+
+Expected: "WRONG_PHASE"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/continuous-activation.test.ts:141:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Spell — activating the card > a face-up Continuous Spell is never activated again; its Continuous effect is never activated at all
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/continuous-activation.test.ts:33:3
+ ❯ src/rules/continuous-activation.test.ts:159:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Spell — activating the card > a Continuous Spell without any Continuous effect still stays (the sub type decides, not the effects)
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/continuous-activation.test.ts:33:3
+ ❯ src/rules/continuous-activation.test.ts:169:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Trap — activating the card > cannot be activated from the hand (C11), nor on the turn it was Set (trapSetTurnDelay)
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'TRAP_SET_THIS_TURN' // Object.is equality
+
+Expected: "TRAP_SET_THIS_TURN"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/continuous-activation.test.ts:192:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Trap — activating the card > Set on an earlier turn: flips face-up in any phase, stays after resolving, the penalty holds
+EngineError: ActivateEffect rejected: a Continuous Trap cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/continuous-activation.test.ts:33:3
+ ❯ src/rules/continuous-activation.test.ts:202:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Trap — activating the card > the opponent chains it (Spell Speed 2) to my Spell; both resolve, the Trap stays face-up
+AssertionError: expected null to match object { priorityPlayer: 1 }
+
+- Expected: 
+{
+  "priorityPlayer": 1,
+}
+
++ Received: 
+null
+
+ ❯ src/rules/continuous-activation.test.ts:219:32
+    217|       act('h0'),
+    218|     ).state;
+    219|     expect(opened.chainWindow).toMatchObject({ priorityPlayer: 1 });
+       |                                ^
+    220|     const { state, events } = apply(opened, act('os-0', 'e1', 1));
+    221|     expect(events.filter((e) => e.type === 'EffectResolved').map((e) =…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/54]⎯
+
+ FAIL  src/rules/continuous-activation.test.ts > Continuous Spell/Trap — leaving the field > destroyed while its link waits: the activation still resolves, the card is not sent twice, no bonus
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/continuous-activation.test.ts:33:3
+ ❯ src/rules/continuous-activation.test.ts:256:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — Set > goes face-down into the Field Zone (not a Spell/Trap Zone), stamps the turn, leaves the hand
+EngineError: SetSpellTrap rejected: Field Spells are not supported yet.
+ ❯ reject src/actions/handlers/set-spell-trap.ts:17:11
+     15|   const { playerIndex, cardInstanceId, zoneIndex } = action.payload;
+     16|   const reject = (code: EngineErrorCode, reason: string): never => {
+     17|     throw new EngineError(code, `SetSpellTrap rejected: ${reason}`);
+       |           ^
+     18|   };
+     19| 
+ ❯ applySetSpellTrap src/actions/handlers/set-spell-trap.ts:47:12
+ ❯ dispatch src/apply-action.ts:120:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:49:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — Set > the event never carries a definitionId (the card is face-down)
+EngineError: SetSpellTrap rejected: Field Spells are not supported yet.
+ ❯ reject src/actions/handlers/set-spell-trap.ts:17:11
+     15|   const { playerIndex, cardInstanceId, zoneIndex } = action.payload;
+     16|   const reject = (code: EngineErrorCode, reason: string): never => {
+     17|     throw new EngineError(code, `SetSpellTrap rejected: ${reason}`);
+       |           ^
+     18|   };
+     19| 
+ ❯ applySetSpellTrap src/actions/handlers/set-spell-trap.ts:47:12
+ ❯ dispatch src/apply-action.ts:120:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:64:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — Set > the Field Zone has one slot: only zoneIndex 0 is accepted
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'INVALID_ZONE' // Object.is equality
+
+Expected: "INVALID_ZONE"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/field-spell.test.ts:71:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — Set > a full Spell/Trap row does not block it, and a Set Field Spell gives no bonus
+EngineError: SetSpellTrap rejected: Field Spells are not supported yet.
+ ❯ reject src/actions/handlers/set-spell-trap.ts:17:11
+     15|   const { playerIndex, cardInstanceId, zoneIndex } = action.payload;
+     16|   const reject = (code: EngineErrorCode, reason: string): never => {
+     17|     throw new EngineError(code, `SetSpellTrap rejected: ${reason}`);
+       |           ^
+     18|   };
+     19| 
+ ❯ applySetSpellTrap src/actions/handlers/set-spell-trap.ts:47:12
+ ❯ dispatch src/apply-action.ts:120:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:79:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — Set > legalActions offers exactly one Set for a Field Spell in the hand, plus its activation
+AssertionError: expected [] to deeply equal [ { type: 'SetSpellTrap', …(1) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "payload": {
+-       "cardInstanceId": "h0",
+-       "playerIndex": 0,
+-       "zoneIndex": 0,
+-     },
+-     "type": "SetSpellTrap",
+-   },
+- ]
++ []
+
+ ❯ src/rules/field-spell.test.ts:87:60
+     85|     const state = fixtureState({ hand: ['FLD_WARRIOR'] });
+     86|     const legal = getLegalActions(state, 0, fixtureCtx);
+     87|     expect(legal.filter((a) => a.type === 'SetSpellTrap')).toEqual([se…
+       |                                                            ^
+     88|     expect(legal.filter((a) => a.type === 'ActivateEffect')).toEqual([…
+     89|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — activation > from the hand: lands face-up in the Field Zone, stays after resolving, the bonus applies to both sides at once
+EngineError: ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:95:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — activation > while its link waits, the card is already face-up in the Field Zone and the link says so
+EngineError: ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:117:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — activation > a Set Field Spell is activated from the Field Zone — even on the turn it was Set [RULE]
+EngineError: SetSpellTrap rejected: Field Spells are not supported yet.
+ ❯ reject src/actions/handlers/set-spell-trap.ts:17:11
+     15|   const { playerIndex, cardInstanceId, zoneIndex } = action.payload;
+     16|   const reject = (code: EngineErrorCode, reason: string): never => {
+     17|     throw new EngineError(code, `SetSpellTrap rejected: ${reason}`);
+       |           ^
+     18|   };
+     19| 
+ ❯ applySetSpellTrap src/actions/handlers/set-spell-trap.ts:47:12
+ ❯ dispatch src/apply-action.ts:120:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:134:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — activation > only in your own Main Phase: WRONG_PHASE in the Battle Phase, NOT_TURN_PLAYER for the other player
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'WRONG_PHASE' // Object.is equality
+
+Expected: "WRONG_PHASE"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/field-spell.test.ts:156:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — activation > a face-up Field Spell is never activated again; its Continuous effect is never activated at all
+AssertionError: expected 'CARD_NOT_IN_HAND' to be 'NOT_ACTIVATABLE' // Object.is equality
+
+Expected: "NOT_ACTIVATABLE"
+Received: "CARD_NOT_IN_HAND"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/field-spell.test.ts:181:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — activation > each player has their own Field Spell: both hold, and mine does not touch theirs
+AssertionError: expected 1000 to be 600 // Object.is equality
+
+- Expected
++ Received
+
+- 600
++ 1000
+
+ ❯ src/rules/field-spell.test.ts:194:28
+    192|   it('each player has their own Field Spell: both hold, and mine does …
+    193|     const before = warriors({ hand: ['FLD_WARRIOR'], oppField: ['FLD_W…
+    194|     expect(atk(before, 0)).toBe(600);
+       |                            ^
+    195|     const { state } = apply(before, act('h0'));
+    196|     expect(field(state, 1)).toMatchObject({ instanceId: 'of', position…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — replacing your own > activating a new one from the hand sends the old one to the graveyard; its bonus is gone, the new one holds
+AssertionError: expected [ 1000, 1000 ] to deeply equal [ 1500, 1500 ]
+
+- Expected
++ Received
+
+  [
+-   1500,
+-   1500,
++   1000,
++   1000,
+  ]
+
+ ❯ src/rules/field-spell.test.ts:205:46
+    203|   it('activating a new one from the hand sends the old one to the grav…
+    204|     const before = warriors({ hand: ['FLD_WEAK'], myField: ['FLD_WARRI…
+    205|     expect([atk(before, 0), atk(before, 1)]).toEqual([1500, 1500]);
+       |                                              ^
+    206|     const { state, events } = apply(before, act('h0'));
+    207|     expect(types(events)).toEqual([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — replacing your own > a Set (face-down) old one is replaced too; Setting a new one replaces as well
+EngineError: ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:229:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — replacing your own > activating the Set card itself replaces nothing
+EngineError: ActivateEffect rejected: card mf is neither in your hand nor Set in your Spell/Trap Zone.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:98:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:255:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — replacing your own > ruleset.fieldSpellReplace false: an occupied Field Zone rejects FIELD_ZONE_OCCUPIED (an empty one is fine)
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'FIELD_ZONE_OCCUPIED' // Object.is equality
+
+Expected: "FIELD_ZONE_OCCUPIED"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/field-spell.test.ts:268:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — leaving the field > "destroy 1 Spell/Trap" can target it: FieldSpellDestroyed, owner's graveyard, the bonus stops
+AssertionError: expected 1000 to be 1500 // Object.is equality
+
+- Expected
++ Received
+
+- 1500
++ 1000
+
+ ❯ src/rules/field-spell.test.ts:282:28
+    280|   it('"destroy 1 Spell/Trap" can target it: FieldSpellDestroyed, owner…
+    281|     const before = warriors({ hand: ['KILL_ST'], oppField: ['FLD_WARRI…
+    282|     expect(atk(before, 0)).toBe(1500);
+       |                            ^
+    283|     const { state, events } = apply(before, act('h0'));
+    284|     expect(events).toContainEqual({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — leaving the field > a face-down Field Spell is a legal target next to the Spell/Trap Zone cards (prompt lists both)
+AssertionError: expected undefined to match object { candidateInstanceIds: [ …(2) ] }
+
+- Expected: 
+{
+  "candidateInstanceIds": [
+    "os-2",
+    "of",
+  ],
+}
+
++ Received: 
+undefined
+
+ ❯ src/rules/field-spell.test.ts:307:45
+    305|       act('h0'),
+    306|     ).state;
+    307|     expect(prompted.pendingPrompt?.payload).toMatchObject({ candidateI…
+       |                                             ^
+    308|   });
+    309| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — leaving the field > a destroyed Field Spell fires its OnDestroyed trigger
+EngineError: ActivateEffect rejected: needs 1 target(s), only 0 available.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:210:7
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:312:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/54]⎯
+
+ FAIL  src/rules/field-spell.test.ts > Field Spell — leaving the field > destroyed while its link waits: the link still resolves, the card is not sent again, no bonus ever applies
+EngineError: ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/field-spell.test.ts:34:3
+ ❯ src/rules/field-spell.test.ts:318:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/54]⎯
+
+ FAIL  src/rules/set-spell-activation.test.ts > a Set Normal Spell > is activated on the turn it was Set: flips, resolves, goes to the graveyard from its zone
+EngineError: ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/set-spell-activation.test.ts:26:3
+ ❯ src/rules/set-spell-activation.test.ts:32:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/54]⎯
+
+ FAIL  src/rules/set-spell-activation.test.ts > a Set Normal Spell > is activated on a later turn too, in Main Phase 2
+EngineError: ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/set-spell-activation.test.ts:26:3
+ ❯ src/rules/set-spell-activation.test.ts:58:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/54]⎯
+
+ FAIL  src/rules/set-spell-activation.test.ts > a Set Normal Spell > while its link waits it sits face-up in its zone (source: that zone)
+EngineError: ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/set-spell-activation.test.ts:26:3
+ ❯ src/rules/set-spell-activation.test.ts:64:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/54]⎯
+
+ FAIL  src/rules/set-spell-activation.test.ts > a Set Normal Spell > only in a Main Phase: WRONG_PHASE in the Battle Phase
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'WRONG_PHASE' // Object.is equality
+
+Expected: "WRONG_PHASE"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/set-spell-activation.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/54]⎯
+
+ FAIL  src/rules/set-spell-activation.test.ts > a Set Normal Spell > only on its controller's turn: NOT_TURN_PLAYER, even while they hold priority in a window
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'NOT_TURN_PLAYER' // Object.is equality
+
+Expected: "NOT_TURN_PLAYER"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/set-spell-activation.test.ts:87:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/54]⎯
+
+ FAIL  src/rules/set-spell-activation.test.ts > a Set Normal Spell > cannot be chained to anything, not even by the turn player: SPELL_SPEED_TOO_LOW
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'SPELL_SPEED_TOO_LOW' // Object.is equality
+
+Expected: "SPELL_SPEED_TOO_LOW"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/set-spell-activation.test.ts:110:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/54]⎯
+
+ FAIL  src/rules/set-spell-activation.test.ts > a Set Normal Spell > with a target to choose: stays face-down while the prompt is open, then flips and resolves
+EngineError: ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/rules/set-spell-activation.test.ts:26:3
+ ❯ src/rules/set-spell-activation.test.ts:121:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/54]⎯
+
+ FAIL  src/rules/set-spell-activation.test.ts > a Set Normal Spell > shows up in legalActions
+AssertionError: expected [ { type: 'EndPhase', …(1) }, …(1) ] to deep equally contain { type: 'ActivateEffect', …(1) }
+
+- Expected: 
+{
+  "payload": {
+    "cardInstanceId": "ms-0",
+    "effectId": "e1",
+    "playerIndex": 0,
+  },
+  "type": "ActivateEffect",
+}
+
++ Received: 
+[
+  {
+    "payload": {
+      "playerIndex": 0,
+    },
+    "type": "EndPhase",
+  },
+  {
+    "payload": {
+      "playerIndex": 0,
+    },
+    "type": "Surrender",
+  },
+]
+
+ ❯ src/rules/set-spell-activation.test.ts:138:51
+    136|   it('shows up in legalActions', () => {
+    137|     const state = fixtureState({ mySpellTraps: [[0, 'DRAW']] });
+    138|     expect(getLegalActions(state, 0, fixtureCtx)).toContainEqual(act('…
+       |                                                   ^
+    139|     expect(getLegalActions({ ...state, phase: 'Battle' }, 0, fixtureCt…
+    140|       act('ms-0'),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/54]⎯
+
+ FAIL  src/cards/sample/smp-113.test.ts > SMP-113 > activated from the hand: stays face-up in the Field Zone, WIND monsters of BOTH sides gain 300 ATK
+EngineError: ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-113.test.ts:39:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/54]⎯
+
+ FAIL  src/cards/sample/smp-113.test.ts > SMP-113 > Set first (no bonus while face-down), then activated from the Field Zone
+EngineError: SetSpellTrap rejected: Field Spells are not supported yet.
+ ❯ reject src/actions/handlers/set-spell-trap.ts:17:11
+     15|   const { playerIndex, cardInstanceId, zoneIndex } = action.payload;
+     16|   const reject = (code: EngineErrorCode, reason: string): never => {
+     17|     throw new EngineError(code, `SetSpellTrap rejected: ${reason}`);
+       |           ^
+     18|   };
+     19| 
+ ❯ applySetSpellTrap src/actions/handlers/set-spell-trap.ts:47:12
+ ❯ dispatch src/apply-action.ts:120:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-113.test.ts:59:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/54]⎯
+
+ FAIL  src/cards/sample/smp-113.test.ts > SMP-113 > the bonus counts in battle: my WIND 700 + 300 ties an EARTH 1000
+EngineError: ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-113.test.ts:68:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/54]⎯
+
+ FAIL  src/cards/sample/smp-113.test.ts > SMP-113 > its Continuous effect is never activated; face-up it cannot be activated again
+EngineError: ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-113.test.ts:85:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/54]⎯
+
+ FAIL  src/cards/sample/smp-113.test.ts > SMP-113 > destroyed by SMP-105 ("destroy 1 Spell/Trap"): the bonus is gone
+EngineError: ActivateEffect rejected: a Field Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-113.test.ts:90:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/54]⎯
+
+ FAIL  src/cards/sample/smp-114.test.ts > SMP-114 > activated from the hand: stays face-up in the lowest empty Spell/Trap Zone; only MY Warriors gain 300 ATK
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-114.test.ts:32:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/54]⎯
+
+ FAIL  src/cards/sample/smp-114.test.ts > SMP-114 > Set first, then activated in place on the same turn
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-114.test.ts:53:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/54]⎯
+
+ FAIL  src/cards/sample/smp-114.test.ts > SMP-114 > two copies stack
+EngineError: ActivateEffect rejected: a Continuous Spell cannot be activated from the Hand yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-114.test.ts:59:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/54]⎯
+
+ FAIL  src/cards/sample/smp-114.test.ts > SMP-114 > not in the Battle Phase; its Continuous effect is never activated
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'WRONG_PHASE' // Object.is equality
+
+Expected: "WRONG_PHASE"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/cards/sample/smp-114.test.ts:70:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/54]⎯
+
+ FAIL  src/cards/sample/smp-115.test.ts > SMP-115 > Set, then activated from its zone on the same turn: 600 damage, graveyard from the Spell/Trap Zone
+EngineError: ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-115.test.ts:26:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/54]⎯
+
+ FAIL  src/cards/sample/smp-115.test.ts > SMP-115 > Set on an earlier turn: activated in Main Phase 2, not in the Battle Phase
+EngineError: ActivateEffect rejected: a Normal Spell cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-115.test.ts:49:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/54]⎯
+
+ FAIL  src/cards/sample/smp-208.test.ts > SMP-208 > a Trap: not from the hand, not on the turn it was Set
+AssertionError: expected 'NOT_ACTIVATABLE' to be 'TRAP_SET_THIS_TURN' // Object.is equality
+
+Expected: "TRAP_SET_THIS_TURN"
+Received: "NOT_ACTIVATABLE"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/cards/sample/smp-208.test.ts:31:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/54]⎯
+
+ FAIL  src/cards/sample/smp-208.test.ts > SMP-208 > Set on an earlier turn: flips, stays face-up, the opponent's monsters lose 300 ATK (mine do not)
+EngineError: ActivateEffect rejected: a Continuous Trap cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-208.test.ts:40:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/54]⎯
+
+ FAIL  src/cards/sample/smp-208.test.ts > SMP-208 > the penalty counts in battle
+EngineError: ActivateEffect rejected: a Continuous Trap cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-208.test.ts:56:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/54]⎯
+
+ FAIL  src/cards/sample/smp-208.test.ts > SMP-208 > face-up it cannot be activated again; its Continuous effect is never activated
+EngineError: ActivateEffect rejected: a Continuous Trap cannot be activated from the SpellTrapZone yet.
+ ❯ fail src/actions/handlers/activate-effect.ts:67:9
+     65| 
+     66| const fail = (code: EngineErrorCode, reason: string): never => {
+     67|   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
+       |         ^
+     68| };
+     69| 
+ ❯ prepare src/actions/handlers/activate-effect.ts:152:12
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:366:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:21:3
+ ❯ src/cards/sample/smp-208.test.ts:76:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/54]⎯
+
+
+ Test Files  7 failed (7)
+      Tests  54 failed | 9 passed (63)
+   Start at  13:00:55
+   Duration  2.75s (transform 820ms, setup 0ms, collect 14.35s, tests 202ms, environment 3ms, prepare 1.50s)
+
+undefined
+E:\code\game\turn_battle\yugi-h5\packages\game-engine:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/rules/field-spell.test.ts src/rules/continuous-activation.test.ts src/rules/set-spell-activation.test.ts src/cards/sample/smp-113.test.ts src/cards/sample/smp-114.test.ts src/cards/sample/smp-115.test.ts src/cards/sample/smp-208.test.ts

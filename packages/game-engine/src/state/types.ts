@@ -37,9 +37,8 @@ export interface CardInstance {
 export type PlayerZoneKey = 'hand' | 'deck' | 'graveyard' | 'banished' | 'extraDeck';
 
 /**
- * Fixed-size board zones. `null` = empty slot. Field zone is modeled now (per
- * design decision to avoid a later state-shape migration) but stays unused
- * (always null) until Field Spell support lands.
+ * Fixed-size board zones. `null` = empty slot. `fieldZone` (task 4.3) holds the player's Field Spell: Set face-down
+ * (`DefenseDown`, with `setTurn`) or face-up (`Attack`); only Field Spells go there, never into a Spell/Trap Zone.
  */
 export interface BoardZones {
   readonly monsterZones: readonly [
@@ -87,10 +86,12 @@ export interface PendingPrompt {
 /**
  * Where the activated card was (task 3.4). Trigger effects (task 3.5): a monster's OnSummon from its Monster Zone, an
  * OnDestroyed from the graveyard — the card stays where it is and `card` is only a copy (like a Set card).
+ * Task 4.3: `FieldZone` = a Field Spell, face-up in its controller's Field Zone while its link waits (a copy too).
  */
 export type ChainLinkSource =
   | { readonly zone: 'Hand' }
   | { readonly zone: 'SpellTrapZone'; readonly zoneIndex: number }
+  | { readonly zone: 'FieldZone' }
   | { readonly zone: 'MonsterZone'; readonly zoneIndex: number }
   | { readonly zone: 'Graveyard' };
 

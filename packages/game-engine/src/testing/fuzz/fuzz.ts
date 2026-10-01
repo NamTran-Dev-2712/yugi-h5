@@ -1,4 +1,4 @@
-import type { CardDefinition, EffectDefinition } from '@yugi/shared';
+import { staysOnField, type CardDefinition, type EffectDefinition } from '@yugi/shared';
 import type { Action, ActionContext, StartDuelAction } from '../../actions/types.js';
 import type { ApplyActionResult } from '../../apply-action.js';
 import { applyAction } from '../../apply-action.js';
@@ -174,6 +174,18 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  // Task 4.3 — cards that stay face-up after their activation resolves: two Field Spells (so one replaces the other),
+  // a Continuous Spell and a Continuous Trap. `e1` activates the card, `e2` is the Continuous effect.
+  FLD: stayingCard('FLD', 'Spell', 'Field', { stat: 'atk', amount: 400, side: 'self' }),
+  FLD2: stayingCard('FLD2', 'Spell', 'Field', { stat: 'def', amount: -300, side: 'opponent' }),
+  CSA: stayingCard('CSA', 'Spell', 'Continuous', { stat: 'atk', amount: 200, side: 'self' }),
+  CTR: stayingCard('CTR', 'Trap', 'Continuous', { stat: 'atk', amount: -200, side: 'opponent' }),
+  // A Normal Spell that destroys a Spell/Trap — or the Field Spell — of the opponent, so those cards also leave the field.
+  SPS: spell('SPS', {
+    trigger: { kind: 'Ignition' },
+    target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
 };
 const DECK_POOL = Object.keys(FUZZ_DEFS);
 const PHASES: readonly Phase[] = ['Draw', 'Standby', 'Main1', 'Battle', 'Main2', 'End'];
@@ -229,6 +241,28 @@ function equipSpell(id: string, side: 'self' | 'opponent', amount: number): Card
         id: 'e2',
         trigger: { kind: 'Continuous' },
         operations: [{ kind: 'ModifyStat', stat: 'atk', amount, equipped: true }],
+      },
+    ],
+  } as CardDefinition;
+}
+
+function stayingCard(
+  id: string,
+  kind: 'Spell' | 'Trap',
+  subType: 'Field' | 'Continuous',
+  modify: { stat: 'atk' | 'def'; amount: number; side: 'self' | 'opponent' },
+): CardDefinition {
+  return {
+    id,
+    kind,
+    name: { vi: `Fuzz ${id}`, en: `Fuzz ${id}` },
+    subType,
+    effects: [
+      { id: 'e1', trigger: { kind: kind === 'Trap' ? 'Quick' : 'Ignition' }, operations: [] },
+      {
+        id: 'e2',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', ...modify }],
       },
     ],
   } as CardDefinition;
@@ -297,6 +331,16 @@ export interface FuzzStats {
   /** Flip Summons, and OnFlip effects put on the chain (task 4.2b). */
   readonly flipSummons: number;
   readonly flipLinks: number;
+  /**
+   * Task 4.3 — Field Spells Set / activated (links), replaced by their controller's new one, destroyed by an effect;
+   * Continuous Spells/Traps that resolved and stayed face-up; Normal Spells activated from where they were Set.
+   */
+  readonly fieldSpellSets: number;
+  readonly fieldSpellLinks: number;
+  readonly fieldSpellsReplaced: number;
+  readonly fieldSpellsDestroyed: number;
+  readonly continuousCardsStayed: number;
+  readonly setNormalSpellLinks: number;
 }
 
 export type FuzzResult =
@@ -430,12 +474,17 @@ function plausibleSetSpellTrap(state: GameState, rand: Rand): Action | null {
   if (hand.length === 0) return null;
   const board = state.players[p].board.spellTrapZones;
   const free = board.flatMap((c, i) => (c === null ? [i] : []));
+  const card = rand.pick(hand);
+  const anyZone = free.length > 0 ? rand.pick(free) : rand.int(5);
+  // Task 4.3: a Field Spell goes to the Field Zone (zoneIndex 0); any other index must be rejected.
+  const def = FUZZ_DEFS[card.definitionId];
+  const isField = def?.kind === 'Spell' && def.subType === 'Field';
   return {
     type: 'SetSpellTrap',
     payload: {
       playerIndex: p,
-      cardInstanceId: rand.pick(hand).instanceId,
-      zoneIndex: free.length > 0 ? rand.pick(free) : rand.int(5),
+      cardInstanceId: card.instanceId,
+      zoneIndex: isField && rand.chance(0.9) ? 0 : anyZone,
     },
   };
 }
@@ -444,8 +493,10 @@ function plausibleSetSpellTrap(state: GameState, rand: Rand): Action | null {
 function plausibleActivate(state: GameState, rand: Rand): Action | null {
   const p = state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex;
   const hand = state.players[p].hand;
-  // Hand cards and (task 3.4) the player's own Spell/Trap Zone, face-down or not (face-up ones must be rejected).
-  const backrow = state.players[p].board.spellTrapZones.filter(
+  // Hand cards and (task 3.4) the player's own Spell/Trap Zone, face-down or not (face-up ones must be rejected),
+  // and (task 4.3) their Field Zone.
+  const board = state.players[p].board;
+  const backrow = [...board.spellTrapZones, board.fieldZone].filter(
     (c): c is CardInstance => c !== null,
   );
   const pool = backrow.length > 0 && rand.chance(0.5) ? backrow : hand;
@@ -725,7 +776,8 @@ export function checkStateInvariants(
     if (link.card.position !== null) return `chain link ${link.linkId} card has a position`;
   }
   // Task 3.4: a Spell/Trap is face-up on the field only while its own link (from that zone) waits on the chain —
-  // or (task 4.2c) while it is equipped to a monster that is face-up on the field (no orphan Equip after any action).
+  // or (task 4.2c) while it is equipped to a monster that is face-up on the field (no orphan Equip after any action),
+  // or (task 4.3) because it is a Continuous Spell/Trap: those stay face-up once activated.
   const faceUpMonsterIds = new Set(
     [0, 1].flatMap((i) =>
       monstersOf(state, i as 0 | 1)
@@ -739,6 +791,25 @@ export function checkStateInvariants(
       if (c.equippedTo !== undefined)
         return `card ${c.instanceId} outside a Spell/Trap Zone has equippedTo`;
     }
+    // Task 4.3: the Field Zone (one slot per player) only ever holds a Field Spell of that player, face-up or Set; a
+    // Field Spell is never in a Spell/Trap Zone.
+    const inField = p.board.fieldZone;
+    if (inField) {
+      const def = FUZZ_DEFS[inField.definitionId];
+      if (!def || def.kind !== 'Spell' || def.subType !== 'Field')
+        return `${inField.definitionId} (${inField.instanceId}) in a Field Zone is not a Field Spell`;
+      if (inField.position !== 'Attack' && inField.position !== 'DefenseDown')
+        return `Field Zone card ${inField.instanceId} has position ${inField.position}`;
+      if (inField.ownerIndex !== i)
+        return `Field Zone card ${inField.instanceId} of player ${i} is owned by ${inField.ownerIndex}`;
+      if (inField.equippedTo !== undefined)
+        return `Field Zone card ${inField.instanceId} has equippedTo`;
+    }
+    for (const c of p.board.spellTrapZones) {
+      const def = c ? FUZZ_DEFS[c.definitionId] : undefined;
+      if (c && def?.kind === 'Spell' && def.subType === 'Field')
+        return `Field Spell ${c.instanceId} sits in a Spell/Trap Zone`;
+    }
     const zones = p.board.spellTrapZones;
     for (let z = 0; z < zones.length; z++) {
       const c = zones[z];
@@ -748,6 +819,8 @@ export function checkStateInvariants(
           return `Equip ${c.instanceId} in zone ${z} is equipped to ${c.equippedTo}, not a face-up monster`;
         continue;
       }
+      const def = FUZZ_DEFS[c.definitionId];
+      if (def && staysOnField(def)) continue;
       const waiting = state.chainStack.some(
         (l) =>
           l.card.instanceId === c.instanceId &&
@@ -851,6 +924,12 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let equips = 0;
   let equipsDetached = 0;
   let flipLinks = 0;
+  let fieldSpellSets = 0;
+  let fieldSpellLinks = 0;
+  let fieldSpellsReplaced = 0;
+  let fieldSpellsDestroyed = 0;
+  let continuousCardsStayed = 0;
+  let setNormalSpellLinks = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -930,6 +1009,45 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       }
     }
     flipSummons += result.events.filter((e) => e.type === 'FlipSummoned').length;
+    // Task 4.3.
+    for (const e of result.events) {
+      if (e.type === 'FieldSpellSet') fieldSpellSets++;
+      if (e.type === 'FieldSpellDestroyed') fieldSpellsDestroyed++;
+      if (e.type === 'CardSentToGraveyard') {
+        if (e.from === 'FieldZone') {
+          fieldSpellsReplaced++;
+          continue;
+        }
+        // A Continuous Spell/Trap or Field Spell is never sent to the graveyard as "used": only replaced or destroyed.
+        const def = FUZZ_DEFS[e.definitionId];
+        if (def && staysOnField(def))
+          return fail(
+            step,
+            `${e.definitionId} (${e.instanceId}) was sent to the graveyard after resolving`,
+          );
+      }
+      if (e.type === 'EffectResolved') {
+        const def = FUZZ_DEFS[e.definitionId];
+        const stayed = next.players.some((p) =>
+          p.board.spellTrapZones.some(
+            (c) => c?.instanceId === e.instanceId && c.position === 'Attack',
+          ),
+        );
+        if (def && def.kind !== 'Monster' && def.subType === 'Continuous' && stayed)
+          continuousCardsStayed++;
+      }
+      if (e.type === 'ChainLinkAdded') {
+        const def = FUZZ_DEFS[e.definitionId];
+        if (def?.kind !== 'Spell') continue;
+        if (def.subType === 'Field') fieldSpellLinks++;
+        const wasSet = state?.players.some((p) =>
+          p.board.spellTrapZones.some(
+            (c) => c?.instanceId === e.instanceId && c.position === 'DefenseDown',
+          ),
+        );
+        if (def.subType === 'Normal' && wasSet) setNormalSpellLinks++;
+      }
+    }
     equips += result.events.filter((e) => e.type === 'CardEquipped').length;
     const wasEquipped = new Set(
       (state?.players ?? []).flatMap((p) =>
@@ -993,6 +1111,12 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       flipLinks,
       equips,
       equipsDetached,
+      fieldSpellSets,
+      fieldSpellLinks,
+      fieldSpellsReplaced,
+      fieldSpellsDestroyed,
+      continuousCardsStayed,
+      setNormalSpellLinks,
     },
   };
 }

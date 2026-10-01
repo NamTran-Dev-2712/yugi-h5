@@ -68,7 +68,51 @@ handler function đăng ký sẵn trong engine.
   `Continuous`, và effect `Continuous` chỉ chứa chúng (refine). Handler ở `CONTINUOUS_HANDLERS` (engine), không ở `OPERATION_HANDLERS`.
 - `ModifyStat{stat: 'atk'|'def', amount (≠ 0, ±10000), side, filter?, excludeSource?}`: quái **ngửa** ở `side` (tương đối người điều
   khiển lá nguồn) khớp `filter`, trừ chính lá nguồn nếu `excludeSource`. Cộng dồn nhiều nguồn; kết quả kẹp ≥ 0 `[RULE]`.
-- Kích hoạt lá Continuous Spell/Trap để đặt ngửa: **P4** (chủ dự án chốt 2026-09-28); tới lúc đó chỉ fixture/Sandbox đặt được ngửa.
+- Kích hoạt lá Continuous Spell/Trap để đặt ngửa: **task 4.3** — xem mục "Lá ở lại sân" ngay dưới. Nguồn Continuous từ 4.3 gồm cả
+  lá ngửa ở Field Zone.
+
+## Lá ở lại sân: Continuous Spell/Trap, Field Spell (task 4.3)
+
+- **Không có field schema mới**: lá ở lại sân sau khi resolve được đọc từ `subType` — Spell `Continuous`/`Field`, Trap `Continuous`
+  (`staysOnField(card)` ở `cards/card-definition.ts`).
+- Lá gồm **2 effect** (cùng mẫu Equip): (1) effect **kích hoạt lá** — Spell: `Ignition`, Trap: `Quick` — `operations` **được rỗng**
+  khi lá không làm gì lúc kích hoạt (có thể có operation/cost/target như effect thường: "khi kích hoạt: hồi 500"); (2) effect
+  `Continuous` (`ModifyStat…`) có hiệu lực khi lá đã ngửa trên sân.
+- Refine: effect rỗng (không operation, không `scriptId`) chỉ hợp lệ với trigger `Ignition`/`Quick` **và** trên lá ở lại sân có effect
+  `Continuous`; Field Spell phải có effect `Continuous` hoặc `scriptId`; Spell/Trap có effect `Continuous` phải có effect kích hoạt
+  (Spell `Ignition`, Trap `Quick`) — ngoại lệ không cần ghi: Equip đã có effect `Ignition` `Equip`.
+- Engine (kích hoạt từ tay/đã Set, Field Zone, thay lá Field, bị phá): `engine.md` mục "Field Spell + lá ở lại sân".
+
+```json
+{
+  "id": "SMP-113",
+  "kind": "Spell",
+  "subType": "Field",
+  "effects": [
+    { "id": "activate", "trigger": { "kind": "Ignition" }, "operations": [] },
+    {
+      "id": "gale-boost",
+      "trigger": { "kind": "Continuous" },
+      "operations": [
+        {
+          "kind": "ModifyStat",
+          "stat": "atk",
+          "amount": 300,
+          "side": "self",
+          "filter": { "attribute": "WIND" }
+        },
+        {
+          "kind": "ModifyStat",
+          "stat": "atk",
+          "amount": 300,
+          "side": "opponent",
+          "filter": { "attribute": "WIND" }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ```json
 {
@@ -161,12 +205,12 @@ interface EffectDefinition {
   condition?: Condition[]; // AND; không được rỗng nếu có
   cost?: Cost[]; // trả khi activate; không được rỗng nếu có
   target?: Target; // chọn lúc activate
-  operations: Operation[]; // thực thi tuần tự khi resolve (Continuous: modifier đang hiệu lực); rỗng chỉ khi có scriptId
+  operations: Operation[]; // thực thi tuần tự khi resolve (Continuous: modifier đang hiệu lực); rỗng khi có scriptId, hoặc effect kích hoạt lá ở lại sân (4.3)
   scriptId?: string; // task 3.6: script engine chạy lúc resolve, SAU operations; không cho Continuous
 }
 ```
 
-Ràng buộc (`.refine`): `operations` ≥ 1 hoặc có `scriptId`; `condition`/`cost` không rỗng nếu có; `Continuous` không có
+Ràng buộc (`.refine`): `operations` ≥ 1 hoặc có `scriptId` (trừ effect `Ignition`/`Quick` kích hoạt lá ở lại sân, task 4.3 — kiểm ở mức lá); `condition`/`cost` không rỗng nếu có; `Continuous` không có
 `cost`/`target`/`scriptId` (không lên chain) và chỉ chứa operation continuous, effect khác không chứa operation continuous; `ZoneCount` cần `min` và/hoặc `max`, `min ≤ max`; `filter` cần ≥ 1
 tiêu chí, `level.min ≤ level.max`.
 

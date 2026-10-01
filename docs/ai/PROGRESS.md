@@ -4,12 +4,13 @@ File này được tự nạp mỗi session nên **chỉ giữ trạng thái hi�
 (1) thêm mục chi tiết (đã làm gì, số test, mutant, smoke, ảnh) vào CUỐI `docs/ai/progress/p<phase>.md`;
 (2) ở đây chỉ sửa "Đang ở đâu", dòng checklist của phase và các danh sách bên dưới. Không chép chi tiết task vào đây.
 
-## Đang ở đâu (cập nhật 2026-10-01, sau task 4.2d)
+## Đang ở đâu (cập nhật 2026-10-01, sau task 4.3)
 
-- **Phase đang làm: P4** (card batches + luật mở rộng), xong bản nháp tới **4.2d**.
-- **Task tiếp theo (đề xuất): 4.3** — Field Spell + Continuous Spell/Trap đầy đủ (Engine). Việc nhỏ có thể gộp: xem
-  dòng "Bàn giao sau 4.2d" ở `docs/ai/progress/p4.md`.
-- P0 xong. P1, P2, P3 và 4.1–4.2d là **bản nháp chờ chủ dự án duyệt** (AI chỉ tới 🟨; chỉ người dùng chuyển ✅ ở
+- **Phase đang làm: P4** (card batches + luật mở rộng), xong bản nháp tới **4.3** (engine-only).
+- **Task tiếp theo (đề xuất): 4.3b** — nối wire 4.3 (event Field Zone, UI ô Field, lá SMP-113/114/115/208 vào deck demo +
+  scenario Sandbox, fuzz leak với lá Field úp) + 3 việc nhỏ còn nợ; hoặc 4.4 (Counter Trap/Negate). Chi tiết: mục "Bàn giao
+  sau 4.3" ở `docs/ai/progress/p4.md`.
+- P0 xong. P1, P2, P3 và 4.1–4.3 là **bản nháp chờ chủ dự án duyệt** (AI chỉ tới 🟨; chỉ người dùng chuyển ✅ ở
   `docs/plan/parity-board.md`). P2 còn **2.4 ⏳ chờ người dùng test** theo `docs/design/debug-ui.md`.
 
 ## Chờ chủ dự án
@@ -22,13 +23,18 @@ File này được tự nạp mỗi session nên **chỉ giữ trạng thái hi�
 - Tư liệu còn thiếu (`docs/plan/human-tasks.md`): chain 2+ link, Set / đổi thế / Lật, màn thắng-thua, ảnh tab Dung
   Hợp. Mâu thuẫn còn mở: **C14** (Bẫy chọn chế độ lúc Set) — `docs/reference/notes/rules-observed.md`.
 - Cần xác nhận từ 4.2: `OnSummon` bắn cả với Flip Summon (ADR 060); AI Flip Summon quái úp (ADR 062).
+- Cần xác nhận từ 4.3 (ADR 063, G20): lá Field cũ bị thay là "gửi vào mộ" (không "bị phá"); Continuous Spell từ tay tự vào
+  ô Phép/Bẫy trống thấp nhất; lá Bẫy Liên tục mang id SMP-208 (không phải SMP-116 như brief).
 - Mâu thuẫn tài liệu ↔ code tìm thấy khi tách docs: `docs/ai/OPEN-ISSUES.md`.
 
 ## Giới hạn / quan sát chưa sửa
 
 - Banner cửa sổ phản ứng giữ chữ "Đối thủ tấn công" khi đã có mắt xích (thấy ở 3.8).
 - Câu log AI "bỏ … xuống mộ" cho mọi câu trả lời prompt có id (sai với prompt target).
-- Chưa có trong engine: kích hoạt lá Continuous Spell/Trap, Normal Spell/Equip đã Set (4.3); Negate/Counter Trap thật
+- 4.3 chưa lên wire: event `FieldSpellSet`/`FieldSpellDestroyed`/`CardSentToGraveyard{from:'FieldZone'}` bị `toEventView` bỏ
+  (`StateView.fieldZone` thì đã có từ 2.1); lá Field/Continuous thật chưa nằm trong deck demo/scenario nào. Riêng **Phép thường
+  đã Set kích hoạt được qua HTTP/UI ngay** (dùng event cũ).
+- Chưa có trong engine: Equip Spell đã Set; người chơi chọn ô cho Continuous Spell từ tay (G20); Negate/Counter Trap thật
   (4.4 — SMP-201 vẫn placeholder); Fusion (4.5); Duration; Special Summon từ mộ đối thủ; người chơi tự xếp thứ tự
   trigger (G15); replay khi mất mục tiêu tấn công (G14).
 - AI server không tự Set/kích hoạt Phép/Bẫy ngoài cửa sổ ưu tiên; `STARTER_DECK` chỉ quái vanilla (deck có effect:
@@ -53,7 +59,7 @@ File này được tự nạp mỗi session nên **chỉ giữ trạng thái hi�
 | P1: task 1.1–1.12, ánh xạ số task P1                 | `docs/ai/progress/p1.md`       |
 | P2: task 2.1–2.12                                    | `docs/ai/progress/p2.md`       |
 | P3: task 3.1–3.8                                     | `docs/ai/progress/p3.md`       |
-| P4: task 4.1–4.2d + bàn giao                         | `docs/ai/progress/p4.md`       |
+| P4: task 4.1–4.3 + bàn giao                          | `docs/ai/progress/p4.md`       |
 | Ingest video, mở rộng scope, giá trị ruleset đã chốt | `docs/ai/progress/planning.md` |
 
 ## Checklist phase (P0–P9) — chi tiết task: `docs/plan/MASTER-PLAN.md`
@@ -62,7 +68,7 @@ File này được tự nạp mỗi session nên **chỉ giữ trạng thái hi�
 - [x] P1 — Engine core vanilla + RulesetConfig + golden replay/fuzz (bản nháp, chờ duyệt; task 1.1–1.12)
 - [ ] P2 — Vertical slice: solo vs AI dummy (API + FE Duel + Sandbox) — 2.1, 2.2, event-filter, 2.3 xong (nháp), 2.4 (trang debug) chờ người dùng test, 2.5 (legalActions) + 2.6 (AI, solo-vs-ai) xong (nháp); 2.7 (Phaser Duel Scene tĩnh) + 2.8 (kéo thả) + 2.9 (animation) + 2.10 (log panel) + 2.11 (Sandbox) + 2.12 (i18n) xong (nháp); chỉ còn 2.4 chờ người dùng test (2.8 = kéo thả, 2.9 = animation; 2.4 = trang debug, 2.5 = legalActions, AI dummy → 2.6, i18n → 2.12)
 - [ ] P3 — Effect system + Chain + 10 card mẫu — 3.1, 3.2, 3.2b, 3.3 (chain, engine-only), 3.4 (Spell Speed + Trap/Quick-Play đã Set, engine-only), 3.4c (cửa sổ phản ứng tấn công/triệu hồi, engine-only), 3.5 (trigger OnSummon/OnDestroyed, engine-only), 3.6 (Continuous `ModifyStat` + `scriptId` registry, engine-only), 3.4b (nối wire chain / lá Set / cửa sổ phản ứng / trigger, C13), 3.7 (UI chuỗi Phaser, fixture DEV), 3.8 (10 lá effect thật + deck demo + scenario Sandbox) xong (nháp)
-- [ ] P4 — Card batches + Special/Equip/Field/Counter/Fusion — 4.1 (batch 1: 20 vanilla + 10 Phép/Bẫy + `BATCH1_DEMO_DECK`), 4.2a (Special Summon operation), 4.2b (Flip Summon + OnFlip), 4.2c (Equip Spell), 4.2d (nối wire 4.2a/b/c + 3 lá + UI) xong (nháp)
+- [ ] P4 — Card batches + Special/Equip/Field/Counter/Fusion — 4.1 (batch 1: 20 vanilla + 10 Phép/Bẫy + `BATCH1_DEMO_DECK`), 4.2a (Special Summon operation), 4.2b (Flip Summon + OnFlip), 4.2c (Equip Spell), 4.2d (nối wire 4.2a/b/c + 3 lá + UI), 4.3 (Field Spell + kích hoạt lá Continuous Spell/Trap + Phép đã Set, engine-only; 4 lá SMP-113/114/115/208) xong (nháp)
 - [ ] P5 — Asset pipeline + Card Gallery
 - [ ] P6 — Animation + Audio tier 1 + Animation Preview + Replay Viewer
 - [ ] P7 — Auth + Deck Builder + Collection

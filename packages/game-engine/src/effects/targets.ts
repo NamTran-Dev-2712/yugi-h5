@@ -6,22 +6,27 @@ import { matchesFilter, sideIndex } from './filter.js';
 
 type CardTarget = Extract<NonNullable<EffectDefinition['target']>, { kind: 'Card' }>;
 
-/** Where a targeted card currently is (needed to destroy it and to name the right event). */
+/**
+ * Where a targeted card currently is (needed to destroy it and to name the right event). Task 4.3: `FieldZone` has one
+ * slot (`zoneIndex` 0).
+ */
 export interface FieldLocation {
   readonly ownerIndex: 0 | 1;
-  readonly zone: 'MonsterZone' | 'SpellTrapZone';
+  readonly zone: 'MonsterZone' | 'SpellTrapZone' | 'FieldZone';
   readonly zoneIndex: number;
   readonly card: CardInstance;
 }
 
 export function findOnField(state: GameState, instanceId: string): FieldLocation | null {
   for (const ownerIndex of [0, 1] as const) {
-    const { monsterZones, spellTrapZones } = state.players[ownerIndex].board;
+    const { monsterZones, spellTrapZones, fieldZone } = state.players[ownerIndex].board;
     const m = monsterZones.findIndex((c) => c?.instanceId === instanceId);
     if (m !== -1) return { ownerIndex, zone: 'MonsterZone', zoneIndex: m, card: monsterZones[m]! };
     const s = spellTrapZones.findIndex((c) => c?.instanceId === instanceId);
     if (s !== -1)
       return { ownerIndex, zone: 'SpellTrapZone', zoneIndex: s, card: spellTrapZones[s]! };
+    if (fieldZone?.instanceId === instanceId)
+      return { ownerIndex, zone: 'FieldZone', zoneIndex: 0, card: fieldZone };
   }
   return null;
 }
@@ -40,8 +45,8 @@ export function findInHandOrGraveyard(
 }
 
 /**
- * Instance ids that can be chosen for a `Card` target, in zone order: field zones (task 3.2), your own hand and either
- * graveyard (task 4.2a; a graveyard is public). A face-down card on the field is a legal target only when the effect has
+ * Instance ids that can be chosen for a `Card` target, in zone order: field zones (task 3.2; `SpellTrapZone` also
+ * covers the Field Zone, task 4.3), your own hand and either graveyard (task 4.2a; a graveyard is public). A face-down card on the field is a legal target only when the effect has
  * no `filter` (a filter would read its hidden identity). The opponent's hand and any deck stay unsupported (hidden).
  */
 export function targetCandidates(
@@ -67,7 +72,8 @@ export function targetCandidates(
         ? player.graveyard
         : target.zone === 'MonsterZone'
           ? board.monsterZones
-          : board.spellTrapZones;
+          : // Task 4.3 [RULE]: "a Spell/Trap on the field" includes the card in the Field Zone (listed last).
+            [...board.spellTrapZones, board.fieldZone];
   const out: string[] = [];
   for (const card of zone) {
     if (card === null) continue;

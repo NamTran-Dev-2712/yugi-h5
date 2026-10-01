@@ -1,0 +1,16 @@
+
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/packages/game-engine
+
+stdout | src/testing/fuzz/fuzz.test.ts > fuzz: engine invariants hold > Field Spells and Continuous Spells/Traps are really played (task 4.3; own seeds: 60 × 400 steps)
+fuzz 4.3 coverage: {"fieldSpellSets":43,"fieldSpellLinks":48,"fieldSpellsReplaced":2,"fieldSpellsDestroyed":4,"continuousCardsStayed":35,"setNormalSpellLinks":29}
+
+ ✓ src/testing/fuzz/fuzz.test.ts (215 tests) 17523ms
+   ✓ fuzz: engine invariants hold > actually exercises the engine (not all rejections, duels finish, attacks happen)  1568ms
+   ✓ fuzz: engine invariants hold > an Equip follows its monster to the graveyard in real duels (task 4.2c; rare: 60 seeds × 400 steps)  3393ms
+   ✓ fuzz: engine invariants hold > Field Spells and Continuous Spells/Traps are really played (task 4.3; own seeds: 60 × 400 steps)  3553ms
+
+ Test Files  1 passed (1)
+      Tests  215 passed (215)
+   Start at  13:13:17
+   Duration  19.95s (transform 606ms, setup 0ms, collect 2.00s, tests 17.52s, environment 0ms, prepare 135ms)
+

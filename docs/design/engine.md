@@ -86,7 +86,7 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 | `ChangePosition`       | M1 (task 1.5 ✅)                                           | `{playerIndex, cardInstanceId, toPosition: 'Attack'\|'DefenseUp'}`; xem chi tiết bên dưới                                                                                                                                                   |
 | `DeclareAttack`        | M1 (task 1.6 ✅)                                           | `{playerIndex, attackerInstanceId, targetInstanceId?}` (null = direct attack); xem chi tiết bên dưới                                                                                                                                        |
 | `Surrender`            | M1 (task 1.9 ✅)                                           | `{playerIndex}`; mọi phase, cả hai bên; reject `DUEL_ENDED`/`SURRENDER_DISABLED`; xem chi tiết bên dưới                                                                                                                                     |
-| `SetSpellTrap`         | M2 (task 3.2 ✅)                                           | `{playerIndex, cardInstanceId, zoneIndex}`; Spell/Trap từ tay vào ô 0–4, úp (`DefenseDown`), ghi `setTurn`; không giới hạn/lượt, không tốn Normal Summon; Main1/Main2; Field Spell chưa hỗ trợ                                              |
+| `SetSpellTrap`         | M2 (task 3.2 ✅)                                           | `{playerIndex, cardInstanceId, zoneIndex}`; Spell/Trap từ tay vào ô 0–4, úp (`DefenseDown`), ghi `setTurn`; không giới hạn/lượt, không tốn Normal Summon; Main1/Main2; lá Field vào Field Zone (`zoneIndex` 0, task 4.3)                    |
 | `ActivateEffect`       | M2 (task 3.2 ✅; lên chain từ 3.3; lá Set từ 3.4)          | `{playerIndex, cardInstanceId, effectId, costInstanceIds?}`; Normal Spell/Quick-Play ở tay, Trap/Quick-Play đã Set (mục C11); target chọn qua prompt `SelectEffectTarget` (không có `targetInstanceIds` trong payload); xem `effect-dsl.md` |
 | `ResolvePendingPrompt` | M1 (task 1.11 ✅, hand limit) / M2 (target/chain response) | `{playerIndex, promptId, cardInstanceIds}`; trả lời `PendingPrompt` hiện tại; xem mục PendingPrompt                                                                                                                                         |
 | `FlipSummon`           | P4 (task 4.2b ✅, lên wire 4.2d)                           | `{playerIndex, cardInstanceId}`; lật quái úp của mình lên Tư thế Công ở Main Phase; xem mục "Flip Summon + OnFlip"                                                                                                                          |
@@ -97,12 +97,18 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 `[DECISION]` Trap phải được Set úp trên sân mới kích hoạt; `[RULE]` Trap vừa Set thì lượt đó chưa kích hoạt; `[RULE]` Spell thường kích hoạt từ tay ở Main Phase của mình; `[RULE]` Quick-Play từ tay chỉ ở lượt mình (mọi phase), đã Set thì dùng được ở lượt đối thủ nhưng không trong lượt vừa Set (chủ dự án chốt 2026-09-27).
 
 - `ActivateEffect` tìm lá ở **tay** hoặc **ô Phép/Bẫy của chính người gọi** (không thấy → `CARD_NOT_IN_HAND`). Lá trên sân phải **úp** (`DefenseDown`); lá đang ngửa (đang trên chain) → `NOT_ACTIVATABLE`.
-- **Trap** Normal/Counter đã Set, trigger `Quick`: hợp lệ khi (nếu `ruleset.trapSetTurnDelay`) `setTurn !== turnCount`, không thì `TRAP_SET_THIS_TURN`. **Quick-Play** đã Set: `setTurn === turnCount` → `SPELL_SET_THIS_TURN` (luôn, không phụ thuộc ruleset). Kích hoạt **lá** Continuous Trap/Spell, Normal Spell đã Set → `NOT_ACTIVATABLE` (P4). Effect `Continuous` → `CONTINUOUS_NOT_ACTIVATABLE` (task 3.6).
+- **Trap** Normal/Counter đã Set, trigger `Quick`: hợp lệ khi (nếu `ruleset.trapSetTurnDelay`) `setTurn !== turnCount`, không thì `TRAP_SET_THIS_TURN`. **Quick-Play** đã Set: `setTurn === turnCount` → `SPELL_SET_THIS_TURN` (luôn, không phụ thuộc ruleset). Kích hoạt **lá** Continuous Trap/Spell, Field Spell, Normal Spell đã Set: từ task 4.3, xem mục "Field Spell + lá ở lại sân" (Equip đã Set vẫn `NOT_ACTIVATABLE`). Effect `Continuous` → `CONTINUOUS_NOT_ACTIVATABLE` (task 3.6).
 - **Ai/khi nào**: ngoài cửa sổ chain chỉ người chơi của lượt (`NOT_TURN_PLAYER`), lá Set kích hoạt được ở **mọi phase**; trong cửa sổ chỉ người giữ ưu tiên (`NOT_PRIORITY_HOLDER`). Lá **trên tay** luôn cần lượt mình (`NOT_TURN_PLAYER`, kể cả khi đang giữ ưu tiên ở lượt đối thủ). Normal Spell từ tay: Main1/Main2 (`WRONG_PHASE`).
 - **Vị trí khi chờ resolve** `[RULE]`: lá Set được kích hoạt **lật ngửa tại ô** (`position: 'Attack'` = quy ước "ngửa" của Phép/Bẫy mà StateView đã hiểu), `ChainLink.source = {zone:'SpellTrapZone', zoneIndex}`; resolve xong (kể cả bị vô hiệu / duel kết thúc giữa chain) thì rời ô vào mộ, `CardSentToGraveyard {from:'SpellTrapZone'}`. Bị phá giữa chain → effect **vẫn resolve**, không phát `CardSentToGraveyard` lần hai.
 - `ruleset.allowTrapActivationFromHand` (mặc định `false`): khi `false`, Trap trên tay chỉ có `SetSpellTrap`, không có `ActivateEffect` (`TRAP_NOT_SET`); `true` hiện vẫn `NOT_ACTIVATABLE` (chưa hỗ trợ).
 - Test: `packages/game-engine/src/rules/trap-activation.test.ts`, `actions/handlers/quick-play-and-speed.test.ts`; golden `set-trap-quickplay-counter-chain`.
 - **Cửa sổ phản ứng** (task 3.4c): sau `DeclareAttack` và sau `NormalSummon`/`SetMonster`, đối thủ được một cửa sổ để kích hoạt lá Set — xem mục "Cửa sổ phản ứng" dưới "Chain stack".
+
+### Mã lỗi thêm ở task 4.3
+
+`FIELD_ZONE_OCCUPIED` (Set/kích hoạt lá Field khi ô Field của mình đã có lá và `ruleset.fieldSpellReplace === false`).
+`NO_FREE_SPELL_TRAP_ZONE` giờ áp dụng cả cho Continuous Spell từ tay. Normal Spell đã Set và lá Continuous Spell/Trap hết
+`NOT_ACTIVATABLE` (xem mục "Field Spell + lá ở lại sân").
 
 ### Mã lỗi thêm ở task 4.2c
 
@@ -137,6 +143,8 @@ như vậy không kích hoạt).
 Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `definitionId`, lá úp), `EffectActivated`/`EffectResolved {playerIndex,instanceId,definitionId,effectId}`, `CardSentToGraveyard {ownerIndex,instanceId,definitionId,from:'Hand'|'SpellTrapZone'}` (lá dùng xong; `SpellTrapZone` từ task 3.4), `LifePointsRecovered {playerIndex,amount}` (Heal), `LifePointsPaid {playerIndex,amount}` (cost PayLP), `SpellTrapDestroyed {ownerIndex,instanceId,definitionId,zoneIndex}` (Destroy lên Spell/Trap; quái vẫn dùng `MonsterDestroyed`). Thứ tự khi kích hoạt: `EffectActivated` → event của cost (`LifePointsPaid`/`CardDiscarded`/`MonsterTributed`) → event của từng operation (`CardDrawn`, `DamageDealt`, `LifePointsRecovered`, `MonsterDestroyed`…) → `EffectResolved` → `CardSentToGraveyard` → `DuelEnded` (nếu có, luôn cuối). Damage/Heal/Draw dùng lại `DamageDealt`/`CardDrawn`/`DeckOut`+`DuelEnded` sẵn có. **Các event này chưa được API forward** (xem `event-visibility.md`).
 
 Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
+
+Task 4.3 thêm: `FieldSpellSet {playerIndex,instanceId}` (Set lá Field vào Field Zone; không `definitionId`), `FieldSpellDestroyed {ownerIndex,instanceId,definitionId}` (lá ở Field Zone bị effect phá), và `CardSentToGraveyard.from` thêm `'FieldZone'` (lá Field bị lá mới của chính chủ thay). **Chưa được API forward** (cả ba trả `null`, nối wire = 4.3b).
 
 Task 4.2c thêm: `CardEquipped {playerIndex,instanceId,definitionId,targetInstanceId}` (lá Equip gắn vào quái). Equip rời sân theo quái dùng lại `CardSentToGraveyard {from:'SpellTrapZone'}`. API forward từ task 4.2d (PUBLIC); `CardInstance.equippedTo` ra wire thành `VisibleCardView.equippedTo`.
 
@@ -388,6 +396,45 @@ target.instanceId`, event `CardEquipped {playerIndex, instanceId, definitionId, 
 - `OperationContext.sourceInstanceId` (mới): lá đang resolve (Equip tự gắn chính nó).
 - Test: `effects/operations/equip.test.ts`; golden `equip-buff-and-detach`; fuzz `EQP`/`EQW`, bất biến "Phép/Bẫy ngửa ⇔ có link, hoặc
   đang trang bị cho quái ngửa trên sân" + "`equippedTo` chỉ ở ô Phép/Bẫy", thống kê `equips`/`equipsDetached`.
+
+## Field Spell + lá ở lại sân (task 4.3)
+
+Engine-only (nối wire = 4.3b). Chủ dự án chốt 2026-10-01: Field Spell được Set; mỗi bên 1 lá Field riêng; Phép Speed 1 đã Set kích
+hoạt được ngay lượt vừa Set; lá bị phá khi link còn chờ xử lý như Equip. Chi tiết + lý do: ADR 063.
+
+- **Lá nào ở lại sân** (đọc từ `subType`, `staysOnField` ở `@yugi/shared`): Spell `Continuous`/`Field`, Trap `Continuous`. Sau khi
+  link của nó resolve, lá **ở lại ngửa** (không `CardSentToGraveyard`) và effect `Continuous` của nó áp dụng từ lần đọc kế tiếp.
+  Equip: theo `equippedTo` (4.2c). Mọi lá khác vào mộ như cũ.
+- **Kích hoạt lá** = `ActivateEffect` với effect kích hoạt của lá (Spell: `Ignition`, Trap: `Quick`; `operations` được rỗng). Effect
+  `Continuous` vẫn `CONTINUOUS_NOT_ACTIVATABLE`; lá đã ngửa ⇒ `NOT_ACTIVATABLE` (không có "kích hoạt lại").
+- **Ma trận** (bổ sung mục C11):
+
+  | Lá               | Từ tay                                                                                                | Đã Set                                                                                     |
+  | ---------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+  | Normal Spell     | `Ignition`, Main Phase lượt mình                                                                      | `Ignition`, Main Phase lượt mình, **được ngay lượt vừa Set** `[RULE]`; resolve xong vào mộ |
+  | Continuous Spell | như trên; lá vào **ô Phép/Bẫy trống thấp nhất** ngửa ngay (`NO_FREE_SPELL_TRAP_ZONE`) `[ASSUMED]` G20 | như Normal Spell đã Set; lật tại ô, ở lại                                                  |
+  | Field Spell      | như trên; lá vào **Field Zone** ngửa ngay                                                             | như Normal Spell đã Set; lật tại Field Zone, ở lại                                         |
+  | Continuous Trap  | `TRAP_NOT_SET` (C11)                                                                                  | `Quick`, mọi phase, người giữ ưu tiên; `TRAP_SET_THIS_TURN` theo `trapSetTurnDelay`; ở lại |
+  | Equip Spell      | 4.2c                                                                                                  | `NOT_ACTIVATABLE` (backlog)                                                                |
+
+  Phép Speed 1 đã Set chỉ của **người chơi của lượt** (`NOT_TURN_PLAYER` kể cả khi đối thủ đang giữ ưu tiên trong cửa sổ), sai phase
+  ⇒ `WRONG_PHASE`, nối chain ⇒ `SPELL_SPEED_TOO_LOW`; vì vậy nó không bao giờ giữ cửa sổ chain/phản ứng mở cho đối thủ.
+  `SPELL_SET_THIS_TURN` chỉ còn áp dụng cho Quick-Play.
+
+- **Field Zone** (`board.fieldZone`, 1 ô/người): `SetSpellTrap` với lá Field đặt lá úp vào đó (`zoneIndex` phải là `0` `[ASSUMED]`
+  G20, khác ⇒ `INVALID_ZONE`), event `FieldSpellSet {playerIndex, instanceId}`. `ChainLink.source = {zone:'FieldZone'}`.
+  Lá Field không bao giờ nằm ở ô Phép/Bẫy.
+- **Thay lá Field của mình** `[DECISION]`: Set hoặc kích hoạt (từ tay) một lá Field khi ô đã có lá ⇒ lá cũ (ngửa/úp) vào mộ chủ,
+  `CardSentToGraveyard {from:'FieldZone'}` (`state/field-zone.ts`); thứ tự event khi kích hoạt: `EffectActivated` →
+  `CardSentToGraveyard` → `ChainLinkAdded` → …. `[ASSUMED]` G20: "gửi vào mộ", không bắn `OnDestroyed`. Lá Field của đối thủ không
+  bị đụng. `ruleset.fieldSpellReplace === false` ⇒ `FIELD_ZONE_OCCUPIED`.
+- **Bị phá**: target `SpellTrapZone` gồm cả lá ở Field Zone (xếp sau 5 ô Phép/Bẫy) `[RULE]`; `Destroy` phát `FieldSpellDestroyed
+{ownerIndex, instanceId, definitionId}` (bắn `OnDestroyed`). Lá Continuous ở ô Phép/Bẫy vẫn `SpellTrapDestroyed`. Bị phá khi link
+  còn chờ ⇒ link vẫn resolve (việc lá làm lúc kích hoạt), lá không vào mộ lần hai, Continuous không áp dụng.
+- **Nguồn Continuous** (`activeContinuousEffects`): quái ngửa → Phép/Bẫy ngửa → lá ngửa ở Field Zone; lá úp không có hiệu lực.
+- Test: `rules/field-spell.test.ts`, `rules/continuous-activation.test.ts`, `rules/set-spell-activation.test.ts`,
+  `cards/sample/smp-113|114|115|208.test.ts`; golden `field-spell-activate-replace`, `continuous-spell-trap-stay`; fuzz
+  `FLD`/`FLD2`/`CSA`/`CTR`/`SPS`. Mutation: `tools/mutants-4.3.mjs`.
 
 ## Replay
 

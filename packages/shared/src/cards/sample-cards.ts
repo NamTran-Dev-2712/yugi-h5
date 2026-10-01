@@ -500,6 +500,84 @@ export const SAMPLE_CARDS: CardDefinition[] = [
       },
     ],
   },
+  // Task 4.3 — first real cards that stay on the field (Tier B): a Field Spell, a Continuous Spell, and a plain Normal
+  // Spell used to test "Set first, activate later". The Continuous Trap is SMP-208.
+  {
+    id: 'SMP-113',
+    kind: 'Spell',
+    name: { vi: 'Thảo Nguyên Lộng Gió', en: 'Galewind Steppe' },
+    subType: 'Field',
+    effectText: {
+      vi: 'Mọi quái thú hệ GIÓ ngửa trên sân tăng 300 ATK.',
+      en: 'All face-up WIND monsters on the field gain 300 ATK.',
+    },
+    effects: [
+      { id: 'activate', trigger: { kind: 'Ignition' }, operations: [] },
+      {
+        id: 'gale-boost',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          {
+            kind: 'ModifyStat',
+            stat: 'atk',
+            amount: 300,
+            side: 'self',
+            filter: { attribute: 'WIND' },
+          },
+          {
+            kind: 'ModifyStat',
+            stat: 'atk',
+            amount: 300,
+            side: 'opponent',
+            filter: { attribute: 'WIND' },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'SMP-114',
+    kind: 'Spell',
+    name: { vi: 'Quân Kỳ Tập Hợp', en: 'Rally Banner' },
+    subType: 'Continuous',
+    effectText: {
+      vi: 'Mọi quái thú tộc Chiến Binh ngửa bạn điều khiển tăng 300 ATK.',
+      en: 'All face-up Warrior monsters you control gain 300 ATK.',
+    },
+    effects: [
+      { id: 'activate', trigger: { kind: 'Ignition' }, operations: [] },
+      {
+        id: 'banner-boost',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          {
+            kind: 'ModifyStat',
+            stat: 'atk',
+            amount: 300,
+            side: 'self',
+            filter: { race: 'Warrior' },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'SMP-115',
+    kind: 'Spell',
+    name: { vi: 'Tàn Lửa Âm Ỉ', en: 'Smoldering Ember' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Gây 600 sát thương cho đối thủ.',
+      en: 'Inflict 600 damage to your opponent.',
+    },
+    effects: [
+      {
+        id: 'ember-burn',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'Damage', amount: 600, target: 'opponent' }],
+      },
+    ],
+  },
   {
     id: 'SMP-201',
     kind: 'Trap',
@@ -618,6 +696,25 @@ export const SAMPLE_CARDS: CardDefinition[] = [
         trigger: { kind: 'Quick' },
         condition: [{ kind: 'ZoneCount', zone: 'Hand', side: 'self', max: 2 }],
         operations: [{ kind: 'Draw', count: 2, target: 'self' }],
+      },
+    ],
+  },
+  // Task 4.3 — first real Continuous Trap (Tier B): Set it, activate it later, it stays face-up.
+  {
+    id: 'SMP-208',
+    kind: 'Trap',
+    name: { vi: 'Màn Sương Rã Rời', en: 'Wearying Mist' },
+    subType: 'Continuous',
+    effectText: {
+      vi: 'Mọi quái thú ngửa đối thủ điều khiển giảm 300 ATK.',
+      en: 'All face-up monsters your opponent controls lose 300 ATK.',
+    },
+    effects: [
+      { id: 'activate', trigger: { kind: 'Quick' }, operations: [] },
+      {
+        id: 'mist-drain',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount: -300, side: 'opponent' }],
       },
     ],
   },

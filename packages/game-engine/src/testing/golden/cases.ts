@@ -77,8 +77,62 @@ function equipSpell(id: string): CardDefinition {
   };
 }
 
+/**
+ * Test-only card that stays on the field (task 4.3): `e1` only activates the card (Spell: Ignition, Trap: Quick), `e2`
+ * is the Continuous effect that then holds.
+ */
+function stayingCard(
+  id: string,
+  kind: 'Spell' | 'Trap',
+  subType: 'Field' | 'Continuous',
+  aura: NonNullable<CardDefinition['effects']>[number]['operations'],
+): CardDefinition {
+  return {
+    id,
+    kind,
+    name: { vi: `Golden ${id}`, en: `Golden ${id}` },
+    subType,
+    effects: [
+      { id: 'e1', trigger: { kind: kind === 'Trap' ? 'Quick' : 'Ignition' }, operations: [] },
+      { id: 'e2', trigger: { kind: 'Continuous' }, operations: aura },
+    ],
+  } as CardDefinition;
+}
+
 /** Placeholder cards only (no official names). */
 export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
+  /** Task 4.3 — Field Spell: every face-up Warrior on the field gains 500 ATK. */
+  G_FIELD_WARRIOR: stayingCard('G_FIELD_WARRIOR', 'Spell', 'Field', [
+    { kind: 'ModifyStat', stat: 'atk', amount: 500, side: 'self', filter: { race: 'Warrior' } },
+    { kind: 'ModifyStat', stat: 'atk', amount: 500, side: 'opponent', filter: { race: 'Warrior' } },
+  ]),
+  /** Field Spell: the opponent's face-up monsters lose 400 ATK. */
+  G_FIELD_WEAK: stayingCard('G_FIELD_WEAK', 'Spell', 'Field', [
+    { kind: 'ModifyStat', stat: 'atk', amount: -400, side: 'opponent' },
+  ]),
+  /** Continuous Spell: your face-up monsters gain 300 ATK. */
+  G_CONT_SPELL: stayingCard('G_CONT_SPELL', 'Spell', 'Continuous', [
+    { kind: 'ModifyStat', stat: 'atk', amount: 300, side: 'self' },
+  ]),
+  /** Continuous Trap: the opponent's face-up monsters lose 300 ATK. */
+  G_CONT_TRAP: stayingCard('G_CONT_TRAP', 'Trap', 'Continuous', [
+    { kind: 'ModifyStat', stat: 'atk', amount: -300, side: 'opponent' },
+  ]),
+  /** Normal Spell: destroy 1 Spell/Trap (or Field Spell) the opponent controls. */
+  G_KILL_ST: {
+    id: 'G_KILL_ST',
+    kind: 'Spell',
+    name: { vi: 'Golden G_KILL_ST', en: 'Golden G_KILL_ST' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
   G_SUM_BURN: triggerMonster(
     'G_SUM_BURN',
     1200,
@@ -272,6 +326,19 @@ const FLIP_DECK = Array.from({ length: 40 }, (_, i) => ['G_FLIP_BURN', 'M1800', 
 /** Equip Spells (task 4.2c). */
 const EQUIP_DECK = Array.from({ length: 40 }, (_, i) => ['G_EQ_POWER', 'M1000', 'M1800'][i % 3]!);
 
+/** Field Spells (task 4.3): P0 runs the two Field Spells, P1 the Spell that destroys one. */
+const FIELD_DECK_P0 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_FIELD_WARRIOR', 'G_FIELD_WEAK', 'M1000', 'M1800'][i % 4]!,
+);
+const FIELD_DECK_P1 = Array.from({ length: 40 }, (_, i) => ['G_KILL_ST', 'M1800'][i % 2]!);
+
+/** Continuous Spell / Continuous Trap / a Set Normal Spell (task 4.3). */
+const STAY_DECK = Array.from(
+  { length: 40 },
+  (_, i) => ['G_CONT_SPELL', 'G_CONT_TRAP', 'G_DRAW', 'M1000'][i % 4]!,
+);
+
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
 
 const endPhase = (playerIndex: 0 | 1, times = 1): Action[] =>
@@ -463,7 +530,8 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
         payload: { playerIndex: 0, cardInstanceId: 'p0-3', effectId: 'e1' },
       },
       ...endPhase(0, 4),
-      // T2 (P1) hand after its draw includes p1-19 G_DRAW: Set it face-down; a Set Normal Spell is not activatable (3.4: NOT_ACTIVATABLE).
+      // T2 (P1) hand after its draw includes p1-19 G_DRAW: Set it face-down, then activate it from its zone on the same
+      // turn (task 4.3 [RULE]; before 4.3 a Set Normal Spell was NOT_ACTIVATABLE).
       ...endPhase(1, 2),
       { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-19', zoneIndex: 2 } },
       {
@@ -898,6 +966,145 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
       {
         type: 'DeclareAttack',
         payload: { playerIndex: 0, attackerInstanceId: 'p0-31', targetInstanceId: 'p1-2' },
+      },
+      ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'field-spell-activate-replace',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-field-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [FIELD_DECK_P0, FIELD_DECK_P1],
+      },
+    },
+    actions: [
+      // T1 (P0) hand: p0-8 G_FIELD_WARRIOR, p0-1 G_FIELD_WEAK, p0-24 G_FIELD_WARRIOR, p0-34 M1000, p0-20 G_FIELD_WARRIOR.
+      // Rejected: a Field Spell is Set in the Field Zone (zoneIndex 0 only). Then Set p0-8, Summon M1000 (p0-34) and
+      // activate the Set Field Spell on the same turn: it stays face-up, M1000 is 1500. Rejected: activating the
+      // face-up card again / its Continuous effect.
+      ...endPhase(0, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-8', zoneIndex: 3 } },
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-8', zoneIndex: 0 } },
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-34', zoneIndex: 0 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-8', effectId: 'e1' },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-8', effectId: 'e1' },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-8', effectId: 'e2' },
+      },
+      ...endPhase(0, 4),
+      // T2 (P1): Summon M1800 (p1-17), then G_KILL_ST (p1-20) destroys P0's Field Spell (its only Spell/Trap target).
+      ...endPhase(1, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-17', zoneIndex: 0 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-20', effectId: 'e1' },
+      },
+      ...endPhase(1, 4),
+      // T3 (P0): G_FIELD_WARRIOR (p0-24) from the hand, then G_FIELD_WEAK (p0-1) replaces it (the old one is sent to
+      // the graveyard). M1000 attacks M1800 (now 1400): destroyed, 400 to P0 instead of 800.
+      ...endPhase(0, 2),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-24', effectId: 'e1' },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-1', effectId: 'e1' },
+      },
+      ...endPhase(0, 1),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-34', targetInstanceId: 'p1-17' },
+      },
+      ...endPhase(0, 3),
+      // T4 (P1): G_KILL_ST (p1-8) destroys the second Field Spell; M1800 attacks directly at its printed 1800.
+      ...endPhase(1, 2),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-8', effectId: 'e1' },
+      },
+      ...endPhase(1, 1),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 1, attackerInstanceId: 'p1-17', targetInstanceId: null },
+      },
+      ...endPhase(1, 3),
+    ],
+  },
+  {
+    name: 'continuous-spell-trap-stay',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-stay-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [STAY_DECK, STAY_DECK],
+      },
+    },
+    actions: [
+      // T1 (P0) hand: p0-39 M1000, p0-32 G_CONT_SPELL, p0-33 G_CONT_TRAP, p0-20 G_CONT_SPELL, p0-37 G_CONT_TRAP.
+      // Summon M1000, activate the Continuous Spell from the hand (stays face-up in zone 0; M1000 is 1300). Rejected:
+      // activating it again. Set the Continuous Trap (p0-33). Rejected: activating it this turn / a Trap from the hand.
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-39', zoneIndex: 0 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-32', effectId: 'e1' },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-32', effectId: 'e1' },
+      },
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-33', zoneIndex: 2 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-33', effectId: 'e1' },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-37', effectId: 'e1' },
+      },
+      ...endPhase(0, 4),
+      // T2 (P1) hand: p1-3 M1000, p1-38 G_DRAW, p1-17 G_CONT_TRAP, p1-22 G_DRAW, p1-36 G_CONT_SPELL (+ the draw).
+      // Set G_DRAW (p1-38) and activate it from its zone on the same turn; P0 chains the Set Continuous Trap (p0-33):
+      // the Trap resolves first and stays face-up, then G_DRAW resolves and goes to the graveyard.
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-38', zoneIndex: 1 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-38', effectId: 'e1' },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-33', effectId: 'e1' },
+      },
+      // P1 Summons M1000 (p1-3: 700 under the Trap), Sets its own Continuous Spell (p1-36) and activates it (1000).
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-3', zoneIndex: 0 } },
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-36', zoneIndex: 0 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-36', effectId: 'e1' },
+      },
+      ...endPhase(1, 4),
+      // T3 (P0): M1000 (1300) attacks P1's M1000 (1000 − 300 + 300 = 1000): destroyed, 300 to P1.
+      ...endPhase(0, 3),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-39', targetInstanceId: 'p1-3' },
       },
       ...endPhase(0, 3),
     ],

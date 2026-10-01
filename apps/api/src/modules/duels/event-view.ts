@@ -62,7 +62,6 @@ export function toEventView(
     case 'SpellTrapSet':
     case 'EffectActivated':
     case 'EffectResolved':
-    case 'CardSentToGraveyard':
     case 'LifePointsRecovered':
     case 'LifePointsPaid':
     case 'SpellTrapDestroyed':
@@ -85,6 +84,16 @@ export function toEventView(
     case 'FlipSummoned':
     case 'CardEquipped':
       return event;
+
+    // PUBLIC (task 3.2). Task 4.3, engine-only: a Field Spell replaced by its controller's new one (`from: 'FieldZone'`)
+    // is not on the wire yet (4.3b) — dropped, the client still sees the result in StateView.
+    case 'CardSentToGraveyard':
+      return event.from === 'FieldZone' ? null : { ...event, from: event.from };
+
+    // ENGINE-ONLY (task 4.3, not on the wire until 4.3b): the Field Zone events have no EventView yet.
+    case 'FieldSpellSet':
+    case 'FieldSpellDestroyed':
+      return null;
 
     default: {
       const unclassified: never = event;

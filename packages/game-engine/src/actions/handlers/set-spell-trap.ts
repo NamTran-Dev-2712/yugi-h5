@@ -1,11 +1,13 @@
 import { EngineError, type EngineErrorCode } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
+import { clearFieldZone } from '../../state/field-zone.js';
 import type { CardInstance, GameState, PlayerState } from '../../state/types.js';
 import type { ActionContext, SetSpellTrapAction } from '../types.js';
 
 /**
  * Sets a Spell/Trap face-down (`position: 'DefenseDown'`, the StateView convention for hidden Spell/Trap) and stamps
- * `setTurn`. Not limited per turn and does not use the Normal Summon [RULE]. Field Spells belong in the Field Zone (P4).
+ * `setTurn`. Not limited per turn and does not use the Normal Summon [RULE]. A Field Spell goes to the Field Zone
+ * (task 4.3: `FieldSpellSet`, replacing the player's own Field Spell).
  */
 export function applySetSpellTrap(
   state: GameState,
@@ -43,8 +45,39 @@ export function applySetSpellTrap(
   }
   if (definition.kind === 'Monster')
     return reject('NOT_A_SPELL_TRAP', `"${definition.name.en}" is not a Spell/Trap card.`);
-  if (definition.kind === 'Spell' && definition.subType === 'Field')
-    return reject('NOT_ACTIVATABLE', 'Field Spells are not supported yet.');
+  if (definition.kind === 'Spell' && definition.subType === 'Field') {
+    // Task 4.3 [RULE]: a Field Spell is Set in the Field Zone. One slot ⇒ [ASSUMED] G20 only `zoneIndex` 0 names it.
+    if (zoneIndex !== 0)
+      reject('INVALID_ZONE', `the Field Zone is zoneIndex 0 (got ${zoneIndex}).`);
+    if (player.board.fieldZone !== null && !state.ruleset.fieldSpellReplace)
+      reject('FIELD_ZONE_OCCUPIED', 'your Field Zone already holds a card.');
+    const cleared = clearFieldZone(state, playerIndex);
+    const players = cleared.state.players.map((p, i) =>
+      i === playerIndex
+        ? {
+            ...p,
+            hand: p.hand.filter((c) => c.instanceId !== cardInstanceId),
+            board: {
+              ...p.board,
+              fieldZone: {
+                instanceId: card.instanceId,
+                definitionId: card.definitionId,
+                ownerIndex: card.ownerIndex,
+                position: 'DefenseDown',
+                setTurn: state.turnCount,
+              },
+            },
+          }
+        : p,
+    ) as unknown as GameState['players'];
+    return {
+      state: { ...cleared.state, players, version: state.version + 1 },
+      events: [
+        ...cleared.events,
+        { type: 'FieldSpellSet', playerIndex, instanceId: card.instanceId },
+      ],
+    };
+  }
   if (player.board.spellTrapZones[zoneIndex] !== null)
     reject('ZONE_OCCUPIED', `Spell/Trap zone ${zoneIndex} is occupied.`);
 

@@ -233,10 +233,10 @@ describe('Set trap — timing and location', () => {
     expect(state.players[0].graveyard.map((c) => c.instanceId)).toEqual(['ms-0']);
   });
 
+  // Task 4.3: a Continuous Trap and a Set Normal Spell left this list (rules/continuous-activation.test.ts,
+  // rules/set-spell-activation.test.ts).
   it.each([
-    ['a Continuous Trap', 'CONT_TRAP'],
     ['a Trap whose effect is not a Quick trigger', 'TRAP_IGNITION'],
-    ['a Set Normal Spell', 'DRAW'],
     ['a Trap with no effect', 'TRAP_PLAIN'],
   ])('%s is not activatable from the field', (_name, def) => {
     const state = fixtureState({ mySpellTraps: [[0, def]] });

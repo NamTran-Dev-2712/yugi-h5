@@ -118,6 +118,7 @@ export interface PendingTriggerView {
 export type ChainLinkSourceView =
   | { readonly zone: 'Hand' }
   | { readonly zone: 'SpellTrapZone'; readonly zoneIndex: number }
+  | { readonly zone: 'FieldZone' }
   | { readonly zone: 'MonsterZone'; readonly zoneIndex: number }
   | { readonly zone: 'Graveyard' };
 

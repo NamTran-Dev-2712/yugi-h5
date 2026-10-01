@@ -197,7 +197,8 @@
   "error.engine.UNKNOWN_SCRIPT": "Hiệu ứng này dùng một script chưa có trong game nên không kích hoạt được.",
   "error.engine.NO_FREE_MONSTER_ZONE": "Không còn ô quái trống để Triệu hồi Đặc biệt.",
   "error.engine.MONSTER_FACE_UP": "Chỉ quái đang úp mới Triệu hồi Lật được.",
-  "error.engine.NO_FREE_SPELL_TRAP_ZONE": "Không còn ô Phép/Bẫy trống để đặt lá Trang bị.",
+  "error.engine.NO_FREE_SPELL_TRAP_ZONE": "Không còn ô Phép/Bẫy trống để đặt lá này.",
+  "error.engine.FIELD_ZONE_OCCUPIED": "Ô Môi trường của bạn đã có lá bài.",
 
   "error.api.NOT_OWNER": "Bạn không có quyền điều khiển trận này.",
   "error.api.PLAYER_MISMATCH": "Hành động không thuộc về người chơi này.",

@@ -24,7 +24,8 @@ export const EffectDefinitionSchema = z
     target: TargetSchema.optional(),
     /**
      * Run in order on resolution; for a `Continuous` effect, the modifiers that hold while the card is face-up.
-     * May be empty only when `scriptId` does the work.
+     * May be empty only when `scriptId` does the work, or (task 4.3) on the `Ignition`/`Quick` effect that merely
+     * activates a card that stays on the field (`CardDefinitionSchema` checks which cards may have one).
      */
     operations: z.array(OperationSchema),
     /**
@@ -34,9 +35,17 @@ export const EffectDefinitionSchema = z
     scriptId: z.string().min(1).optional(),
   })
   .strict()
-  .refine((e) => e.operations.length > 0 || e.scriptId !== undefined, {
-    message: 'an effect needs at least one operation or a scriptId',
-  })
+  .refine(
+    (e) =>
+      e.operations.length > 0 ||
+      e.scriptId !== undefined ||
+      e.trigger.kind === 'Ignition' ||
+      e.trigger.kind === 'Quick',
+    {
+      message:
+        'an effect needs at least one operation or a scriptId (only a card-activation effect may be empty)',
+    },
+  )
   .refine(
     (e) =>
       e.operations.every(
@@ -108,5 +117,16 @@ export function isEquipEffect(effect: {
   return effect.operations.some(
     (o) => o.kind === 'Equip' || (o.kind === 'ModifyStat' && o.equipped === true),
   );
+}
+
+/**
+ * True for an effect that does nothing when it resolves (task 4.3): it only puts its card face-up on the field, where
+ * the card's `Continuous` effects then hold.
+ */
+export function isActivationOnlyEffect(effect: {
+  operations: readonly unknown[];
+  scriptId?: string | undefined;
+}): boolean {
+  return effect.operations.length === 0 && effect.scriptId === undefined;
 }
 export type EffectDefinition = z.infer<typeof EffectDefinitionSchema>;

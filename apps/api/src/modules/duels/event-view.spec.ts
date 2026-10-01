@@ -28,7 +28,17 @@ const MECH_TYPES = [
   'FlipSummoned',
   'CardEquipped',
 ] as const satisfies readonly GameEvent['type'][];
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
+/** Task 4.3 events: ENGINE-ONLY until 4.3b (the Field Zone is not animated on the wire yet). */
+const ENGINE_ONLY_TYPES = [
+  'FieldSpellSet',
+  'FieldSpellDestroyed',
+] as const satisfies readonly GameEvent['type'][];
+type EngineOnlyEvent = Extract<GameEvent, { type: (typeof ENGINE_ONLY_TYPES)[number] }>;
+type SentToGraveyard = Extract<GameEvent, { type: 'CardSentToGraveyard' }>;
+/** Events forwarded as they are. `CardSentToGraveyard` only from the hand / a Spell/Trap Zone (`FieldZone`: 4.3b). */
+type PublicEvent =
+  | Exclude<GameEvent, CardDrawnEvent | EngineOnlyEvent | SentToGraveyard>
+  | (SentToGraveyard & { from: 'Hand' | 'SpellTrapZone' });
 /** No id is hidden from the viewer (most tests); the ChainLinkAdded target filter has its own tests. */
 const NONE: ReadonlySet<string> = new Set();
 
@@ -114,6 +124,13 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
   },
   DamageDealt: { type: 'DamageDealt', playerIndex: 1, amount: 500 },
   SpellTrapSet: { type: 'SpellTrapSet', playerIndex: 0, instanceId: 'p0-8', zoneIndex: 1 },
+  FieldSpellSet: { type: 'FieldSpellSet', playerIndex: 0, instanceId: 'p0-8' },
+  FieldSpellDestroyed: {
+    type: 'FieldSpellDestroyed',
+    ownerIndex: 1,
+    instanceId: 'p1-4',
+    definitionId: SECRET,
+  },
   EffectActivated: {
     type: 'EffectActivated',
     playerIndex: 0,
@@ -172,12 +189,37 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
 const asView = (e: PublicEvent): EventView => e;
 
 const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
-  (t): t is PublicEvent['type'] => t !== 'CardDrawn',
+  (t): t is PublicEvent['type'] =>
+    t !== 'CardDrawn' && !(ENGINE_ONLY_TYPES as readonly string[]).includes(t),
 );
 
 describe('toEventView', () => {
   it('covers every engine event type', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(28);
+    expect(Object.keys(FIXTURES)).toHaveLength(30);
+  });
+
+  it.each(ENGINE_ONLY_TYPES)(
+    'drops the engine-only event %s for both viewers (task 4.3)',
+    (type) => {
+      expect(PUBLIC_TYPES).not.toContain(type);
+      for (const viewer of [0, 1] as const) {
+        expect(toEventView(FIXTURES[type], viewer, NONE)).toBeNull();
+      }
+      expect(toEventViews([FIXTURES.PhaseChanged, FIXTURES[type]], 1, NONE)).toEqual([
+        FIXTURES.PhaseChanged,
+      ]);
+    },
+  );
+
+  it('CardSentToGraveyard: forwarded from the hand / a Spell/Trap Zone, dropped from the Field Zone (task 4.3)', () => {
+    for (const viewer of [0, 1] as const) {
+      for (const from of ['Hand', 'SpellTrapZone'] as const) {
+        const event: GameEvent = { ...FIXTURES.CardSentToGraveyard, from };
+        expect(toEventView(event, viewer, NONE)).toEqual(event);
+      }
+      const replaced: GameEvent = { ...FIXTURES.CardSentToGraveyard, from: 'FieldZone' };
+      expect(toEventView(replaced, viewer, NONE)).toBeNull();
+    }
   });
 
   it.each(MECH_TYPES)('forwards event %s unchanged to both viewers (task 4.2d)', (type) => {

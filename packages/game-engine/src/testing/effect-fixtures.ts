@@ -73,6 +73,33 @@ export function equipSpell(
   } as CardDefinition;
 }
 
+/**
+ * Test-only card that stays on the field (task 4.3): `e1` activates the card (Spell: Ignition, Trap: Quick; `onActivate`
+ * = what it does when it resolves, nothing by default), `e2` is the Continuous effect that then holds.
+ */
+export function stayingCard(
+  id: string,
+  type: 'Field' | 'ContinuousSpell' | 'ContinuousTrap',
+  aura: EffectDefinition['operations'],
+  onActivate: Partial<Omit<EffectDefinition, 'id' | 'trigger'>> = {},
+): CardDefinition {
+  return {
+    id,
+    kind: type === 'ContinuousTrap' ? 'Trap' : 'Spell',
+    name: text(id),
+    subType: type === 'Field' ? 'Field' : 'Continuous',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: type === 'ContinuousTrap' ? 'Quick' : 'Ignition' },
+        operations: [],
+        ...onActivate,
+      },
+      { id: 'e2', trigger: { kind: 'Continuous' }, operations: aura },
+    ],
+  } as CardDefinition;
+}
+
 export function monster(id: string, level = 4, race = 'Warrior'): CardDefinition {
   return {
     id,
@@ -288,6 +315,56 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
     ],
   },
 
+  /** Task 4.3 — Field Spell: every face-up Warrior (both sides) gains 500 ATK. */
+  FLD_WARRIOR: stayingCard('FLD_WARRIOR', 'Field', [
+    { kind: 'ModifyStat', stat: 'atk', amount: 500, side: 'self', filter: { race: 'Warrior' } },
+    { kind: 'ModifyStat', stat: 'atk', amount: 500, side: 'opponent', filter: { race: 'Warrior' } },
+  ]),
+  /** Field Spell: the opponent's face-up monsters lose 400 ATK. */
+  FLD_WEAK: stayingCard('FLD_WEAK', 'Field', [
+    { kind: 'ModifyStat', stat: 'atk', amount: -400, side: 'opponent' },
+  ]),
+  /** Field Spell with an OnDestroyed trigger `e3` (heal 600), to prove a destroyed Field Spell fires it. */
+  FLD_DES: {
+    ...stayingCard('FLD_DES', 'Field', [
+      { kind: 'ModifyStat', stat: 'def', amount: 200, side: 'self' },
+    ]),
+    effects: [
+      { id: 'e1', trigger: { kind: 'Ignition' }, operations: [] },
+      {
+        id: 'e2',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'def', amount: 200, side: 'self' }],
+      },
+      {
+        id: 'e3',
+        trigger: { kind: 'OnDestroyed', mandatory: true },
+        operations: [{ kind: 'Heal', amount: 600, target: 'self' }],
+      },
+    ],
+  } as CardDefinition,
+  /** Continuous Spell: your face-up monsters gain 300 ATK (activation does nothing else). */
+  CS_BUFF: stayingCard('CS_BUFF', 'ContinuousSpell', [
+    { kind: 'ModifyStat', stat: 'atk', amount: 300, side: 'self' },
+  ]),
+  /** Continuous Spell: gain 500 LP when it resolves, then your face-up monsters gain 200 DEF. */
+  CS_HEAL_BUFF: stayingCard(
+    'CS_HEAL_BUFF',
+    'ContinuousSpell',
+    [{ kind: 'ModifyStat', stat: 'def', amount: 200, side: 'self' }],
+    { operations: [{ kind: 'Heal', amount: 500, target: 'self' }] },
+  ),
+  /** Continuous Trap: the opponent's face-up monsters lose 300 ATK. */
+  CT_WEAK: stayingCard('CT_WEAK', 'ContinuousTrap', [
+    { kind: 'ModifyStat', stat: 'atk', amount: -300, side: 'opponent' },
+  ]),
+  /** Continuous Trap: 200 damage when it resolves, then the opponent's face-up monsters lose 300 ATK. */
+  CT_BURN_WEAK: stayingCard(
+    'CT_BURN_WEAK',
+    'ContinuousTrap',
+    [{ kind: 'ModifyStat', stat: 'atk', amount: -300, side: 'opponent' }],
+    { operations: [{ kind: 'Damage', amount: 200, target: 'opponent' }] },
+  ),
   /** Task 4.2c — Equip Spell: equip to 1 of your face-up monsters; it gains 500 ATK. */
   EQ_POWER: equipSpell('EQ_POWER', 'self', { stat: 'atk', amount: 500 }),
   /** Equip Spell: equip to 1 of the opponent's face-up monsters; it loses 500 ATK. */
@@ -608,6 +685,12 @@ export interface FixtureSetup {
   oppSpellTraps?: [number, string, number?][];
   /** Player 0 Spell/Trap Zone cards (face-down); instance ids ms-<zone>. Third item = `setTurn` (omitted = long ago). */
   mySpellTraps?: [number, string, number?][];
+  /**
+   * Task 4.3 — the card in player 0's / player 1's Field Zone as [definitionId, position?, setTurn?]; instance ids
+   * `mf` / `of`. Position defaults to `DefenseDown` (Set); `Attack` = face-up (already activated).
+   */
+  myField?: [string, ('Attack' | 'DefenseDown')?, number?];
+  oppField?: [string, ('Attack' | 'DefenseDown')?, number?];
   /** Player 0 graveyard (definition ids, bottom → top); instance ids g0, g1, ... (task 4.2a). */
   myGraveyard?: string[];
   /** Player 0 deck (definition ids) — defaults to 40 × D. */
@@ -664,6 +747,18 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
   });
   const spellTrapZones0 = backrow(s.mySpellTraps, 'ms', 0);
   const spellTrapZones1 = backrow(s.oppSpellTraps, 'os', 1);
+  const field = (
+    f: FixtureSetup['myField'],
+    instanceId: string,
+    owner: 0 | 1,
+  ): CardInstance | null => {
+    if (!f) return null;
+    const placed: CardInstance = {
+      ...inst(instanceId, f[0], owner),
+      position: f[1] ?? 'DefenseDown',
+    };
+    return f[2] === undefined ? placed : { ...placed, setTurn: f[2] };
+  };
   return {
     ...started,
     phase: s.phase ?? 'Main1',
@@ -673,12 +768,20 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
         hand,
         graveyard: (s.myGraveyard ?? []).map((d, i) => inst(`g${i}`, d)),
         lifePoints: s.myLp ?? p0.lifePoints,
-        board: { ...p0.board, monsterZones: monsterZones0, spellTrapZones: spellTrapZones0 },
+        board: {
+          monsterZones: monsterZones0,
+          spellTrapZones: spellTrapZones0,
+          fieldZone: field(s.myField, 'mf', 0),
+        },
       },
       {
         ...p1,
         lifePoints: s.oppLp ?? p1.lifePoints,
-        board: { ...p1.board, monsterZones: monsterZones1, spellTrapZones: spellTrapZones1 },
+        board: {
+          monsterZones: monsterZones1,
+          spellTrapZones: spellTrapZones1,
+          fieldZone: field(s.oppField, 'of', 1),
+        },
       },
     ],
   };

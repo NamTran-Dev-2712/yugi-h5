@@ -17,6 +17,7 @@ import { scriptFor } from '../../effects/effect-scripts/registry.js';
 import { lacksSummonZones } from '../../effects/operations/special-summon.js';
 import { spellSpeedOf } from '../../effects/spell-speed.js';
 import { targetCandidates } from '../../effects/targets.js';
+import { clearFieldZone } from '../../state/field-zone.js';
 import type { ActionContext, ActivateEffectAction, ResolvePendingPromptAction } from '../types.js';
 
 /*
@@ -28,8 +29,11 @@ import type { ActionContext, ActivateEffectAction, ResolvePendingPromptAction } 
 
 type Result = { state: GameState; events: GameEvent[] };
 
-/** Where `ActivateEffect` finds a card: the hand or a Spell/Trap Zone (trigger sources are task 3.5's). */
-type ActivationSource = Extract<ChainLinkSource, { zone: 'Hand' } | { zone: 'SpellTrapZone' }>;
+/** Where `ActivateEffect` finds a card: the hand, a Spell/Trap Zone or the Field Zone (trigger sources: task 3.5). */
+type ActivationSource = Extract<
+  ChainLinkSource,
+  { zone: 'Hand' } | { zone: 'SpellTrapZone' } | { zone: 'FieldZone' }
+>;
 
 /** `PendingPrompt.payload` of kind `SelectEffectTarget`. */
 export interface SelectEffectTargetPayload {
@@ -59,9 +63,14 @@ interface Prepared {
   /** Candidate ids for the effect's `Card` target; null when the effect has no Card target. */
   readonly candidates: readonly string[] | null;
   readonly targetCount: number;
-  /** Task 4.2c: an Equip Spell from the hand is placed face-up in this Spell/Trap Zone on activation; null otherwise. */
-  readonly placeInZone: number | null;
+  /**
+   * Where a Spell activated from the HAND is placed face-up at once because it stays on the field: an Equip (task 4.2c)
+   * or Continuous Spell in a Spell/Trap Zone, a Field Spell in the Field Zone (task 4.3). null otherwise.
+   */
+  readonly placement: Placement | null;
 }
+
+type Placement = Extract<ChainLinkSource, { zone: 'SpellTrapZone' } | { zone: 'FieldZone' }>;
 
 const fail = (code: EngineErrorCode, reason: string): never => {
   throw new EngineError(code, `ActivateEffect rejected: ${reason}`);
@@ -128,25 +137,39 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
         ? fail('NOT_ACTIVATABLE', 'Trap activation from the hand is not supported.')
         : fail('TRAP_NOT_SET', `"${definition.name.en}" is a Trap: Set it first.`);
     }
-    // Normal / Equip Spell (task 4.2c): Ignition, Main Phase only. Quick-Play Spell: Quick, any phase of your turn.
-    const mainPhaseOnly = definition.subType === 'Normal' || definition.subType === 'Equip';
+    // Normal / Equip (task 4.2c) / Continuous / Field (task 4.3) Spell: Ignition, Main Phase only. Quick-Play Spell:
+    // Quick, any phase of your turn.
+    const mainPhaseOnly =
+      definition.subType === 'Normal' ||
+      definition.subType === 'Equip' ||
+      definition.subType === 'Continuous' ||
+      definition.subType === 'Field';
     trigger = mainPhaseOnly ? 'Ignition' : definition.subType === 'QuickPlay' ? 'Quick' : null;
     if (mainPhaseOnly && state.phase !== 'Main1' && state.phase !== 'Main2')
       fail('WRONG_PHASE', `only allowed in a Main Phase (current phase: ${state.phase}).`);
   } else {
-    // A face-up card is already on the chain (or resolving): it cannot be activated again.
+    // A face-up card is on the chain, resolving, or staying on the field (Equip, Continuous, Field): it cannot be
+    // activated again.
     if (card.position !== 'DefenseDown')
       fail('NOT_ACTIVATABLE', `"${definition.name.en}" is already face-up.`);
-    // Set Normal/Counter Trap and Set Quick-Play: Quick trigger, any phase. Activating a Continuous Spell/Trap card
-    // (so that it stays face-up) and a Set Normal Spell: P4. Its Continuous effects never activate (task 3.6).
-    trigger =
-      definition.kind === 'Trap'
-        ? definition.subType === 'Continuous'
-          ? null
-          : 'Quick'
-        : definition.subType === 'QuickPlay'
-          ? 'Quick'
-          : null;
+    if (definition.kind === 'Trap' || definition.subType === 'QuickPlay') {
+      // Set Trap (Normal / Counter / Continuous, task 4.3) and Set Quick-Play: Quick trigger, any phase.
+      trigger = 'Quick';
+    } else if (
+      definition.subType === 'Normal' ||
+      definition.subType === 'Continuous' ||
+      definition.subType === 'Field'
+    ) {
+      // Task 4.3 [RULE]: a Set Spell Speed 1 card is activated like from the hand — its controller's turn (even while
+      // the other player holds priority in a window), Main Phase. A Set Equip Spell: not yet.
+      if (playerIndex !== state.turnPlayerIndex)
+        fail('NOT_TURN_PLAYER', 'a Set Spell may only be activated on your own turn.');
+      if (state.phase !== 'Main1' && state.phase !== 'Main2')
+        fail('WRONG_PHASE', `only allowed in a Main Phase (current phase: ${state.phase}).`);
+      trigger = 'Ignition';
+    } else {
+      trigger = null;
+    }
   }
   if (trigger === null)
     return fail(
@@ -165,20 +188,31 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
   if (effect.scriptId !== undefined && !scriptFor(effect.scriptId))
     return fail('UNKNOWN_SCRIPT', `script "${effect.scriptId}" is not registered.`);
 
-  if (source.zone === 'SpellTrapZone' && card.setTurn === state.turnCount) {
-    // [RULE] not on the turn it was Set: Traps per `ruleset.trapSetTurnDelay`, Quick-Play Spells always.
+  if (source.zone !== 'Hand' && card.setTurn === state.turnCount) {
+    // [RULE] not on the turn it was Set: Traps per `ruleset.trapSetTurnDelay`, Quick-Play Spells always. Any other Set
+    // Spell may be activated at once (task 4.3).
     if (definition.kind === 'Trap' && state.ruleset.trapSetTurnDelay)
       fail('TRAP_SET_THIS_TURN', `"${definition.name.en}" was Set this turn.`);
-    if (definition.kind === 'Spell')
+    if (definition.kind === 'Spell' && definition.subType === 'QuickPlay')
       fail('SPELL_SET_THIS_TURN', `"${definition.name.en}" was Set this turn.`);
   }
 
-  // Task 4.2c [RULE]: an Equip Spell stays on the field, so it needs a Spell/Trap Zone ([ASSUMED] the lowest empty one).
-  let placeInZone: number | null = null;
-  if (source.zone === 'Hand' && definition.kind === 'Spell' && definition.subType === 'Equip') {
-    placeInZone = state.players[playerIndex].board.spellTrapZones.findIndex((c) => c === null);
-    if (placeInZone === -1)
-      fail('NO_FREE_SPELL_TRAP_ZONE', 'no empty Spell/Trap Zone for the Equip Spell.');
+  // [RULE] a Spell that stays on the field is placed there when it is activated from the hand: an Equip (task 4.2c) or
+  // Continuous Spell (task 4.3) in a Spell/Trap Zone ([ASSUMED] the lowest empty one), a Field Spell in the Field Zone.
+  let placement: Placement | null = null;
+  if (source.zone === 'Hand' && definition.kind === 'Spell') {
+    const board = state.players[playerIndex].board;
+    if (definition.subType === 'Field') {
+      // [DECISION] it replaces the player's own Field Spell, unless the ruleset forbids replacing.
+      if (board.fieldZone !== null && !state.ruleset.fieldSpellReplace)
+        fail('FIELD_ZONE_OCCUPIED', 'your Field Zone already holds a card.');
+      placement = { zone: 'FieldZone' };
+    } else if (definition.subType === 'Equip' || definition.subType === 'Continuous') {
+      const zoneIndex = board.spellTrapZones.findIndex((c) => c === null);
+      if (zoneIndex === -1)
+        fail('NO_FREE_SPELL_TRAP_ZONE', `no empty Spell/Trap Zone for "${definition.name.en}".`);
+      placement = { zone: 'SpellTrapZone', zoneIndex };
+    }
   }
 
   // [RULE] a chain link must be Spell Speed 2+ and at least the speed of the link it responds to.
@@ -221,11 +255,11 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
     costPlan,
     candidates,
     targetCount,
-    placeInZone,
+    placement,
   };
 }
 
-/** The card in `player`'s hand, or Set in their Spell/Trap Zone. */
+/** The card in `player`'s hand, in their Spell/Trap Zone, or (task 4.3) in their Field Zone. */
 function locate(
   player: PlayerState,
   instanceId: string,
@@ -234,7 +268,11 @@ function locate(
   if (inHand) return { card: inHand, source: { zone: 'Hand' } };
   const zoneIndex = player.board.spellTrapZones.findIndex((c) => c?.instanceId === instanceId);
   const onField = player.board.spellTrapZones[zoneIndex];
-  return onField ? { card: onField, source: { zone: 'SpellTrapZone', zoneIndex } } : null;
+  if (onField) return { card: onField, source: { zone: 'SpellTrapZone', zoneIndex } };
+  const inFieldZone = player.board.fieldZone;
+  return inFieldZone?.instanceId === instanceId
+    ? { card: inFieldZone, source: { zone: 'FieldZone' } }
+    : null;
 }
 
 /** True when `seat` has at least one activation the engine would accept right now (dry run over the candidates). */
@@ -269,10 +307,9 @@ function activate(
   targetInstanceIds: readonly string[],
   ctx: ActionContext,
 ): Result {
-  const { request, card, effect, costPlan, spellSpeed, placeInZone } = prepared;
-  // An Equip Spell from the hand goes face-up into its zone at once and waits there, like an activated Set card.
-  const source: ChainLinkSource =
-    placeInZone === null ? prepared.source : { zone: 'SpellTrapZone', zoneIndex: placeInZone };
+  const { request, card, effect, costPlan, spellSpeed, placement } = prepared;
+  // A Spell that stays on the field goes face-up into its zone at once and waits there, like an activated Set card.
+  const source: ChainLinkSource = placement ?? prepared.source;
   const { playerIndex } = request;
   const events: GameEvent[] = [
     {
@@ -284,38 +321,45 @@ function activate(
     },
   ];
 
-  // From the hand the card leaves it (it lives in the link); a Set card flips face-up and stays in its zone [RULE].
-  const player = state.players[playerIndex];
+  // Task 4.3: a Field Spell from the hand first sends the player's own Field Spell to the graveyard.
+  let current: GameState = state;
+  if (placement?.zone === 'FieldZone') {
+    const cleared = clearFieldZone(current, playerIndex);
+    current = cleared.state;
+    events.push(...cleared.events);
+  }
+
+  // From the hand the card leaves it (it lives in the link, or goes to its `placement`); a Set card flips face-up and
+  // stays in its zone [RULE].
+  const player = current.players[playerIndex];
   const leftHand =
     prepared.source.zone === 'Hand'
       ? player.hand.filter((c) => c.instanceId !== card.instanceId)
       : player.hand;
-  const placed: CardInstance = {
-    instanceId: card.instanceId,
-    definitionId: card.definitionId,
-    ownerIndex: card.ownerIndex,
-    position: 'Attack',
-  };
-  const activated: PlayerState =
-    source.zone === 'Hand'
-      ? { ...player, hand: leftHand }
+  const faceUp: CardInstance =
+    placement === null
+      ? { ...card, position: 'Attack' }
       : {
-          ...player,
-          hand: leftHand,
-          board: {
-            ...player.board,
-            spellTrapZones: player.board.spellTrapZones.map((slot, i) =>
-              i === source.zoneIndex
-                ? placeInZone === null
-                  ? { ...card, position: 'Attack' }
-                  : placed
-                : slot,
-            ) as unknown as PlayerState['board']['spellTrapZones'],
-          },
+          instanceId: card.instanceId,
+          definitionId: card.definitionId,
+          ownerIndex: card.ownerIndex,
+          position: 'Attack',
         };
-  let current: GameState = {
-    ...state,
-    players: playerIndex === 0 ? [activated, state.players[1]] : [state.players[0], activated],
+  const board: PlayerState['board'] =
+    source.zone === 'SpellTrapZone'
+      ? {
+          ...player.board,
+          spellTrapZones: player.board.spellTrapZones.map((slot, i) =>
+            i === source.zoneIndex ? faceUp : slot,
+          ) as unknown as PlayerState['board']['spellTrapZones'],
+        }
+      : source.zone === 'FieldZone'
+        ? { ...player.board, fieldZone: faceUp }
+        : player.board;
+  const activated: PlayerState = { ...player, hand: leftHand, board };
+  current = {
+    ...current,
+    players: playerIndex === 0 ? [activated, current.players[1]] : [current.players[0], activated],
   };
 
   const paid = payCosts(current, playerIndex, costPlan);

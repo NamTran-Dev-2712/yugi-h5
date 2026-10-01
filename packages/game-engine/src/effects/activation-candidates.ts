@@ -61,8 +61,8 @@ function costSelections(
 }
 
 /**
- * Every effect of every non-Monster card in `seat`'s hand, then of every card in their Spell/Trap Zones (task 3.4),
- * × every candidate cost selection. Deterministic order.
+ * Every effect of every non-Monster card in `seat`'s hand, then of every card in their Spell/Trap Zones (task 3.4) and
+ * Field Zone (task 4.3), × every candidate cost selection. Deterministic order.
  */
 export function activationCandidates(
   state: GameState,
@@ -71,7 +71,10 @@ export function activationCandidates(
 ): ActivateEffectAction[] {
   const me = state.players[seat];
   const ownMonsters = me.board.monsterZones.filter((c): c is CardInstance => c !== null);
-  const backrow = me.board.spellTrapZones.filter((c): c is CardInstance => c !== null);
+  // Task 4.3: the Field Zone card comes last.
+  const backrow = [...me.board.spellTrapZones, me.board.fieldZone].filter(
+    (c): c is CardInstance => c !== null,
+  );
   const out: ActivateEffectAction[] = [];
   for (const source of [...me.hand, ...backrow]) {
     const def = ctx.cardDefinitions(source.definitionId);

@@ -1,0 +1,43 @@
+KILLED   a Field Spell is Set with any zoneIndex
+KILLED   Set ignores fieldSpellReplace: false
+KILLED   Set overwrites the old Field Spell (it vanishes)
+KILLED   a Field Spell is Set face-up
+KILLED   Field Set reported as SpellTrapSet
+KILLED   the Set Field Spell stays in the hand too (duplicated)
+KILLED   Field Spell not activatable from the hand
+KILLED   Continuous Spell not activatable from the hand
+KILLED   Set Continuous Trap not activatable as a Trap
+KILLED   Set Normal Spell not activatable
+KILLED   Set Field Spell not activatable
+KILLED   the non-turn player activates a Set Spell inside a window
+KILLED   a Set Spell is activated in any phase
+KILLED   every Set Spell waits a turn (not only Quick-Play)
+KILLED   activation ignores fieldSpellReplace: false
+KILLED   a Continuous Spell from the hand is never placed in a zone
+KILLED   a Field Spell from the hand is never placed in the Field Zone
+KILLED   replaced Field Spell announced but overwritten (vanishes)
+KILLED   replaced Field Spell sent without its event
+KILLED   link says Hand while the card was placed on the field
+KILLED   an activated Set card does not flip face-up
+KILLED   a card in the Field Zone is never found
+KILLED   Continuous Spell/Trap goes to the graveyard after resolving
+KILLED   a face-up Field Spell is not a Continuous source
+KILLED   the Field Zone card is not a Spell/Trap target
+KILLED   findOnField never finds the Field Zone card
+KILLED   a destroyed Field Spell stays on the field (duplicated)
+KILLED   Field destruction reported as SpellTrapDestroyed
+KILLED   a destroyed Field Spell fires no OnDestroyed
+KILLED   a Set Field Spell is never a legal activation
+KILLED   a replaced Field Spell never reaches the graveyard
+KILLED   replacement reported as coming from a Spell/Trap Zone
+KILLED   schema: any trigger may have no operations
+KILLED   schema: empty activation without a Continuous effect
+KILLED   schema: empty activation on a card that does not stay
+KILLED   schema: Field Spell without a Continuous effect
+KILLED   schema: a Continuous Trap needs an Ignition effect
+KILLED   schema: Continuous card without an activation effect
+KILLED   staysOnField: a Field Spell does not stay
+KILLED   staysOnField: a Continuous Trap does not stay
+KILLED   SMP-208 weakens its own controller
+
+41/41 mutants killed

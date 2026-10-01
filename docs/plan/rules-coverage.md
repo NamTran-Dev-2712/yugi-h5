@@ -24,7 +24,9 @@
 | Quick-Play Spell                                | [RULE]            | P3    | M   | Trung   | Speed 2, chỉ activate lượt mình. **3.3**: bản tối thiểu từ tay (Main1/Main2 `[ASSUMED]`), chỉ lá test; úp/ngoài lượt = 3.4                                            |
 | Ignition/Quick effect monster                   | [RULE]            | P3/P4 | M   | Trung   |                                                                                                                                                                       |
 | Equip Spell                                     | [RULE]            | P4    | M   | Trung   | Phụ thuộc target; rời sân khi monster đi                                                                                                                              |
-| Field Spell                                     | [RULE]            | P4    | M   | Thấp    | Field Zone; 1 lá/người (early: thay lá cũ)                                                                                                                            |
+| Field Spell                                     | [RULE]/[DECISION] | P4    | M   | Thấp    | **4.3 🟨 (engine-only)**: Field Zone 1 lá/người, Set hoặc kích hoạt từ tay, lá mới thay lá của chính mình (vào mộ), bị "phá 1 Phép/Bẫy" phá được; G20                 |
+| Kích hoạt lá Continuous Spell/Trap              | [RULE]            | P4    | M   | Thấp    | **4.3 🟨 (engine-only)**: lên chain rồi ở lại sân ngửa (đọc từ subType); Continuous Trap phải Set, chờ 1 lượt                                                         |
+| Phép Speed 1 đã Set                             | [RULE]            | P4    | S   | Thấp    | **4.3 🟨**: Normal/Continuous/Field đã Set kích hoạt ở Main Phase lượt mình, được ngay lượt vừa Set (chỉ Quick-Play/Bẫy phải chờ)                                     |
 | Counter Trap                                    | [RULE]            | P4    | M   | Trung   | Speed 3                                                                                                                                                               |
 | Special Summon (effect)                         | [RULE]            | P4    | L   | Trung   | Từ tay/GY/Extra Deck                                                                                                                                                  |
 | Fusion Summon (Extra Deck)                      | [RULE]            | P4    | L   | Trung   | Xem G8                                                                                                                                                                |
@@ -38,20 +40,20 @@
 
 Engine đọc `state.ruleset` (JSON, nằm trong state để replay tái lập). Mặc định = early Master Rule.
 
-| Khía cạnh                    | Early Master Rule (mặc định) `[RULE]`                                     | Modern `[RULE]`           | Khoá config                      |
-| ---------------------------- | ------------------------------------------------------------------------- | ------------------------- | -------------------------------- |
-| Zone                         | 5 Monster + 5 S/T + 1 Field; EX zone chưa làm P1–P4 `[DECISION]` (C1)     | Master Rule 5: có EMZ     | `extraMonsterZones` (0, chỉ lưu) |
-| Draw lượt 1 (người đi trước) | Không draw                                                                | Không draw                | `firstTurnDraw`                  |
-| Attack lượt 1                | Không                                                                     | Không                     | `firstTurnAttack`                |
-| Extra Deck                   | 0–20 (mặc định 20 `[REF thấp]`), Fusion; chỉ có Fusion trong v1           | Có Synchro/Xyz/Link (OUT) | `extraDeckSize`                  |
-| Field Spell                  | Thay thế nếu activate lá mới                                              | Mỗi người 1 lá            | `fieldSpellReplace`              |
-| Deck size                    | 40–60, ≤3/lá                                                              | Giống                     | `deckMin/Max`, `copyLimit`       |
-| Hand limit                   | 6                                                                         | 6                         | `handLimit`                      |
-| Starting LP                  | 8000 `[DECISION]` (dựa giả thuyết, C2/C10); ghi đè từng bên ở `StartDuel` | 8000                      | `startingLP`                     |
-| Missing-timing / SEGOC       | Đơn giản hoá, không SEGOC đầy đủ                                          | Có SEGOC                  | `segoc`                          |
-| Tribute Summon               | Chuẩn                                                                     | Chuẩn                     | —                                |
-| Chain prompt                 | Theo `[GUESS]` Yugi H5 (mặc định: hỏi khi có bài hợp lệ)                  | —                         | `chainPrompt`                    |
-| Turn timer                   | `[GUESS]`                                                                 | —                         | `turnTimerSec`                   |
+| Khía cạnh                    | Early Master Rule (mặc định) `[RULE]`                                      | Modern `[RULE]`           | Khoá config                                            |
+| ---------------------------- | -------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------ |
+| Zone                         | 5 Monster + 5 S/T + 1 Field; EX zone chưa làm P1–P4 `[DECISION]` (C1)      | Master Rule 5: có EMZ     | `extraMonsterZones` (0, chỉ lưu)                       |
+| Draw lượt 1 (người đi trước) | Không draw                                                                 | Không draw                | `firstTurnDraw`                                        |
+| Attack lượt 1                | Không                                                                      | Không                     | `firstTurnAttack`                                      |
+| Extra Deck                   | 0–20 (mặc định 20 `[REF thấp]`), Fusion; chỉ có Fusion trong v1            | Có Synchro/Xyz/Link (OUT) | `extraDeckSize`                                        |
+| Field Spell                  | `[DECISION]` 2026-10-01: mỗi người 1 lá; lá mới thay lá **của chính mình** | Mỗi người 1 lá            | `fieldSpellReplace` (`false` = ô đã có lá thì từ chối) |
+| Deck size                    | 40–60, ≤3/lá                                                               | Giống                     | `deckMin/Max`, `copyLimit`                             |
+| Hand limit                   | 6                                                                          | 6                         | `handLimit`                                            |
+| Starting LP                  | 8000 `[DECISION]` (dựa giả thuyết, C2/C10); ghi đè từng bên ở `StartDuel`  | 8000                      | `startingLP`                                           |
+| Missing-timing / SEGOC       | Đơn giản hoá, không SEGOC đầy đủ                                           | Có SEGOC                  | `segoc`                                                |
+| Tribute Summon               | Chuẩn                                                                      | Chuẩn                     | —                                                      |
+| Chain prompt                 | Theo `[GUESS]` Yugi H5 (mặc định: hỏi khi có bài hợp lệ)                   | —                         | `chainPrompt`                                          |
+| Turn timer                   | `[GUESS]`                                                                  | —                         | `turnTimerSec`                                         |
 
 Việc cần làm ở task 1.1: định nghĩa `RulesetConfig` (Zod trong `packages/shared`), truyền qua `StartDuel`.
 

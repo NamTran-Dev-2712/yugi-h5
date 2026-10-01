@@ -75,15 +75,15 @@ export const CONTINUOUS_HANDLERS: {
 };
 
 /**
- * Every Continuous effect in force, in a fixed order: player 0 then 1; monster zones 0–4 then Spell/Trap Zones 0–4.
- * Sources: face-up monsters, and face-up Spell/Traps (a Continuous Spell/Trap can only be placed face-up by a fixture
- * or scenario until P4 lets it be activated). The effect's conditions are checked now, from its controller's view.
+ * Every Continuous effect in force, in a fixed order: player 0 then 1; monster zones 0–4, Spell/Trap Zones 0–4, then
+ * the Field Zone (task 4.3). Sources: face-up monsters, face-up Spell/Traps and a face-up Field Spell. The effect's
+ * conditions are checked now, from its controller's view.
  */
 export function activeContinuousEffects(state: GameState, ctx: ActionContext): ActiveContinuous[] {
   const out: ActiveContinuous[] = [];
   for (const controller of [0, 1] as const) {
-    const { monsterZones, spellTrapZones } = state.players[controller].board;
-    for (const source of [...monsterZones, ...spellTrapZones]) {
+    const { monsterZones, spellTrapZones, fieldZone } = state.players[controller].board;
+    for (const source of [...monsterZones, ...spellTrapZones, fieldZone]) {
       if (source === null || !isFaceUp(source)) continue;
       for (const effect of ctx.cardDefinitions(source.definitionId)?.effects ?? []) {
         if (effect.trigger.kind !== 'Continuous') continue;

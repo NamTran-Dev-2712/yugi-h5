@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { EffectDefinitionSchema, isEquipEffect } from '../effects/effect-definition.js';
+import {
+  EffectDefinitionSchema,
+  isActivationOnlyEffect,
+  isEquipEffect,
+} from '../effects/effect-definition.js';
 
 /**
  * Static, author-time definition of a card. Runtime state (position, zone,
@@ -86,5 +90,50 @@ export const CardDefinitionSchema = z
       !(card.effects ?? []).some(isEquipEffect),
     // Task 4.2c: Equip / ModifyStat.equipped only mean something on an Equip Spell.
     { message: 'Equip and ModifyStat.equipped belong to Equip Spells only' },
+  )
+  .refine(
+    (card) =>
+      !(card.effects ?? []).some(isActivationOnlyEffect) ||
+      (staysOnField(card) && (card.effects ?? []).some((e) => e.trigger.kind === 'Continuous')),
+    // Task 4.3: an effect that resolves into nothing only makes sense as the activation of a card that then stays
+    // face-up and applies its Continuous effects.
+    {
+      message:
+        'an empty activation effect belongs to a Continuous Spell/Trap or Field Spell that has a Continuous effect',
+    },
+  )
+  .refine(
+    (card) =>
+      !(card.kind === 'Spell' && card.subType === 'Field') ||
+      card.scriptId !== undefined ||
+      (card.effects ?? []).some((e) => e.trigger.kind === 'Continuous' || e.scriptId !== undefined),
+    // Task 4.3: a Field Spell does its work while it is face-up in the Field Zone.
+    { message: 'a Field Spell needs a Continuous effect or a scriptId' },
+  )
+  .refine(
+    (card) => {
+      if (card.kind === 'Monster') return true;
+      const effects = card.effects ?? [];
+      if (!effects.some((e) => e.trigger.kind === 'Continuous')) return true;
+      // [RULE] a Spell card is activated as Spell Speed 1 (Ignition), a Trap card as Quick.
+      const activation = card.kind === 'Trap' ? 'Quick' : 'Ignition';
+      return effects.some((e) => e.trigger.kind === activation);
+    },
+    // Task 4.3: a Continuous effect only holds once its card is face-up, and only an activation puts it there.
+    {
+      message:
+        'a Spell/Trap with a Continuous effect needs an effect that activates the card (Spell: Ignition, Trap: Quick)',
+    },
   );
+
+/**
+ * Task 4.3 [RULE]: after its activation resolves, a Continuous Spell/Trap or a Field Spell stays face-up on the field;
+ * every other Spell/Trap goes to the graveyard (an Equip Spell stays only while equipped: the engine tracks that).
+ */
+export function staysOnField(card: { kind: string; subType?: string }): boolean {
+  return (
+    (card.kind === 'Spell' && (card.subType === 'Continuous' || card.subType === 'Field')) ||
+    (card.kind === 'Trap' && card.subType === 'Continuous')
+  );
+}
 export type CardDefinition = z.infer<typeof CardDefinitionSchema>;

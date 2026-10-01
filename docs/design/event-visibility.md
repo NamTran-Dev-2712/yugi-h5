@@ -47,6 +47,11 @@ raw events never leave the class.
 | FlipSummoned           | definitionId             | PUBLIC                   | Task 4.2b, forwarded since 4.2d: the monster is now face-up.                                                                                                                        |
 | MonsterSpecialSummoned | definitionId             | PUBLIC                   | Task 4.2a, forwarded since 4.2d: always face-up, from your hand (the card is revealed) or the public graveyard.                                                                     |
 
+> Task 4.3 (engine-only, not in the table count above): `FieldSpellSet` (no `definitionId`), `FieldSpellDestroyed`
+> (`definitionId`, public graveyard) and `CardSentToGraveyard` with `from: 'FieldZone'` are **dropped** by `toEventView`
+> (`null`, tested) until task 4.3b puts the Field Zone on the wire; they will be PUBLIC like their Spell/Trap Zone
+> counterparts. `StateView.board.fieldZone` already exists (face-down hidden from the opponent, covered by `findLeaks`).
+
 > Task 4.2d (wire for 4.2a/b/c): the three events above are forwarded, `FlipSummon` is a player action and
 > `VisibleCardView.equippedTo` is sent on a face-up Equip card whose monster is face-up. **Target filter** (debt of ADR
 > 4.2a): a Special Summon from the hand chooses a hand card, and its id in `targetInstanceIds` told the opponent "that hand
