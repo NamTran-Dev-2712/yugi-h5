@@ -2,14 +2,19 @@
 
 Duel card game 2D kiểu Yu-Gi-Oh bản cũ/early Master Rule, dùng cá nhân, không phát hành
 công khai. **Không dùng art/tên bài chính thức của Konami** — mọi card trong repo là
-placeholder tự đặt tên. Ưu tiên theo thứ tự: (1) core duel mechanics, (2) cảm giác kéo thả
-
-- flow lượt, (3) UI manga/classic, (4) Deck Builder cơ bản, (5) AI rule-based. Xem thêm:
-  [`docs/design/`](./docs/design) (engine/effect-DSL/protocol), [`docs/ai/`](./docs/ai)
-  (tiến độ + quyết định).
+placeholder tự đặt tên. Ưu tiên theo thứ tự: (1) core duel mechanics, (2) cảm giác kéo thả +
+flow lượt, (3) UI manga/classic, (4) Deck Builder cơ bản, (5) AI rule-based. Xem thêm:
+[`docs/design/`](./docs/design) (engine/effect-DSL/protocol), [`docs/ai/`](./docs/ai)
+(tiến độ + quyết định).
 
 @docs/ai/PROGRESS.md
-@docs/ai/DECISIONS.md
+@docs/ai/INDEX.md
+@docs/ai/LESSONS.md
+
+Ba file trên được tự nạp: trạng thái hiện tại, bản đồ "task nào đọc file nào", bài học chung. **Quyết định thiết kế
+(ADR) và nhật ký task KHÔNG tự nạp** — mục lục ở `docs/ai/DECISIONS.md`, mỗi ADR một file trong `docs/ai/decisions/`,
+nhật ký ở `docs/ai/progress/`: phải chủ động đọc theo `docs/ai/INDEX.md` trước khi sửa code thuộc chủ đề đó. Giữ tổng
+các file tự nạp dưới 40.000 ký tự: không `@import` thêm file lớn, không chép lịch sử task vào các file này.
 
 ## Kiến trúc bất biến
 
@@ -62,18 +67,22 @@ docker compose up -d                      # Postgres (5433) + Redis (6380, chưa
 
 ## Quy trình bắt buộc cho MỖI task
 
-1. Đọc `docs/ai/PROGRESS.md` + `CLAUDE.md` của package liên quan trước khi làm.
+1. Đọc `docs/ai/PROGRESS.md` + `CLAUDE.md` của package liên quan + các file/ADR mà
+   `docs/ai/INDEX.md` trỏ tới cho chủ đề của task, trước khi làm.
 2. Nêu rõ task thuộc lớp nào: Engine / API / Frontend / Realtime / Shared.
 3. Plan ngắn → làm từng bước nhỏ; ưu tiên viết test trước với engine.
 4. Trước khi báo hoàn thành: chạy lint + typecheck + test của package liên quan
    (`pnpm --filter <pkg> lint/typecheck/test`).
-5. Cập nhật `docs/ai/PROGRESS.md` (bắt buộc), `docs/ai/DECISIONS.md` nếu có quyết định
-   thiết kế mới, `docs/design/*` nếu đổi contract, và `CLAUDE.md` liên quan nếu phát sinh
+5. Cập nhật `docs/ai/PROGRESS.md` (bắt buộc; chỉ trạng thái hiện tại) và thêm mục chi tiết của task
+   vào cuối `docs/ai/progress/p<phase>.md` (bắt buộc); nếu có quyết định thiết kế mới: tạo file ADR
+   trong `docs/ai/decisions/` + 1 dòng ở mục lục `docs/ai/DECISIONS.md` (bài học dùng chung → thêm
+   `docs/ai/LESSONS.md`); `docs/design/*` nếu đổi contract; `CLAUDE.md` liên quan nếu phát sinh
    luật mới.
 6. Báo cáo cuối task: đã làm gì, file đổi, cách verify, việc tiếp theo đề xuất.
-
-6b. Task có đổi hiển thị UI: kèm screenshot thật ở `docs/ai/review-packets/task-<số>-screens/` (mẫu: `tools/ui-drag-shots.ts`, `tools/ui-anim-shots.ts`) và nêu đường dẫn trong báo cáo. 7. **Kết thúc mỗi task bằng Review Packet** cho người duyệt (`/review-packet`) + cập nhật
-`docs/plan/parity-board.md` (AI chỉ tới 🟨 "nháp"; chỉ người dùng chuyển ✅).
+   - (6b) Task có đổi hiển thị UI: kèm screenshot thật ở `docs/ai/review-packets/task-<số>-screens/`
+     (mẫu: `tools/ui-drag-shots.ts`, `tools/ui-anim-shots.ts`) và nêu đường dẫn trong báo cáo.
+7. **Kết thúc mỗi task bằng Review Packet** cho người duyệt (`/review-packet`) + cập nhật
+   `docs/plan/parity-board.md` (AI chỉ tới 🟨 "nháp"; chỉ người dùng chuyển ✅).
 
 Slash commands hỗ trợ quy trình này: `/task-start`, `/task-done`, `/next-task`, `/new-card`,
 `/new-effect-type`, `/new-action`, `/review`, `/review-packet`, `/fidelity-check`, `/asset-request`,

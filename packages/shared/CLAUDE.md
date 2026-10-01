@@ -9,3 +9,4 @@ Luật riêng:
 - Mọi type public phải có Zod schema tương ứng nếu nó đi qua network boundary (Action, Event, API DTO).
 - Không import từ `apps/*` hay `packages/game-engine`.
 - Thêm card mới: xem `.claude/commands/new-card.md` ở root.
+- Quyết định liên quan (ADR, không tự nạp): tra `docs/ai/INDEX.md` → `docs/ai/decisions/`.

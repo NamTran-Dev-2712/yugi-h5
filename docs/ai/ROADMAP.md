@@ -1,7 +1,8 @@
 # Roadmap
 
 Trạng thái tick nhanh: `docs/ai/PROGRESS.md`. Kế hoạch chi tiết + task con: `docs/plan/MASTER-PLAN.md`.
-File này chỉ định nghĩa tiêu chí "done" mức phase. (M0–M8 cũ đã được tái cấu trúc thành P0–P9 — xem ADR 2026-09-20.)
+File này chỉ định nghĩa tiêu chí "done" mức phase. (M0–M8 cũ đã được tái cấu trúc thành P0–P9 — xem ADR 2026-09-20,
+`docs/ai/decisions/011-2026-09-20-phases-p0-p9.md`; P10–P15: ADR 043.)
 
 ## P0 — Setup monorepo + tooling ✅ (= M0)
 

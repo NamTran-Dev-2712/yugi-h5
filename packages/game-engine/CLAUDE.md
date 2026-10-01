@@ -13,6 +13,7 @@ Luật bất biến (không được vi phạm):
 - Thêm Action mới: xem `.claude/commands/new-action.md` ở root.
 - Thêm effect: xem `docs/design/effect-dsl.md` và `.claude/commands/new-effect-type.md`.
 - ESLint ở package này chặn cứng `Math.random()` và global `Date` — đừng disable rule để "cho nhanh".
+- Lý do của từng luật dưới đây (ADR, không tự nạp): tra `docs/ai/INDEX.md` → `docs/ai/decisions/`.
 
 ## legalActions (task 2.5)
 

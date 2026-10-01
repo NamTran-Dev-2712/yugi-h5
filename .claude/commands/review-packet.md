@@ -14,4 +14,4 @@ Cuối MỖI task, sinh Review Packet cho người dùng (không code) theo mẫ
 **Task tiếp theo:**
 ```
 
-Đồng thời cập nhật `docs/plan/parity-board.md` (chỉ tới 🟨 "có bản nháp"; chỉ người dùng được chuyển ✅) và `docs/ai/PROGRESS.md`.
+Đồng thời cập nhật `docs/plan/parity-board.md` (chỉ tới 🟨 "có bản nháp"; chỉ người dùng được chuyển ✅), `docs/ai/PROGRESS.md` (trạng thái hiện tại) và mục chi tiết của task ở cuối `docs/ai/progress/p<phase>.md`.

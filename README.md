@@ -82,14 +82,16 @@ packages/
   config/         tsconfig + eslint config dùng chung
 docs/
   design/         Engine/effect-DSL/protocol design docs
-  ai/             PROGRESS/DECISIONS/GLOSSARY/ROADMAP — tài liệu sống cho AI-assisted work
+  ai/             Tài liệu sống cho AI-assisted work: PROGRESS (trạng thái hiện tại), INDEX (tra cứu),
+                  LESSONS, DECISIONS (mục lục ADR) + decisions/ (1 file/ADR), progress/ (nhật ký task),
+                  GLOSSARY, ROADMAP, review-packets/
 .claude/          Slash commands + subagents hỗ trợ vibe-coding đúng kiến trúc
 ```
 
 ## Ghi chú
 
 - Redis đã có trong `docker-compose.yml` nhưng chưa wire vào `apps/api` — sẽ bật lại khi làm
-  module `realtime` (M7). Xem `docs/ai/DECISIONS.md`.
+  module `realtime` (M7). Xem `docs/ai/decisions/005-2026-09-19-redis-not-wired.md`.
 - Chưa có CI (GitHub Actions) — hiện tại "CI-local" nghĩa là chạy xanh
   `pnpm lint && pnpm typecheck && pnpm test && pnpm build` trước khi commit (husky pre-commit
   chỉ chạy lint-staged, chưa chạy full suite).

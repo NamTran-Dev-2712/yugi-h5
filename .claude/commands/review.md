@@ -34,7 +34,8 @@ Xem `git diff` (staged + unstaged) và review theo checklist sau — báo cáo v
 - [ ] Không có `any` (trừ khi có lý do rõ ràng + comment giải thích).
 - [ ] Không thêm dependency lớn ngoài kế hoạch mà chưa hỏi user.
 - [ ] Diff không lan ra ngoài phạm vi task (không refactor "tiện tay").
-- [ ] `docs/ai/PROGRESS.md` đã cập nhật nếu task coi như xong.
+- [ ] `docs/ai/PROGRESS.md` + `docs/ai/progress/p<phase>.md` đã cập nhật nếu task coi như xong;
+      quyết định mới có file ADR trong `docs/ai/decisions/` + dòng mục lục.
 
 Kết luận: liệt kê vi phạm tìm được (nếu có), mức độ nghiêm trọng, và đề xuất fix. Nếu sạch,
 nói rõ "không tìm thấy vi phạm" thay vì im lặng.

@@ -14,7 +14,7 @@ Thêm card mới cho: $ARGUMENTS
    `EffectDefinition` theo `docs/design/effect-dsl.md` (chỉ áp dụng khi effect engine đã có
    ở M2 — trước đó chỉ cần `effectText` placeholder).
 4. Nếu effect **phức tạp**: dùng `scriptId` trỏ tới 1 handler mới trong
-   `packages/game-engine/src/effects/scripts/` (chỉ khi effect engine đã tồn tại).
+   `packages/game-engine/src/effects/effect-scripts/` (chỉ khi effect engine đã tồn tại).
 5. Thêm card vào danh sách export (`sample-cards.ts` hoặc file set tương ứng).
 6. Thêm/mở rộng test trong `card-definition.test.ts` (hoặc file test riêng nếu set lớn) xác
    nhận `CardDefinitionSchema.safeParse(card).success === true`.
