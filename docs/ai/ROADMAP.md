@@ -26,7 +26,7 @@ LP + phase bar + log panel; Duel Sandbox (scenario JSON); i18n bootstrap. Chơi 
 
 ## P4 — Card batches + luật mở rộng
 
-**Done khi**: Batch 1–3 (CSV → validate); Special Summon, Equip, Field, Counter Trap, Fusion (Ritual ngoài v1); test tự động mỗi lá.
+**Done khi**: Batch 1–3 (data viết bằng TS + Zod validate; pipeline CSV để sau — ADR 058); Special Summon, Equip, Field, Counter Trap, Fusion (Ritual ngoài v1); test tự động mỗi lá.
 
 ## P5 — Asset pipeline + Card Gallery
 

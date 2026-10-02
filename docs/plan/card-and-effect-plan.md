@@ -23,7 +23,7 @@ Thay đổi contract → cập nhật `docs/design/effect-dsl.md` và ADR.
 
 | Tier | Định nghĩa                                                            | Cách làm                     | Test                          |
 | ---- | --------------------------------------------------------------------- | ---------------------------- | ----------------------------- |
-| A    | Vanilla (chỉ ATK/DEF) hoặc Normal Spell/Trap chỉ 1 operation phổ biến | Data thuần, sinh CSV         | Test tự động chung (smoke)    |
+| A    | Vanilla (chỉ ATK/DEF) hoặc Normal Spell/Trap chỉ 1 operation phổ biến | Data thuần (viết TS)         | Test tự động chung (smoke)    |
 | B    | Effect mô tả được bằng DSL                                            | `EffectDefinition` data      | Test riêng từng lá (bắt buộc) |
 | C    | Không map vào DSL                                                     | `scriptId` + handler đăng ký | Test riêng + ghi lý do        |
 
@@ -56,6 +56,10 @@ Thêm primitive mới = `/new-effect-type` (1 handler nhỏ + test), không sử
 
 ## Import hàng loạt (không viết tay từng lá)
 
+> **Chưa làm — `[DECISION]` ADR 058 (2026-09-30):** card data hiện viết tay bằng TS ở
+> `packages/shared/src/cards/sample-cards.ts`, validate bằng `CardDefinitionSchema` trong test; pipeline CSV dưới đây
+> là kế hoạch để sau (chỉ làm khi số lá đủ lớn và chủ dự án yêu cầu). Các lệnh `pnpm cards:*` chưa tồn tại.
+
 - Nguồn: `data/cards/*.csv` (cột cố định) hoặc `*.json` cho effect phức tạp. Script `pnpm cards:build` sinh
   `packages/shared/src/cards/generated/*.ts` (hoặc JSON) và **fail nếu Zod validate lỗi**.
 - Script `pnpm cards:validate`: id trùng, level ngoài 1–12, tham chiếu effect/scriptId không tồn tại, thiếu i18n.
@@ -74,8 +78,8 @@ Thêm primitive mới = `/new-effect-type` (1 handler nhỏ + test), không sử
 ## Quy trình thêm card mới (`/new-card`)
 
 1. Chọn tier; nếu B/C, ghi effect dạng văn bản VI/EN.
-2. Thêm dòng CSV/JSON (hoặc `/new-card` sinh).
+2. Thêm lá vào `sample-cards.ts` (cuối dãy id; `/new-card` hướng dẫn). CSV/JSON: để sau (ADR 058).
 3. Nếu thiếu primitive → `/new-effect-type` trước.
-4. Viết test theo quy ước; `pnpm cards:validate` + test xanh.
+4. Viết test theo quy ước (shared: schema; engine: `cards/sample/<id>.test.ts`); test xanh.
 5. Cập nhật Card Gallery (tự động) + `parity-board.md` (card đã có).
 6. Nếu cần art → tạo mục trong `docs/assets/ASSET_REQUESTS.md`.

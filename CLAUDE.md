@@ -31,7 +31,7 @@ các file tự nạp dưới 40.000 ký tự: không `@import` thêm file lớn,
 4. **Animation suy ra từ `GameEvent[]`.** FE xếp event vào animation queue, không tự suy
    luận logic game.
 5. **Card definitions nằm ở `packages/shared`.** DB (`apps/api/prisma`) chỉ lưu
-   User/Collection/Deck/MatchHistory/Progress, không lưu effect/content.
+   User/RefreshToken/CardCollection/Deck/DeckCard/DuelMatch (đúng `schema.prisma`), không lưu effect/content.
 6. **Auth: Guest + Account, JWT** (access + refresh), guest nâng cấp được thành account.
 7. **TypeScript strict toàn bộ.** Simplicity + correctness trước, optimize sau.
 
