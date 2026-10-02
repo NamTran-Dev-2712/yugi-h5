@@ -258,9 +258,16 @@ const isField = (definitionId: string): boolean => {
 };
 const MONSTERS = SAMPLE_CARDS.filter((c) => c.kind === 'Monster').map((c) => c.id);
 
+/**
+ * Task 4.4 cards (Counter Trap / Negate). Their events are engine-only until task 4.4b, which adds them to this gate
+ * with seeds of their own; until then the fixed seeds below keep the deck they had before 4.4 (SMP-201 was already in
+ * it once, as a card that could only be Set), so their coverage is not diluted.
+ */
+const NEGATE_CARDS = new Set(['SMP-201', 'SMP-209', 'SMP-210']);
+
 /** Task 3.8: the real effect cards of the sample pool (triggers, Continuous, Quick-Play, Traps, a cost). */
 const REAL_EFFECT_CARDS = SAMPLE_CARDS.filter(
-  (c) => (c.effects?.length ?? 0) > 0 && c.id !== 'SMP-101',
+  (c) => (c.effects?.length ?? 0) > 0 && c.id !== 'SMP-101' && !NEGATE_CARDS.has(c.id),
 ).map((c) => c.id);
 
 /**

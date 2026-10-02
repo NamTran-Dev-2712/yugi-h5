@@ -14,6 +14,7 @@ import { pushLink, settle } from '../../effects/chain.js';
 import { conditionsHold } from '../../effects/conditions.js';
 import { payCosts, planCosts, type CostStep } from '../../effects/costs.js';
 import { scriptFor } from '../../effects/effect-scripts/registry.js';
+import { negateRequirementUnmet } from '../../effects/negate.js';
 import { lacksSummonZones } from '../../effects/operations/special-summon.js';
 import { spellSpeedOf } from '../../effects/spell-speed.js';
 import { targetCandidates } from '../../effects/targets.js';
@@ -215,6 +216,14 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
     }
   }
 
+  // Task 4.4 [RULE]: a Counter Trap is only ever activated in response — to a chain link, or inside a reaction window
+  // (attack / Summon). It never starts a chain on its own. Read from the card's sub type, not from the Spell Speed.
+  if (definition.kind === 'Trap' && definition.subType === 'Counter' && state.chainWindow === null)
+    fail(
+      'NOTHING_TO_RESPOND_TO',
+      `"${definition.name.en}" is a Counter Trap: it can only be activated in response.`,
+    );
+
   // [RULE] a chain link must be Spell Speed 2+ and at least the speed of the link it responds to.
   const spellSpeed = spellSpeedOf(definition, effect);
   const top = state.chainStack.at(-1);
@@ -223,6 +232,10 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
       'SPELL_SPEED_TOO_LOW',
       `Spell Speed ${spellSpeed} cannot respond to Spell Speed ${top.spellSpeed}.`,
     );
+
+  // Task 4.4: a Negate operation needs the thing it negates (an opponent's activation / attack / Summon).
+  if (negateRequirementUnmet(state, playerIndex, effect, ctx))
+    fail('NOTHING_TO_NEGATE', `"${definition.name.en}" has nothing to negate right now.`);
 
   const needsCardTarget = effect.operations.some((o) => o.kind === 'Destroy');
   if (needsCardTarget && effect.target?.kind !== 'Card')

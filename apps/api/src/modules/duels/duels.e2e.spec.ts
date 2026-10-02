@@ -623,7 +623,7 @@ describe('a short duel over HTTP never leaks hidden information', () => {
 
 describe('Spell/Trap over HTTP (task 3.2b gate): no hidden definitionId in any response', () => {
   let httpSpellTrapActions = 0;
-  /** Legal decks with the sample Spell (SMP-101, Draw 1) and Trap (SMP-201, Set only until task 3.4). */
+  /** Legal decks with the sample Spell (SMP-101, Draw 1) and Trap (SMP-201: negates an attack since task 4.4). */
   const spellDeck = (): string[] => {
     const monsters = SAMPLE_CARDS.filter((c) => c.kind === 'Monster').map((c) => c.id);
     const deck = ['SMP-101', 'SMP-101', 'SMP-101', 'SMP-201', 'SMP-201', 'SMP-201'];
@@ -724,7 +724,11 @@ describe('Spell/Trap over HTTP (task 3.2b gate): no hidden definitionId in any r
       for (let step = 0; step < 100; step++) {
         const state = await rawState(d.duelId);
         if (state.winnerIndex !== null) break;
-        const actor = (state.pendingPrompt?.playerIndex ?? state.turnPlayerIndex) as 0 | 1;
+        // Task 4.4: SMP-201 is a real card now (it negates an attack), so an attack may open a reaction window for the
+        // opponent — the actor is the priority holder then (same formula as DuelManager / the 4.2d fuzz below).
+        const actor = (state.pendingPrompt?.playerIndex ??
+          state.chainWindow?.priorityPlayer ??
+          state.turnPlayerIndex) as 0 | 1;
         const legal = ((await legalOf(d, actor)) as PlayerAction[]).filter(
           (a) => a.type !== 'Surrender',
         );

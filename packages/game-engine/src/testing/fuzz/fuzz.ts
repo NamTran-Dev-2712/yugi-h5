@@ -186,8 +186,25 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
     target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
     operations: [{ kind: 'Destroy' }],
   }),
+  // Task 4.4 — Negate: a Normal Trap that negates an attack, a Counter Trap that negates a Spell/Trap activation (with
+  // a cost, which must stay paid) and a Counter Trap that negates a Normal / Flip Summon.
+  TNA: trap('TNA', 'Normal', { operations: [{ kind: 'NegateAttack' }] }),
+  CNA: trap('CNA', 'Counter', {
+    cost: [{ kind: 'PayLP', amount: 200 }],
+    operations: [{ kind: 'NegateActivation', cardKinds: ['Spell', 'Trap'] }],
+  }),
+  CNS: trap('CNS', 'Counter', { operations: [{ kind: 'NegateSummon' }] }),
 };
 const DECK_POOL = Object.keys(FUZZ_DEFS);
+/**
+ * Task 4.4 — a pool heavy on the Negate cards and on what they answer (Spells that stay on the field, attackers,
+ * Summons), for the coverage run of its own (`FuzzOptions.deckPool`): with the full pool a negation is too rare to be
+ * reached by random play. The default pool (and so every older seed's deck draw) is not affected by this list.
+ */
+export const NEGATE_DECK_POOL: readonly string[] = [
+  ...['M2', 'M4', 'M4', 'SP', 'SP', 'CSA', 'FLD', 'EQP', 'TRB'],
+  ...['TNA', 'TNA', 'CNA', 'CNA', 'CNA', 'CNS', 'CNS'],
+];
 const PHASES: readonly Phase[] = ['Draw', 'Standby', 'Main1', 'Battle', 'Main2', 'End'];
 
 function spell(id: string, effect: Omit<EffectDefinition, 'id'>): CardDefinition {
@@ -304,6 +321,8 @@ export interface FuzzOptions {
   readonly apply?: ApplyFn;
   /** Extra per-state check run after every accepted action; return a violation message or null. */
   readonly onState?: (state: GameState, ctx: ActionContext, step: number) => string | null;
+  /** Definition ids the random decks are drawn from. Default: every card of `FUZZ_DEFS`. */
+  readonly deckPool?: readonly string[];
 }
 
 export interface FuzzStats {
@@ -341,6 +360,15 @@ export interface FuzzStats {
   readonly fieldSpellsDestroyed: number;
   readonly continuousCardsStayed: number;
   readonly setNormalSpellLinks: number;
+  /**
+   * Task 4.4 — activations negated (and, among them, cards that would have stayed on the field: Continuous / Field /
+   * Equip), attacks negated, Summons negated, Counter Trap links.
+   */
+  readonly activationsNegated: number;
+  readonly stayingCardsNegated: number;
+  readonly attacksNegated: number;
+  readonly summonsNegated: number;
+  readonly counterTrapLinks: number;
 }
 
 export type FuzzResult =
@@ -417,9 +445,14 @@ function cardIds(state: GameState): string[] {
     .sort();
 }
 
-function randomStartDuel(rand: Rand, seed: string | number, duelNo: number): StartDuelAction {
+function randomStartDuel(
+  rand: Rand,
+  seed: string | number,
+  duelNo: number,
+  pool: readonly string[],
+): StartDuelAction {
   const deckSize = 8 + rand.int(33);
-  const deck = () => Array.from({ length: deckSize }, () => rand.pick(DECK_POOL));
+  const deck = () => Array.from({ length: deckSize }, () => rand.pick(pool));
   const lp = () => 1000 + rand.int(4) * 1000;
   return {
     type: 'StartDuel',
@@ -892,6 +925,110 @@ function checkContinuous(state: GameState, ctx: ActionContext): [string | null, 
   return [null, modified];
 }
 
+/**
+ * Task 4.4 — what must hold after an accepted action whose events negate something (ADR 065):
+ * - a Counter Trap is only ever activated with a window already open (it never starts a chain);
+ * - a negated activation never resolves afterwards, and its Spell/Trap card is in its owner's graveyard, not on the
+ *   field (a monster's negated trigger leaves the monster where it was);
+ * - a negated attack flips nothing, and the attacker (if still on the field) counts as having attacked;
+ * - a monster whose Summon was negated is in its owner's graveyard, in no Monster Zone, and the Normal Summon of the
+ *   turn is not given back.
+ */
+function checkNegations(
+  prev: GameState,
+  action: Action,
+  next: GameState,
+  events: ApplyActionResult['events'],
+): {
+  violation: string | null;
+  negatedIds: string[];
+  stayingCardsNegated: number;
+  attacksNegated: number;
+  summonsNegated: number;
+  counterTrapLinks: number;
+} {
+  const out = {
+    violation: null as string | null,
+    negatedIds: [] as string[],
+    stayingCardsNegated: 0,
+    attacksNegated: 0,
+    summonsNegated: 0,
+    counterTrapLinks: 0,
+  };
+  const bad = (violation: string) => ({ ...out, violation });
+  const isCounterTrap = (definitionId: string): boolean => {
+    const def = FUZZ_DEFS[definitionId];
+    return def?.kind === 'Trap' && def.subType === 'Counter';
+  };
+  const onField = (instanceId: string): boolean =>
+    next.players.some((p) =>
+      [...p.board.monsterZones, ...p.board.spellTrapZones, p.board.fieldZone].some(
+        (c) => c?.instanceId === instanceId,
+      ),
+    );
+  const inGraveyard = (owner: 0 | 1, instanceId: string): boolean =>
+    next.players[owner].graveyard.some((c) => c.instanceId === instanceId);
+
+  if (action.type === 'ActivateEffect') {
+    const id = action.payload.cardInstanceId;
+    const card = prev.players[action.payload.playerIndex].board.spellTrapZones.find(
+      (c) => c?.instanceId === id,
+    );
+    if (card && isCounterTrap(card.definitionId)) {
+      if (prev.chainWindow === null)
+        return bad(`Counter Trap ${id} was activated with no window open (it started a chain)`);
+    }
+  }
+
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i]!;
+    if (e.type === 'ChainLinkAdded' && isCounterTrap(e.definitionId)) out.counterTrapLinks++;
+    if (e.type === 'ChainLinkNegated') {
+      out.negatedIds.push(e.instanceId);
+      const def = FUZZ_DEFS[e.definitionId];
+      const later = events.slice(i + 1);
+      if (
+        later.some(
+          (x) =>
+            x.type === 'EffectResolved' &&
+            x.instanceId === e.instanceId &&
+            x.effectId === e.effectId,
+        )
+      )
+        return bad(`negated link of ${e.instanceId} resolved anyway`);
+      if (def && def.kind !== 'Monster') {
+        if (onField(e.instanceId)) return bad(`negated card ${e.instanceId} is still on the field`);
+        if (!inGraveyard(e.playerIndex, e.instanceId))
+          return bad(`negated card ${e.instanceId} is not in its owner's graveyard`);
+        if (staysOnField(def) || def.subType === 'Equip') out.stayingCardsNegated++;
+      }
+    }
+    if (e.type === 'AttackNegated') {
+      out.attacksNegated++;
+      if (events.slice(i + 1).some((x) => x.type === 'MonsterFlipped'))
+        return bad(`attack of ${e.attackerInstanceId} was negated but its battle went on`);
+      const attacker = next.players[e.playerIndex].board.monsterZones.find(
+        (c) => c?.instanceId === e.attackerInstanceId,
+      );
+      if (attacker && attacker.attackedTurn !== next.turnCount)
+        return bad(`negated attacker ${e.attackerInstanceId} does not count as having attacked`);
+    }
+    if (e.type === 'SummonNegated') {
+      out.summonsNegated++;
+      if (onField(e.instanceId)) return bad(`${e.instanceId} is on the field after SummonNegated`);
+      if (!inGraveyard(e.playerIndex, e.instanceId))
+        return bad(`${e.instanceId} is not in the graveyard after SummonNegated`);
+      if (
+        prev.turnCount === next.turnCount &&
+        prev.players[e.playerIndex].hasNormalSummonedThisTurn &&
+        !next.players[e.playerIndex].hasNormalSummonedThisTurn
+      )
+        return bad(`SummonNegated gave the Normal Summon back to player ${e.playerIndex}`);
+    }
+  }
+  return out;
+}
+
 /** Invariants relating a state to the one before the (accepted) action. */
 function checkTransition(prev: GameState, next: GameState): string | null {
   if (next.version !== prev.version + 1)
@@ -904,7 +1041,7 @@ function checkTransition(prev: GameState, next: GameState): string | null {
 }
 
 export function runFuzz(options: FuzzOptions): FuzzResult {
-  const { seed, steps = 300, apply = applyAction } = options;
+  const { seed, steps = 300, apply = applyAction, deckPool = DECK_POOL } = options;
   const rand = makeRand(seed);
   const ctx: ActionContext = { cardDefinitions: (id) => FUZZ_DEFS[id] };
   const log: Action[] = [];
@@ -930,6 +1067,11 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let fieldSpellsDestroyed = 0;
   let continuousCardsStayed = 0;
   let setNormalSpellLinks = 0;
+  let activationsNegated = 0;
+  let stayingCardsNegated = 0;
+  let attacksNegated = 0;
+  let summonsNegated = 0;
+  let counterTrapLinks = 0;
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -945,7 +1087,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
     const needsNewDuel = state === null || (state.winnerIndex !== null && rand.chance(0.6));
     const action: Action =
       needsNewDuel || state === null
-        ? randomStartDuel(rand, seed, duelsStarted)
+        ? randomStartDuel(rand, seed, duelsStarted, deckPool)
         : nextAction(state, rand);
     log.push(action);
 
@@ -1009,6 +1151,18 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       }
     }
     flipSummons += result.events.filter((e) => e.type === 'FlipSummoned').length;
+    // Task 4.4 — Counter Trap / Negate.
+    const negatedIds = new Set<string>();
+    if (state !== null) {
+      const negation = checkNegations(state, action, next, result.events);
+      if (negation.violation) return fail(step, negation.violation);
+      for (const id of negation.negatedIds) negatedIds.add(id);
+      activationsNegated += negation.negatedIds.length;
+      stayingCardsNegated += negation.stayingCardsNegated;
+      attacksNegated += negation.attacksNegated;
+      summonsNegated += negation.summonsNegated;
+      counterTrapLinks += negation.counterTrapLinks;
+    }
     // Task 4.3.
     for (const e of result.events) {
       if (e.type === 'FieldSpellSet') fieldSpellSets++;
@@ -1018,9 +1172,10 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
           fieldSpellsReplaced++;
           continue;
         }
-        // A Continuous Spell/Trap or Field Spell is never sent to the graveyard as "used": only replaced or destroyed.
+        // A Continuous Spell/Trap or Field Spell is never sent to the graveyard as "used": only replaced or destroyed —
+        // or (task 4.4) because its activation was negated.
         const def = FUZZ_DEFS[e.definitionId];
-        if (def && staysOnField(def))
+        if (def && staysOnField(def) && !negatedIds.has(e.instanceId))
           return fail(
             step,
             `${e.definitionId} (${e.instanceId}) was sent to the graveyard after resolving`,
@@ -1117,6 +1272,11 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       fieldSpellsDestroyed,
       continuousCardsStayed,
       setNormalSpellLinks,
+      activationsNegated,
+      stayingCardsNegated,
+      attacksNegated,
+      summonsNegated,
+      counterTrapLinks,
     },
   };
 }

@@ -244,6 +244,45 @@ export interface ChainLinkFizzledEvent {
   readonly reason: 'TARGET_GONE';
 }
 
+/**
+ * Task 4.4: the activation of a chain link was negated by the link above it (`byInstanceId` = the negating card). The
+ * negated link never resolves (no `EffectResolved` for it); its Spell/Trap card is sent to the graveyard right after
+ * (`CardSentToGraveyard`). The negated card was revealed when it was activated, so `definitionId` is public.
+ */
+export interface ChainLinkNegatedEvent {
+  readonly type: 'ChainLinkNegated';
+  readonly linkId: string;
+  /** The player whose activation was negated. */
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+  readonly byInstanceId: string;
+}
+
+/** Task 4.4: the declared attack was negated — no flip, no destruction, no damage follows. Same ids as `AttackDeclared`. */
+export interface AttackNegatedEvent {
+  readonly type: 'AttackNegated';
+  /** The attacking player. */
+  readonly playerIndex: 0 | 1;
+  readonly attackerInstanceId: string;
+  /** null = it was a direct attack. */
+  readonly targetInstanceId: string | null;
+}
+
+/**
+ * Task 4.4: a Normal / Flip Summon was negated; the monster left `zoneIndex` for its owner's graveyard (sent, not
+ * destroyed). It was face-up, and the graveyard is public, so `definitionId` leaks nothing.
+ */
+export interface SummonNegatedEvent {
+  readonly type: 'SummonNegated';
+  /** The player whose Summon was negated. */
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
 /** Every link of the chain resolved (LIFO); the response window is closed. Not emitted when the duel ended mid-chain. */
 export interface ChainResolvedEvent {
   readonly type: 'ChainResolved';
@@ -293,5 +332,8 @@ export type GameEvent =
   | FieldSpellDestroyedEvent
   | ChainLinkAddedEvent
   | ChainLinkFizzledEvent
+  | ChainLinkNegatedEvent
+  | AttackNegatedEvent
+  | SummonNegatedEvent
   | ChainResolvedEvent
   | DuelEndedEvent;

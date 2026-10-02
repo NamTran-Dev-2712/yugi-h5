@@ -282,6 +282,61 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  /** Task 4.4 — Counter Trap: pay 1000 LP, negate the activation of the opponent's Spell/Trap. */
+  G_NEG_ACT: {
+    id: 'G_NEG_ACT',
+    kind: 'Trap',
+    name: { vi: 'Golden G_NEG_ACT', en: 'Golden G_NEG_ACT' },
+    subType: 'Counter',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        cost: [{ kind: 'PayLP', amount: 1000 }],
+        operations: [{ kind: 'NegateActivation', cardKinds: ['Spell', 'Trap'] }],
+      },
+    ],
+  },
+  /** Normal Trap: negate the opponent's declared attack. */
+  G_NEG_ATK: {
+    id: 'G_NEG_ATK',
+    kind: 'Trap',
+    name: { vi: 'Golden G_NEG_ATK', en: 'Golden G_NEG_ATK' },
+    subType: 'Normal',
+    effects: [{ id: 'e1', trigger: { kind: 'Quick' }, operations: [{ kind: 'NegateAttack' }] }],
+  },
+  /** Counter Trap: negate the opponent's Normal / Flip Summon. */
+  G_NEG_SUM: {
+    id: 'G_NEG_SUM',
+    kind: 'Trap',
+    name: { vi: 'Golden G_NEG_SUM', en: 'Golden G_NEG_SUM' },
+    subType: 'Counter',
+    effects: [{ id: 'e1', trigger: { kind: 'Quick' }, operations: [{ kind: 'NegateSummon' }] }],
+  },
+};
+
+/** Counter Trap / Negate (task 4.4): P0 plays the Spells and monsters, P1 holds the three negating Traps. */
+const NEGATE_DECK_P0 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_DRAW', 'G_CONT_SPELL', 'M1000', 'M1800'][i % 4]!,
+);
+const NEGATE_DECK_P1 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_NEG_ACT', 'G_NEG_ATK', 'G_NEG_SUM', 'M1000'][i % 4]!,
+);
+/**
+ * The four task 4.4 cases share one deal (seed `g-neg-4`). T1 (P0) hand: p0-12 G_DRAW, p0-31 M1800, p0-11 M1800,
+ * p0-5 G_CONT_SPELL, p0-21 G_CONT_SPELL. T2 (P1) hand: p1-36 G_NEG_ACT, p1-16 G_NEG_ACT, p1-26 G_NEG_SUM,
+ * p1-21 G_NEG_ATK, p1-38 G_NEG_SUM (+ draws p1-34 G_NEG_SUM).
+ */
+const negateStart: GoldenCase['start'] = {
+  type: 'StartDuel',
+  payload: {
+    matchId: 'golden',
+    seed: 'g-neg-4',
+    playerIds: ['alice', 'bob'],
+    deckLists: [NEGATE_DECK_P0, NEGATE_DECK_P1],
+  },
 };
 
 const SPELL_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5', 'G_DRAW'][i % 4]!);
@@ -1105,6 +1160,149 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
       {
         type: 'DeclareAttack',
         payload: { playerIndex: 0, attackerInstanceId: 'p0-39', targetInstanceId: 'p1-3' },
+      },
+      ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'counter-negates-spell',
+    definitions: GOLDEN_DEFS,
+    start: negateStart,
+    actions: [
+      ...endPhase(0, 6),
+      // T2 (P1): Set two Counter Traps. Rejected: a Trap is not activated on the turn it was Set.
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-36', zoneIndex: 0 } },
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-16', zoneIndex: 1 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-36', effectId: 'e1' },
+      },
+      ...endPhase(1, 4),
+      // T3 (P0): G_DRAW (p0-12) → the window opens for P1. Rejected: P0 moving on while it is open.
+      ...endPhase(0, 2),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-12', effectId: 'e1' },
+      },
+      ...endPhase(0, 1),
+      // P1 answers with the Counter Trap (pays 1000): the Spell is negated and sent to the graveyard, nothing is drawn.
+      // P1's second Counter Trap cannot answer P1's own link, so the chain resolves in this call.
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-36', effectId: 'e1' },
+      },
+      ...endPhase(0, 4),
+      // T4 (P1). Rejected: a Counter Trap never starts a chain.
+      ...endPhase(1, 2),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-16', effectId: 'e1' },
+      },
+      ...endPhase(1, 1),
+    ],
+  },
+  {
+    name: 'counter-negates-continuous-spell',
+    definitions: GOLDEN_DEFS,
+    start: negateStart,
+    actions: [
+      // T1 (P0): Normal Summon M1800 (p0-31).
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-31', zoneIndex: 0 } },
+      ...endPhase(0, 4),
+      // T2 (P1): Set a Counter Trap.
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-36', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): the Continuous Spell (p0-5) goes face-up into Spell/Trap Zone 0 when it is activated; P1 negates the
+      // activation: the card is sent to the graveyard and never stays. M1800 then attacks directly at its printed 1800
+      // (with the Spell it would have been 2100).
+      ...endPhase(0, 2),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-5', effectId: 'e1' },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-36', effectId: 'e1' },
+      },
+      ...endPhase(0, 1),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-31', targetInstanceId: null },
+      },
+      ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'negate-attack',
+    definitions: GOLDEN_DEFS,
+    start: negateStart,
+    actions: [
+      // T1 (P0): Normal Summon M1800 (p0-31).
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-31', zoneIndex: 0 } },
+      ...endPhase(0, 4),
+      // T2 (P1): Set G_NEG_ATK (p1-21). Rejected: not on the turn it was Set.
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-21', zoneIndex: 2 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-21', effectId: 'e1' },
+      },
+      ...endPhase(1, 4),
+      // T3 (P0). Rejected in Main Phase 1: with no window open only the turn player acts (and there is no attack yet).
+      ...endPhase(0, 2),
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-21', effectId: 'e1' },
+      },
+      ...endPhase(0, 1),
+      // Direct attack → window for P1 → the attack is negated: no damage. Rejected: the same monster attacking again.
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-31', targetInstanceId: null },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-21', effectId: 'e1' },
+      },
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-31', targetInstanceId: null },
+      },
+      ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'negate-summon',
+    definitions: GOLDEN_DEFS,
+    start: negateStart,
+    actions: [
+      // T1 (P0): Set M1800 (p0-31).
+      ...endPhase(0, 2),
+      { type: 'SetMonster', payload: { playerIndex: 0, cardInstanceId: 'p0-31', zoneIndex: 0 } },
+      ...endPhase(0, 4),
+      // T2 (P1): Set G_NEG_SUM (p1-26).
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-26', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): Flip Summon p0-31 → Summon window for P1, who lets it through. Normal Summon M1800 (p0-11) → window
+      // again → negated: the monster goes to the graveyard, the Normal Summon stays used. The Flip Summoned monster
+      // attacks directly.
+      ...endPhase(0, 2),
+      { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-31' } },
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-11', zoneIndex: 1 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-26', effectId: 'e1' },
+      },
+      ...endPhase(0, 1),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-31', targetInstanceId: null },
       },
       ...endPhase(0, 3),
     ],

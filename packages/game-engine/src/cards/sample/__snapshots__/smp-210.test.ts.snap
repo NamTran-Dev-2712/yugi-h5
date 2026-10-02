@@ -1,0 +1,50 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-210 > negates a Normal Summon: the monster goes to the graveyard, the Normal Summon stays used 1`] = `
+[
+  {
+    "definitionId": "SMP-210",
+    "effectId": "gate-of-refusal",
+    "instanceId": "os-0",
+    "playerIndex": 1,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-210",
+    "effectId": "gate-of-refusal",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "spellSpeed": 3,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "M1",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "SummonNegated",
+    "zoneIndex": 2,
+  },
+  {
+    "definitionId": "SMP-210",
+    "effectId": "gate-of-refusal",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-210",
+    "from": "SpellTrapZone",
+    "instanceId": "os-0",
+    "ownerIndex": 1,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

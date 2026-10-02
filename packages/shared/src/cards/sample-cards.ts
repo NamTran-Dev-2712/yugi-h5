@@ -583,10 +583,18 @@ export const SAMPLE_CARDS: CardDefinition[] = [
     kind: 'Trap',
     name: { vi: 'Rào Chắn Hộ Vệ', en: 'Guardian Barrier' },
     subType: 'Normal',
+    // Task 4.4: no longer a placeholder — the first card with a Negate operation.
     effectText: {
-      vi: 'Placeholder: hiệu ứng vô hiệu hoá tấn công, sẽ định nghĩa bằng effect DSL.',
-      en: 'Placeholder: negate-attack effect defined via effect DSL.',
+      vi: 'Khi quái thú của đối thủ tuyên bố tấn công: vô hiệu đòn tấn công đó.',
+      en: "When an opponent's monster declares an attack: negate that attack.",
     },
+    effects: [
+      {
+        id: 'guardian-barrier',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'NegateAttack' }],
+      },
+    ],
   },
   {
     id: 'SMP-202',
@@ -715,6 +723,42 @@ export const SAMPLE_CARDS: CardDefinition[] = [
         id: 'mist-drain',
         trigger: { kind: 'Continuous' },
         operations: [{ kind: 'ModifyStat', stat: 'atk', amount: -300, side: 'opponent' }],
+      },
+    ],
+  },
+  // Task 4.4 — the first real Counter Traps (Tier B, Spell Speed 3 from the sub type): they only ever respond.
+  {
+    id: 'SMP-209',
+    kind: 'Trap',
+    name: { vi: 'Ấn Chú Phong Tỏa', en: 'Sealing Rune' },
+    subType: 'Counter',
+    effectText: {
+      vi: 'Chi phí: trả 1000 LP. Khi đối thủ kích hoạt một lá Phép hoặc Bẫy: vô hiệu việc kích hoạt đó và gửi lá đó vào mộ.',
+      en: 'Cost: pay 1000 LP. When your opponent activates a Spell or Trap Card: negate the activation and send that card to the Graveyard.',
+    },
+    effects: [
+      {
+        id: 'sealing-rune',
+        trigger: { kind: 'Quick' },
+        cost: [{ kind: 'PayLP', amount: 1000 }],
+        operations: [{ kind: 'NegateActivation', cardKinds: ['Spell', 'Trap'] }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-210',
+    kind: 'Trap',
+    name: { vi: 'Cổng Khước Từ', en: 'Gate of Refusal' },
+    subType: 'Counter',
+    effectText: {
+      vi: 'Khi đối thủ Triệu hồi Thường hoặc Triệu hồi Lật một quái thú: vô hiệu lần triệu hồi đó và gửi quái thú đó vào mộ.',
+      en: 'When your opponent Normal Summons or Flip Summons a monster: negate the Summon and send that monster to the Graveyard.',
+    },
+    effects: [
+      {
+        id: 'gate-of-refusal',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'NegateSummon' }],
       },
     ],
   },

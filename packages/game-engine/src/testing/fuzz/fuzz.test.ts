@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../../apply-action.js';
-import { formatFuzzFailure, runFuzz } from './fuzz.js';
+import { formatFuzzFailure, NEGATE_DECK_POOL, runFuzz } from './fuzz.js';
 import type { ApplyFn, FuzzResult } from './fuzz.js';
 
 /*
@@ -11,6 +11,11 @@ import type { ApplyFn, FuzzResult } from './fuzz.js';
 const SEED_COUNT = Number(process.env['FUZZ_SEEDS'] ?? 10);
 const STEPS = Number(process.env['FUZZ_STEPS'] ?? 300);
 const SEEDS = Array.from({ length: SEED_COUNT }, (_, i) => `fuzz-${i + 1}`);
+/** Task 4.4: seeds of the Negate deck pool (their own names, so the seeds above keep their games). Long run: FUZZ_NEGATE_SEEDS. */
+const NEGATE_SEEDS = Array.from(
+  { length: Number(process.env['FUZZ_NEGATE_SEEDS'] ?? 5) },
+  (_, i) => `negate-long-${i + 1}`,
+);
 
 /** Task 4.2d: let the vitest worker answer its RPC between seeds (a long synchronous test starves it under load). */
 const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -18,6 +23,11 @@ const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(r
 describe('fuzz: engine invariants hold', () => {
   it.each(SEEDS)('seed %s', (seed) => {
     const result = runFuzz({ seed, steps: STEPS });
+    expect(result.ok, formatFuzzFailure(result)).toBe(true);
+  });
+
+  it.each(NEGATE_SEEDS)('seed %s (Negate deck pool, task 4.4)', (seed) => {
+    const result = runFuzz({ seed, steps: STEPS, deckPool: NEGATE_DECK_POOL });
     expect(result.ok, formatFuzzFailure(result)).toBe(true);
   });
 
@@ -125,6 +135,28 @@ describe('fuzz: engine invariants hold', () => {
         total[key] += result.stats[key];
     }
     console.log(`fuzz 4.3 coverage: ${JSON.stringify(total)}`);
+    for (const [key, n] of Object.entries(total))
+      expect(n, `${key} never happened`).toBeGreaterThan(0);
+  }, 120_000);
+
+  it('Counter Traps and Negate effects are really played (task 4.4; own seeds and deck pool: 80 × 400 steps)', async () => {
+    const total = {
+      counterTrapLinks: 0,
+      activationsNegated: 0,
+      stayingCardsNegated: 0,
+      attacksNegated: 0,
+      summonsNegated: 0,
+    };
+    // A variant of its own (ADR 064 lesson): a negation is too rare with the full pool, so these seeds draw their decks
+    // from NEGATE_DECK_POOL. Same generator, same invariants; the seeds above keep the full pool.
+    for (let i = 1; i <= 80; i++) {
+      await yieldToWorker();
+      const result = runFuzz({ seed: `negate-${i}`, steps: 400, deckPool: NEGATE_DECK_POOL });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const key of Object.keys(total) as (keyof typeof total)[])
+        total[key] += result.stats[key];
+    }
+    console.log(`fuzz 4.4 coverage: ${JSON.stringify(total)}`);
     for (const [key, n] of Object.entries(total))
       expect(n, `${key} never happened`).toBeGreaterThan(0);
   }, 120_000);
@@ -295,6 +327,35 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
     );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.violation).toMatch(/not a valid reaction window|cannot respond/);
+  });
+
+  it('flags a negated card that does not end in the graveyard (task 4.4)', () => {
+    // After an activation was negated, put the negated card back into its owner's hand (the card set stays intact, so
+    // only the 4.4 invariant can report it). Negations are rare: the Negate deck pool and its own seeds.
+    const apply = broken('ActivateEffect', ({ state, events }) => {
+      const negated = events.find((e) => e.type === 'ChainLinkNegated');
+      if (!negated || negated.type !== 'ChainLinkNegated') return { state, events };
+      const owner = state.players[negated.playerIndex];
+      const card = owner.graveyard.find((c) => c.instanceId === negated.instanceId);
+      if (!card) return { state, events };
+      const next = {
+        ...owner,
+        graveyard: owner.graveyard.filter((c) => c !== card),
+        hand: [...owner.hand, card],
+      };
+      return {
+        events,
+        state: {
+          ...state,
+          players: negated.playerIndex === 0 ? [next, state.players[1]] : [state.players[0], next],
+        },
+      };
+    });
+    let last: FuzzResult | null = null;
+    for (let i = 1; i <= 80 && (last === null || last.ok); i++)
+      last = runFuzz({ seed: `negate-${i}`, steps: 400, deckPool: NEGATE_DECK_POOL, apply });
+    expect(last?.ok).toBe(false);
+    if (last && !last.ok) expect(last.violation).toMatch(/not in its owner's graveyard/);
   });
 
   it('flags an uncontrolled exception', () => {

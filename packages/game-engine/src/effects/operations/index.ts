@@ -4,6 +4,9 @@ import { applyDestroy } from './destroy.js';
 import { applyDrawOperation } from './draw.js';
 import { applyEquip } from './equip.js';
 import { applyHeal } from './heal.js';
+import { applyNegateActivation } from './negate-activation.js';
+import { applyNegateAttack } from './negate-attack.js';
+import { applyNegateSummon } from './negate-summon.js';
 import { applySpecialSummon } from './special-summon.js';
 import type { OperationHandler } from './types.js';
 
@@ -19,4 +22,7 @@ export const OPERATION_HANDLERS: { readonly [K in ResolveOperationKind]: Operati
   Destroy: applyDestroy,
   SpecialSummon: applySpecialSummon,
   Equip: applyEquip,
+  NegateActivation: applyNegateActivation,
+  NegateAttack: applyNegateAttack,
+  NegateSummon: applyNegateSummon,
 };

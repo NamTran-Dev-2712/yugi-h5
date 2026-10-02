@@ -93,6 +93,14 @@ export function toEventView(
     case 'CardSentToGraveyard':
       return event;
 
+    // Task 4.4 (engine-only until 4.4b): Counter Trap / Negate events are not on the wire yet — dropped for both
+    // viewers. They are classified PUBLIC in docs/design/event-visibility.md (no hidden card data); forwarding them
+    // needs the EventView types, the leak-oracle fuzz and the UI of task 4.4b.
+    case 'ChainLinkNegated':
+    case 'AttackNegated':
+    case 'SummonNegated':
+      return null;
+
     default: {
       const unclassified: never = event;
       void unclassified;

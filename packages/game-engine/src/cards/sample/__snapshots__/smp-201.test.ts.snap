@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-201 Guardian Barrier > negates the declared attack: no damage, the attacker has attacked, the Trap goes to the graveyard 1`] = `
+[
+  {
+    "definitionId": "SMP-201",
+    "effectId": "guardian-barrier",
+    "instanceId": "os-0",
+    "playerIndex": 1,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-201",
+    "effectId": "guardian-barrier",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "spellSpeed": 2,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "attackerInstanceId": "m0-0",
+    "playerIndex": 0,
+    "targetInstanceId": null,
+    "type": "AttackNegated",
+  },
+  {
+    "definitionId": "SMP-201",
+    "effectId": "guardian-barrier",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-201",
+    "from": "SpellTrapZone",
+    "instanceId": "os-0",
+    "ownerIndex": 1,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

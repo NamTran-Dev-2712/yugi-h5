@@ -131,16 +131,26 @@ export type ReactionTo =
       readonly targetInstanceId: string | null;
     };
 
+/** Task 4.4: the monster a Summon reaction window was opened for (Normal / Tribute / Flip Summon — never a Set). */
+export interface SummonedMonster {
+  /** The player who Summoned it. */
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+}
+
 /**
  * Open response window: `priorityPlayer` may activate a chainable effect or `PassPriority`. `passCount` counts
  * consecutive passes since the last link was added; the second one resolves the whole chain. Non-null ⇔ chainStack
  * is non-empty, OR it is an empty reaction window (task 3.4c): `reactionTo` set, `passCount` 0, held by the opponent of
  * the turn player, closed by their single pass. `reactionTo` stays on the window until it closes.
+ * Task 4.4: `summoned` rides along with a `Summon` reaction window opened by a real Summon, so a `NegateSummon` knows
+ * which monster it answers (kept beside `reactionTo`, whose shape is already public on the wire).
  */
 export interface ChainWindow {
   readonly priorityPlayer: 0 | 1;
   readonly passCount: 0 | 1;
   readonly reactionTo?: ReactionTo;
+  readonly summoned?: SummonedMonster;
 }
 
 export interface GameState {

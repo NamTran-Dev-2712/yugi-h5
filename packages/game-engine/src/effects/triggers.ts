@@ -8,6 +8,7 @@ import type {
   ChainLinkSource,
   GameState,
   PendingPrompt,
+  SummonedMonster,
 } from '../state/types.js';
 import { openReactionWindow, pushLink, type CanActivate } from './chain.js';
 import { conditionsHold } from './conditions.js';
@@ -272,6 +273,7 @@ export function pushTriggerLink(
  * Handles `queue` in order: a trigger that needs nobody's input goes on the chain; the first one that needs its owner
  * (optional, or a target to choose) becomes a `TriggerActivation` prompt carrying the rest. Once the queue is done and
  * nothing went on the chain, `afterward` runs (the Summon reaction window). The caller settles priority afterwards.
+ * Task 4.4: `summoned` = the monster whose Summon that window answers (see `openReactionWindow`).
  */
 export function runTriggers(
   state: GameState,
@@ -279,6 +281,7 @@ export function runTriggers(
   afterward: TriggerAfterward,
   ctx: ActionContext,
   canActivate?: CanActivate,
+  summoned?: SummonedMonster,
 ): Result {
   let current = state;
   const events: GameEvent[] = [];
@@ -317,6 +320,7 @@ export function runTriggers(
       afterward.responder,
       { kind: 'Summon' },
       canActivate,
+      summoned,
     );
     if (opened !== null) current = opened;
   }

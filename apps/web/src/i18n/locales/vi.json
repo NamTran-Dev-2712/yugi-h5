@@ -209,6 +209,8 @@
   "error.engine.MONSTER_FACE_UP": "Chỉ quái đang úp mới Triệu hồi Lật được.",
   "error.engine.NO_FREE_SPELL_TRAP_ZONE": "Không còn ô Phép/Bẫy trống để đặt lá này.",
   "error.engine.FIELD_ZONE_OCCUPIED": "Ô Môi trường của bạn đã có lá bài.",
+  "error.engine.NOTHING_TO_RESPOND_TO": "Bẫy Phản công chỉ kích hoạt được để đáp trả (một lá vừa kích hoạt, một đòn tấn công hoặc một lần triệu hồi).",
+  "error.engine.NOTHING_TO_NEGATE": "Lúc này không có gì để lá này vô hiệu.",
 
   "error.api.NOT_OWNER": "Bạn không có quyền điều khiển trận này.",
   "error.api.PLAYER_MISMATCH": "Hành động không thuộc về người chơi này.",

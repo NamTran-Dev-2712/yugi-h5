@@ -53,7 +53,9 @@ export type EngineErrorCode =
   | 'NO_FREE_MONSTER_ZONE'
   | 'MONSTER_FACE_UP'
   | 'NO_FREE_SPELL_TRAP_ZONE'
-  | 'FIELD_ZONE_OCCUPIED';
+  | 'FIELD_ZONE_OCCUPIED'
+  | 'NOTHING_TO_RESPOND_TO'
+  | 'NOTHING_TO_NEGATE';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */
 export class EngineError extends Error {

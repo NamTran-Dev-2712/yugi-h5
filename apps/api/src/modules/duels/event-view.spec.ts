@@ -33,10 +33,15 @@ const FIELD_TYPES = [
   'FieldSpellSet',
   'FieldSpellDestroyed',
 ] as const satisfies readonly GameEvent['type'][];
-/** No event is engine-only today; the mechanism stays (a type listed here must be dropped for both viewers). */
-const ENGINE_ONLY_TYPES: readonly GameEvent['type'][] = [];
-/** Every event but CardDrawn is forwarded with the engine shape. */
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
+/** Task 4.4 events (Counter Trap / Negate): ENGINE-ONLY until 4.4b — dropped for both viewers. */
+const ENGINE_ONLY_TYPES = [
+  'ChainLinkNegated',
+  'AttackNegated',
+  'SummonNegated',
+] as const satisfies readonly GameEvent['type'][];
+type EngineOnlyEvent = Extract<GameEvent, { type: (typeof ENGINE_ONLY_TYPES)[number] }>;
+/** Every event but CardDrawn and the engine-only ones is forwarded with the engine shape. */
+type PublicEvent = Exclude<GameEvent, CardDrawnEvent | EngineOnlyEvent>;
 /** No id is hidden from the viewer (most tests); the ChainLinkAdded target filter has its own tests. */
 const NONE: ReadonlySet<string> = new Set();
 
@@ -179,6 +184,28 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
     effectId: 'e1',
     reason: 'TARGET_GONE',
   },
+  ChainLinkNegated: {
+    type: 'ChainLinkNegated',
+    linkId: 'link-1-5',
+    playerIndex: 0,
+    instanceId: 'p0-9',
+    definitionId: SECRET,
+    effectId: 'e1',
+    byInstanceId: 'p1-4',
+  },
+  AttackNegated: {
+    type: 'AttackNegated',
+    playerIndex: 0,
+    attackerInstanceId: 'p0-3',
+    targetInstanceId: null,
+  },
+  SummonNegated: {
+    type: 'SummonNegated',
+    playerIndex: 0,
+    instanceId: 'p0-3',
+    definitionId: SECRET,
+    zoneIndex: 2,
+  },
   ChainResolved: { type: 'ChainResolved', linkCount: 2 },
   DuelEnded: { type: 'DuelEnded', winnerIndex: 0, reason: 'LP_ZERO' },
 };
@@ -193,18 +220,26 @@ const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
 
 describe('toEventView', () => {
   it('covers every engine event type', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(30);
+    expect(Object.keys(FIXTURES)).toHaveLength(33);
   });
 
-  it('no event type is engine-only any more: every type but CardDrawn is public (task 4.3b)', () => {
-    expect(ENGINE_ONLY_TYPES).toEqual([]);
+  it('every type but CardDrawn and the three engine-only Negate events is public (task 4.4)', () => {
+    expect(ENGINE_ONLY_TYPES).toEqual(['ChainLinkNegated', 'AttackNegated', 'SummonNegated']);
     expect(PUBLIC_TYPES).toHaveLength(29);
-    for (const type of ENGINE_ONLY_TYPES) {
+  });
+
+  it.each(ENGINE_ONLY_TYPES)(
+    'drops the engine-only event %s for both viewers (task 4.4, wire = 4.4b)',
+    (type) => {
+      expect(PUBLIC_TYPES).not.toContain(type);
       for (const viewer of [0, 1] as const) {
         expect(toEventView(FIXTURES[type], viewer, NONE)).toBeNull();
       }
-    }
-  });
+      expect(toEventViews([FIXTURES.PhaseChanged, FIXTURES[type]], 1, NONE)).toEqual([
+        FIXTURES.PhaseChanged,
+      ]);
+    },
+  );
 
   it.each(FIELD_TYPES)(
     'forwards the Field Zone event %s unchanged to both viewers (task 4.3b)',

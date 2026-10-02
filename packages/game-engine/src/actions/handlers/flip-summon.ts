@@ -70,6 +70,8 @@ export function applyFlipSummon(
 
   const opponentIndex = (playerIndex === 0 ? 1 : 0) as 0 | 1;
   const canActivate = (s: GameState, seat: 0 | 1) => hasLegalActivation(s, seat, ctx);
+  // Task 4.4: a Flip Summon is a Summon — its window names the monster a NegateSummon would answer.
+  const summoned = { playerIndex, instanceId: monster.instanceId };
 
   // Same order as a Normal Summon (summon.ts): triggers first, the Summon reaction window only if none went on the chain.
   const triggers = collectTriggers(placedState, [event], ctx);
@@ -80,6 +82,7 @@ export function applyFlipSummon(
       { kind: 'SummonReaction', responder: opponentIndex },
       ctx,
       canActivate,
+      summoned,
     );
     const settled = settle(fired.state, ctx, canActivate);
     return {
@@ -93,6 +96,7 @@ export function applyFlipSummon(
     opponentIndex,
     { kind: 'Summon' },
     canActivate,
+    summoned,
   );
   return { state: { ...(withWindow ?? placedState), version: state.version + 1 }, events: [event] };
 }

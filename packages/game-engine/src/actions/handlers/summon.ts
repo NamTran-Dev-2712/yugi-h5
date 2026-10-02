@@ -3,7 +3,13 @@ import { openReactionWindow, settle } from '../../effects/chain.js';
 import { collectTriggers, runTriggers } from '../../effects/triggers.js';
 import { EngineError, type EngineErrorCode } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
-import type { CardInstance, CardPosition, GameState, PlayerState } from '../../state/types.js';
+import type {
+  CardInstance,
+  CardPosition,
+  GameState,
+  PlayerState,
+  SummonedMonster,
+} from '../../state/types.js';
 import type { ActionContext, NormalSummonAction, SetMonsterAction } from '../types.js';
 import { hasLegalActivation } from './activate-effect.js';
 
@@ -131,6 +137,9 @@ function placeMonsterFromHand(
   const placedState: GameState = { ...state, players };
   const opponentIndex = (playerIndex === 0 ? 1 : 0) as 0 | 1;
   const canActivate = (s: GameState, seat: 0 | 1) => hasLegalActivation(s, seat, ctx);
+  // Task 4.4: the window of a real Summon names the monster (a NegateSummon answers it); a Set is not a Summon [RULE].
+  const summoned: SummonedMonster | undefined =
+    position === 'Attack' ? { playerIndex, instanceId: card.instanceId } : undefined;
 
   // Task 3.5: an OnSummon trigger of the Summoned monster goes on the chain first (the opponent then responds to that
   // link); the Summon reaction window only opens if no trigger ends up on the chain.
@@ -142,6 +151,7 @@ function placeMonsterFromHand(
       { kind: 'SummonReaction', responder: opponentIndex },
       ctx,
       canActivate,
+      summoned,
     );
     const settled = settle(fired.state, ctx, canActivate);
     return {
@@ -157,6 +167,7 @@ function placeMonsterFromHand(
     opponentIndex,
     { kind: 'Summon' },
     canActivate,
+    summoned,
   );
   return {
     state: { ...(withWindow ?? placedState), version: state.version + 1 },
