@@ -10,7 +10,8 @@ handler function đăng ký sẵn trong engine.
 > `packages/game-engine/src/effects/operations/<kind>.ts` (`OPERATION_HANDLERS`, thiếu kind = `tsc` đỏ; test đối chiếu
 > hai phía). Từ task 3.3 effect lên **chain** (resolve LIFO); task 3.4 thêm lá Set; task 3.5 thêm trigger tự khởi phát
 > `OnSummon`/`OnDestroyed` (optional/mandatory); task 3.6 thêm **Continuous effect** (`ModifyStat`, tính lại mỗi lần đọc) và
-> **`scriptId` ở mức effect** (registry `EFFECT_SCRIPTS`). Thêm kind mới: `/new-effect-type`.
+> **`scriptId` ở mức effect** (registry `EFFECT_SCRIPTS`); task 4.4 thêm **Counter Trap + 3 operation Negate**. Thêm kind
+> mới: `/new-effect-type`.
 
 ## Engine chạy effect thế nào (task 3.2, chain từ task 3.3)
 
@@ -131,6 +132,38 @@ handler function đăng ký sẵn trong engine.
 }
 ```
 
+## Counter Trap + Negate (task 4.4)
+
+- **Bẫy Phản công** = Trap `subType: 'Counter'`: Spell Speed 3 (suy từ subType, không cần `spellSpeed`), và engine **chỉ cho
+  kích hoạt để đáp trả** (đang có mắt xích hoặc cửa sổ phản ứng; không thì `NOTHING_TO_RESPOND_TO`) `[RULE]`. Không có field
+  schema mới cho việc này.
+- Ba operation (chạy lúc resolve). Refine: effect chứa một operation Negate phải có trigger `Quick`; có thể kèm `cost` và
+  operation khác; không cần `target` (cái bị vô hiệu là thứ effect đang đáp, không phải thứ người chơi chọn).
+  - `NegateActivation{cardKinds?: ('Monster' | 'Spell' | 'Trap')[]}` — vô hiệu việc kích hoạt của **mắt xích ngay dưới**. Kích
+    hoạt được khi mắt xích trên cùng là của đối thủ và (nếu có `cardKinds`) lá của nó thuộc loại đó. Lá Phép/Bẫy bị vô hiệu vào
+    mộ (kể cả lá ở lại sân); cost của nó không hoàn `[ASSUMED]` G23.
+  - `NegateAttack` — vô hiệu đòn tấn công đối thủ vừa tuyên bố (chỉ kích hoạt được trong cửa sổ phản ứng tấn công).
+  - `NegateSummon` — vô hiệu Normal / Flip Summon của đối thủ (chỉ kích hoạt được là mắt xích đầu tiên trong cửa sổ phản ứng
+    triệu hồi; không áp dụng cho Set và Special Summon bằng effect — chủ dự án chốt 2026-10-02). Quái vào mộ `[ASSUMED]` G23.
+- Thiếu thứ để vô hiệu ⇒ `NOTHING_TO_NEGATE` (đọc từ operation trong effect, không từ id lá). Chi tiết resolve + event:
+  `engine.md` mục "Counter Trap + Negate".
+
+```json
+{
+  "id": "SMP-209",
+  "kind": "Trap",
+  "subType": "Counter",
+  "effects": [
+    {
+      "id": "sealing-rune",
+      "trigger": { "kind": "Quick" },
+      "cost": [{ "kind": "PayLP", "amount": 1000 }],
+      "operations": [{ "kind": "NegateActivation", "cardKinds": ["Spell", "Trap"] }]
+    }
+  ]
+}
+```
+
 ## Equip Spell (task 4.2c)
 
 - Lá `subType: 'Equip'` gồm 2 effect: (1) `Ignition` + target `Card` `MonsterZone` `count: 1` `filter: {kind: 'Monster'}` + operation `Equip`;
@@ -219,14 +252,14 @@ tiêu chí, `level.min ≤ level.max`.
 
 ## Kind đã có (batch 1)
 
-| Loại      | Kind → field                                                                                                                                                                                                                                                                                                                                                                                                   |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip{mandatory?}` (task 4.2b), `Continuous`, `Ignition`, `Quick`                                                                                                                                                                                                                                                                              |
-| Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                                                                                                                                                                                                                                                                                                              |
-| Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                                                                                                                                                                                                                                                                                                          |
-| Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                                                                                                                                                                                                                                                                                                              |
-| Operation | `Damage{amount, target}`, `Heal{amount, target}`, `Draw{count, target}`, `Destroy` (tác động lên `target` Card của effect), `SpecialSummon{position?}` (task 4.2a, target Card ở tay/mộ của mình), `Equip` (task 4.2c, gắn chính lá Equip Spell vào 1 quái ngửa); continuous: `ModifyStat{stat, amount, side, filter?, excludeSource?}` (task 3.6) hoặc `ModifyStat{stat, amount, equipped: true}` (task 4.2c) |
-| Filter    | `kind` (Monster/Spell/Trap), `level{min?,max?}`, `attribute`, `race`                                                                                                                                                                                                                                                                                                                                           |
+| Loại      | Kind → field                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Trigger   | `OnSummon{mandatory?}`, `OnDestroyed{mandatory?}` (task 3.5), `OnFlip{mandatory?}` (task 4.2b), `Continuous`, `Ignition`, `Quick`                                                                                                                                                                                                                                                                                                                                                                                     |
+| Condition | `PhaseIs{phase}`, `IsMyTurn`, `ZoneCount{zone, side, min?, max?}`                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Cost      | `Discard{count, filter?}`, `Tribute{count, filter?}`, `PayLP{amount}`                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Target    | `Card{zone, side, count, filter?}`, `Player{who}`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Operation | `Damage{amount, target}`, `Heal{amount, target}`, `Draw{count, target}`, `Destroy` (tác động lên `target` Card của effect), `SpecialSummon{position?}` (task 4.2a, target Card ở tay/mộ của mình), `Equip` (task 4.2c, gắn chính lá Equip Spell vào 1 quái ngửa), `NegateActivation{cardKinds?}` / `NegateAttack` / `NegateSummon` (task 4.4, chỉ trong effect `Quick`); continuous: `ModifyStat{stat, amount, side, filter?, excludeSource?}` (task 3.6) hoặc `ModifyStat{stat, amount, equipped: true}` (task 4.2c) |
+| Filter    | `kind` (Monster/Spell/Trap), `level{min?,max?}`, `attribute`, `race`                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 `zone`: `Hand|Deck|Graveyard|MonsterZone|SpellTrapZone`; `side`/`who`/operation `target`: `self|opponent`;
 `phase`: `Draw|Standby|Main1|Battle|Main2|End`.
@@ -237,14 +270,14 @@ tiêu chí, `level.min ≤ level.max`.
 - **Condition**: `LPCompare`, `HasCardIn(zone, filter)`, `ChainLength`, `PositionIs`, `OncePerTurn`.
 - **Cost**: `Banish`, `SendToGY`, `Reveal`.
 - **Target**: `AllMatching(filter)`.
-- **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `ChangePosition`, `Negate`/`NegateAttack`, `Shuffle`, `Search`, `SkipPhase`. (`ModifyStat` continuous đã có ở 3.6; bản
+- **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `ChangePosition`, `Shuffle`, `Search`, `SkipPhase` (`Negate*` đã có ở task 4.4; "vô hiệu **hiệu ứng**" — khác "vô hiệu việc kích hoạt" — chưa có). (`ModifyStat` continuous đã có ở 3.6; bản
   "tới hết lượt" chạy lúc resolve cần Duration, chưa có.) Continuous "chặn một loại hành động" (vd cấm tấn công) chưa có.
 - **Filter**: `atk(min/max)`, `position`, `nameContains`, `tag`.
 - **Duration**: `ThisTurn`, `UntilEndPhase`, `Permanent` (batch 3; cần lưu modifier vào state). **`WhileOnField` cố ý không thêm** (chủ dự án
   chốt 2026-09-30, task 4.2c): effect `Continuous` đã là "khi lá còn ngửa trên sân"; Equip dùng `ModifyStat.equipped`.
 
 Ví dụ trong bản spec cũ dùng tên `DrawCard`/`DealDamage`/`ModifyAtk`/`NegateAttack`: batch 1 dùng `Draw`/`Damage`
-(theo bảng plan); các kind còn lại đổi tên/định hình khi được thêm.
+(theo bảng plan); `NegateAttack` giữ đúng tên đó khi được thêm ở task 4.4; các kind còn lại đổi tên/định hình khi được thêm.
 
 ## Ví dụ (parse được ở batch 1)
 

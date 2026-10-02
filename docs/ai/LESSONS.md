@@ -32,6 +32,12 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   phép phá cho đúng bất biến cần chứng minh, không nới regex (ADR 063).
 - Nhánh fuzz quá hiếm với nước đi ngẫu nhiên (vd phá lá Field **úp**): thêm variant riêng (deck + dòng rng riêng + `steer`
   ưu tiên nước đi, chỉ ở test); không đổi deck/seed cũ, không nới oracle (ADR 064).
+- Cho một lá placeholder effect thật (vd SMP-201) hoặc thêm lá vào `SAMPLE_CARDS` làm đổi hành vi test ở package KHÁC: lá
+  đó đang được dùng như "lá không làm gì", và có deck fuzz tự gom mọi lá có effect ⇒ chạy test api + web **ngay** sau khi đổi
+  dữ liệu lá; harness tự tính "ai phải hành động" phải dùng `pendingPrompt → chainWindow.priorityPlayer → turn player`; lá
+  "không có effect" trong test engine dùng fixture `TRAP_PLAIN`, không dùng lá thật (ADR 065).
+- Hook sau mỗi Edit chạy `eslint --fix`: biến `let` chưa có chỗ gán lại bị đổi thành `const` ⇒ thêm khai báo và chỗ gán
+  trong **cùng một lần sửa** (ADR 065).
 - `ScenarioSchema` không có ô Field ⇒ scenario cần lá ở ô Môi trường phải bắt đầu từ tay + `script` (ADR 064).
 - Đổi shape một field (vd `name` → `{vi,en}`): template literal nhận object không làm `tsc` đỏ (`[object Object]`) ⇒ grep
   mọi nơi dùng (ADR 046, 055).
@@ -47,6 +53,11 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - Switch vét cạn + `never` ở mọi nơi tiêu thụ event/action: loại mới phải làm `tsc` đỏ cho tới khi được phân loại (ADR 034).
 - Tránh thêm field top-level vào `GameState` (vỡ `scenario-to-state` ở api + golden cũ): đặt trên `CardInstance`,
   `ChainWindow` hoặc payload prompt (ADR 051, 052, 061).
+- Operation cần đổi **luồng** resolve (vô hiệu link khác, chặn đòn tấn công) thì chỉ phát event; `effects/chain.ts` đọc
+  event đó (như trigger đọc event), không thêm kênh trả về riêng. Operation cần biết "đang đáp cái gì" đọc
+  `OperationContext.respondsTo` / `window`. Luật kích hoạt đọc từ subType / operation của lá, không từ id lá (ADR 065).
+- Thêm dữ liệu cho cửa sổ phản ứng: đặt field optional cạnh `reactionTo` trên `ChainWindow`, **không** vào `ReactionTo`
+  hay payload prompt (hai thứ đó api gửi nguyên ra wire) (ADR 065).
 - Web: không thêm kind vào máy trạng thái tương tác; tái dùng `selecting-tribute` + `purpose` (ADR 048, 056, 062).
 - Dấu/nhãn hiển thị ở client phải đi theo điều server gửi (vd dấu "đang hiệu lực" ↔ `effectiveStats`), không tự suy
   thời điểm theo luật; chỉ ảnh chạy thật mới lộ chỗ lệch ⇒ luôn mở ảnh đã chụp ra xem (ADR 064).
@@ -56,6 +67,8 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 ## Quyết định của chủ dự án dễ bị làm ngược
 
 - `STARTER_DECK` **không đổi**; lá mới thêm vào CUỐI dãy; lá effect đi qua deck demo riêng (ADR 057, 058).
+- `NegateSummon` chỉ Normal/Tribute/Flip Summon; Special Summon bằng effect chặn qua `NegateActivation`; Set không phải
+  triệu hồi. Bẫy Phản công không tự mở chuỗi. Lá/quái bị vô hiệu "được gửi vào mộ" (không "bị phá"), cost không hoàn (ADR 065).
 - Card data viết bằng TS, **không** pipeline CSV (ADR 058). Không Duration, không action `SpecialSummon` (ADR 059, 061).
 - C11: Trap phải Set mới kích hoạt (ADR 018). C13: phản ứng = chạm lá, **không** dialog "Kích hoạt?" (ADR 054).
 - AI server không tự Set/kích hoạt Phép/Bẫy ngoài cửa sổ ưu tiên (ADR 048, 055).

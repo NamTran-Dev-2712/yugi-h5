@@ -11,29 +11,30 @@ Khối "Ghi chú đọc kèm" đầu mỗi ADR cho biết phần nào đã bị 
 
 ## Theo chủ đề
 
-| Task đụng tới                                                        | Contract / kế hoạch                                                                | ADR                            |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------ |
-| Engine: phase, draw, summon, tribute, đổi thế, combat, thắng/thua    | `docs/design/engine.md`, `docs/plan/rules-coverage.md`, `RULES-REVIEW-SHEET.md`    | 020–030                        |
-| Engine: mã lỗi, `ActionContext`, prompt (`PendingPrompt`)            | `docs/design/engine.md`                                                            | 022, 030                       |
-| Effect DSL: schema, operation, cost, target, condition               | `docs/design/effect-dsl.md`, `docs/plan/card-and-effect-plan.md`                   | 046, 047, 053, 059, 061, 063   |
-| Chain, Spell Speed, lá Set, cửa sổ phản ứng                          | `docs/design/engine.md` (Chain stack)                                              | 018, 049, 050, 051, 054, 063   |
-| Trigger (OnSummon/OnDestroyed/OnFlip), Continuous, `scriptId`, Equip | `docs/design/effect-dsl.md`                                                        | 052, 053, 060, 061             |
-| Field Spell, lá Continuous Spell/Trap ở lại sân, Field Zone          | `docs/design/engine.md` (Field Spell + lá ở lại sân)                               | 053, 061, 063, 064             |
-| `legalActions`                                                       | `docs/design/protocol.md`                                                          | 037                            |
-| Golden replay, fuzz, mutation test, test chập chờn                   | `docs/plan/testing-strategy.md`                                                    | 031, 058, 062, 064             |
-| Wire: StateView, EventView, rò thông tin, lọc theo ghế               | `docs/design/event-visibility.md`, `docs/design/protocol.md`                       | 032, 034, 048, 055, 062, 064   |
-| API: DuelService, HTTP, guest/JWT, quyền ghế, deck validate          | `docs/design/protocol.md`, `docs/plan/backend-plan.md`                             | 003, 033, 035, 036             |
-| AI đối thủ (`solo-vs-ai`)                                            | `docs/design/protocol.md` (solo-vs-ai)                                             | 038, 048, 055, 057, 062, 064   |
-| Phaser Duel Scene, kéo thả, UI chuỗi, menu/picker                    | `docs/plan/ui-plan.md`, `docs/reference/notes/layout-analysis.md`                  | 039, 040, 054, 056, 062, 064   |
-| Animation, thời lượng, log panel                                     | `docs/plan/animation-plan.md`, `docs/reference/notes/animation-durations.md`       | 041, 042                       |
-| i18n, text lá song ngữ                                               | —                                                                                  | 016, 045, 046                  |
-| Card data, deck mẫu/demo, scenario                                   | `docs/plan/card-and-effect-plan.md`, `.claude/commands/new-card.md`                | 046, 057, 058, 062, 064        |
-| Trang debug, Duel Sandbox, dev tool                                  | `docs/design/debug-ui.md`, `docs/plan/dev-tools-and-review.md`                     | 014, 036, 044                  |
-| Luật Yugi H5 gốc, nhãn `[REF]/[RULE]/[DECISION]/[GUESS]`, mục G#/C#  | `docs/plan/fidelity-spec.md`, `docs/reference/notes/rules.md`, `rules-observed.md` | 012, 013, 017, 018, 019, 054   |
-| Asset, card art                                                      | `docs/plan/card-art-pipeline.md`, `docs/assets/ASSET_REQUESTS.md`                  | 015                            |
-| Stack, tooling, môi trường, build                                    | `README.md`, `docs/ai/LESSONS.md`                                                  | 001–010                        |
-| Phase/scope, thứ tự task, P10–P15                                    | `docs/plan/MASTER-PLAN.md`, `docs/ai/ROADMAP.md`, `economy-plan.md`                | 011, 012, 043                  |
-| Việc/tư liệu cần người dùng, bảng duyệt                              | `docs/plan/human-tasks.md`, `docs/plan/parity-board.md`, `RULES-REVIEW-SHEET.md`   | 064 (ủy quyền + ký hiệu duyệt) |
+| Task đụng tới                                                        | Contract / kế hoạch                                                                | ADR                               |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------- |
+| Engine: phase, draw, summon, tribute, đổi thế, combat, thắng/thua    | `docs/design/engine.md`, `docs/plan/rules-coverage.md`, `RULES-REVIEW-SHEET.md`    | 020–030                           |
+| Engine: mã lỗi, `ActionContext`, prompt (`PendingPrompt`)            | `docs/design/engine.md`                                                            | 022, 030                          |
+| Effect DSL: schema, operation, cost, target, condition               | `docs/design/effect-dsl.md`, `docs/plan/card-and-effect-plan.md`                   | 046, 047, 053, 059, 061, 063, 065 |
+| Chain, Spell Speed, lá Set, cửa sổ phản ứng                          | `docs/design/engine.md` (Chain stack)                                              | 018, 049, 050, 051, 054, 063, 065 |
+| Trigger (OnSummon/OnDestroyed/OnFlip), Continuous, `scriptId`, Equip | `docs/design/effect-dsl.md`                                                        | 052, 053, 060, 061                |
+| Field Spell, lá Continuous Spell/Trap ở lại sân, Field Zone          | `docs/design/engine.md` (Field Spell + lá ở lại sân)                               | 053, 061, 063, 064                |
+| Counter Trap, Negate (kích hoạt / tấn công / triệu hồi)              | `docs/design/engine.md` (Counter Trap + Negate), `effect-dsl.md`                   | 050, 051, 052, 065                |
+| `legalActions`                                                       | `docs/design/protocol.md`                                                          | 037                               |
+| Golden replay, fuzz, mutation test, test chập chờn                   | `docs/plan/testing-strategy.md`                                                    | 031, 058, 062, 064, 065           |
+| Wire: StateView, EventView, rò thông tin, lọc theo ghế               | `docs/design/event-visibility.md`, `docs/design/protocol.md`                       | 032, 034, 048, 055, 062, 064, 065 |
+| API: DuelService, HTTP, guest/JWT, quyền ghế, deck validate          | `docs/design/protocol.md`, `docs/plan/backend-plan.md`                             | 003, 033, 035, 036                |
+| AI đối thủ (`solo-vs-ai`)                                            | `docs/design/protocol.md` (solo-vs-ai)                                             | 038, 048, 055, 057, 062, 064      |
+| Phaser Duel Scene, kéo thả, UI chuỗi, menu/picker                    | `docs/plan/ui-plan.md`, `docs/reference/notes/layout-analysis.md`                  | 039, 040, 054, 056, 062, 064      |
+| Animation, thời lượng, log panel                                     | `docs/plan/animation-plan.md`, `docs/reference/notes/animation-durations.md`       | 041, 042                          |
+| i18n, text lá song ngữ                                               | —                                                                                  | 016, 045, 046                     |
+| Card data, deck mẫu/demo, scenario                                   | `docs/plan/card-and-effect-plan.md`, `.claude/commands/new-card.md`                | 046, 057, 058, 062, 064, 065      |
+| Trang debug, Duel Sandbox, dev tool                                  | `docs/design/debug-ui.md`, `docs/plan/dev-tools-and-review.md`                     | 014, 036, 044                     |
+| Luật Yugi H5 gốc, nhãn `[REF]/[RULE]/[DECISION]/[GUESS]`, mục G#/C#  | `docs/plan/fidelity-spec.md`, `docs/reference/notes/rules.md`, `rules-observed.md` | 012, 013, 017, 018, 019, 054      |
+| Asset, card art                                                      | `docs/plan/card-art-pipeline.md`, `docs/assets/ASSET_REQUESTS.md`                  | 015                               |
+| Stack, tooling, môi trường, build                                    | `README.md`, `docs/ai/LESSONS.md`                                                  | 001–010                           |
+| Phase/scope, thứ tự task, P10–P15                                    | `docs/plan/MASTER-PLAN.md`, `docs/ai/ROADMAP.md`, `economy-plan.md`                | 011, 012, 043                     |
+| Việc/tư liệu cần người dùng, bảng duyệt                              | `docs/plan/human-tasks.md`, `docs/plan/parity-board.md`, `RULES-REVIEW-SHEET.md`   | 064 (ủy quyền + ký hiệu duyệt)    |
 
 `RULES-REVIEW-SHEET.md`, `rules.md`, `rules-observed.md` ở `docs/reference/notes/`; `economy-plan.md` ở `docs/plan/`.
 

@@ -1,0 +1,66 @@
+# Task 4.4 — fuzz chống rò api bản dài (2026-10-02); code api + oracle không đổi, chỉ 3 event Negate bị bỏ (containment)
+# FUZZ_SEEDS=100 FUZZ_STEPS=400 pnpm --filter @yugi/api exec vitest run src/modules/duels/event-visibility.fuzz.spec.ts
+# (các dòng ✓ từng seed đã lược; lỗi RPC onTaskUpdate là lỗi quen thuộc của vitest với test dài — xem dòng Tests)
+
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/apps/api
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (100 seeds × 400 steps) > covered the Field Zone and the staying cards (task 4.3b)
+[fuzz 4.3b] {
+  fieldSets: 369,
+  fieldFromHand: 121,
+  fieldFromZone: 188,
+  fieldReplaced: 107,
+  faceDownFieldDestroyed: 127,
+  continuousSpellStays: 22508,
+  continuousTrapStays: 21401
+}
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (100 seeds × 400 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts
+[fuzz 3.2b/3.4b] {
+  steps: 65652,
+  duels: 358,
+  rejected: 4348,
+  targetPrompts: 950,
+  triggerPrompts: 355,
+  declines: 164,
+  reactionWindows: 802,
+  multiLinkChains: 750,
+  setActivations: 4119,
+  passes: 272,
+  ssFromHand: 176,
+  ssFromGraveyard: 260,
+  battleFlipTriggers: 30,
+  filteredTargets: 27,
+  aiSteps: 7240,
+  aiPromptAnswers: 543,
+  events: {
+    SpellTrapSet: 5861,
+    EffectActivated: 7021,
+    EffectResolved: 6948,
+    CardSentToGraveyard: 5237,
+    LifePointsRecovered: 968,
+    LifePointsPaid: 458,
+    SpellTrapDestroyed: 773,
+    ChainLinkAdded: 7021,
+    ChainResolved: 6162,
+    MonsterSpecialSummoned: 436,
+    FlipSummoned: 833,
+    CardEquipped: 37,
+    FieldSpellSet: 379,
+    FieldSpellDestroyed: 230
+  }
+}
+ ✓ src/modules/duels/event-visibility.fuzz.spec.ts (202 tests) 747304ms
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ ❯ Object.onTimeoutError ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:53:10
+ ❯ Timeout._onTimeout ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/index.B521nVV-.js:59:62
+ ❯ listOnTimeout node:internal/timers:588:17
+ ❯ processTimers node:internal/timers:523:7
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 passed (1)
+      Tests  202 passed (202)
+     Errors  1 error
+   Start at  13:25:11
+   Duration  750.56s (transform 760ms, setup 0ms, collect 2.73s, tests 747.30s, environment 0ms, prepare 152ms)

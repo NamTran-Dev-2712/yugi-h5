@@ -1,0 +1,14 @@
+# Task 4.4 — fuzz engine dài (2026-10-02)
+# FUZZ_SEEDS=200 FUZZ_STEPS=400 FUZZ_NEGATE_SEEDS=200 pnpm --filter @yugi/game-engine exec vitest run fuzz
+# 200 seed pool đầy đủ + 200 seed pool Negate (NEGATE_DECK_POOL) × 400 bước + các test độ phủ / checker; 0 vi phạm.
+
+stdout | src/testing/fuzz/fuzz.test.ts > fuzz: engine invariants hold > Field Spells and Continuous Spells/Traps are really played (task 4.3; own seeds: 60 × 400 steps)
+fuzz 4.3 coverage: {"fieldSpellSets":32,"fieldSpellLinks":58,"fieldSpellsReplaced":6,"fieldSpellsDestroyed":5,"continuousCardsStayed":35,"setNormalSpellLinks":29}
+stdout | src/testing/fuzz/fuzz.test.ts > fuzz: engine invariants hold > Counter Traps and Negate effects are really played (task 4.4; own seeds and deck pool: 80 × 400 steps)
+fuzz 4.4 coverage: {"counterTrapLinks":10,"activationsNegated":5,"stayingCardsNegated":2,"attacksNegated":6,"summonsNegated":5}
+   ✓ fuzz: engine invariants hold > an Equip follows its monster to the graveyard in real duels (task 4.2c; rare: 60 seeds × 400 steps)  4225ms
+   ✓ fuzz: engine invariants hold > Field Spells and Continuous Spells/Traps are really played (task 4.3; own seeds: 60 × 400 steps)  3814ms
+   ✓ fuzz: engine invariants hold > Counter Traps and Negate effects are really played (task 4.4; own seeds and deck pool: 80 × 400 steps)  4753ms
+ Test Files  1 passed (1)
+      Tests  417 passed (417)
+   Duration  37.94s (transform 685ms, setup 0ms, collect 2.16s, tests 35.32s, environment 0ms, prepare 122ms)

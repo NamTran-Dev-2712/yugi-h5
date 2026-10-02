@@ -1,0 +1,45 @@
+# Task 4.4 — mutation thủ công (2026-10-02): node tools/mutants-4.4.mjs
+
+KILLED   a Counter Trap may start a chain (rule removed)
+KILLED   every Trap needs a window (rule not limited to Counter Traps)
+KILLED   Spell Speed 2 answers a Spell Speed 3 link (speed check dropped)
+KILLED   a Negate effect is activatable with nothing to negate
+KILLED   NegateActivation may answer its own controller’s link
+KILLED   NegateActivation ignores cardKinds (answers a monster effect)
+KILLED   the attacker may negate its own attack
+KILLED   NegateAttack is activatable in a Summon window
+KILLED   NegateSummon may be chained after another card (not the first link)
+KILLED   a negated link resolves anyway
+KILLED   a negated Continuous / Field / Equip card stays on the field (not forced to the graveyard)
+KILLED   a negated Continuous / Field card stays (staysOnField wins over negated)
+KILLED   a negated Field Spell stays in the Field Zone
+KILLED   negates the wrong link (two below instead of the one answered)
+KILLED   operations get no window (NegateAttack / NegateSummon do nothing)
+KILLED   a negated attack still goes on to damage
+KILLED   a second NegateAttack in the same chain negates again
+KILLED   the cost of a negated activation is refunded
+KILLED   the window forgets the Summoned monster once a link is added
+KILLED   the Summon reaction window never names the Summoned monster
+KILLED   a Set monster counts as Summoned (NegateSummon answers a Set)
+KILLED   a Flip Summon cannot be negated
+KILLED   after a declined trigger the Summon window forgets the monster
+KILLED   ChainLinkNegated names the wrong negating card
+KILLED   ChainLinkNegated names the wrong player
+KILLED   a negated attacker may attack again (no attackedTurn stamp)
+KILLED   NegateAttack does nothing against a direct attack
+KILLED   the negated monster stays on the field too (duplicated)
+KILLED   NegateSummon wipes the graveyard
+KILLED   the negated monster counts as destroyed (fires OnDestroyed)
+KILLED   NegateActivation accepts an empty cardKinds list
+KILLED   registry says NegateAttack is not implemented
+KILLED   a Negate operation is allowed on a non-Quick effect
+KILLED   SMP-201 negates a Summon instead of an attack
+KILLED   SMP-201 becomes a Counter Trap
+KILLED   SMP-209 costs 500 LP
+KILLED   SMP-209 negates monster effects too
+KILLED   SMP-209 is a Normal Trap (Spell Speed 2)
+KILLED   SMP-210 is a Normal Trap (Spell Speed 2)
+KILLED   SMP-210 negates an attack instead of a Summon
+
+40/40 mutants killed
+exit 0
