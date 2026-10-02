@@ -31,7 +31,22 @@ export const OPERATION_KINDS = [
   'ModifyStat',
   'SpecialSummon',
   'Equip',
+  'NegateActivation',
+  'NegateAttack',
+  'NegateSummon',
 ] as const satisfies readonly OperationKind[];
+
+/** Task 4.4: operations that negate what their effect answers; such an effect must be `Quick`. */
+export const NEGATE_OPERATION_KINDS = [
+  'NegateActivation',
+  'NegateAttack',
+  'NegateSummon',
+] as const satisfies readonly OperationKind[];
+export type NegateOperationKind = (typeof NEGATE_OPERATION_KINDS)[number];
+
+export function isNegateOperationKind(kind: OperationKind): kind is NegateOperationKind {
+  return (NEGATE_OPERATION_KINDS as readonly OperationKind[]).includes(kind);
+}
 
 /**
  * Operations that are never run on resolution but hold while their card is face-up on the field (task 3.6). They may
@@ -74,4 +89,7 @@ export const OPERATION_REGISTRY: Record<OperationKind, OperationEntry> = {
   ModifyStat: { implemented: true, timing: 'continuous' },
   SpecialSummon: { implemented: true, timing: 'resolve' },
   Equip: { implemented: true, timing: 'resolve' },
+  NegateActivation: { implemented: true, timing: 'resolve' },
+  NegateAttack: { implemented: true, timing: 'resolve' },
+  NegateSummon: { implemented: true, timing: 'resolve' },
 };

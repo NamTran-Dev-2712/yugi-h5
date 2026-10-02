@@ -661,6 +661,23 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
     spellSpeed: 3,
     operations: [{ kind: 'Heal', amount: 10, target: 'self' }],
   }),
+  /** Task 4.4 — Counter Trap: pay 1000 LP, negate the activation of the opponent's Spell/Trap it answers. */
+  NEG_ACT: trap(
+    'NEG_ACT',
+    {
+      cost: [{ kind: 'PayLP', amount: 1000 }],
+      operations: [{ kind: 'NegateActivation', cardKinds: ['Spell', 'Trap'] }],
+    },
+    'Counter',
+  ),
+  /** Counter Trap: negate ANY activation it answers (a monster's trigger effect included), no cost. */
+  NEG_ANY: trap('NEG_ANY', { operations: [{ kind: 'NegateActivation' }] }, 'Counter'),
+  /** Normal Trap (Spell Speed 2) that negates an activation: cannot answer a Speed 3 link. */
+  NEG_ACT_S2: trap('NEG_ACT_S2', { operations: [{ kind: 'NegateActivation' }] }),
+  /** Normal Trap (Spell Speed 2): negate the opponent's declared attack. */
+  NEG_ATK: trap('NEG_ATK', { operations: [{ kind: 'NegateAttack' }] }),
+  /** Counter Trap: negate the opponent's Normal / Flip Summon; the monster goes to the graveyard. */
+  NEG_SUM: trap('NEG_SUM', { operations: [{ kind: 'NegateSummon' }] }, 'Counter'),
 };
 
 export const fixtureCtx: ActionContext = { cardDefinitions: (id) => FIXTURE_DEFS[id] };

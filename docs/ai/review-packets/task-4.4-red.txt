@@ -1,0 +1,171 @@
+# Task 4.4 — red run BEFORE any implementation (2026-10-02). Tests written first; shared/engine code untouched.
+# (engine reads SAMPLE_CARDS from the old shared dist: SMP-209/210 do not exist yet, SMP-201 has no effect)
+
+## packages/shared — pnpm --filter @yugi/shared test
+ ❯ src/cards/counter.test.ts (5 tests | 5 failed) 24ms
+   × task 4.4 cards > exist once, parse, have bilingual text, no script, and are not in the starter deck 13ms
+     → SMP-201: expected 'Placeholder: negate-attack effect def…' not to match /placeholder/i
+   × task 4.4 cards > the new cards are appended at the END of the list (ids of older cards keep their place) 6ms
+     → expected [ 'SMP-207', 'SMP-208' ] to deeply equal [ 'SMP-209', 'SMP-210' ]
+   × task 4.4 cards > SMP-201 keeps its id and name: a Normal Trap (Spell Speed 2) that negates an attack 2ms
+     → expected undefined to deeply equal [ { id: 'guardian-barrier', …(2) } ]
+   × task 4.4 cards > SMP-209: a Counter Trap, cost 1000 LP, negates the activation of a Spell or Trap 1ms
+     → missing SMP-209
+   × task 4.4 cards > SMP-210: a Counter Trap that negates a Summon (no cost) 1ms
+     → missing SMP-210
+ ❯ src/effects/effects.test.ts (54 tests | 5 failed) 84ms
+   × registry (metadata only: no functions) > kind lists match the schemas 16ms
+     → expected [ 'Damage', 'Destroy', 'Draw', …(4) ] to deeply equal [ 'Damage', 'Destroy', 'Draw', …(7) ]
+   × task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon) > parses the three kinds; NegateActivation may restrict the card kinds it answers 7ms
+     → expected false to be true // Object.is equality
+   × task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon) > the three kinds run on resolution and are implemented 6ms
+     → expected [ 'Damage', 'Heal', 'Draw', …(4) ] to include 'NegateActivation'
+   × task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon) > a Negate operation only answers something: its effect must be Quick 1ms
+     → expected false to be true // Object.is equality
+   × task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon) > a Negate effect may carry a cost and further operations 2ms
+     → expected false to be true // Object.is equality
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed | 13 passed (15)
+      Tests  10 failed | 183 passed (193)
+
+## packages/game-engine — pnpm --filter @yugi/game-engine test
+ ❯ src/cards/sample/smp-201.test.ts (5 tests | 4 failed) 40ms
+   × SMP-201 Guardian Barrier > negates the declared attack: no damage, the attacker has attacked, the Trap goes to the graveyard 21ms
+     → expected null to match object { priorityPlayer: 1, …(1) }
+   × SMP-201 Guardian Barrier > protects the attacked monster: it is neither flipped nor destroyed 8ms
+     → ActivateEffect rejected: only the turn player may act.
+   × SMP-201 Guardian Barrier > the defender may let the attack through 2ms
+     → PassPriority rejected: no chain window is open.
+   × SMP-201 Guardian Barrier > only against an attack: not on my own turn, not after a Summon; a Trap must be Set first 6ms
+     → expected 'EFFECT_NOT_FOUND' to be 'NOTHING_TO_NEGATE' // Object.is equality
+ ❯ src/cards/sample/smp-210.test.ts (4 tests | 4 failed) 38ms
+   × SMP-210 > negates a Normal Summon: the monster goes to the graveyard, the Normal Summon stays used 21ms
+     → expected null to match object { priorityPlayer: 1, …(2) }
+   × SMP-210 > negates a Flip Summon 6ms
+     → ActivateEffect rejected: only the turn player may act.
+   × SMP-210 > a Set is not a Summon: no window; the holder may also just pass on a Summon 4ms
+     → PassPriority rejected: no chain window is open.
+   × SMP-210 > never starts a chain, and cannot answer a Spell 6ms
+     → expected 'CARD_DEFINITION_NOT_FOUND' to be 'NOTHING_TO_RESPOND_TO' // Object.is equality
+ ❯ src/cards/sample/smp-209.test.ts (5 tests | 4 failed) 46ms
+   × SMP-209 > negates a Normal Spell (SMP-101): nothing is drawn, 1000 LP paid, both cards in the graveyard 24ms
+     → expected null to deeply equal { priorityPlayer: 1, passCount: +0 }
+   × SMP-209 > negates a Continuous Spell (SMP-114): it leaves the field and its +300 ATK is gone 7ms
+     → ActivateEffect rejected: only the turn player may act.
+   × SMP-209 > negates a Trap (SMP-203) chained to my Spell — my own turn, from my Set copy 3ms
+     → ActivateEffect rejected: card definition "SMP-209" was not found.
+   × SMP-209 > never starts a chain, needs more than 1000 LP, and is passed over when the opponent lets the Spell resolve 6ms
+     → expected 'CARD_DEFINITION_NOT_FOUND' to be 'NOTHING_TO_RESPOND_TO' // Object.is equality
+ ❯ src/actions/handlers/quick-play-and-speed.test.ts (24 tests | 1 failed) 71ms
+   × Spell Speed enforcement > a Counter Trap (Speed 3) never starts a chain: it only responds (task 4.4) 38ms
+     → expected EngineError NOTHING_TO_RESPOND_TO, but nothing was thrown: expected undefined to be an instance of EngineError
+ ❯ src/effects/operations/negate-attack.test.ts (10 tests | 9 failed) 87ms
+   × NegateAttack > a direct attack: no damage, the attacker counts as having attacked, the Trap goes to the graveyard 39ms
+     → handler is not a function
+   × NegateAttack > an attack on a face-down monster: not flipped, nothing destroyed 2ms
+     → handler is not a function
+   × NegateAttack > the same monster cannot attack again this turn; another one can; the Battle Phase goes on 2ms
+     → handler is not a function
+   × NegateAttack > NOTHING_TO_NEGATE outside an attack: on my own turn, and it does not open a Summon window 8ms
+     → expected EngineError NOTHING_TO_NEGATE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × NegateAttack > NOTHING_TO_NEGATE: answering a Spell (no attack is being declared) 2ms
+     → expected EngineError NOTHING_TO_NEGATE, but nothing was thrown: expected undefined to be an instance of EngineError
+   × NegateAttack > only the defender negates: the attacker’s own Set copy is no response 5ms
+     → expected { priorityPlayer: +0, …(2) } to be null
+   × NegateAttack > two NegateAttack on one chain: the attack is negated once, both cards are spent 3ms
+     → handler is not a function
+   × NegateAttack > a negated NegateAttack lets the attack through (Counter Trap of the attacker) 16ms
+     → handler is not a function
+   × NegateAttack > the attacker left the field before it resolves: still negated, nothing to stamp 6ms
+     → handler is not a function
+ ❯ src/rules/reaction-window.test.ts (18 tests | 1 failed) 82ms
+   × reaction window after a Summon / Set > NormalSummon opens it for the opponent; a pass closes it 20ms
+     → expected { priorityPlayer: 1, …(2) } to deeply equal { priorityPlayer: 1, …(3) }
+ ❯ src/actions/handlers/flip-summon.test.ts (15 tests | 1 failed) 100ms
+   × FlipSummon — the action > opens the Summon reaction window for an opponent holding a Set Trap (task 3.4c) 15ms
+     → expected { priorityPlayer: 1, …(2) } to deeply equal { priorityPlayer: 1, …(3) }
+ ❯ src/effects/operations/negate-summon.test.ts (11 tests | 10 failed) 98ms
+   × NegateSummon — Normal Summon > the window names the Summoned monster; negated: the monster goes to the graveyard 25ms
+     → expected { priorityPlayer: 1, …(2) } to deeply equal { priorityPlayer: 1, …(3) }
+   × NegateSummon — Normal Summon > the Normal Summon of the turn stays used 10ms
+     → handler is not a function
+   × NegateSummon — Normal Summon > a Tribute Summon: the Tribute stays in the graveyard, the Summoned monster joins it 5ms
+     → expected undefined to deeply equal { playerIndex: +0, instanceId: 'h0' }
+   × NegateSummon — Normal Summon > "sent", not "destroyed": no MonsterDestroyed, an OnDestroyed effect does not fire 2ms
+     → handler is not a function
+   × NegateSummon — what counts as a Summon > a Set is not a Summon: NEG_SUM alone opens no window; with another Set card it is still refused 2ms
+     → expected { priorityPlayer: 1, …(2) } to be null
+   × NegateSummon — what counts as a Summon > a Flip Summon is negated the same way 2ms
+     → expected undefined to deeply equal { playerIndex: +0, instanceId: 'm0-2' }
+   × NegateSummon — what counts as a Summon > an optional OnSummon trigger that was declined: the window opens and still names the monster 3ms
+     → expected undefined to deeply equal { playerIndex: +0, instanceId: 'h0' }
+   × NegateSummon — what counts as a Summon > known limit: an OnSummon trigger on the chain replaces the Summon window, so the Summon is not negated 30ms
+     → expected [ 'NormalSummoned', …(2) ] to include 'DamageDealt'
+   × NegateSummon — what counts as a Summon > it must answer the Summon directly (first link): after another card it is refused 12ms
+     → expected EngineError NOTHING_TO_NEGATE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × NegateSummon — what counts as a Summon > a Counter Trap answers it: the negation is negated and the monster stays 2ms
+     → handler is not a function
+ ❯ src/rules/counter-trap.test.ts (17 tests | 12 failed) 96ms
+   × Counter Trap — only in response > never starts a chain (Draw): NOTHING_TO_RESPOND_TO, and it is not a legal action 43ms
+     → expected EngineError NOTHING_TO_RESPOND_TO, but nothing was thrown: expected undefined to be an instance of EngineError
+   × Counter Trap — only in response > never starts a chain (Standby): NOTHING_TO_RESPOND_TO, and it is not a legal action 2ms
+     → expected EngineError NOTHING_TO_RESPOND_TO, but nothing was thrown: expected undefined to be an instance of EngineError
+   × Counter Trap — only in response > never starts a chain (Main1): NOTHING_TO_RESPOND_TO, and it is not a legal action 2ms
+     → expected EngineError NOTHING_TO_RESPOND_TO, but nothing was thrown: expected undefined to be an instance of EngineError
+   × Counter Trap — only in response > never starts a chain (Battle): NOTHING_TO_RESPOND_TO, and it is not a legal action 1ms
+     → expected EngineError NOTHING_TO_RESPOND_TO, but nothing was thrown: expected undefined to be an instance of EngineError
+   × Counter Trap — only in response > never starts a chain (Main2): NOTHING_TO_RESPOND_TO, and it is not a legal action 2ms
+     → expected EngineError NOTHING_TO_RESPOND_TO, but nothing was thrown: expected undefined to be an instance of EngineError
+   × Counter Trap — only in response > never starts a chain (End): NOTHING_TO_RESPOND_TO, and it is not a legal action 1ms
+     → expected EngineError NOTHING_TO_RESPOND_TO, but nothing was thrown: expected undefined to be an instance of EngineError
+   × Counter Trap — only in response > answers a Spell Speed 1 link: the window opens for its holder, who may activate it or pass 12ms
+     → handler is not a function
+   × Counter Trap — Spell Speed 3 on the chain > 3 links: Spell → Trap (Speed 2) → Counter Trap; the Counter Trap negates only the Trap, the Spell resolves 4ms
+     → handler is not a function
+   × Counter Trap — Spell Speed 3 on the chain > a Counter Trap answers a Counter Trap: the second one negates the first, whose cost is not refunded 5ms
+     → handler is not a function
+   × Counter Trap — Spell Speed 3 on the chain > SPELL_SPEED_TOO_LOW: a Speed 2 negation cannot answer a Counter Trap 2ms
+     → handler is not a function
+   × Counter Trap — Spell Speed 3 on the chain > with only a Speed 2 card against a Counter Trap nobody can answer: the chain resolves at once 1ms
+     → handler is not a function
+   × Counter Trap — Spell Speed 3 on the chain > after the chain the turn goes on: EndPhase is accepted, the turn can end 1ms
+     → handler is not a function
+ ❯ src/rules/trigger-effects.test.ts (25 tests | 1 failed) 119ms
+   × OnSummon — optional > declined with an opponent able to respond: the 3.4c Summon reaction window opens as before 47ms
+     → expected { priorityPlayer: 1, …(2) } to deeply equal { priorityPlayer: 1, …(3) }
+ ❯ src/effects/operations/negate-activation.test.ts (17 tests | 16 failed) 107ms
+   × NegateActivation — the answered link > a Normal Spell from the hand: no effect, the card goes from the link to the graveyard once 39ms
+     → handler is not a function
+   × NegateActivation — the answered link > the cost the negated activation paid is NOT refunded [ASSUMED] 4ms
+     → handler is not a function
+   × NegateActivation — the answered link > a discarded cost card stays in the graveyard 2ms
+     → handler is not a function
+   × NegateActivation — the answered link > a Set Trap that was activated: it leaves its zone for the graveyard without resolving 2ms
+     → handler is not a function
+   × NegateActivation — cards that would have stayed on the field > a Continuous Spell from the hand: sent to the graveyard, its bonus is gone 2ms
+     → handler is not a function
+   × NegateActivation — cards that would have stayed on the field > a Set Continuous Spell activated in place: same 1ms
+     → handler is not a function
+   × NegateActivation — cards that would have stayed on the field > what a Continuous Spell does when it resolves does not happen either 2ms
+     → handler is not a function
+   × NegateActivation — cards that would have stayed on the field > a Continuous Trap chained by the opponent: negated by my Counter Trap, no penalty remains 3ms
+     → handler is not a function
+   × NegateActivation — cards that would have stayed on the field > a Field Spell from the hand: the new one goes to the graveyard; the one it replaced does not come back 5ms
+     → handler is not a function
+   × NegateActivation — cards that would have stayed on the field > a Set Field Spell activated in its zone: sent to the graveyard 2ms
+     → handler is not a function
+   × NegateActivation — cards that would have stayed on the field > an Equip Spell: never equipped, sent to the graveyard 6ms
+     → handler is not a function
+   × NegateActivation — what may be negated > NOTHING_TO_NEGATE: my own link is on top (the opponent passed) 20ms
+     → expected EngineError NOTHING_TO_NEGATE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × NegateActivation — what may be negated > NOTHING_TO_NEGATE: nothing on the chain (an attack reaction window) 4ms
+     → expected EngineError NOTHING_TO_NEGATE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × NegateActivation — what may be negated > cardKinds Spell/Trap does not answer a monster trigger: the window does not even stay open 4ms
+     → expected { priorityPlayer: +0, passCount: 1 } to be null
+   × NegateActivation — what may be negated > without cardKinds it negates a monster trigger too; the monster stays where it is 5ms
+     → expected [ 'Hand' ] to deeply equal [ 'Graveyard' ]
+   × NegateActivation — what may be negated > an effect Special Summon is stopped by negating its Spell: the monster stays in the hand 2ms
+     → handler is not a function
+⎯⎯⎯⎯⎯⎯ Failed Tests 63 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  11 failed | 56 passed (67)
+      Tests  63 failed | 901 passed (964)

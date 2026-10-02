@@ -227,10 +227,12 @@ describe('reaction window after a Summon / Set', () => {
       expect(types(opened.events)).toEqual([
         type === 'NormalSummon' ? 'NormalSummoned' : 'MonsterSet',
       ]);
+      // Task 4.4: a Normal Summon also records the Summoned monster (a Set is not a Summon: nothing recorded).
       expect(opened.state.chainWindow).toEqual({
         priorityPlayer: 1,
         passCount: 0,
         reactionTo: { kind: 'Summon' },
+        ...(type === 'NormalSummon' ? { summoned: { playerIndex: 0, instanceId: 'h0' } } : {}),
       });
       const closed = apply(opened.state, pass(1));
       expect(closed.events).toEqual([]);

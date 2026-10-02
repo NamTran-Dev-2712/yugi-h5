@@ -58,5 +58,26 @@ export const OperationSchema = z.discriminatedUnion('kind', [
    * EffectDefinitionSchema). The card then stays on the field, linked to that monster, until either leaves the field.
    */
   z.object({ kind: z.literal('Equip') }).strict(),
+  /**
+   * Task 4.4: negates the activation of the chain link this effect answers (the link directly below its own). That
+   * link's operations never run and its Spell/Trap card goes to the graveyard, even one that would have stayed on the
+   * field. `cardKinds` restricts what may be answered (omitted = any activation, a monster's trigger effect included).
+   */
+  z
+    .object({
+      kind: z.literal('NegateActivation'),
+      cardKinds: z
+        .array(z.enum(['Monster', 'Spell', 'Trap']))
+        .min(1)
+        .optional(),
+    })
+    .strict(),
+  /** Task 4.4: ends the opponent's declared attack (attack reaction window): no flip, no destruction, no damage. */
+  z.object({ kind: z.literal('NegateAttack') }).strict(),
+  /**
+   * Task 4.4: negates the opponent's Normal / Flip Summon it answers (Summon reaction window, first link); the monster
+   * goes to the graveyard.
+   */
+  z.object({ kind: z.literal('NegateSummon') }).strict(),
 ]);
 export type Operation = z.infer<typeof OperationSchema>;

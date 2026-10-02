@@ -280,10 +280,12 @@ describe('OnSummon — optional', () => {
     const asked = apply(before, summon('h0')).state;
     expect(asked.chainWindow).toBeNull();
     const { state } = apply(asked, answer(asked, [], { decline: true }));
+    // Task 4.4: the window names the Summoned monster (what a NegateSummon would negate).
     expect(state.chainWindow).toEqual({
       priorityPlayer: 1,
       passCount: 0,
       reactionTo: { kind: 'Summon' },
+      summoned: { playerIndex: 0, instanceId: 'h0' },
     });
   });
 

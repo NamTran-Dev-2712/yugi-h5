@@ -173,10 +173,12 @@ describe('FlipSummon — the action', () => {
       myMonsters: [[0, 'M1', 'DefenseDown']],
       oppSpellTraps: [[0, 'TRAP_BURN']],
     });
+    // Task 4.4: the window names the Summoned monster (what a NegateSummon would negate).
     expect(state.chainWindow).toEqual({
       priorityPlayer: 1,
       passCount: 0,
       reactionTo: { kind: 'Summon' },
+      summoned: { playerIndex: 0, instanceId: 'm0-0' },
     });
   });
 

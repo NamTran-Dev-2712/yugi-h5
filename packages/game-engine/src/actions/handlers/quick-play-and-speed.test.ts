@@ -129,9 +129,11 @@ describe('Set Quick-Play', () => {
 });
 
 describe('Spell Speed enforcement', () => {
-  it('a Counter Trap (Speed 3) may start a chain', () => {
-    const { events } = apply(fixtureState({ mySpellTraps: [[0, 'COUNTER']] }), activate('ms-0'));
-    expect(linkSpeeds(events)).toEqual([3]);
+  it('a Counter Trap (Speed 3) never starts a chain: it only responds (task 4.4)', () => {
+    expectEngineError(
+      () => apply(fixtureState({ mySpellTraps: [[0, 'COUNTER']] }), activate('ms-0')),
+      'NOTHING_TO_RESPOND_TO',
+    );
   });
 
   it('a Counter Trap answers a Speed 2 link; nothing below Speed 3 may answer it', () => {
@@ -180,12 +182,23 @@ describe('Spell Speed enforcement', () => {
   });
 
   it('a Counter Trap answers another Counter Trap (window opens for its owner)', () => {
-    const opened = apply(
-      fixtureState({ mySpellTraps: [[0, 'COUNTER']], oppSpellTraps: [[0, 'COUNTER']] }),
-      activate('ms-0'),
+    // Task 4.4: a Counter Trap needs something to respond to, so the chain starts with my Spell.
+    const spell = apply(
+      fixtureState({
+        hand: ['DRAW'],
+        mySpellTraps: [[0, 'COUNTER']],
+        oppSpellTraps: [
+          [0, 'COUNTER'],
+          [1, 'COUNTER'],
+        ],
+      }),
+      activate('h0'),
     ).state;
+    const first = apply(spell, activate('os-0', 1)).state;
+    expect(first.chainWindow).toEqual({ priorityPlayer: 0, passCount: 0 });
+    const opened = apply(first, activate('ms-0')).state;
     expect(opened.chainWindow).toEqual({ priorityPlayer: 1, passCount: 0 });
-    const { events } = apply(opened, activate('os-0', 1));
+    const { events } = apply(opened, activate('os-1', 1));
     expect(linkSpeeds(events)).toEqual([3]);
   });
 

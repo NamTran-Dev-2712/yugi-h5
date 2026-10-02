@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ConditionSchema } from './condition.js';
 import { CostSchema } from './cost.js';
 import { OperationSchema } from './operation.js';
-import { isContinuousOperationKind } from './registry.js';
+import { isContinuousOperationKind, isNegateOperationKind } from './registry.js';
 import { TargetSchema } from './target.js';
 import { TriggerSchema } from './trigger.js';
 
@@ -107,6 +107,14 @@ export const EffectDefinitionSchema = z
     {
       message:
         'ModifyStat needs exactly one of side / equipped (equipped takes no filter/excludeSource)',
+    },
+  )
+  .refine(
+    (e) => e.trigger.kind === 'Quick' || !e.operations.some((o) => isNegateOperationKind(o.kind)),
+    // Task 4.4 [RULE]: a negation answers an activation, an attack or a Summon, so it is always a response.
+    {
+      message:
+        'NegateActivation / NegateAttack / NegateSummon only answer something: the effect must be Quick',
     },
   );
 

@@ -126,7 +126,8 @@ describe('Operation', () => {
     bad(OperationSchema, { kind: 'Heal', amount: '5', target: 'self' });
     bad(OperationSchema, { kind: 'Draw', count: 0, target: 'self' });
     bad(OperationSchema, { kind: 'Destroy', extra: 1 });
-    bad(OperationSchema, { kind: 'NegateAttack' });
+    // An unknown kind (`NegateAttack` stood here until task 4.4 made it a real one).
+    bad(OperationSchema, { kind: 'Banish' });
   });
   it('accepts ModifyStat (task 3.6): atk/def, signed non-zero amount, side, optional filter/excludeSource', () => {
     ok(OperationSchema, { kind: 'ModifyStat', stat: 'atk', amount: 500, side: 'self' });
@@ -299,6 +300,9 @@ describe('registry (metadata only: no functions)', () => {
       'Equip',
       'Heal',
       'ModifyStat',
+      'NegateActivation',
+      'NegateAttack',
+      'NegateSummon',
       'SpecialSummon',
     ]);
   });
@@ -566,5 +570,55 @@ describe('task 4.3 — cards that stay on the field (Continuous Spell/Trap, Fiel
     for (const subType of ['Normal', 'Counter'])
       expect(staysOnField({ kind: 'Trap', subType })).toBe(false);
     expect(staysOnField({ kind: 'Monster' })).toBe(false);
+  });
+});
+
+describe('task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon)', () => {
+  const quick = (operations: unknown[], extra = {}) => ({
+    id: 'negate',
+    trigger: { kind: 'Quick' },
+    operations,
+    ...extra,
+  });
+
+  it('parses the three kinds; NegateActivation may restrict the card kinds it answers', () => {
+    ok(OperationSchema, { kind: 'NegateActivation' });
+    ok(OperationSchema, { kind: 'NegateActivation', cardKinds: ['Spell', 'Trap'] });
+    ok(OperationSchema, { kind: 'NegateActivation', cardKinds: ['Monster'] });
+    ok(OperationSchema, { kind: 'NegateAttack' });
+    ok(OperationSchema, { kind: 'NegateSummon' });
+  });
+
+  it('rejects unknown fields, an empty or unknown cardKinds list', () => {
+    bad(OperationSchema, { kind: 'NegateActivation', cardKinds: [] });
+    bad(OperationSchema, { kind: 'NegateActivation', cardKinds: ['Field'] });
+    bad(OperationSchema, { kind: 'NegateActivation', target: 'opponent' });
+    bad(OperationSchema, { kind: 'NegateAttack', amount: 1 });
+    bad(OperationSchema, { kind: 'NegateSummon', position: 'Attack' });
+    bad(OperationSchema, { kind: 'Negate' });
+  });
+
+  it('the three kinds run on resolution and are implemented', () => {
+    for (const kind of ['NegateActivation', 'NegateAttack', 'NegateSummon'] as const) {
+      expect(OPERATION_KINDS).toContain(kind);
+      expect(OPERATION_REGISTRY[kind]).toEqual({ implemented: true, timing: 'resolve' });
+    }
+  });
+
+  it('a Negate operation only answers something: its effect must be Quick', () => {
+    for (const kind of ['NegateActivation', 'NegateAttack', 'NegateSummon']) {
+      ok(EffectDefinitionSchema, quick([{ kind }]));
+      for (const trigger of ['Ignition', 'OnSummon', 'OnDestroyed', 'OnFlip', 'Continuous'])
+        bad(EffectDefinitionSchema, { ...quick([{ kind }]), trigger: { kind: trigger } });
+    }
+  });
+
+  it('a Negate effect may carry a cost and further operations', () => {
+    ok(
+      EffectDefinitionSchema,
+      quick([{ kind: 'NegateActivation' }, { kind: 'Damage', amount: 500, target: 'opponent' }], {
+        cost: [{ kind: 'PayLP', amount: 1000 }],
+      }),
+    );
   });
 });
