@@ -605,8 +605,9 @@ function chainReaction(): Fixture {
     monsters: five<CardView>([[2, withStats(up('p0-10', 'SMP-001', 0, 'Attack'), 1200, 800)]]),
     spellTraps: five<CardView>([
       [1, up('p0-30', 'FIX-301', 0, 'DefenseDown')],
-      // No effect: Set but not activatable, so it is not outlined.
-      [3, up('p0-31', 'SMP-201', 0, 'DefenseDown')],
+      // A Counter Trap (SMP-209 negates a Spell/Trap activation): the chain is empty, so the server lists nothing for
+      // it — Set but not activatable, not outlined. (It was SMP-201 until task 4.4 gave that card "negate an attack".)
+      [3, up('p0-31', 'SMP-209', 0, 'DefenseDown')],
     ]),
   });
   const opp = player({
@@ -1012,8 +1013,82 @@ function fieldActiveFixture(): Fixture {
   };
 }
 
+/**
+ * Task 4.4b — my own Main Phase 1 with three Traps Set on an earlier turn: SMP-209 and SMP-210 (Counter Traps) and
+ * SMP-201 (negates an attack). The server lists NO activation for them (a Counter Trap only responds; there is no attack
+ * to negate), so none is outlined and a tap does nothing. A second SMP-209 in the hand may only be Set.
+ */
+function counterMainFixture(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-006', 0, null), up('p0-2', 'SMP-209', 0, null)],
+    deckCount: 30,
+    monsters: five<CardView>([[2, withStats(up('p0-10', 'SMP-001', 0, 'Attack'), 1200, 800)]]),
+    spellTraps: five<CardView>([
+      [0, up('p0-30', 'SMP-209', 0, 'DefenseDown')],
+      [2, up('p0-31', 'SMP-210', 0, 'DefenseDown')],
+      [4, up('p0-32', 'SMP-201', 0, 'DefenseDown')],
+    ]),
+  });
+  const opp = oppBasic({
+    monsters: five<CardView>([[2, withStats(up('p1-12', 'SMP-009', 1, 'Attack'), 1700, 1000)]]),
+  });
+  return {
+    view: view({ turnCount: 5, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [
+      ...summonsFor(
+        'p0-1',
+        [0, 1, 3, 4].map((zoneIndex) => ({ zoneIndex })),
+      ),
+      ...setSpellAt('p0-2', [1, 3]),
+      endPhase,
+      surrender,
+    ],
+  };
+}
+
+/**
+ * Task 4.4b — the AI (seat 1) just Normal Summoned: a Summon reaction window, I hold priority. Of my three Set Traps the
+ * server lists only SMP-210 (negate the Summon): SMP-209 has no chain link to negate, SMP-201 no attack.
+ */
+function counterWindowFixture(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-006', 0, null)],
+    deckCount: 30,
+    monsters: five<CardView>([[2, withStats(up('p0-10', 'SMP-001', 0, 'Attack'), 1200, 800)]]),
+    spellTraps: five<CardView>([
+      [0, up('p0-30', 'SMP-210', 0, 'DefenseDown')],
+      [2, up('p0-31', 'SMP-209', 0, 'DefenseDown')],
+      [4, up('p0-32', 'SMP-201', 0, 'DefenseDown')],
+    ]),
+  });
+  const opp = oppBasic({
+    monsters: five<CardView>([[1, withStats(up('p1-12', 'SMP-009', 1, 'Attack'), 1700, 1000)]]),
+  });
+  return {
+    view: view(
+      {
+        turnCount: 6,
+        turnPlayerIndex: 1,
+        phase: 'Main1',
+        chainWindow: { priorityPlayer: 0, passCount: 0, reactionTo: { kind: 'Summon' } },
+      },
+      self,
+      opp,
+    ),
+    legalActions: [activate('p0-30', 'gate-of-refusal'), pass, surrender],
+  };
+}
+
 export function loadFixture(name: FixtureName): Fixture {
   switch (name) {
+    case 'counter-main':
+      return counterMainFixture();
+    case 'counter-window':
+      return counterWindowFixture();
     case 'field':
       return fieldFixture();
     case 'field-set':

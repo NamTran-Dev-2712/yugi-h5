@@ -138,6 +138,30 @@ export function describeEvent(event: EventView, ctx: DescribeContext): string {
         player: p(event.playerIndex),
         card: ctx.cardName(event.definitionId),
       });
+    // Task 4.4b: a negation. The negated card / monster is public (revealed, now in the graveyard); the attack event
+    // carries ids only, so the line names the two monsters the way the attack line does (`instanceLabel`).
+    case 'ChainLinkNegated':
+      return t('event.chainLinkNegated', {
+        player: p(event.playerIndex),
+        card: ctx.cardName(event.definitionId),
+      });
+    case 'AttackNegated':
+      return event.targetInstanceId === null
+        ? t('event.attackNegatedDirect', {
+            player: p(event.playerIndex),
+            attacker: ctx.instanceLabel(event.attackerInstanceId),
+          })
+        : t('event.attackNegatedTarget', {
+            player: p(event.playerIndex),
+            attacker: ctx.instanceLabel(event.attackerInstanceId),
+            target: ctx.instanceLabel(event.targetInstanceId),
+          });
+    case 'SummonNegated':
+      return t('event.summonNegated', {
+        player: p(event.playerIndex),
+        card: ctx.cardName(event.definitionId),
+        zone: event.zoneIndex,
+      });
     case 'ChainResolved':
       return t('event.chainResolved', { count: event.linkCount });
     // Task 4.2d: the Special/Flip Summoned monster and the Equip Spell are face-up (public).

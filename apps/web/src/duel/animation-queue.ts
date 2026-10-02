@@ -41,7 +41,11 @@ export type StepKind =
   // Task 4.3b: the Field Zone
   | 'fieldSet'
   | 'fieldReplace'
-  | 'fieldDestroy';
+  | 'fieldDestroy'
+  // Task 4.4b: a negation (an activation / an attack / a Summon)
+  | 'negateLink'
+  | 'negateAttack'
+  | 'negateSummon';
 
 /**
  * How long each step lasts at speed 1 (ms). One place to tune the feel (`?fast=1` = ×3, `?anim=off` = none).
@@ -85,6 +89,10 @@ export const DURATION_MS: Readonly<Record<StepKind, number>> = {
   fieldSet: 500, // [GUESS] same as a Spell/Trap Set
   fieldReplace: 350, // [GUESS] same as a card going to the graveyard
   fieldDestroy: 375, // [GUESS] same as destroying a Spell/Trap
+  // Task 4.4b — no footage of a Counter Trap / a negation yet ([GUESS], G24): one short beat, the same for the three.
+  negateLink: 500, // [GUESS]
+  negateAttack: 500, // [GUESS]
+  negateSummon: 500, // [GUESS]
 };
 /** Several cards drawn in a row (the opening hand) play as one longer step instead of N short ones. */
 const DRAW_MANY_MS = 600;
@@ -190,7 +198,43 @@ export type AnimationStep =
       readonly kind: 'fieldSet' | 'fieldReplace' | 'fieldDestroy';
       readonly playerIndex: PlayerIndex;
       readonly instanceId: string;
+    })
+  | (StepBase & {
+      /**
+       * Task 4.4b: the activation of card `instanceId` (of `playerIndex`) was negated by card `byInstanceId`. The
+       * scene crosses the card out; the caption (the log sentence) names it. No definitionId is copied.
+       */
+      readonly kind: 'negateLink';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+      readonly byInstanceId: string;
+    })
+  | (StepBase & {
+      /** Task 4.4b: the attack of monster `instanceId` (of `playerIndex`) was negated; the arrow stops short. */
+      readonly kind: 'negateAttack';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+      /** null = it was a direct attack. */
+      readonly targetInstanceId: string | null;
+    })
+  | (StepBase & {
+      /** Task 4.4b: the Summon of monster `instanceId` into Monster Zone `zoneIndex` was negated (to the graveyard). */
+      readonly kind: 'negateSummon';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+      readonly zoneIndex: number;
     });
+
+/**
+ * How the scene writes a step's caption: `struck` = dimmed with a line through it (a chain link that was negated —
+ * the banner strip of the chain shows it crossed out), `ai` = the gold label that opens an AI move.
+ */
+export type CaptionStyle = 'normal' | 'ai' | 'struck';
+
+export function captionStyle(step: AnimationStep): CaptionStyle {
+  if (step.kind === 'aiLabel') return 'ai';
+  return step.kind === 'negateLink' ? 'struck' : 'normal';
+}
 
 export interface AnimationSegment {
   /** true = the AI's move (starts with an `aiLabel` step). */
@@ -349,6 +393,30 @@ function stepFor(e: EventView, text: string): AnimationStep | null {
         ...d('chainFizzle'),
         playerIndex: e.playerIndex,
         instanceId: e.instanceId,
+      };
+    case 'ChainLinkNegated':
+      return {
+        kind: 'negateLink',
+        ...d('negateLink'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+        byInstanceId: e.byInstanceId,
+      };
+    case 'AttackNegated':
+      return {
+        kind: 'negateAttack',
+        ...d('negateAttack'),
+        playerIndex: e.playerIndex,
+        instanceId: e.attackerInstanceId,
+        targetInstanceId: e.targetInstanceId,
+      };
+    case 'SummonNegated':
+      return {
+        kind: 'negateSummon',
+        ...d('negateSummon'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+        zoneIndex: e.zoneIndex,
       };
     case 'ChainResolved':
       return { kind: 'chainResolved', ...d('chainResolved') };

@@ -32,6 +32,11 @@ export interface BoardLayout {
   readonly phase: Rect;
   /** Top line of the phase panel: the turn / phase text. Nothing is ever drawn over it (task 4.3b). */
   readonly phaseLine: Rect;
+  /**
+   * Where the caption of the animation step being played is written (task 4.4b): inside the bar under `phaseLine`
+   * (input is locked while an animation plays, so the selection bar is never there at the same time).
+   */
+  readonly caption: Rect;
   readonly detail: Rect;
   readonly log: Rect;
   readonly thinking: Rect;
@@ -76,6 +81,9 @@ const BAR_BUTTON_W = 150;
 const BAR_BUTTON_H = 40;
 const BAR_BUTTON_GAP = 10;
 const BAR_BUTTON_INSET = (BAR_H - BAR_BUTTON_H) / 2;
+// The animation caption: one line of the label font, centred in the bar (task 4.4b).
+const CAPTION_W = 680;
+const CAPTION_H = 40;
 
 function mirrorY(y: number, h: number): number {
   return frame.height - y - h;
@@ -122,6 +130,12 @@ export function computeLayout(): BoardLayout {
     opp: sideLayout('opp'),
     phase: { x: BOARD_LEFT, y: PHASE_Y, w: BOARD_RIGHT - BOARD_LEFT, h: PHASE_H },
     phaseLine: { x: BOARD_LEFT, y: PHASE_Y, w: BOARD_RIGHT - BOARD_LEFT, h: PHASE_LINE_H },
+    caption: {
+      x: BOARD_CENTER - CAPTION_W / 2,
+      y: BAR_Y + (BAR_H - CAPTION_H) / 2,
+      w: CAPTION_W,
+      h: CAPTION_H,
+    },
     detail: { x: 16, y: 120, w: 228, h: 480 },
     log: { x: 1032, y: 16, w: 232, h: 440 },
     thinking: { x: BOARD_LEFT, y: 100, w: BOARD_RIGHT - BOARD_LEFT, h: 0 },

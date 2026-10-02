@@ -22,6 +22,9 @@ export const FIXTURE_NAMES = [
   'field',
   'field-set',
   'field-active',
+  // Task 4.4b.
+  'counter-main',
+  'counter-window',
 ] as const;
 export type FixtureName = (typeof FIXTURE_NAMES)[number];
 

@@ -35,6 +35,13 @@ describe('speed from the URL and the animator host', () => {
     expect(animationSpeedFromSearch('?fast=0')).toBe(1);
   });
 
+  it('reads ?slow=1 as a third of the speed (task 4.4b: to look at short steps); fast / off win over it', () => {
+    expect(animationSpeedFromSearch('?slow=1')).toBeCloseTo(1 / 3);
+    expect(animationSpeedFromSearch('?slow=0')).toBe(1);
+    expect(animationSpeedFromSearch('?slow=1&fast=1')).toBe(3);
+    expect(animationSpeedFromSearch('?slow=1&anim=off')).toBe(Infinity);
+  });
+
   it('host: nothing attached resolves at once; attached delegates; detaching skips the old player', async () => {
     const host = createAnimatorHost();
     await host.animator.play([seg(step('summon', 400))]);

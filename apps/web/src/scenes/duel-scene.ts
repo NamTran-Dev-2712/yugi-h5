@@ -6,7 +6,7 @@ import {
   timerScheduler,
   type AnimationPlayer,
 } from '../duel/animation-player';
-import type { AnimationStep } from '../duel/animation-queue';
+import { captionStyle, type AnimationStep } from '../duel/animation-queue';
 import { formatDetail } from '../duel/detail-text';
 import type { SelectionPurpose } from '../duel/interaction';
 import { createInteractionDriver, type InteractionDriver } from '../duel/interaction-driver';
@@ -603,6 +603,42 @@ export class DuelScene extends Phaser.Scene {
       case 'fieldDestroy':
         flash(this.layout[sideOf(step.playerIndex)].fieldZone, c.danger);
         break;
+      // Task 4.4b [GUESS] G24: a negation = a red cross on what was negated, read from the step only.
+      case 'negateLink': {
+        // The negated card: where it lies on the (old) board, else the large frame an activation is shown in (a card
+        // activated from the hand is not on the board).
+        const r = this.layout.frame;
+        const big = { x: r.w / 2 - 90, y: r.h / 2 - 131 - 40, w: 180, h: 262 };
+        const at = cardRect(step.instanceId) ?? big;
+        flash(at, c.negate);
+        this.drawFxCross(at, step.durationMs);
+        // The card that negated it lights up.
+        flash(cardRect(step.byInstanceId), c.highlight);
+        break;
+      }
+      case 'negateAttack': {
+        // The attack arrow again, but it stops short of its target, and the attacker is crossed out: the attack ended
+        // there. (The cross is on the card, not at the arrow tip: the tip lies in the phase panel, under the caption.)
+        const from = cardRect(step.instanceId);
+        const target = step.targetInstanceId ? cardRect(step.targetInstanceId) : undefined;
+        const to = target ?? this.layout[sideOf(step.playerIndex) === 'self' ? 'opp' : 'self'].lp;
+        if (from) {
+          const a = centre(from);
+          const b = centre(to);
+          const tip = { x: a.x + (b.x - a.x) * 0.4, y: a.y + (b.y - a.y) * 0.4 };
+          flash(from, c.negate);
+          this.drawFxArrow(a, tip, step.durationMs);
+          this.drawFxCross(from, step.durationMs);
+        }
+        break;
+      }
+      case 'negateSummon': {
+        // The Summoned monster fades out under a cross (it goes to the graveyard at the snap).
+        const at = cardRect(step.instanceId) ?? zoneRect(step.playerIndex, step.zoneIndex);
+        flash(at, c.negate);
+        if (at) this.drawFxCross(at, step.durationMs);
+        break;
+      }
       case 'discard':
       case 'deckOut':
       case 'phase':
@@ -615,19 +651,55 @@ export class DuelScene extends Phaser.Scene {
         break; // the caption below is the whole effect
     }
 
-    const w = 640;
-    const x = this.layout.frame.w / 2 - w / 2;
-    const y = 300;
-    this.fx.add(this.add.rectangle(x, y, w, 40, theme.colors.toastBg, 0.9).setOrigin(0, 0));
+    // The caption sits in the bar under the turn / phase line (task 4.4b; it used to be drawn over that line).
+    const cap = this.layout.caption;
+    const style = captionStyle(step);
     this.fx.add(
       this.add
-        .text(x + w / 2, y + 20, step.text, {
-          fontFamily: theme.fonts.ui,
-          fontSize: `${theme.fontSize.label}px`,
-          color: step.kind === 'aiLabel' ? theme.css.gold : theme.css.text,
-        })
-        .setOrigin(0.5),
+        .rectangle(
+          cap.x,
+          cap.y,
+          cap.w,
+          cap.h,
+          style === 'struck' ? theme.colors.chainBanner : theme.colors.toastBg,
+          1, // opaque: the "animating…" note of the phase panel lies under it
+        )
+        .setOrigin(0, 0),
     );
+    const label = this.add
+      .text(cap.x + cap.w / 2, cap.y + cap.h / 2, step.text, {
+        fontFamily: theme.fonts.ui,
+        fontSize: `${theme.fontSize.label}px`,
+        color:
+          style === 'ai' ? theme.css.gold : style === 'struck' ? theme.css.textDim : theme.css.text,
+      })
+      .setOrigin(0.5);
+    this.fx.add(label);
+    if (style === 'struck') {
+      // A negated chain link: its sentence is dimmed and crossed out on the chain strip.
+      const g = this.add.graphics();
+      g.lineStyle(2, theme.colors.negate, 1);
+      const half = Math.min(label.width, cap.w - 16) / 2;
+      const mid = cap.y + cap.h / 2;
+      g.lineBetween(cap.x + cap.w / 2 - half, mid, cap.x + cap.w / 2 + half, mid);
+      this.fx.add(g);
+    }
+  }
+
+  /** Task 4.4b [GUESS] G24: a red cross over `r` that fades with the step (something was negated). */
+  private drawFxCross(r: Rect, durationMs: number): void {
+    const g = this.add.graphics();
+    const pad = Math.min(r.w, r.h) * 0.12;
+    g.lineStyle(7, theme.colors.negate, 1);
+    g.lineBetween(r.x + pad, r.y + pad, r.x + r.w - pad, r.y + r.h - pad);
+    g.lineBetween(r.x + r.w - pad, r.y + pad, r.x + pad, r.y + r.h - pad);
+    this.fx.add(g);
+    this.tweens.add({
+      targets: g,
+      alpha: 0.6,
+      duration: durationMs,
+      ease: 'Quad.easeIn',
+    });
   }
 
   /** A number that floats up from a side's LP box and fades (damage, LP paid or gained). */

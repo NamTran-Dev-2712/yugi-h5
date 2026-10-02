@@ -215,3 +215,10 @@ src/duel/counter-trap.test.ts(96,26): error TS2345: Argument of type '"counter-w
 src/duel/counter-trap.test.ts(97,25): error TS2345: Argument of type '"counter-window"' is not assignable to parameter of type '"midgame" | "handfull" | "gameover" | "summon-choice" | "tribute" | "attack" | "attack-direc
 src/duel/layout.test.ts(113,13): error TS2339: Property 'caption' does not exist on type 'BoardLayout'.
 src/duel/log-entries.ts(60,13): error TS2322: Type '"ChainLinkNegated" | "AttackNegated" | "SummonNegated"' is not assignable to type 'never'.
+
+## web (thêm giữa chừng): ?slow=1 — pnpm --filter @yugi/web exec vitest run animation-player
+       × speed from the URL and the animator host > reads ?slow=1 as a third of the speed (task 4.4b: to look at short steps); fast / off win over it 6ms
+         → expected 1 to be close to 0.3333333333333333, received difference is 0.6666666666666667, but expected 0.005
+       ✓ animation player > nothing to play → resolves without calling onStep 1ms
+    ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+          Tests  1 failed | 11 passed (12)

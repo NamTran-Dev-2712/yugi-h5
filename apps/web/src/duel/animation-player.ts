@@ -32,13 +32,15 @@ export interface AnimationPlayer {
 }
 
 /**
- * `?anim=off` plays nothing, `?fast=1` plays 3× faster, otherwise 1. Only a convenience for quick play-testing and
- * e2e runs; the skip key (Space/Enter) works in every mode.
+ * `?anim=off` plays nothing, `?fast=1` plays 3× faster, `?slow=1` 3× slower (task 4.4b: to look at a short step such
+ * as a negation, and for the screenshot tools), otherwise 1. Only a convenience for play-testing and e2e runs; the skip
+ * key (Space/Enter) works in every mode.
  */
 export function animationSpeedFromSearch(search: string): number {
   const q = new URLSearchParams(search);
   if (q.get('anim') === 'off') return Infinity;
   if (q.get('fast') === '1') return 3;
+  if (q.get('slow') === '1') return 1 / 3;
   return 1;
 }
 

@@ -56,6 +56,12 @@ export function categoryOfEvent(type: EventView['type']): LogCategory {
     case 'FieldSpellSet':
     case 'FieldSpellDestroyed':
       return 'field';
+    // Task 4.4b: a negated activation / Summon sits with the activations and Summons; a negated attack with the attacks.
+    case 'ChainLinkNegated':
+    case 'SummonNegated':
+      return 'field';
+    case 'AttackNegated':
+      return 'combat';
     default: {
       const unhandled: never = type;
       throw new Error(`Event chưa có nhóm log: ${String(unhandled)}`);

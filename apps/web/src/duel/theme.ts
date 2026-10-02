@@ -61,6 +61,11 @@ export const theme = {
      */
     fieldFrame: 0x6fcf73,
     activeMark: 0xffe27a,
+    /**
+     * Task 4.4b [GUESS] G24: the cross drawn over a negated card / Summoned monster / stopped attack arrow, and the line
+     * through the caption of a negated chain link.
+     */
+    negate: 0xff4d4d,
   },
 
   css: {
