@@ -240,6 +240,37 @@ const EXAMPLES: Record<EventView['type'], { event: EventView; text: string }> = 
     },
     text: 'P1 mất lá Môi trường Name(SMP-113) do bị phá hủy',
   },
+  ChainLinkNegated: {
+    event: {
+      type: 'ChainLinkNegated',
+      linkId: 'link-3-9',
+      playerIndex: 1,
+      instanceId: 'p1-7',
+      definitionId: 'SMP-114',
+      effectId: 'activate',
+      byInstanceId: 'p0-30',
+    },
+    text: 'Name(SMP-114) của P1 bị vô hiệu: không có tác dụng, vào mộ',
+  },
+  AttackNegated: {
+    event: {
+      type: 'AttackNegated',
+      playerIndex: 1,
+      attackerInstanceId: 'p1-2',
+      targetInstanceId: 'p0-4',
+    },
+    text: 'Đòn tấn công của P1 (<p1-2> vào <p0-4>) bị vô hiệu',
+  },
+  SummonNegated: {
+    event: {
+      type: 'SummonNegated',
+      playerIndex: 1,
+      instanceId: 'p1-5',
+      definitionId: 'SMP-009',
+      zoneIndex: 2,
+    },
+    text: 'Triệu hồi Name(SMP-009) của P1 bị vô hiệu: quái vào mộ (ô 2)',
+  },
 };
 
 describe('describeEvent', () => {
@@ -258,6 +289,20 @@ describe('describeEvent', () => {
     );
     expect(text).toBe('P1 rút 1 lá (ẩn)');
     expect(text).not.toContain('Name(');
+  });
+
+  it('a negated DIRECT attack has its own sentence and names no target (task 4.4b)', () => {
+    const text = describeEvent(
+      { type: 'AttackNegated', playerIndex: 0, attackerInstanceId: 'p0-2', targetInstanceId: null },
+      ctx,
+    );
+    expect(text).toBe('Đòn tấn công trực tiếp của P0 (<p0-2>) bị vô hiệu');
+  });
+
+  it('every Negate sentence says "vô hiệu" (the log line the review asks for) (task 4.4b)', () => {
+    for (const type of ['ChainLinkNegated', 'AttackNegated', 'SummonNegated'] as const) {
+      expect(describeEvent(EXAMPLES[type].event, ctx), type).toContain('vô hiệu');
+    }
   });
 
   it('a Field Spell replaced by a new one has its own sentence; other graveyard moves keep theirs (task 4.3b)', () => {

@@ -33,15 +33,16 @@ const FIELD_TYPES = [
   'FieldSpellSet',
   'FieldSpellDestroyed',
 ] as const satisfies readonly GameEvent['type'][];
-/** Task 4.4 events (Counter Trap / Negate): ENGINE-ONLY until 4.4b — dropped for both viewers. */
-const ENGINE_ONLY_TYPES = [
+/** Task 4.4 events (Counter Trap / Negate): PUBLIC, forwarded since task 4.4b (AttackNegated carries ids only). */
+const NEGATE_TYPES = [
   'ChainLinkNegated',
   'AttackNegated',
   'SummonNegated',
 ] as const satisfies readonly GameEvent['type'][];
-type EngineOnlyEvent = Extract<GameEvent, { type: (typeof ENGINE_ONLY_TYPES)[number] }>;
-/** Every event but CardDrawn and the engine-only ones is forwarded with the engine shape. */
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent | EngineOnlyEvent>;
+/** No event is engine-only today; the mechanism stays (a type listed here must be dropped for both viewers). */
+const ENGINE_ONLY_TYPES: readonly GameEvent['type'][] = [];
+/** Every event but CardDrawn is forwarded with the engine shape. */
+type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
 /** No id is hidden from the viewer (most tests); the ChainLinkAdded target filter has its own tests. */
 const NONE: ReadonlySet<string> = new Set();
 
@@ -223,23 +224,53 @@ describe('toEventView', () => {
     expect(Object.keys(FIXTURES)).toHaveLength(33);
   });
 
-  it('every type but CardDrawn and the three engine-only Negate events is public (task 4.4)', () => {
-    expect(ENGINE_ONLY_TYPES).toEqual(['ChainLinkNegated', 'AttackNegated', 'SummonNegated']);
-    expect(PUBLIC_TYPES).toHaveLength(29);
-  });
-
-  it.each(ENGINE_ONLY_TYPES)(
-    'drops the engine-only event %s for both viewers (task 4.4, wire = 4.4b)',
-    (type) => {
-      expect(PUBLIC_TYPES).not.toContain(type);
+  it('no event type is engine-only any more: every type but CardDrawn is public (task 4.4b)', () => {
+    expect(ENGINE_ONLY_TYPES).toEqual([]);
+    expect(PUBLIC_TYPES).toHaveLength(32);
+    for (const type of ENGINE_ONLY_TYPES) {
       for (const viewer of [0, 1] as const) {
         expect(toEventView(FIXTURES[type], viewer, NONE)).toBeNull();
       }
+    }
+  });
+
+  it.each(NEGATE_TYPES)(
+    'forwards the Negate event %s unchanged to both viewers (task 4.4b)',
+    (type) => {
+      expect(PUBLIC_TYPES).toContain(type);
+      for (const viewer of [0, 1] as const) {
+        expect(toEventView(FIXTURES[type], viewer, NONE)).toEqual(FIXTURES[type]);
+      }
       expect(toEventViews([FIXTURES.PhaseChanged, FIXTURES[type]], 1, NONE)).toEqual([
         FIXTURES.PhaseChanged,
+        FIXTURES[type],
       ]);
     },
   );
+
+  it('AttackNegated: ids only, for a direct attack and for an attack on a monster — never a definitionId (task 4.4b)', () => {
+    const onMonster: GameEvent = { ...FIXTURES.AttackNegated, targetInstanceId: 'p1-1' };
+    for (const viewer of [0, 1] as const) {
+      for (const event of [FIXTURES.AttackNegated, onMonster]) {
+        const view = toEventView(event, viewer, NONE);
+        expect(view).toEqual(event);
+        expect(JSON.stringify(view)).not.toContain('definitionId');
+        expect(Object.keys(view ?? {}).sort()).toEqual([
+          'attackerInstanceId',
+          'playerIndex',
+          'targetInstanceId',
+          'type',
+        ]);
+      }
+    }
+  });
+
+  it('the hidden set never drops or rewrites a Negate event (their cards are public by then) (task 4.4b)', () => {
+    const hidden = new Set(['p0-9', 'p1-4', 'p0-3']);
+    for (const type of NEGATE_TYPES) {
+      expect(toEventView(FIXTURES[type], 1, hidden)).toEqual(FIXTURES[type]);
+    }
+  });
 
   it.each(FIELD_TYPES)(
     'forwards the Field Zone event %s unchanged to both viewers (task 4.3b)',

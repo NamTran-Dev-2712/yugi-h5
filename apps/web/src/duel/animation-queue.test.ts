@@ -2,6 +2,7 @@ import type { AiActionView, EventView, PlayerAction, ViewResponse } from '@yugi/
 import { describe, expect, it } from 'vitest';
 import {
   DURATION_MS,
+  captionStyle,
   segmentsFor,
   stepsFor,
   type AnimationStep,
@@ -149,6 +150,28 @@ const SAMPLES: Record<EventView['type'], EventView> = {
     instanceId: 'p1-30',
     definitionId: 'SMP-113',
   },
+  ChainLinkNegated: {
+    type: 'ChainLinkNegated',
+    linkId: 'link-3-9',
+    playerIndex: 1,
+    instanceId: 'p1-8',
+    definitionId: 'SMP-114',
+    effectId: 'activate',
+    byInstanceId: 'p0-30',
+  },
+  AttackNegated: {
+    type: 'AttackNegated',
+    playerIndex: 0,
+    attackerInstanceId: 'p0-2',
+    targetInstanceId: 'p1-4',
+  },
+  SummonNegated: {
+    type: 'SummonNegated',
+    playerIndex: 1,
+    instanceId: 'p1-5',
+    definitionId: 'SMP-009',
+    zoneIndex: 3,
+  },
 };
 
 const KIND_OF: Record<EventView['type'], StepKind | null> = {
@@ -182,6 +205,9 @@ const KIND_OF: Record<EventView['type'], StepKind | null> = {
   CardEquipped: 'equip',
   FieldSpellSet: 'fieldSet',
   FieldSpellDestroyed: 'fieldDestroy',
+  ChainLinkNegated: 'negateLink',
+  AttackNegated: 'negateAttack',
+  SummonNegated: 'negateSummon',
 };
 
 describe('stepsFor', () => {
@@ -374,6 +400,101 @@ describe('stepsFor — Field Zone (task 4.3b)', () => {
     for (const kind of ['fieldSet', 'fieldDestroy', 'fieldReplace'] as const) {
       expect(DURATION_MS[kind]).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('stepsFor — Counter Trap / Negate (task 4.4b)', () => {
+  it('the three Negate steps carry where to draw the cross, never a definitionId', () => {
+    const steps = stepsFor(
+      [SAMPLES.ChainLinkNegated, SAMPLES.AttackNegated, SAMPLES.SummonNegated],
+      describe1,
+    );
+    expect(steps).toEqual([
+      {
+        kind: 'negateLink',
+        durationMs: DURATION_MS.negateLink,
+        text: 'ev:ChainLinkNegated',
+        playerIndex: 1,
+        instanceId: 'p1-8',
+        byInstanceId: 'p0-30',
+      },
+      {
+        kind: 'negateAttack',
+        durationMs: DURATION_MS.negateAttack,
+        text: 'ev:AttackNegated',
+        playerIndex: 0,
+        instanceId: 'p0-2',
+        targetInstanceId: 'p1-4',
+      },
+      {
+        kind: 'negateSummon',
+        durationMs: DURATION_MS.negateSummon,
+        text: 'ev:SummonNegated',
+        playerIndex: 1,
+        instanceId: 'p1-5',
+        zoneIndex: 3,
+      },
+    ]);
+    expect(JSON.stringify(steps)).not.toContain('definitionId');
+  });
+
+  it('a negated direct attack keeps targetInstanceId null (the arrow stops short of the LP box)', () => {
+    const direct: EventView = { ...SAMPLES.AttackNegated, targetInstanceId: null } as EventView;
+    expect(stepsFor([direct], describe1)[0]).toMatchObject({
+      kind: 'negateAttack',
+      instanceId: 'p0-2',
+      targetInstanceId: null,
+    });
+  });
+
+  it('the three kinds last 0.5 s [GUESS] G24', () => {
+    for (const kind of ['negateLink', 'negateAttack', 'negateSummon'] as const) {
+      expect(DURATION_MS[kind]).toBe(500);
+    }
+  });
+
+  it('a negated attack plays in event order: attack, activation, negation — and no damage step is invented', () => {
+    const steps = stepsFor(
+      [
+        SAMPLES.AttackDeclared,
+        SAMPLES.EffectActivated,
+        SAMPLES.ChainLinkAdded,
+        SAMPLES.AttackNegated,
+        SAMPLES.EffectResolved,
+        SAMPLES.CardSentToGraveyard,
+        SAMPLES.ChainResolved,
+      ],
+      describe1,
+    );
+    expect(kinds(steps)).toEqual([
+      'attack',
+      'activate',
+      'chainLink',
+      'negateAttack',
+      'resolve',
+      'toGraveyard',
+      'chainResolved',
+    ]);
+  });
+
+  it('a negated activation: the negate step comes right before the card goes to the graveyard', () => {
+    const steps = stepsFor(
+      [SAMPLES.ChainLinkNegated, SAMPLES.CardSentToGraveyard, SAMPLES.EffectResolved],
+      describe1,
+    );
+    expect(kinds(steps)).toEqual(['negateLink', 'toGraveyard', 'resolve']);
+  });
+
+  it('captionStyle: only a negated chain link is struck through; an AI label keeps its own style', () => {
+    const [link, attack, summon] = stepsFor(
+      [SAMPLES.ChainLinkNegated, SAMPLES.AttackNegated, SAMPLES.SummonNegated],
+      describe1,
+    );
+    expect(captionStyle(link!)).toBe('struck');
+    expect(captionStyle(attack!)).toBe('normal');
+    expect(captionStyle(summon!)).toBe('normal');
+    expect(captionStyle({ kind: 'aiLabel', durationMs: 1, text: 'x' })).toBe('ai');
+    expect(captionStyle(stepsFor([SAMPLES.ChainLinkFizzled], describe1)[0]!)).toBe('normal');
   });
 });
 

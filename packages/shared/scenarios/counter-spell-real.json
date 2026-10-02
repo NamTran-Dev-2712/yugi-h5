@@ -1,0 +1,37 @@
+{
+  "name": "counter-spell-real",
+  "seed": "sandbox-counter-spell-real",
+  "players": [
+    {
+      "lp": 8000,
+      "hand": ["SMP-006"],
+      "deck": ["SMP-005", "SMP-006", "SMP-007", "SMP-008", "SMP-009", "SMP-010"],
+      "field": {
+        "monsters": [{ "card": "SMP-031", "zone": 2, "position": "Attack" }],
+        "spellTraps": [{ "card": "SMP-209", "zone": 2, "position": "DefenseDown" }]
+      },
+      "gy": []
+    },
+    {
+      "lp": 8000,
+      "hand": ["SMP-114"],
+      "deck": ["SMP-004", "SMP-005", "SMP-009", "SMP-010", "SMP-012", "SMP-011"],
+      "field": {
+        "monsters": [
+          { "card": "SMP-001", "zone": 1, "position": "Attack" },
+          { "card": "SMP-008", "zone": 3, "position": "Attack" }
+        ],
+        "spellTraps": []
+      },
+      "gy": []
+    }
+  ],
+  "turn": { "count": 4, "player": 1 },
+  "phase": "Main1",
+  "script": [
+    {
+      "type": "ActivateEffect",
+      "payload": { "playerIndex": 1, "cardInstanceId": "p1-0", "effectId": "activate" }
+    }
+  ]
+}

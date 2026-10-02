@@ -108,6 +108,18 @@ describe('selection bar and graveyard picker never cover the turn / phase line (
     }
     expect(pickerPanel(0)).toBeNull();
   });
+
+  it('the animation caption sits in the bar under the turn / phase line, never over it (task 4.4b, debt of 4.3b)', () => {
+    const { caption } = layout;
+    expect(inside(caption, bar)).toBe(true);
+    expect(inside(caption, layout.phase)).toBe(true);
+    expect(overlaps(caption, layout.phaseLine)).toBe(false);
+    // Room for one line of the label font, and wide enough for the longest log sentence.
+    expect(caption.h).toBeGreaterThanOrEqual(36);
+    expect(caption.w).toBeGreaterThanOrEqual(640);
+    // Centred on the board.
+    expect(caption.x + caption.w / 2).toBe(theme.frame.width / 2);
+  });
 });
 
 describe('handSlots', () => {

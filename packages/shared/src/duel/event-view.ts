@@ -214,6 +214,48 @@ export interface ChainLinkFizzledEventView {
   readonly reason: 'TARGET_GONE';
 }
 
+/**
+ * Task 4.4 (on the wire since 4.4b): the activation of the link right below the answering card was negated. The negated
+ * card was revealed when it was activated and is now in its owner's (public) graveyard; `byInstanceId` is the card that
+ * negated it (on the chain, revealed too). The link never resolves.
+ */
+export interface ChainLinkNegatedEventView {
+  readonly type: 'ChainLinkNegated';
+  readonly linkId: string;
+  /** The player whose activation was negated. */
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly effectId: string;
+  readonly byInstanceId: string;
+}
+
+/**
+ * Task 4.4 (on the wire since 4.4b): the declared attack was negated (no flip, no destruction, no damage). Ids only, like
+ * `AttackDeclared`: the target may be a face-down monster, so this event never carries a `definitionId`.
+ */
+export interface AttackNegatedEventView {
+  readonly type: 'AttackNegated';
+  /** The attacking player. */
+  readonly playerIndex: PlayerIndex;
+  readonly attackerInstanceId: string;
+  /** null = it was a direct attack. */
+  readonly targetInstanceId: string | null;
+}
+
+/**
+ * Task 4.4 (on the wire since 4.4b): a Normal / Flip Summon was negated; the (face-up) monster left `zoneIndex` for its
+ * owner's public graveyard — sent, not destroyed.
+ */
+export interface SummonNegatedEventView {
+  readonly type: 'SummonNegated';
+  /** The player whose Summon was negated. */
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
 /** Every link resolved (LIFO); the window is closed. */
 export interface ChainResolvedEventView {
   readonly type: 'ChainResolved';
@@ -281,6 +323,9 @@ export type EventView =
   | FieldSpellDestroyedEventView
   | ChainLinkAddedEventView
   | ChainLinkFizzledEventView
+  | ChainLinkNegatedEventView
+  | AttackNegatedEventView
+  | SummonNegatedEventView
   | ChainResolvedEventView
   | MonsterSpecialSummonedEventView
   | FlipSummonedEventView

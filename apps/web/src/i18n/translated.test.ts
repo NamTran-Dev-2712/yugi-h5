@@ -244,6 +244,37 @@ const EVENTS: Record<EventView['type'], { event: EventView; en: string }> = {
     },
     en: 'P1 loses Field Spell Name(SMP-113), destroyed',
   },
+  ChainLinkNegated: {
+    event: {
+      type: 'ChainLinkNegated',
+      linkId: 'link-3-9',
+      playerIndex: 1,
+      instanceId: 'p1-7',
+      definitionId: 'SMP-114',
+      effectId: 'activate',
+      byInstanceId: 'p0-30',
+    },
+    en: 'Name(SMP-114) of P1 is negated: no effect, sent to the Graveyard',
+  },
+  AttackNegated: {
+    event: {
+      type: 'AttackNegated',
+      playerIndex: 1,
+      attackerInstanceId: 'p1-2',
+      targetInstanceId: 'p0-4',
+    },
+    en: "P1's attack (<p1-2> on <p0-4>) is negated",
+  },
+  SummonNegated: {
+    event: {
+      type: 'SummonNegated',
+      playerIndex: 1,
+      instanceId: 'p1-5',
+      definitionId: 'SMP-009',
+      zoneIndex: 2,
+    },
+    en: "P1's Summon of Name(SMP-009) is negated: sent to the Graveyard (zone 2)",
+  },
 };
 
 describe('English wording', () => {
@@ -290,6 +321,17 @@ describe('English wording', () => {
         ctx,
       ),
     ).toBe("P0's Field Spell Name(SMP-113) is replaced and goes to the Graveyard");
+    expect(
+      describeEvent(
+        {
+          type: 'AttackNegated',
+          playerIndex: 0,
+          attackerInstanceId: 'p0-2',
+          targetInstanceId: null,
+        },
+        ctx,
+      ),
+    ).toBe("P0's direct attack (<p0-2>) is negated");
   });
 
   it('describeAiAction', () => {

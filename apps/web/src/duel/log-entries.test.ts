@@ -44,6 +44,11 @@ const EVENT_CATEGORY: Record<EventView['type'], LogCategory> = {
   // Task 4.3b: everything about the Field Zone is in the "Sân" group.
   FieldSpellSet: 'field',
   FieldSpellDestroyed: 'field',
+  // Task 4.4b: a negated activation / Summon is with the activations and Summons ("Sân"), a negated attack with the
+  // attacks ("Đánh").
+  ChainLinkNegated: 'field',
+  SummonNegated: 'field',
+  AttackNegated: 'combat',
 };
 
 const AI_CATEGORY: Record<PlayerAction['type'], LogCategory> = {

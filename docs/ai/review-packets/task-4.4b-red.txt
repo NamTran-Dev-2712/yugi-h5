@@ -1,0 +1,217 @@
+# Task 4.4b — test đỏ trước khi code (2026-10-02)
+
+## shared: pnpm --filter @yugi/shared exec vitest run negate-demo-deck
+      6| import { STARTER_DECK } from './starter-deck.js';
+      7| import { validateDeck } from './validate-deck.js';
+Caused by: Error: Failed to load url ./negate-demo-deck.js (resolved id: ./negate-demo-deck.js) in E:/code/game/turn_battle/yugi-h5/packages/shared/src/deck/negate-demo-deck.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@7.3.6_@types+node@22.2_194e501776750d489097a3705aac3374/node_modules/vite/dist/node/chunks/config.js:22739:33
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  20:47:56
+   Duration  1.13s (transform 197ms, setup 0ms, collect 0ms, tests 0ms, environment 1ms, prepare 435ms)
+undefined
+E:\code\game\turn_battle\yugi-h5\packages\shared:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run negate-demo-deck
+
+(sau khi viết deck: shared 200 test xanh — 193 cũ + 7 mới)
+
+## api: pnpm --filter @yugi/api exec vitest run event-view.spec leak-check scenario-negate event-visibility.fuzz
+(event-view.ts vẫn trả null cho 3 event Negate; oracle chưa có luật 'id-only event')
+   × toEventView > forwards the Negate event ChainLinkNegated unchanged to both viewers (task 4.4b) 10ms
+     → expected null to deeply equal { type: 'ChainLinkNegated', …(6) }
+   × toEventView > forwards the Negate event AttackNegated unchanged to both viewers (task 4.4b) 1ms
+     → expected null to deeply equal { type: 'AttackNegated', …(3) }
+   × toEventView > forwards the Negate event SummonNegated unchanged to both viewers (task 4.4b) 1ms
+     → expected null to deeply equal { type: 'SummonNegated', …(4) }
+   × toEventView > AttackNegated: ids only, for a direct attack and for an attack on a monster — never a definitionId (task 4.4b) 1ms
+     → expected null to deeply equal { type: 'AttackNegated', …(3) }
+   × toEventView > the hidden set never drops or rewrites a Negate event (their cards are public by then) (task 4.4b) 2ms
+     → expected null to deeply equal { type: 'ChainLinkNegated', …(6) }
+   × toEventView > passes public event ChainLinkNegated through unchanged to both viewers 1ms
+     → expected null to deeply equal { type: 'ChainLinkNegated', …(6) }
+   × toEventView > passes public event AttackNegated through unchanged to both viewers 1ms
+     → expected null to deeply equal { type: 'AttackNegated', …(3) }
+   × toEventView > passes public event SummonNegated through unchanged to both viewers 1ms
+     → expected null to deeply equal { type: 'SummonNegated', …(4) }
+   × findLeaks — Negate events (task 4.4b) > flags an AttackNegated that names its face-down target — for BOTH viewers, the owner of the target included 8ms
+     → viewer 0: expected [ 'definitionId without instanceId' ] to include 'an id-only event carries a definition…'
+   × findLeaks — Negate events (task 4.4b) > flags an AttackNegated that names its attacker too: the event is ids only, whatever the card 3ms
+     → expected [] to deeply equal [ Array(1) ]
+   × Sandbox scenarios on Counter Trap / Negate (task 4.4b) > negate-attack-real (SMP-201) > activating it: AttackNegated reaches both seats unchanged; no damage, nothing destroyed, the Trap is spent 13ms
+     → viewer 0: expected [ …(9) ] to deep equally contain { type: 'AttackNegated', …(3) }
+   × Sandbox scenarios on Counter Trap / Negate (task 4.4b) > counter-summon-real (SMP-210) > activating it: SummonNegated reaches both seats; the monster is in the AI graveyard and is not Summoned again 4ms
+     → viewer 0: expected [ …(10) ] to deep equally contain { type: 'SummonNegated', …(4) }
+   × Sandbox scenarios on Counter Trap / Negate (task 4.4b) > counter-spell-real (SMP-209) > activating SMP-209: 1000 LP paid, ChainLinkNegated reaches both seats, the Continuous Spell is in the graveyard and its bonus is gone 4ms
+     → viewer 0: expected [ …(14) ] to deep equally contain ObjectContaining{…}
+   × Sandbox scenarios on Counter Trap / Negate (task 4.4b) > chain-basic (older scenario, SMP-201 Set on both sides): an AI attack now opens a reaction window for me 17ms
+     → expected [ 'EffectActivated', …(8) ] to include 'AttackNegated'
+[fuzz 4.4b] {
+  chainLinksNegated: 0,
+  attacksNegated: 0,
+  summonsNegated: 0,
+  counterTrapActivations: 20,
+  faceDownSetTrapsDestroyed: 9,
+  negatedVsAi: 0,
+  attacksNegatedOnFaceDown: 0
+   × fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > covered Counter Trap / Negate on the wire (task 4.4b) 13ms
+     → chainLinksNegated: expected 0 to be greater than 0
+   × fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts 2ms
+     → ChainLinkNegated: expected 0 to be greater than 0
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: chainLinksNegated: expected 0 to be greater than 0
+    1047|       attacksNegatedOnFaceDown: stats.attacksNegatedOnFaceDown,
+ Test Files  4 failed (4)
+      Tests  16 failed | 106 passed (122)
+
+## web: pnpm --filter @yugi/web test
+(shared EventView đã có 3 dạng mới; describe-event / animation-queue / log-entries / layout / fixtures chưa sửa)
+   ✓ stepsFor > DuelStarted → no step 2ms
+   ✓ stepsFor > CardDrawn → draw 2ms
+   ✓ stepsFor > DeckOut → deckOut 0ms
+   ✓ stepsFor > CardDiscarded → discard 0ms
+   ✓ stepsFor > PhaseChanged → phase 0ms
+   ✓ stepsFor > TurnChanged → turn 0ms
+   ✓ stepsFor > NormalSummoned → summon 0ms
+   ✓ stepsFor > MonsterSet → set 0ms
+   ✓ stepsFor > MonsterTributed → tribute 0ms
+   ✓ stepsFor > PositionChanged → changePosition 0ms
+   ✓ stepsFor > MonsterFlipped → flip 0ms
+   ✓ stepsFor > AttackDeclared → attack 0ms
+   ✓ stepsFor > MonsterDestroyed → destroy 0ms
+   ✓ stepsFor > DamageDealt → damage 0ms
+   ✓ stepsFor > DuelEnded → duelEnd 0ms
+   ✓ stepsFor > SpellTrapSet → spellSet 0ms
+   ✓ stepsFor > EffectActivated → activate 0ms
+   ✓ stepsFor > EffectResolved → resolve 0ms
+   ✓ stepsFor > CardSentToGraveyard → toGraveyard 0ms
+   ✓ stepsFor > LifePointsRecovered → lpGain 0ms
+   ✓ stepsFor > LifePointsPaid → lpPay 0ms
+   ✓ stepsFor > SpellTrapDestroyed → spellDestroy 0ms
+   ✓ stepsFor > ChainLinkAdded → chainLink 0ms
+   ✓ stepsFor > ChainLinkFizzled → chainFizzle 0ms
+   ✓ stepsFor > ChainResolved → chainResolved 0ms
+   ✓ stepsFor > MonsterSpecialSummoned → specialSummon 0ms
+   ✓ stepsFor > FlipSummoned → flipSummon 0ms
+   ✓ stepsFor > CardEquipped → equip 0ms
+   ✓ stepsFor > FieldSpellSet → fieldSet 0ms
+   ✓ stepsFor > FieldSpellDestroyed → fieldDestroy 0ms
+   × stepsFor > ChainLinkNegated → negateLink 7ms
+     → expected undefined to be 'negateLink' // Object.is equality
+   × stepsFor > AttackNegated → negateAttack 1ms
+     → expected undefined to be 'negateAttack' // Object.is equality
+   × stepsFor > SummonNegated → negateSummon 0ms
+     → expected undefined to be 'negateSummon' // Object.is equality
+   × stepsFor > never puts a hidden card name into a step (captions come from the injected describer only) 7ms
+     → expected '[{"kind":"draw","durationMs":450,"tex…' not to contain 'definitionId'
+   ✓ stepsFor > empty input → no steps 0ms
+   × stepsFor — Counter Trap / Negate (task 4.4b) > the three Negate steps carry where to draw the cross, never a definitionId 9ms
+     → expected [ …(3) ] to deeply equal [ { kind: 'negateLink', …(5) }, …(2) ]
+   × stepsFor — Counter Trap / Negate (task 4.4b) > a negated direct attack keeps targetInstanceId null (the arrow stops short of the LP box) 6ms
+     → expected { type: 'AttackNegated', …(3) } to match object { kind: 'negateAttack', …(2) }
+   × stepsFor — Counter Trap / Negate (task 4.4b) > the three kinds last 0.5 s [GUESS] G24 1ms
+     → expected undefined to be 500 // Object.is equality
+   × stepsFor — Counter Trap / Negate (task 4.4b) > a negated attack plays in event order: attack, activation, negation — and no damage step is invented 2ms
+     → expected [ 'attack', 'activate', …(5) ] to deeply equal [ 'attack', 'activate', …(5) ]
+   × stepsFor — Counter Trap / Negate (task 4.4b) > a negated activation: the negate step comes right before the card goes to the graveyard 1ms
+     → expected [ undefined, 'toGraveyard', 'resolve' ] to deeply equal [ 'negateLink', 'toGraveyard', …(1) ]
+   × stepsFor — Counter Trap / Negate (task 4.4b) > captionStyle: only a negated chain link is struck through; an AI label keeps its own style 0ms
+     → (0 , captionStyle) is not a function
+   ✓ segmentsFor > no aiActions → one player segment with every event 0ms
+   ✓ segmentsFor > nothing at all → no segments 0ms
+   × selection bar and graveyard picker never cover the turn / phase line (task 4.3b, debt of 4.2d) > the animation caption sits in the bar under the turn / phase line, never over it (task 4.4b, debt of 4.3b) 6ms
+     → Cannot read properties of undefined (reading 'x')
+   × describeEvent > describes ChainLinkNegated 11ms
+     → expected 'Event không rõ: {"type":"ChainLinkNeg…' to be 'Name(SMP-114) của P1 bị vô hiệu: khôn…' // Object.is equality
+   × describeEvent > describes AttackNegated 2ms
+     → expected 'Event không rõ: {"type":"AttackNegate…' to be 'Đòn tấn công của P1 (<p1-2> vào <p0-4…' // Object.is equality
+   × describeEvent > describes SummonNegated 1ms
+     → expected 'Event không rõ: {"type":"SummonNegate…' to be 'Triệu hồi Name(SMP-009) của P1 bị vô …' // Object.is equality
+   × describeEvent > a negated DIRECT attack has its own sentence and names no target (task 4.4b) 1ms
+     → expected 'Event không rõ: {"type":"AttackNegate…' to be 'Đòn tấn công trực tiếp của P0 (<p0-2>…' // Object.is equality
+   × describeEvent > every Negate sentence says "vô hiệu" (the log line the review asks for) (task 4.4b) 1ms
+     → ChainLinkNegated: expected 'Event không rõ: {"type":"ChainLinkNeg…' to contain 'vô hiệu'
+   × category tables > event ChainLinkNegated -> field 8ms
+     → Event chưa có nhóm log: ChainLinkNegated
+   × category tables > event SummonNegated -> field 1ms
+     → Event chưa có nhóm log: SummonNegated
+   × category tables > event AttackNegated -> combat 0ms
+     → Event chưa có nhóm log: AttackNegated
+   × English wording > describeEvent ChainLinkNegated 39ms
+     → expected 'Unknown event: {"type":"ChainLinkNega…' to be 'Name(SMP-114) of P1 is negated: no ef…' // Object.is equality
+   × English wording > describeEvent AttackNegated 5ms
+     → expected 'Unknown event: {"type":"AttackNegated…' to be 'P1\'s attack (<p1-2> on <p0-4>) is ne…' // Object.is equality
+   × English wording > describeEvent SummonNegated 6ms
+     → expected 'Unknown event: {"type":"SummonNegated…' to be 'P1\'s Summon of Name(SMP-009) is nega…' // Object.is equality
+   × English wording > describeEvent: hidden draw, direct attack, draw 4ms
+     → expected 'Unknown event: {"type":"AttackNegated…' to be 'P0\'s direct attack (<p0-2>) is negat…' // Object.is equality
+ FAIL  src/duel/counter-trap.test.ts [ src/duel/counter-trap.test.ts ]
+TypeError: Cannot read properties of undefined (reading 'view')
+⎯⎯⎯⎯⎯⎯ Failed Tests 23 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes ChainLinkNegated
+AssertionError: expected 'Event không rõ: {"type":"ChainLinkNeg…' to be 'Name(SMP-114) của P1 bị vô hiệu: khôn…' // Object.is equality
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes AttackNegated
+AssertionError: expected 'Event không rõ: {"type":"AttackNegate…' to be 'Đòn tấn công của P1 (<p1-2> vào <p0-4…' // Object.is equality
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes SummonNegated
+AssertionError: expected 'Event không rõ: {"type":"SummonNegate…' to be 'Triệu hồi Name(SMP-009) của P1 bị vô …' // Object.is equality
+ FAIL  src/debug/describe-event.test.ts > describeEvent > a negated DIRECT attack has its own sentence and names no target (task 4.4b)
+AssertionError: expected 'Event không rõ: {"type":"AttackNegate…' to be 'Đòn tấn công trực tiếp của P0 (<p0-2>…' // Object.is equality
+ FAIL  src/debug/describe-event.test.ts > describeEvent > every Negate sentence says "vô hiệu" (the log line the review asks for) (task 4.4b)
+AssertionError: ChainLinkNegated: expected 'Event không rõ: {"type":"ChainLinkNeg…' to contain 'vô hiệu'
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > ChainLinkNegated → negateLink
+AssertionError: expected undefined to be 'negateLink' // Object.is equality
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > AttackNegated → negateAttack
+AssertionError: expected undefined to be 'negateAttack' // Object.is equality
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > SummonNegated → negateSummon
+AssertionError: expected undefined to be 'negateSummon' // Object.is equality
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > never puts a hidden card name into a step (captions come from the injected describer only)
+AssertionError: expected '[{"kind":"draw","durationMs":450,"tex…' not to contain 'definitionId'
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — Counter Trap / Negate (task 4.4b) > the three Negate steps carry where to draw the cross, never a definitionId
+AssertionError: expected [ …(3) ] to deeply equal [ { kind: 'negateLink', …(5) }, …(2) ]
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — Counter Trap / Negate (task 4.4b) > a negated direct attack keeps targetInstanceId null (the arrow stops short of the LP box)
+AssertionError: expected { type: 'AttackNegated', …(3) } to match object { kind: 'negateAttack', …(2) }
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — Counter Trap / Negate (task 4.4b) > the three kinds last 0.5 s [GUESS] G24
+AssertionError: expected undefined to be 500 // Object.is equality
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — Counter Trap / Negate (task 4.4b) > a negated attack plays in event order: attack, activation, negation — and no damage step is invented
+AssertionError: expected [ 'attack', 'activate', …(5) ] to deeply equal [ 'attack', 'activate', …(5) ]
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — Counter Trap / Negate (task 4.4b) > a negated activation: the negate step comes right before the card goes to the graveyard
+AssertionError: expected [ undefined, 'toGraveyard', 'resolve' ] to deeply equal [ 'negateLink', 'toGraveyard', …(1) ]
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — Counter Trap / Negate (task 4.4b) > captionStyle: only a negated chain link is struck through; an AI label keeps its own style
+TypeError: (0 , captionStyle) is not a function
+ FAIL  src/duel/layout.test.ts > selection bar and graveyard picker never cover the turn / phase line (task 4.3b, debt of 4.2d) > the animation caption sits in the bar under the turn / phase line, never over it (task 4.4b, debt of 4.3b)
+TypeError: Cannot read properties of undefined (reading 'x')
+ FAIL  src/duel/log-entries.test.ts > category tables > event ChainLinkNegated -> field
+Error: Event chưa có nhóm log: ChainLinkNegated
+ FAIL  src/duel/log-entries.test.ts > category tables > event SummonNegated -> field
+Error: Event chưa có nhóm log: SummonNegated
+ FAIL  src/duel/log-entries.test.ts > category tables > event AttackNegated -> combat
+Error: Event chưa có nhóm log: AttackNegated
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent ChainLinkNegated
+AssertionError: expected 'Unknown event: {"type":"ChainLinkNega…' to be 'Name(SMP-114) of P1 is negated: no ef…' // Object.is equality
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent AttackNegated
+AssertionError: expected 'Unknown event: {"type":"AttackNegated…' to be 'P1\'s attack (<p1-2> on <p0-4>) is ne…' // Object.is equality
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent SummonNegated
+AssertionError: expected 'Unknown event: {"type":"SummonNegated…' to be 'P1\'s Summon of Name(SMP-009) is nega…' // Object.is equality
+ FAIL  src/i18n/translated.test.ts > English wording > describeEvent: hidden draw, direct attack, draw
+AssertionError: expected 'Unknown event: {"type":"AttackNegated…' to be 'P0\'s direct attack (<p0-2>) is negat…' // Object.is equality
+ Test Files  6 failed | 30 passed (36)
+      Tests  23 failed | 634 passed (657)
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @yugi/web@0.1.0 test: `vitest run`
+
+## web: pnpm --filter @yugi/web typecheck
+src/debug/describe-event.ts(166,13): error TS2322: Type 'ChainLinkNegatedEventView | AttackNegatedEventView | SummonNegatedEventView' is not assignable to type 'never'.
+src/duel/animation-queue.test.ts(5,3): error TS2305: Module '"./animation-queue"' has no exported member 'captionStyle'.
+src/duel/animation-queue.test.ts(208,3): error TS2322: Type '"negateLink"' is not assignable to type 'StepKind | null'.
+src/duel/animation-queue.test.ts(209,3): error TS2322: Type '"negateAttack"' is not assignable to type 'StepKind | null'.
+src/duel/animation-queue.test.ts(210,3): error TS2322: Type '"negateSummon"' is not assignable to type 'StepKind | null'.
+src/duel/animation-queue.test.ts(415,33): error TS2339: Property 'negateLink' does not exist on type 'Readonly<Record<StepKind, number>>'.
+src/duel/animation-queue.test.ts(423,33): error TS2339: Property 'negateAttack' does not exist on type 'Readonly<Record<StepKind, number>>'.
+src/duel/animation-queue.test.ts(431,33): error TS2339: Property 'negateSummon' does not exist on type 'Readonly<Record<StepKind, number>>'.
+src/duel/animation-queue.test.ts(452,14): error TS7053: Element implicitly has an 'any' type because expression of type '"negateLink" | "negateAttack" | "negateSummon"' can't be used to index type 'Readonly<Record<StepKi
+src/duel/animation-queue.ts(373,13): error TS2322: Type 'ChainLinkNegatedEventView | AttackNegatedEventView | SummonNegatedEventView' is not assignable to type 'never'.
+src/duel/counter-trap.test.ts(34,26): error TS2345: Argument of type '"counter-main"' is not assignable to parameter of type '"midgame" | "handfull" | "gameover" | "summon-choice" | "tribute" | "attack" | "attack-direct"
+src/duel/counter-trap.test.ts(35,25): error TS2345: Argument of type '"counter-main"' is not assignable to parameter of type '"midgame" | "handfull" | "gameover" | "summon-choice" | "tribute" | "attack" | "attack-direct"
+src/duel/counter-trap.test.ts(96,26): error TS2345: Argument of type '"counter-window"' is not assignable to parameter of type '"midgame" | "handfull" | "gameover" | "summon-choice" | "tribute" | "attack" | "attack-direc
+src/duel/counter-trap.test.ts(97,25): error TS2345: Argument of type '"counter-window"' is not assignable to parameter of type '"midgame" | "handfull" | "gameover" | "summon-choice" | "tribute" | "attack" | "attack-direc
+src/duel/layout.test.ts(113,13): error TS2339: Property 'caption' does not exist on type 'BoardLayout'.
+src/duel/log-entries.ts(60,13): error TS2322: Type '"ChainLinkNegated" | "AttackNegated" | "SummonNegated"' is not assignable to type 'never'.

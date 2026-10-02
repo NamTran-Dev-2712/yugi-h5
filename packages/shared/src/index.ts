@@ -15,6 +15,7 @@ export * from './deck/effect-demo-deck.js';
 export * from './deck/batch1-demo-deck.js';
 export * from './deck/mech-demo-deck.js';
 export * from './deck/field-demo-deck.js';
+export * from './deck/negate-demo-deck.js';
 export * from './rules/ruleset-config.js';
 export * from './duel/state-view.js';
 export * from './duel/event-view.js';

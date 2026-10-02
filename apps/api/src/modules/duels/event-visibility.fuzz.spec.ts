@@ -10,7 +10,9 @@ import {
   type SetSpellTrapAction,
 } from '@yugi/game-engine';
 import {
+  NEGATE_DEMO_DECK,
   SAMPLE_CARDS,
+  isNegateOperationKind,
   type CardDefinition,
   type EffectDefinition,
   type EventView,
@@ -35,6 +37,9 @@ import { findLeaks, type LeakViolation } from './testing/leak-check';
  * rng stream, steered towards the Field Zone) and must cover: Set a Field Spell, activate one from the hand and from the
  * zone, replace one, destroy a FACE-DOWN one, Continuous Spell / Trap staying face-up (`FUZZ_FIELD_SEEDS`, default
  * max(6, FUZZ_SEEDS / 2)).
+ * Task 4.4b: + Counter Trap / Negate on the wire — a third set of seeds plays `NEGATE_DEMO_DECK` (real SMP-201 / 209 /
+ * 210; `negateDeckList`, own rng stream, steered to Set and activate them) in both modes and must cover the three Negate
+ * events, a Counter Trap activation and a Set Trap destroyed while face-down (`FUZZ_NEGATE_SEEDS`, same default).
  *
  * Default: FUZZ_SEEDS=8 × FUZZ_STEPS=120. Long run: `FUZZ_SEEDS=200 FUZZ_STEPS=400 pnpm --filter @yugi/api exec
  * vitest run src/modules/duels/event-visibility.fuzz.spec.ts`.
@@ -44,6 +49,8 @@ const SEEDS = Number(process.env['FUZZ_SEEDS'] ?? 8);
 const STEPS = Number(process.env['FUZZ_STEPS'] ?? 120);
 /** Task 4.3b: seeds of the Field / Continuous deck (own rng stream; the seeds above are not touched). */
 const FIELD_SEEDS = Number(process.env['FUZZ_FIELD_SEEDS'] ?? Math.max(6, Math.ceil(SEEDS / 2)));
+/** Task 4.4b: seeds of the Counter Trap / Negate deck (own rng stream; the seeds above are not touched). */
+const NEGATE_SEEDS = Number(process.env['FUZZ_NEGATE_SEEDS'] ?? Math.max(6, Math.ceil(SEEDS / 2)));
 
 const text = (s: string) => ({ vi: s, en: s });
 /** Test-only Spells (not in SAMPLE_CARDS; no new card data): one per effect path of task 3.2. */
@@ -259,9 +266,9 @@ const isField = (definitionId: string): boolean => {
 const MONSTERS = SAMPLE_CARDS.filter((c) => c.kind === 'Monster').map((c) => c.id);
 
 /**
- * Task 4.4 cards (Counter Trap / Negate). Their events are engine-only until task 4.4b, which adds them to this gate
- * with seeds of their own; until then the fixed seeds below keep the deck they had before 4.4 (SMP-201 was already in
- * it once, as a card that could only be Set), so their coverage is not diluted.
+ * Task 4.4 cards (Counter Trap / Negate). They are in this gate through seeds of their own (task 4.4b, `negateDeckList`);
+ * the fixed seeds below keep the deck they had before 4.4 (SMP-201 was already in it once, as a card that could only be
+ * Set), so their coverage is not diluted. Do not drop this filter without adding seeds.
  */
 const NEGATE_CARDS = new Set(['SMP-201', 'SMP-209', 'SMP-210']);
 
@@ -301,6 +308,26 @@ function fieldDeckList(): string[] {
   return deck;
 }
 
+/**
+ * Task 4.4b: `NEGATE_DEMO_DECK` (the three real task-4.4 cards ×3, Spells to negate, vanilla monsters) plus the test-only
+ * "destroy 1 Spell/Trap" Spell and Trap ×3 each, so a Set Trap gets destroyed while face-down. Played by its OWN seeds.
+ */
+function negateDeckList(): string[] {
+  const x3 = (id: string): string[] => [id, id, id];
+  return [...NEGATE_DEMO_DECK, ...['FZ-KILL-ST', 'FZ-TRAP-KILL-ST'].flatMap(x3)];
+}
+
+/** A card that negates something: read from its operations (the three kinds of task 4.4), not from its id. */
+const negates = (definitionId: string): boolean =>
+  (DEFS.get(definitionId)?.effects ?? []).some((e) =>
+    e.operations.some((o) => isNegateOperationKind(o.kind)),
+  );
+const NEGATE_EVENT_TYPES: ReadonlySet<string> = new Set([
+  'ChainLinkNegated',
+  'AttackNegated',
+  'SummonNegated',
+]);
+
 /** Who has to act: the prompted player, else the chain priority holder, else the turn player (as DuelManager). */
 const actorOf = (state: GameState): 0 | 1 =>
   state.pendingPrompt?.playerIndex ?? state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex;
@@ -322,6 +349,10 @@ const WATCHED = [
   // Task 4.3b.
   'FieldSpellSet',
   'FieldSpellDestroyed',
+  // Task 4.4b.
+  'ChainLinkNegated',
+  'AttackNegated',
+  'SummonNegated',
 ] as const satisfies readonly EventView['type'][];
 
 interface Stats {
@@ -354,6 +385,16 @@ interface Stats {
   /** Steps that ended with a face-up Continuous Spell / Trap resting on the field (no chain left). */
   continuousSpellStays: number;
   continuousTrapStays: number;
+  /** Task 4.4b coverage (counted on what seat 0 received). */
+  chainLinksNegated: number;
+  attacksNegated: number;
+  /** AttackNegated whose target was a face-down monster (the event must stay ids only). */
+  attacksNegatedOnFaceDown: number;
+  summonsNegated: number;
+  counterTrapActivations: number;
+  faceDownSetTrapsDestroyed: number;
+  /** Negate events inside a `solo-vs-ai` response (the human negated something of the AI). */
+  negatedVsAi: number;
   events: Map<string, number>;
   violations: LeakViolation[];
 }
@@ -401,6 +442,20 @@ async function checkBothViewers(
         : {}),
     };
     stats.violations.push(...findLeaks(state, viewer, payload));
+    // Task 4.4b: the Negate events are public — both seats receive the very same ones, in the same order.
+    if (result && viewer === 1) {
+      const negateEvents = (evs: readonly EventView[]) =>
+        JSON.stringify(evs.filter((e) => NEGATE_EVENT_TYPES.has(e.type)));
+      if (negateEvents(result.eventsByViewer[0]) !== negateEvents(result.eventsByViewer[1])) {
+        stats.violations.push({
+          viewer,
+          path: '$.events',
+          instanceId: null,
+          definitionId: '(negate events)',
+          reason: 'the two seats received different Negate events',
+        });
+      }
+    }
     // SelectEffectTarget / TriggerActivation payloads are for the prompted player only.
     const prompt = view.pendingPrompt;
     if (
@@ -573,22 +628,80 @@ function countFieldMechanics(
   }
 }
 
+/** Task 4.4b coverage counters for one step (`before` = the raw state the action was applied to). */
+function countNegateMechanics(
+  action: PlayerAction,
+  actor: 0 | 1,
+  before: GameState,
+  result: SubmitActionResult,
+  stats: Stats,
+): number {
+  if (action.type === 'ActivateEffect') {
+    const card = before.players[actor].board.spellTrapZones.find(
+      (c) => c?.instanceId === action.payload.cardInstanceId,
+    );
+    const def = card ? DEFS.get(card.definitionId) : undefined;
+    if (def?.kind === 'Trap' && def.subType === 'Counter') stats.counterTrapActivations++;
+  }
+  let negated = 0;
+  for (const e of result.eventsByViewer[0]) {
+    if (e.type === 'ChainLinkNegated') stats.chainLinksNegated++;
+    if (e.type === 'SummonNegated') stats.summonsNegated++;
+    if (e.type === 'AttackNegated') {
+      stats.attacksNegated++;
+      const target = before.players
+        .flatMap((p) => p.board.monsterZones)
+        .find((c) => c !== null && c.instanceId === e.targetInstanceId);
+      if (target?.position === 'DefenseDown') stats.attacksNegatedOnFaceDown++;
+    }
+    if (NEGATE_EVENT_TYPES.has(e.type)) negated++;
+    if (e.type === 'SpellTrapDestroyed') {
+      const was = before.players[e.ownerIndex].board.spellTrapZones[e.zoneIndex];
+      if (
+        was?.instanceId === e.instanceId &&
+        was.position === 'DefenseDown' &&
+        DEFS.get(was.definitionId)?.kind === 'Trap'
+      ) {
+        stats.faceDownSetTrapsDestroyed++;
+      }
+    }
+  }
+  return negated;
+}
+
+interface FuzzVariant {
+  readonly tag: string;
+  readonly deck: () => string[];
+  /** Legal actions this variant wants played more often (picked 60% of the time when any is listed). */
+  readonly steer?: (
+    state: GameState,
+    actor: 0 | 1,
+    legal: readonly PlayerAction[],
+  ) => PlayerAction[];
+}
+
 /**
  * Task 4.2d: the same gate in `solo-vs-ai` (human seat 0, AI seat 1): the human's payload includes `aiActions`, where the
- * AI's prompt answers (e.g. a Special Summon target from its own hand) must not point at its hidden cards.
+ * AI's prompt answers (e.g. a Special Summon target from its own hand) must not point at its hidden cards. `variant`
+ * (task 4.4b) picks another deck, an independent rng stream and a steering; the default one is the 4.2d gate, unchanged.
  */
-async function fuzzSeedVsAi(seed: number, steps: number, stats: Stats): Promise<void> {
+async function fuzzSeedVsAi(
+  seed: number,
+  steps: number,
+  stats: Stats,
+  variant: FuzzVariant = { tag: '4.2d-ai', deck: deckList },
+): Promise<void> {
   let duelN = 0;
   const manager = new DuelManager({
     store: new InMemoryDuelStore(),
     cardDefinitions: (id) => DEFS.get(id),
     newDuelId: () => `fuzz-ai-${seed}-${++duelN}`,
   });
-  let rng = createRng(`fuzz-4.2d-ai-${seed}`);
+  let rng = createRng(`fuzz-${variant.tag}-${seed}`);
   const newDuel = async () => {
     const created = await manager.createDuel({
       playerIds: ['p0', 'p0:ai'],
-      deckLists: [deckList(), deckList()],
+      deckLists: [variant.deck(), variant.deck()],
       seed: `duel-ai-${seed}-${duelN}`,
       mode: 'solo-vs-ai',
       ownerId: 'p0',
@@ -607,9 +720,19 @@ async function fuzzSeedVsAi(seed: number, steps: number, stats: Stats): Promise<
     }
     expect(actorOf(state)).toBe(0); // the AI always finishes its part inside the request
     const legal = await manager.getLegalActions(duelId, 0);
-    const [action, r] = choose(legal, rng);
-    rng = r;
+    let action: PlayerAction;
+    if (variant.steer) {
+      // The extra draw exists only in a steering variant, so the default gate's rng stream is untouched.
+      const steered = variant.steer(state, 0, legal);
+      const [steerRoll, rs] = nextInt(rng, 100);
+      rng = rs;
+      [action, rng] =
+        steered.length > 0 && steerRoll < 60 ? pick(rng, steered) : choose(legal, rng);
+    } else {
+      [action, rng] = choose(legal, rng);
+    }
     const result = await manager.submitAction(duelId, 0, action as unknown as Action);
+    if (variant.steer) stats.negatedVsAi += countNegateMechanics(action, 0, state, result, stats);
     stats.steps++;
     stats.aiSteps += result.aiActions.length;
     stats.aiPromptAnswers += result.aiActions.filter(
@@ -623,15 +746,55 @@ async function fuzzSeedVsAi(seed: number, steps: number, stats: Stats): Promise<
   }
 }
 
-interface FuzzVariant {
-  readonly tag: string;
-  readonly deck: () => string[];
-  /** Legal actions this variant wants played more often (picked 60% of the time when any is listed). */
-  readonly steer?: (
-    state: GameState,
-    actor: 0 | 1,
-    legal: readonly PlayerAction[],
-  ) => PlayerAction[];
+/**
+ * Task 4.4b steering (test generator only, the engine decides what is legal): Set the negating cards, answer with them
+ * whenever the engine lists them in a window, walk into the opponent's Set cards (Summon, attack, activate a Spell), and
+ * destroy a FACE-DOWN Set card when a target prompt offers one.
+ */
+function steerToNegate(
+  state: GameState,
+  actor: 0 | 1,
+  legal: readonly PlayerAction[],
+): PlayerAction[] {
+  const me = state.players[actor];
+  const them = state.players[actor === 0 ? 1 : 0];
+  const mine = (instanceId: string): CardInstance | undefined =>
+    [...me.hand, ...me.board.spellTrapZones].find(
+      (c): c is CardInstance => c?.instanceId === instanceId,
+    );
+  const theirSet = them.board.spellTrapZones.filter(
+    (c): c is CardInstance => c !== null && c.position === 'DefenseDown',
+  );
+  // 1) A negation the engine lists right now (only ever inside a window).
+  const answers = legal.filter((a) => {
+    if (a.type !== 'ActivateEffect') return false;
+    const card = mine(a.payload.cardInstanceId);
+    return card !== undefined && negates(card.definitionId);
+  });
+  if (answers.length > 0) return answers;
+  // 2) A target prompt that offers one of their face-down Set cards.
+  const hits = legal.filter(
+    (a) =>
+      a.type === 'ResolvePendingPrompt' &&
+      theirSet.some((c) => a.payload.cardInstanceIds.includes(c.instanceId)),
+  );
+  if (hits.length > 0) return hits;
+  if (legal.some((a) => a.type === 'PassPriority') || state.pendingPrompt !== null) return [];
+  // 3) My own turn: Set a negating card first.
+  const sets = legal.filter((a) => {
+    if (a.type !== 'SetSpellTrap') return false;
+    const card = mine(a.payload.cardInstanceId);
+    return card !== undefined && negates(card.definitionId);
+  });
+  if (sets.length > 0) return sets;
+  // 4) They hold Set cards: do the things those cards answer.
+  if (theirSet.length === 0) return [];
+  return legal.filter((a) => {
+    if (a.type === 'NormalSummon' || a.type === 'DeclareAttack') return true;
+    if (a.type !== 'ActivateEffect') return false;
+    const card = me.hand.find((c) => c.instanceId === a.payload.cardInstanceId);
+    return card !== undefined && DEFS.get(card.definitionId)?.kind === 'Spell';
+  });
 }
 
 /**
@@ -764,6 +927,7 @@ async function fuzzSeed(
     const after = await rawState(manager, duelId);
     countMechanics(result, after, stats);
     countFieldMechanics(action, actor, state, result, after, stats);
+    countNegateMechanics(action, actor, state, result, stats);
     if (after.pendingPrompt?.kind === 'SelectEffectTarget') stats.targetPrompts++;
     if (after.pendingPrompt?.kind === 'TriggerActivation') stats.triggerPrompts++;
     if (after.chainWindow?.reactionTo) stats.reactionWindows++;
@@ -796,6 +960,13 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     faceDownFieldDestroyed: 0,
     continuousSpellStays: 0,
     continuousTrapStays: 0,
+    chainLinksNegated: 0,
+    attacksNegated: 0,
+    attacksNegatedOnFaceDown: 0,
+    summonsNegated: 0,
+    counterTrapActivations: 0,
+    faceDownSetTrapsDestroyed: 0,
+    negatedVsAi: 0,
     events: new Map(),
     violations: [],
   };
@@ -833,6 +1004,50 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     },
     120_000,
   );
+
+  it.each(Array.from({ length: NEGATE_SEEDS }, (_, i) => i))(
+    'seed %i (Counter Trap / Negate deck, task 4.4b): every response to both viewers passes the leak oracle',
+    async (seed) => {
+      const before = stats.violations.length;
+      await fuzzSeed(seed, stats, {
+        tag: '4.4b-negate',
+        deck: negateDeckList,
+        steer: steerToNegate,
+      });
+      expect(stats.violations.slice(before).slice(0, 5)).toEqual([]);
+    },
+    120_000,
+  );
+
+  it.each(Array.from({ length: Math.ceil(NEGATE_SEEDS / 2) }, (_, i) => i))(
+    'seed %i (Counter Trap / Negate deck, solo-vs-ai, task 4.4b): the human negates the AI; aiActions included, no leak',
+    async (seed) => {
+      const before = stats.violations.length;
+      await fuzzSeedVsAi(seed, STEPS, stats, {
+        tag: '4.4b-negate-ai',
+        deck: negateDeckList,
+        steer: steerToNegate,
+      });
+      expect(stats.violations.slice(before).slice(0, 5)).toEqual([]);
+    },
+    120_000,
+  );
+
+  it('covered Counter Trap / Negate on the wire (task 4.4b)', () => {
+    const negate = {
+      chainLinksNegated: stats.chainLinksNegated,
+      attacksNegated: stats.attacksNegated,
+      summonsNegated: stats.summonsNegated,
+      counterTrapActivations: stats.counterTrapActivations,
+      faceDownSetTrapsDestroyed: stats.faceDownSetTrapsDestroyed,
+      negatedVsAi: stats.negatedVsAi,
+    };
+    console.info('[fuzz 4.4b]', {
+      ...negate,
+      attacksNegatedOnFaceDown: stats.attacksNegatedOnFaceDown,
+    });
+    for (const [name, n] of Object.entries(negate)) expect(n, name).toBeGreaterThan(0);
+  });
 
   it('covered the Field Zone and the staying cards (task 4.3b)', () => {
     const field = {

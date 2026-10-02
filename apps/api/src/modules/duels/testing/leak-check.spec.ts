@@ -280,3 +280,125 @@ describe('findLeaks — Field Zone (task 4.3b)', () => {
     },
   );
 });
+
+describe('findLeaks — Negate events (task 4.4b)', () => {
+  const ID_ONLY = 'an id-only event carries a definitionId';
+  /** Player 1 attacked player 0's face-down monster m0 with its face-up m1; the attack was negated. */
+  const attackNegated = {
+    type: 'AttackNegated',
+    playerIndex: 1,
+    attackerInstanceId: 'm1',
+    targetInstanceId: 'm0',
+  };
+
+  it('accepts the three events as the engine emits them: graveyard cards, and ids only for the attack', () => {
+    const s = state();
+    const events = [
+      {
+        type: 'ChainLinkNegated',
+        linkId: 'link-1-1',
+        playerIndex: 0,
+        instanceId: 'g0',
+        definitionId: 'GY-0',
+        effectId: 'e1',
+        byInstanceId: 's1',
+      },
+      {
+        type: 'SummonNegated',
+        playerIndex: 0,
+        instanceId: 'g0',
+        definitionId: 'GY-0',
+        zoneIndex: 2,
+      },
+      attackNegated,
+      { ...attackNegated, targetInstanceId: null },
+    ];
+    for (const viewer of [0, 1] as const) expect(findLeaks(s, viewer, { events })).toEqual([]);
+  });
+
+  it('flags an AttackNegated that names its face-down target — for BOTH viewers, the owner of the target included', () => {
+    const s = state();
+    const flat = { ...attackNegated, definitionId: 'SET-MON' };
+    const nested = { ...attackNegated, target: { instanceId: 'm0', definitionId: 'SET-MON' } };
+    for (const event of [flat, nested]) {
+      for (const viewer of [0, 1] as const) {
+        expect(
+          findLeaks(s, viewer, { events: [event] }).map((v) => v.reason),
+          `viewer ${viewer}`,
+        ).toContain(ID_ONLY);
+      }
+    }
+    // The attacker (viewer 1) is also caught by the older rule: m0 is face-down on the opponent's field.
+    expect(findLeaks(s, 1, { events: [nested] }).map((v) => v.reason)).toContain(
+      'card is face-down on the opponent field',
+    );
+  });
+
+  it('flags an AttackNegated that names its attacker too: the event is ids only, whatever the card', () => {
+    const s = state();
+    const event = { ...attackNegated, attacker: { instanceId: 'm1', definitionId: 'UP-MON' } };
+    expect(findLeaks(s, 0, { events: [event] }).map((v) => v.reason)).toEqual([ID_ONLY]);
+  });
+
+  it("flags a Negate event that carries a card of the opponent's hand", () => {
+    const s = state();
+    const hand1 = s.players[1].hand[0]!;
+    for (const type of ['ChainLinkNegated', 'SummonNegated', 'AttackNegated']) {
+      const event = {
+        type,
+        playerIndex: 0,
+        revealed: { instanceId: hand1.instanceId, definitionId: hand1.definitionId },
+      };
+      expect(
+        findLeaks(s, 0, { events: [event] }).map((v) => v.reason),
+        type,
+      ).toContain("card is in the opponent's hand");
+    }
+  });
+
+  it('flags a ChainLinkNegated / SummonNegated whose card is still face-down on the opponent field', () => {
+    const s = state();
+    const negated = {
+      type: 'ChainLinkNegated',
+      linkId: 'link-1-1',
+      playerIndex: 1,
+      instanceId: 's1',
+      definitionId: 'SET-SPELL',
+      effectId: 'e1',
+      byInstanceId: 'g0',
+    };
+    expect(findLeaks(s, 0, { events: [negated] })).toMatchObject([
+      { instanceId: 's1', reason: 'card is face-down on the opponent field' },
+    ]);
+    const summon = {
+      type: 'SummonNegated',
+      playerIndex: 0,
+      instanceId: 'm0',
+      definitionId: 'SET-MON',
+      zoneIndex: 0,
+    };
+    expect(findLeaks(s, 1, { events: [summon] })).toMatchObject([
+      { instanceId: 'm0', reason: 'card is face-down on the opponent field' },
+    ]);
+  });
+
+  it("flags a Negate event whose pointer names a card in the opponent's hand (byInstanceId / targetInstanceId)", () => {
+    const s = state();
+    const hand1 = s.players[1].hand[0]!;
+    const byHand = {
+      type: 'ChainLinkNegated',
+      linkId: 'link-1-1',
+      playerIndex: 0,
+      instanceId: 'g0',
+      definitionId: 'GY-0',
+      effectId: 'e1',
+      byInstanceId: hand1.instanceId,
+    };
+    expect(findLeaks(s, 0, { events: [byHand] }).map((v) => v.reason)).toEqual([
+      'an id list points at a card hidden from the viewer',
+    ]);
+    expect(
+      findLeaks(s, 0, { events: [{ ...attackNegated, targetInstanceId: hand1.instanceId }] }),
+    ).toHaveLength(1);
+  });
+});

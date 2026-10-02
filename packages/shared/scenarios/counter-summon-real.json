@@ -1,0 +1,28 @@
+{
+  "name": "counter-summon-real",
+  "seed": "sandbox-counter-summon-real",
+  "players": [
+    {
+      "lp": 8000,
+      "hand": ["SMP-006"],
+      "deck": ["SMP-005", "SMP-006", "SMP-007", "SMP-008", "SMP-009", "SMP-010"],
+      "field": {
+        "monsters": [{ "card": "SMP-005", "zone": 2, "position": "Attack" }],
+        "spellTraps": [{ "card": "SMP-210", "zone": 2, "position": "DefenseDown" }]
+      },
+      "gy": []
+    },
+    {
+      "lp": 8000,
+      "hand": ["SMP-009", "SMP-012"],
+      "deck": ["SMP-004", "SMP-005", "SMP-009", "SMP-010", "SMP-012", "SMP-011"],
+      "field": {
+        "monsters": [],
+        "spellTraps": []
+      },
+      "gy": []
+    }
+  ],
+  "turn": { "count": 4, "player": 1 },
+  "phase": "Main1"
+}
