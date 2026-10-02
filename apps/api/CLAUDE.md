@@ -5,8 +5,8 @@ phải validate + chạy qua `@yugi/game-engine` ở server — client không t�
 
 Luật riêng:
 
-- Validation dùng Zod qua pipe tự viết `ZodPipe` (`src/common/pipes/zod-pipe.ts`; `nestjs-zod` có trong
-  `package.json` nhưng `src` không dùng), KHÔNG dùng `class-validator`. DTO/schema nên tái dùng
+- Validation dùng Zod qua pipe tự viết `ZodPipe` (`src/common/pipes/zod-pipe.ts`; dependency `nestjs-zod` đã gỡ ở
+  task 4.4b — đừng thêm lại), KHÔNG dùng `class-validator`. DTO/schema nên tái dùng
   Zod schema từ `@yugi/shared` khi contract đã định nghĩa ở đó.
 - Import được: `@yugi/shared`, `@yugi/game-engine`. KHÔNG import từ `apps/web`.
 - Card content (tên, stat, effect) không lưu DB — DB chỉ lưu User/RefreshToken/CardCollection/Deck/DeckCard/DuelMatch.
