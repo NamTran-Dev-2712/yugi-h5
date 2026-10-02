@@ -85,15 +85,13 @@ export function toEventView(
     case 'CardEquipped':
       return event;
 
-    // PUBLIC (task 3.2). Task 4.3, engine-only: a Field Spell replaced by its controller's new one (`from: 'FieldZone'`)
-    // is not on the wire yet (4.3b) — dropped, the client still sees the result in StateView.
-    case 'CardSentToGraveyard':
-      return event.from === 'FieldZone' ? null : { ...event, from: event.from };
-
-    // ENGINE-ONLY (task 4.3, not on the wire until 4.3b): the Field Zone events have no EventView yet.
+    // Task 4.3, forwarded since 4.3b: FieldSpellSet carries no definitionId (Set face-down, like SpellTrapSet);
+    // FieldSpellDestroyed and CardSentToGraveyard (task 3.2; `from: 'FieldZone'` = a Field Spell replaced by its
+    // controller's new one) name a card that is now in the public graveyard.
     case 'FieldSpellSet':
     case 'FieldSpellDestroyed':
-      return null;
+    case 'CardSentToGraveyard':
+      return event;
 
     default: {
       const unclassified: never = event;

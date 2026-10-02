@@ -38,6 +38,21 @@ describe('zoneIndexAt', () => {
   });
 });
 
+describe('selection bar hit areas (task 4.3b)', () => {
+  it('a point on the turn / phase line is not a Confirm / Cancel press, and the buttons are not on that line', () => {
+    const onLine = centre(layout.phaseLine);
+    expect(pointInRect(layout.overlay.confirm, onLine)).toBe(false);
+    expect(pointInRect(layout.overlay.cancel, onLine)).toBe(false);
+    expect(pointInRect(layout.phaseLine, centre(layout.overlay.confirm))).toBe(false);
+    expect(pointInRect(layout.phaseLine, centre(layout.overlay.cancel))).toBe(false);
+  });
+
+  it('Confirm and Cancel are distinct targets', () => {
+    expect(pointInRect(layout.overlay.cancel, centre(layout.overlay.confirm))).toBe(false);
+    expect(pointInRect(layout.overlay.confirm, centre(layout.overlay.cancel))).toBe(false);
+  });
+});
+
 describe('hitTest', () => {
   const cards = [
     { id: 'under', rect: { x: 100, y: 600, w: 64, h: 90 } },

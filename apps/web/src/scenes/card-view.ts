@@ -66,6 +66,29 @@ export function createCardView(scene: Phaser.Scene, c: CardRender): Phaser.GameO
     }
   }
 
+  // Task 4.3b [GUESS] G21 (drawn in code, no asset): a face-up card in the Field Zone gets a green inner border and a
+  // small diamond; a Field / Continuous card in force gets a glowing outline and a dot in its top-right corner.
+  if (c.zone === 'field' && !c.faceDown) {
+    const border = scene.add.rectangle(0, 0, NATURAL_W - 6, NATURAL_H - 6);
+    border.setStrokeStyle(2, theme.colors.fieldFrame, 1);
+    const diamond = scene.add
+      .rectangle(-NATURAL_W / 2 + 12, NATURAL_H / 2 - 12, 9, 9, theme.colors.fieldFrame, 1)
+      .setAngle(45);
+    parts.push(border, diamond);
+  }
+  if (c.active) {
+    const glow = scene.add.rectangle(0, 0, NATURAL_W + 4, NATURAL_H + 4);
+    glow.setStrokeStyle(2, theme.colors.activeMark, 0.95);
+    const dot = scene.add.circle(
+      NATURAL_W / 2 - 10,
+      -NATURAL_H / 2 + 10,
+      6,
+      theme.colors.activeMark,
+    );
+    dot.setStrokeStyle(2, theme.colors.panel, 1);
+    parts.push(glow, dot);
+  }
+
   if (c.highlight || c.activatable) {
     const outline = scene.add.rectangle(0, 0, NATURAL_W + 2, NATURAL_H + 2);
     outline.setStrokeStyle(3, c.activatable ? theme.colors.activatable : theme.colors.highlight, 1);

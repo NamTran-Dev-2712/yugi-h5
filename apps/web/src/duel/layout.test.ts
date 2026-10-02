@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { computeLayout, handSlots, staticRects, type Rect } from './layout';
+import {
+  computeLayout,
+  handSlots,
+  pickerPanel,
+  pickerSlots,
+  staticRects,
+  type Rect,
+} from './layout';
 import { theme } from './theme';
 
 const inFrame = (r: Rect): boolean =>
@@ -55,6 +62,51 @@ describe('computeLayout', () => {
         );
       }
     }
+  });
+});
+
+describe('selection bar and graveyard picker never cover the turn / phase line (task 4.3b, debt of 4.2d)', () => {
+  const layout = computeLayout();
+  const { bar, hint, confirm, cancel } = layout.overlay;
+  const inside = (inner: Rect, outer: Rect): boolean =>
+    inner.x >= outer.x &&
+    inner.y >= outer.y &&
+    inner.x + inner.w <= outer.x + outer.w &&
+    inner.y + inner.h <= outer.y + outer.h;
+
+  it('the phase panel is split into the turn/phase line (top) and the bar under it', () => {
+    expect(inside(layout.phaseLine, layout.phase)).toBe(true);
+    expect(inside(bar, layout.phase)).toBe(true);
+    expect(overlaps(layout.phaseLine, bar)).toBe(false);
+    // Room for the 22px title font.
+    expect(layout.phaseLine.h).toBeGreaterThanOrEqual(26);
+  });
+
+  it('hint, confirm and cancel sit inside the bar, apart from each other and off the turn/phase line', () => {
+    for (const [name, r] of Object.entries({ hint, confirm, cancel })) {
+      expect(inside(r, bar), name).toBe(true);
+      expect(overlaps(r, layout.phaseLine), name).toBe(false);
+    }
+    expect(overlaps(hint, confirm)).toBe(false);
+    expect(overlaps(hint, cancel)).toBe(false);
+    expect(overlaps(confirm, cancel)).toBe(false);
+    // Still comfortable to tap.
+    expect(confirm.h).toBeGreaterThanOrEqual(40);
+    expect(cancel.h).toBeGreaterThanOrEqual(40);
+  });
+
+  it('the graveyard picker (1..12 cards) stays above the phase panel and inside the frame', () => {
+    for (let n = 1; n <= 12; n++) {
+      const panel = pickerPanel(n)!;
+      expect(inFrame(panel), `n=${n}`).toBe(true);
+      expect(overlaps(panel, layout.phase), `n=${n} panel vs phase`).toBe(false);
+      for (const slot of pickerSlots(n)) {
+        expect(inside(slot, panel), `n=${n}`).toBe(true);
+        expect(overlaps(slot, layout.phaseLine), `n=${n}`).toBe(false);
+        expect(overlaps(slot, bar), `n=${n}`).toBe(false);
+      }
+    }
+    expect(pickerPanel(0)).toBeNull();
   });
 });
 

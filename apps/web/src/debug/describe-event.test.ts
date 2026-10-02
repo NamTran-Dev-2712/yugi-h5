@@ -227,6 +227,19 @@ const EXAMPLES: Record<EventView['type'], { event: EventView; text: string }> = 
     },
     text: 'P0 trang bị Name(SMP-112) cho <p0-2>',
   },
+  FieldSpellSet: {
+    event: { type: 'FieldSpellSet', playerIndex: 1, instanceId: 'p1-30' },
+    text: 'P1 úp 1 lá vào ô Môi trường',
+  },
+  FieldSpellDestroyed: {
+    event: {
+      type: 'FieldSpellDestroyed',
+      ownerIndex: 1,
+      instanceId: 'p1-30',
+      definitionId: 'SMP-113',
+    },
+    text: 'P1 mất lá Môi trường Name(SMP-113) do bị phá hủy',
+  },
 };
 
 describe('describeEvent', () => {
@@ -245,6 +258,27 @@ describe('describeEvent', () => {
     );
     expect(text).toBe('P1 rút 1 lá (ẩn)');
     expect(text).not.toContain('Name(');
+  });
+
+  it('a Field Spell replaced by a new one has its own sentence; other graveyard moves keep theirs (task 4.3b)', () => {
+    const sent = (from: 'Hand' | 'SpellTrapZone' | 'FieldZone'): EventView => ({
+      type: 'CardSentToGraveyard',
+      ownerIndex: 0,
+      instanceId: 'p0-30',
+      definitionId: 'SMP-113',
+      from,
+    });
+    expect(describeEvent(sent('FieldZone'), ctx)).toBe(
+      'Lá Môi trường Name(SMP-113) của P0 bị thay, vào mộ',
+    );
+    expect(describeEvent(sent('Hand'), ctx)).toBe('Name(SMP-113) của P0 vào mộ');
+    expect(describeEvent(sent('SpellTrapZone'), ctx)).toBe('Name(SMP-113) của P0 vào mộ');
+  });
+
+  it('the Field Spell Set line never names the card (the event has no definitionId)', () => {
+    const text = describeEvent({ type: 'FieldSpellSet', playerIndex: 0, instanceId: 'p0-30' }, ctx);
+    expect(text).not.toContain('Name(');
+    expect(text).not.toContain('p0-30');
   });
 
   it('Special Summon from the hand says so', () => {

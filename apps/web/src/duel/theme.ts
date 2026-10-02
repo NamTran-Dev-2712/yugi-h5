@@ -55,6 +55,12 @@ export const theme = {
     /** Task 4.2d [GUESS] G19: the line + outlines tying an Equip card to its monster, and the graveyard picker panel. */
     equipLink: 0x5fd3b3,
     pickerBg: 0x16222b,
+    /**
+     * Task 4.3b [GUESS] G21: the Field Zone (empty-slot border, the inner border + diamond of a face-up Field Spell) and
+     * the "in force" mark (outline + corner dot) of a Field / Continuous card resting face-up on the field.
+     */
+    fieldFrame: 0x6fcf73,
+    activeMark: 0xffe27a,
   },
 
   css: {

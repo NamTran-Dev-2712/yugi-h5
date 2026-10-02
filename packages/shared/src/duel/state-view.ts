@@ -114,7 +114,10 @@ export interface PendingTriggerView {
     { readonly zone: 'MonsterZone'; readonly zoneIndex: number } | { readonly zone: 'Graveyard' };
 }
 
-/** Where a chain link's card was activated from (engine `ChainLinkSource`). */
+/**
+ * Where a chain link's card was activated from (engine `ChainLinkSource`). `FieldZone` (on the wire since task 4.3b): a
+ * Field Spell — from the hand it is placed face-up in its controller's Field Zone at activation, a Set one flips there.
+ */
 export type ChainLinkSourceView =
   | { readonly zone: 'Hand' }
   | { readonly zone: 'SpellTrapZone'; readonly zoneIndex: number }

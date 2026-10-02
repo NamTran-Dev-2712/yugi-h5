@@ -314,9 +314,14 @@ describe('sample scenarios', () => {
     // Task 3.8: scenarios on the real effect cards.
     'chain-reaction-real',
     'continuous-real',
-    // Task 4.2d: Special Summon / Flip Summon / Equip on real cards.
+    // Task 4.3b: Field Zone / staying cards on real cards (continuous-real-2, field-real, field-set-real,
+    // normal-set-real), in sort order between the task 4.2d ones (equip-real, flip-real, special-summon-real).
+    'continuous-real-2',
     'equip-real',
+    'field-real',
+    'field-set-real',
     'flip-real',
+    'normal-set-real',
     'special-summon-real',
     'tribute-summon',
     'trigger-optional-real',

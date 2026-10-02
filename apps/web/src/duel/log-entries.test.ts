@@ -41,6 +41,9 @@ const EVENT_CATEGORY: Record<EventView['type'], LogCategory> = {
   MonsterSpecialSummoned: 'field',
   FlipSummoned: 'field',
   CardEquipped: 'field',
+  // Task 4.3b: everything about the Field Zone is in the "Sân" group.
+  FieldSpellSet: 'field',
+  FieldSpellDestroyed: 'field',
 };
 
 const AI_CATEGORY: Record<PlayerAction['type'], LogCategory> = {
@@ -130,6 +133,31 @@ describe('entriesFor', () => {
         logLinesFor(r, describeAll, describeAi),
       );
     }
+  });
+});
+
+describe('entriesFor — the AI header gets the prompt kind (task 4.3b)', () => {
+  it('passes promptKind to the describer, in entriesFor and in logLinesFor alike', () => {
+    const answer: PlayerAction = {
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: 1, promptId: 'p', cardInstanceIds: ['x'] },
+    };
+    const r = response({
+      aiActions: [
+        { action: answer, eventsFrom: 0, eventsTo: 1, promptKind: 'SelectEffectTarget' },
+        { action: answer, eventsFrom: 1, eventsTo: 2, promptKind: 'DiscardToHandLimit' },
+        { action: answer, eventsFrom: 2, eventsTo: 2 },
+      ],
+    });
+    const withKind = (a: PlayerAction, _v: StateView, promptKind?: string): string =>
+      `AI:${a.type}:${promptKind ?? '-'}`;
+    const entries = entriesFor(r, describeEvents, withKind);
+    expect(entries.filter((e) => e.text.startsWith('AI:')).map((e) => e.text)).toEqual([
+      'AI:ResolvePendingPrompt:SelectEffectTarget',
+      'AI:ResolvePendingPrompt:DiscardToHandLimit',
+      'AI:ResolvePendingPrompt:-',
+    ]);
+    expect(entries.map((e) => e.text)).toEqual(logLinesFor(r, describeEvents, withKind));
   });
 });
 

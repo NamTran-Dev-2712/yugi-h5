@@ -134,8 +134,12 @@ export function createDuelController({
         instanceLabel: (id) => instanceLabelIn(view, id, lookup),
       }),
     );
-  const describeAi = (action: PlayerAction, view: StateView): string =>
-    describeAiAction(action, { instanceLabel: (id) => instanceLabelIn(view, id, lookup) });
+  const describeAi = (action: PlayerAction, view: StateView, promptKind?: string): string =>
+    describeAiAction(
+      action,
+      { instanceLabel: (id) => instanceLabelIn(view, id, lookup) },
+      promptKind,
+    );
 
   const applyResponse = async (
     response: ViewResponse,
@@ -160,7 +164,7 @@ export function createDuelController({
                   return old !== id ? old : instanceLabelIn(response.view, id, lookup);
                 },
               }),
-            (a) => describeAi(a, response.view),
+            (a, promptKind) => describeAi(a, response.view, promptKind),
           )
         : [];
     if (animator && segments.length > 0) {

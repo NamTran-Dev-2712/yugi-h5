@@ -1,0 +1,66 @@
+# Task 4.3b — fuzz dài (cổng chống rò) + mô phỏng AI
+
+## FUZZ_SEEDS=200 FUZZ_STEPS=400 (event-visibility.fuzz.spec.ts; + 100 seed deck Môi trường, + 100 seed solo-vs-ai)
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/apps/api
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > covered the Field Zone and the staying cards (task 4.3b)
+[fuzz 4.3b] {
+  fieldSets: 719,
+  fieldFromHand: 259,
+  fieldFromZone: 375,
+  fieldReplaced: 225,
+  faceDownFieldDestroyed: 247,
+  continuousSpellStays: 46710,
+  continuousTrapStays: 44134
+}
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts
+[fuzz 3.2b/3.4b] {
+  steps: 131164,
+  duels: 703,
+  rejected: 8836,
+  targetPrompts: 1939,
+  triggerPrompts: 674,
+  declines: 289,
+  reactionWindows: 1461,
+  multiLinkChains: 1369,
+  setActivations: 8003,
+  passes: 557,
+  ssFromHand: 352,
+  ssFromGraveyard: 471,
+  battleFlipTriggers: 59,
+  filteredTargets: 48,
+  aiSteps: 14630,
+  aiPromptAnswers: 1138,
+  events: {
+    SpellTrapSet: 11519,
+    EffectActivated: 13712,
+    EffectResolved: 13559,
+    CardSentToGraveyard: 10180,
+    LifePointsRecovered: 1879,
+    LifePointsPaid: 899,
+    SpellTrapDestroyed: 1551,
+    ChainLinkAdded: 13712,
+    ChainResolved: 12172,
+    MonsterSpecialSummoned: 823,
+    FlipSummoned: 1714,
+    CardEquipped: 78,
+    FieldSpellSet: 738,
+    FieldSpellDestroyed: 475
+  }
+}
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ ❯ Object.onTimeoutError ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:53:10
+ ❯ Timeout._onTimeout ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/index.B521nVV-.js:59:62
+ ❯ listOnTimeout node:internal/timers:588:17
+ ❯ processTimers node:internal/timers:523:7
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 passed (1)
+      Tests  402 passed (402)
+     Errors  1 error
+   Start at  00:26:03
+   Duration  1425.64s (transform 629ms, setup 0ms, collect 2.22s, tests 1422.72s, environment 0ms, prepare 184ms)
+
+(Ghi chú: lượt AI_SIM_GAMES=100 là phần chạy thêm ngoài yêu cầu; đã dừng tay sau khi simulate.chain, simulate.field-deck và simulate.spec xong — 5/5 test ở trên xanh — trước khi simulate.effect-deck.spec.ts (deck 3.8, không thuộc 4.3b) chạy xong. Vitest ở lượt fuzz báo lỗi RPC "Timeout calling onTaskUpdate" quen thuộc và thoát mã 1 dù 402/402 test xanh — xem LESSONS.)

@@ -14,7 +14,7 @@ import {
   type ViewV,
 } from './lib/http.ts';
 
-const OUT = 'docs/ai/review-packets/task-2.4-smoke.md';
+const OUT = process.env.OUT ?? 'docs/ai/review-packets/task-2.4-smoke.md';
 const md: string[] = [
   '# Task 2.4 — Smoke test HTTP thật',
   '',

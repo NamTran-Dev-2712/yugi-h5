@@ -31,6 +31,10 @@ import { findLeaks, type LeakViolation } from './testing/leak-check';
  * Task 3.4b: + chain on the wire — Set Traps / Quick-Play / Counter Trap answering in chain and reaction windows,
  * trigger monsters (optional/mandatory OnSummon, OnDestroyed) with `TriggerActivation` prompts (accepted/declined),
  * a Continuous monster (effective stats in the view). The acting seat follows prompt → chain priority → turn player.
+ * Task 4.3b: + the Field Zone on the wire — a second set of seeds plays a Field / Continuous deck (`fieldDeckList`, own
+ * rng stream, steered towards the Field Zone) and must cover: Set a Field Spell, activate one from the hand and from the
+ * zone, replace one, destroy a FACE-DOWN one, Continuous Spell / Trap staying face-up (`FUZZ_FIELD_SEEDS`, default
+ * max(6, FUZZ_SEEDS / 2)).
  *
  * Default: FUZZ_SEEDS=8 × FUZZ_STEPS=120. Long run: `FUZZ_SEEDS=200 FUZZ_STEPS=400 pnpm --filter @yugi/api exec
  * vitest run src/modules/duels/event-visibility.fuzz.spec.ts`.
@@ -38,6 +42,8 @@ import { findLeaks, type LeakViolation } from './testing/leak-check';
 
 const SEEDS = Number(process.env['FUZZ_SEEDS'] ?? 8);
 const STEPS = Number(process.env['FUZZ_STEPS'] ?? 120);
+/** Task 4.3b: seeds of the Field / Continuous deck (own rng stream; the seeds above are not touched). */
+const FIELD_SEEDS = Number(process.env['FUZZ_FIELD_SEEDS'] ?? Math.max(6, Math.ceil(SEEDS / 2)));
 
 const text = (s: string) => ({ vi: s, en: s });
 /** Test-only Spells (not in SAMPLE_CARDS; no new card data): one per effect path of task 3.2. */
@@ -215,12 +221,41 @@ const FUZZ_MECH: readonly CardDefinition[] = [
 ];
 const FLIP_CARDS = new Set(['FZ-FLIP-KILL', 'SMP-044']);
 
+/**
+ * Task 4.3b: a second Field Spell (so one replaces the other) — test-only, next to the real SMP-113 (Field), SMP-114
+ * (Continuous Spell), SMP-115 (Normal Spell) and SMP-208 (Continuous Trap), which REAL_EFFECT_CARDS already holds.
+ */
+const FUZZ_FIELD: readonly CardDefinition[] = [
+  {
+    id: 'FZ-FIELD-2',
+    kind: 'Spell',
+    name: text('FZ-FIELD-2'),
+    subType: 'Field',
+    effects: [
+      { id: 'e1', trigger: { kind: 'Ignition' }, operations: [] },
+      {
+        id: 'e2',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount: -200, side: 'opponent' }],
+      },
+    ],
+  } as CardDefinition,
+];
+
 const DEFS = new Map<string, CardDefinition>(
-  [...SAMPLE_CARDS, ...FUZZ_SPELLS, ...FUZZ_CHAIN, ...FUZZ_MONSTERS, ...FUZZ_MECH].map((c) => [
-    c.id,
-    c,
-  ]),
+  [
+    ...SAMPLE_CARDS,
+    ...FUZZ_SPELLS,
+    ...FUZZ_CHAIN,
+    ...FUZZ_MONSTERS,
+    ...FUZZ_MECH,
+    ...FUZZ_FIELD,
+  ].map((c) => [c.id, c]),
 );
+const isField = (definitionId: string): boolean => {
+  const def = DEFS.get(definitionId);
+  return def?.kind === 'Spell' && def.subType === 'Field';
+};
 const MONSTERS = SAMPLE_CARDS.filter((c) => c.kind === 'Monster').map((c) => c.id);
 
 /** Task 3.8: the real effect cards of the sample pool (triggers, Continuous, Quick-Play, Traps, a cost). */
@@ -238,6 +273,24 @@ function deckList(): string[] {
   for (const c of FUZZ_SPELLS) deck.push(c.id, c.id, c.id);
   for (const c of [...FUZZ_CHAIN, ...FUZZ_MONSTERS, ...FUZZ_MECH]) deck.push(c.id, c.id);
   for (let i = 0; deck.length < 40; i++) deck.push(MONSTERS[i % MONSTERS.length]!);
+  return deck;
+}
+
+/**
+ * Task 4.3b: a deck heavy on the Field Zone and the cards that stay on the field, played by its OWN seeds (the seeds
+ * above keep their deck, so their coverage is not diluted): two Field Spells (one replaces the other), the Continuous
+ * Spell / Trap, the Normal Spell to Set, and every "destroy 1 Spell/Trap" card (a Set Field Spell must get destroyed).
+ */
+function fieldDeckList(): string[] {
+  const x3 = (id: string): string[] => [id, id, id];
+  const deck = [
+    ...['SMP-113', 'FZ-FIELD-2', 'SMP-114', 'SMP-208', 'SMP-115'].flatMap(x3),
+    ...['FZ-KILL-ST', 'FZ-TRAP-KILL-ST', 'SMP-105'].flatMap(x3),
+  ];
+  const low = SAMPLE_CARDS.filter((c) => c.kind === 'Monster' && c.level <= 4 && !c.effects).map(
+    (c) => c.id,
+  );
+  for (let i = 0; deck.length < 40; i++) deck.push(low[i % low.length]!);
   return deck;
 }
 
@@ -259,6 +312,9 @@ const WATCHED = [
   'MonsterSpecialSummoned',
   'FlipSummoned',
   'CardEquipped',
+  // Task 4.3b.
+  'FieldSpellSet',
+  'FieldSpellDestroyed',
 ] as const satisfies readonly EventView['type'][];
 
 interface Stats {
@@ -282,6 +338,15 @@ interface Stats {
   /** solo-vs-ai steps whose aiActions were checked, and those with a prompt answer carrying ids. */
   aiSteps: number;
   aiPromptAnswers: number;
+  /** Task 4.3b coverage. */
+  fieldSets: number;
+  fieldFromHand: number;
+  fieldFromZone: number;
+  fieldReplaced: number;
+  faceDownFieldDestroyed: number;
+  /** Steps that ended with a face-up Continuous Spell / Trap resting on the field (no chain left). */
+  continuousSpellStays: number;
+  continuousTrapStays: number;
   events: Map<string, number>;
   violations: LeakViolation[];
 }
@@ -371,7 +436,7 @@ async function checkBothViewers(
       });
     }
     for (const p of view.players) {
-      const cards = [...p.board.spellTrapZones, ...p.hand, ...p.graveyard];
+      const cards = [...p.board.spellTrapZones, p.board.fieldZone, ...p.hand, ...p.graveyard];
       for (const c of [...p.board.monsterZones, ...cards]) {
         if (!c || c.hidden || !c.effectiveStats) continue;
         const faceUpMonster =
@@ -406,6 +471,7 @@ function illegalAttempt(
   const cards: CardInstance[] = [
     ...state.players[other].hand,
     ...state.players[other].board.spellTrapZones.filter((c): c is CardInstance => c !== null),
+    ...(state.players[other].board.fieldZone ? [state.players[other].board.fieldZone] : []),
   ];
   if (cards.length === 0) return [null, r0];
   const [card, r1] = pick(r0, cards);
@@ -464,6 +530,42 @@ function countMechanics(result: SubmitActionResult, after: GameState, stats: Sta
   }
 }
 
+/** Task 4.3b coverage counters for one step (`before` = the raw state the action was applied to). */
+function countFieldMechanics(
+  action: PlayerAction,
+  actor: 0 | 1,
+  before: GameState,
+  result: SubmitActionResult,
+  after: GameState,
+  stats: Stats,
+): void {
+  if (action.type === 'ActivateEffect') {
+    const id = action.payload.cardInstanceId;
+    const inHand = before.players[actor].hand.find((c) => c.instanceId === id);
+    if (inHand && isField(inHand.definitionId)) stats.fieldFromHand++;
+    if (before.players[actor].board.fieldZone?.instanceId === id) stats.fieldFromZone++;
+  }
+  for (const e of result.eventsByViewer[0]) {
+    if (e.type === 'FieldSpellSet') stats.fieldSets++;
+    if (e.type === 'CardSentToGraveyard' && e.from === 'FieldZone') stats.fieldReplaced++;
+    if (e.type === 'FieldSpellDestroyed') {
+      const was = before.players[e.ownerIndex].board.fieldZone;
+      if (was?.instanceId === e.instanceId && was.position === 'DefenseDown') {
+        stats.faceDownFieldDestroyed++;
+      }
+    }
+  }
+  if (after.chainStack.length > 0) return;
+  for (const p of after.players) {
+    for (const c of p.board.spellTrapZones) {
+      if (!c || c.position === 'DefenseDown') continue;
+      const def = DEFS.get(c.definitionId);
+      if (def?.kind === 'Spell' && def.subType === 'Continuous') stats.continuousSpellStays++;
+      if (def?.kind === 'Trap' && def.subType === 'Continuous') stats.continuousTrapStays++;
+    }
+  }
+}
+
 /**
  * Task 4.2d: the same gate in `solo-vs-ai` (human seat 0, AI seat 1): the human's payload includes `aiActions`, where the
  * AI's prompt answers (e.g. a Special Summon target from its own hand) must not point at its hidden cards.
@@ -514,19 +616,80 @@ async function fuzzSeedVsAi(seed: number, steps: number, stats: Stats): Promise<
   }
 }
 
-async function fuzzSeed(seed: number, stats: Stats): Promise<void> {
+interface FuzzVariant {
+  readonly tag: string;
+  readonly deck: () => string[];
+  /** Legal actions this variant wants played more often (picked 60% of the time when any is listed). */
+  readonly steer?: (
+    state: GameState,
+    actor: 0 | 1,
+    legal: readonly PlayerAction[],
+  ) => PlayerAction[];
+}
+
+/**
+ * Task 4.3b steering (test generator only, the engine decides what is legal): Set a Field Spell rather than activating
+ * it, and when a target prompt lists the opponent's FACE-DOWN Field Spell, pick it — the rare path the gate must see.
+ */
+function steerToFieldZone(
+  state: GameState,
+  actor: 0 | 1,
+  legal: readonly PlayerAction[],
+): PlayerAction[] {
+  const theirs = state.players[actor === 0 ? 1 : 0].board.fieldZone;
+  if (theirs?.position === 'DefenseDown') {
+    const hits = legal.filter(
+      (a) =>
+        a.type === 'ResolvePendingPrompt' && a.payload.cardInstanceIds.includes(theirs.instanceId),
+    );
+    if (hits.length > 0) return hits;
+    // Otherwise play a card that destroys a Spell/Trap, if one can be activated now.
+    const destroyers = legal.filter((a) => {
+      if (a.type !== 'ActivateEffect') return false;
+      const card = [
+        ...state.players[actor].hand,
+        ...state.players[actor].board.spellTrapZones,
+      ].find((c) => c?.instanceId === a.payload.cardInstanceId);
+      const effect = card
+        ? DEFS.get(card.definitionId)?.effects?.find((e) => e.id === a.payload.effectId)
+        : undefined;
+      return (
+        effect?.target?.kind === 'Card' &&
+        effect.target.zone === 'SpellTrapZone' &&
+        effect.operations.some((o) => o.kind === 'Destroy')
+      );
+    });
+    if (destroyers.length > 0) return destroyers;
+  }
+  const mine = state.players[actor].board.fieldZone;
+  // My own Field Spell is still face-down: end the phase, so it is still Set when the opponent gets to act.
+  if (mine?.position === 'DefenseDown') return legal.filter((a) => a.type === 'EndPhase');
+  if (mine) return [];
+  return legal.filter((a) => {
+    if (a.type !== 'SetSpellTrap') return false;
+    const card = state.players[actor].hand.find((c) => c.instanceId === a.payload.cardInstanceId);
+    return card !== undefined && isField(card.definitionId);
+  });
+}
+
+/** `variant` picks the deck and an independent rng stream; the default one is the 3.2b…4.2d gate, unchanged. */
+async function fuzzSeed(
+  seed: number,
+  stats: Stats,
+  variant: FuzzVariant = { tag: '3.2b', deck: deckList },
+): Promise<void> {
   let duelN = 0;
   const manager = new DuelManager({
     store: new InMemoryDuelStore(),
     cardDefinitions: (id) => DEFS.get(id),
     newDuelId: () => `fuzz-${seed}-${++duelN}`,
   });
-  let rng = createRng(`fuzz-3.2b-${seed}`);
+  let rng = createRng(`fuzz-${variant.tag}-${seed}`);
   const newDuel = async () =>
     (
       await manager.createDuel({
         playerIds: ['p0', 'p1'],
-        deckLists: [deckList(), deckList()],
+        deckLists: [variant.deck(), variant.deck()],
         seed: `duel-${seed}-${duelN}`,
       })
     ).duelId;
@@ -563,8 +726,17 @@ async function fuzzSeed(seed: number, stats: Stats): Promise<void> {
     }
 
     const legal = await manager.getLegalActions(duelId, actor);
-    const [action, r2] = choose(legal, rng);
-    rng = r2;
+    let action: PlayerAction;
+    const steered = variant.steer?.(state, actor, legal) ?? [];
+    if (variant.steer) {
+      // The extra draw exists only in a steering variant, so the default gate's rng stream is untouched.
+      const [steerRoll, rs] = nextInt(rng, 100);
+      rng = rs;
+      [action, rng] =
+        steered.length > 0 && steerRoll < 60 ? pick(rng, steered) : choose(legal, rng);
+    } else {
+      [action, rng] = choose(legal, rng);
+    }
     // PlayerAction is the wire shape of an engine Action (asserted in duels.dto.ts).
     const result = await manager.submitAction(duelId, actor, action as unknown as Action);
     stats.steps++;
@@ -572,7 +744,7 @@ async function fuzzSeed(seed: number, stats: Stats): Promise<void> {
     if (action.type === 'ResolvePendingPrompt' && action.payload.decline === true) stats.declines++;
     if (
       action.type === 'ActivateEffect' &&
-      state.players[actor].board.spellTrapZones.some(
+      [...state.players[actor].board.spellTrapZones, state.players[actor].board.fieldZone].some(
         (c) => c?.instanceId === action.payload.cardInstanceId,
       )
     ) {
@@ -584,6 +756,7 @@ async function fuzzSeed(seed: number, stats: Stats): Promise<void> {
     }
     const after = await rawState(manager, duelId);
     countMechanics(result, after, stats);
+    countFieldMechanics(action, actor, state, result, after, stats);
     if (after.pendingPrompt?.kind === 'SelectEffectTarget') stats.targetPrompts++;
     if (after.pendingPrompt?.kind === 'TriggerActivation') stats.triggerPrompts++;
     if (after.chainWindow?.reactionTo) stats.reactionWindows++;
@@ -609,6 +782,13 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     filteredTargets: 0,
     aiSteps: 0,
     aiPromptAnswers: 0,
+    fieldSets: 0,
+    fieldFromHand: 0,
+    fieldFromZone: 0,
+    fieldReplaced: 0,
+    faceDownFieldDestroyed: 0,
+    continuousSpellStays: 0,
+    continuousTrapStays: 0,
     events: new Map(),
     violations: [],
   };
@@ -632,6 +812,34 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     },
     120_000,
   );
+
+  it.each(Array.from({ length: FIELD_SEEDS }, (_, i) => i))(
+    'seed %i (Field / Continuous deck, task 4.3b): every response to both viewers passes the leak oracle',
+    async (seed) => {
+      const before = stats.violations.length;
+      await fuzzSeed(seed, stats, {
+        tag: '4.3b-field',
+        deck: fieldDeckList,
+        steer: steerToFieldZone,
+      });
+      expect(stats.violations.slice(before).slice(0, 5)).toEqual([]);
+    },
+    120_000,
+  );
+
+  it('covered the Field Zone and the staying cards (task 4.3b)', () => {
+    const field = {
+      fieldSets: stats.fieldSets,
+      fieldFromHand: stats.fieldFromHand,
+      fieldFromZone: stats.fieldFromZone,
+      fieldReplaced: stats.fieldReplaced,
+      faceDownFieldDestroyed: stats.faceDownFieldDestroyed,
+      continuousSpellStays: stats.continuousSpellStays,
+      continuousTrapStays: stats.continuousTrapStays,
+    };
+    console.info('[fuzz 4.3b]', field);
+    for (const [name, n] of Object.entries(field)) expect(n, name).toBeGreaterThan(0);
+  });
 
   it('covered every task 3.2 / chain event, prompts, windows and refused attempts', () => {
     console.info('[fuzz 3.2b/3.4b]', {

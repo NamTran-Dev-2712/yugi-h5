@@ -142,6 +142,13 @@ const SAMPLES: Record<EventView['type'], EventView> = {
     definitionId: 'SMP-112',
     targetInstanceId: 'p0-2',
   },
+  FieldSpellSet: { type: 'FieldSpellSet', playerIndex: 1, instanceId: 'p1-30' },
+  FieldSpellDestroyed: {
+    type: 'FieldSpellDestroyed',
+    ownerIndex: 1,
+    instanceId: 'p1-30',
+    definitionId: 'SMP-113',
+  },
 };
 
 const KIND_OF: Record<EventView['type'], StepKind | null> = {
@@ -173,6 +180,8 @@ const KIND_OF: Record<EventView['type'], StepKind | null> = {
   MonsterSpecialSummoned: 'specialSummon',
   FlipSummoned: 'flipSummon',
   CardEquipped: 'equip',
+  FieldSpellSet: 'fieldSet',
+  FieldSpellDestroyed: 'fieldDestroy',
 };
 
 describe('stepsFor', () => {
@@ -314,6 +323,86 @@ describe('stepsFor — task 4.2d mechanics', () => {
       },
     ]);
     expect(JSON.stringify(steps)).not.toContain('definitionId');
+  });
+});
+
+describe('stepsFor — Field Zone (task 4.3b)', () => {
+  it('Set / destroyed steps carry the side and the card, no zone index and never a definitionId', () => {
+    const steps = stepsFor([SAMPLES.FieldSpellSet, SAMPLES.FieldSpellDestroyed], describe1);
+    expect(steps).toEqual([
+      {
+        kind: 'fieldSet',
+        durationMs: DURATION_MS.fieldSet,
+        text: 'ev:FieldSpellSet',
+        playerIndex: 1,
+        instanceId: 'p1-30',
+      },
+      {
+        kind: 'fieldDestroy',
+        durationMs: DURATION_MS.fieldDestroy,
+        text: 'ev:FieldSpellDestroyed',
+        playerIndex: 1,
+        instanceId: 'p1-30',
+      },
+    ]);
+    expect(JSON.stringify(steps)).not.toContain('definitionId');
+  });
+
+  it('a Field Spell replaced by a new one (CardSentToGraveyard from the FieldZone) is its own step', () => {
+    const replaced: EventView = {
+      type: 'CardSentToGraveyard',
+      ownerIndex: 0,
+      instanceId: 'p0-30',
+      definitionId: 'SMP-113',
+      from: 'FieldZone',
+    };
+    expect(stepsFor([replaced], describe1)).toEqual([
+      {
+        kind: 'fieldReplace',
+        durationMs: DURATION_MS.fieldReplace,
+        text: 'ev:CardSentToGraveyard',
+        playerIndex: 0,
+        instanceId: 'p0-30',
+      },
+    ]);
+    for (const from of ['Hand', 'SpellTrapZone'] as const) {
+      expect(stepsFor([{ ...replaced, from }], describe1)[0]?.kind).toBe('toGraveyard');
+    }
+  });
+
+  it('the three kinds have a duration', () => {
+    for (const kind of ['fieldSet', 'fieldDestroy', 'fieldReplace'] as const) {
+      expect(DURATION_MS[kind]).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('segmentsFor — the AI label gets the prompt kind (task 4.3b)', () => {
+  it('passes promptKind of each AI step to the describer', () => {
+    const answer: PlayerAction = {
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: 1, promptId: 'p', cardInstanceIds: ['x'] },
+    };
+    const seen: (string | undefined)[] = [];
+    const segments = segmentsFor(
+      res(
+        [],
+        [
+          { action: answer, eventsFrom: 0, eventsTo: 0, promptKind: 'SelectEffectTarget' },
+          { action: pa('EndPhase'), eventsFrom: 0, eventsTo: 0 },
+        ],
+      ),
+      describe1,
+      (a, promptKind) => {
+        seen.push(promptKind);
+        return `ai:${a.type}:${promptKind ?? '-'}`;
+      },
+    );
+    expect(seen).toEqual(['SelectEffectTarget', undefined]);
+    expect(segments.map((s) => s.steps[0]?.text)).toEqual([
+      'ai:ResolvePendingPrompt:SelectEffectTarget',
+      'ai:EndPhase:-',
+    ]);
   });
 });
 

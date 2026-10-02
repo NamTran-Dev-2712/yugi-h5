@@ -1,12 +1,13 @@
-import type {
-  CardDefinition,
-  CardView,
-  EffectiveStatsView,
-  PlayerAction,
-  PlayerIndex,
-  StateView,
-  ViewCardPosition,
-  ViewPhase,
+import {
+  staysOnField,
+  type CardDefinition,
+  type CardView,
+  type EffectiveStatsView,
+  type PlayerAction,
+  type PlayerIndex,
+  type StateView,
+  type ViewCardPosition,
+  type ViewPhase,
 } from '@yugi/shared';
 import { computeLayout, handSlots, type BoardLayout, type Rect, type Side } from './layout';
 import { cardName, cardEffectText } from './card-text';
@@ -43,6 +44,8 @@ export interface CardDetail extends CardLabel {
   readonly kind: FrameKind;
   readonly effectText: string | null;
   readonly position: ViewCardPosition | null;
+  /** Task 4.3b: a Field / Continuous Spell or Trap resting face-up on the field (see `CardRender.active`). */
+  readonly active: boolean;
 }
 
 export interface CardRender {
@@ -67,6 +70,18 @@ export interface CardRender {
   readonly activatable: boolean;
   /** Task 4.2d: a face-up Equip card's monster (server `equippedTo`); null for every other card. */
   readonly equippedTo: string | null;
+  /**
+   * Task 4.3b: a Field Spell the viewer knows (card data `subType`) — it is dropped on the Field Zone, not on a
+   * Spell/Trap Zone. Never true for a card the viewer may not know. What may be done with it still comes from
+   * `legalActions` only.
+   */
+  readonly fieldCard: boolean;
+  /**
+   * Task 4.3b: drawn with the "in force" mark — a card that stays on the field (card data: Field / Continuous Spell,
+   * Continuous Trap), face-up in a Spell/Trap Zone or the Field Zone. It follows the server: the engine applies the
+   * Continuous effect as soon as the card is face-up, so the mark is on while its activation link still waits too.
+   */
+  readonly active: boolean;
 }
 
 export interface PileRender {
@@ -154,7 +169,7 @@ function describeKnown(
     return {
       frame: 'monster',
       label,
-      detail: { ...label, kind: 'monster', effectText: null, position },
+      detail: { ...label, kind: 'monster', effectText: null, position, active: false },
     };
   }
   const monster = def.kind === 'Monster';
@@ -171,7 +186,13 @@ function describeKnown(
   return {
     frame: frameOf(def),
     label,
-    detail: { ...label, kind: frameOf(def), effectText: cardEffectText(def), position },
+    detail: {
+      ...label,
+      kind: frameOf(def),
+      effectText: cardEffectText(def),
+      position,
+      active: false,
+    },
   };
 }
 
@@ -192,6 +213,8 @@ function renderCard(
     highlight: false,
     activatable: false,
     equippedTo: null,
+    fieldCard: false,
+    active: false,
   } as const;
   // Hidden for the viewer: a `hidden` card, or (defence in depth against a server bug) an opponent's card that is
   // face-down. Nothing about it is kept.
@@ -209,6 +232,16 @@ function renderCard(
   }
   const known = describeKnown(card.definitionId, card.position, lookup, card.effectiveStats);
   const faceDown = card.position === 'DefenseDown';
+  const def = lookup(card.definitionId);
+  // Card data only (which cards rest on the field: Field / Continuous), never a rule: what may be DONE is in
+  // legalActions. The mark follows what the server shows: the engine applies a Continuous effect as soon as its card
+  // is face-up on the field (the `effectiveStats` it sends change at once, even while the activation link still waits).
+  const active =
+    !faceDown &&
+    card.position !== null &&
+    (zone === 'spellTrap' || zone === 'field') &&
+    def !== undefined &&
+    staysOnField(def);
   return {
     ...base,
     faceDown,
@@ -217,8 +250,10 @@ function renderCard(
     defense: zone === 'monster' && (card.position === 'DefenseUp' || faceDown),
     label: faceDown ? null : known.label,
     // The owner knows their own face-down card, so the panel may name it.
-    detail: known.detail,
+    detail: { ...known.detail, active },
     equippedTo: !faceDown && card.equippedTo !== undefined ? card.equippedTo : null,
+    fieldCard: def?.kind === 'Spell' && def.subType === 'Field',
+    active,
   };
 }
 
@@ -254,15 +289,15 @@ export function present(
       if (c) cards.push(renderCard(c, side, 'monster', sl.monsterZones[i]!, viewer, ctx.lookup));
     });
     const spellTraps = player.board.spellTrapZones;
-    // My Set cards the server lets me activate right now (C13: a tap activates them).
+    const field = player.board.fieldZone;
+    // My Set cards the server lets me activate right now (C13: a tap activates them) — the Field Zone card included.
     const activatable =
       side === 'self'
         ? new Set(
-            activatableSetCards(
-              legalActions,
-              viewer,
-              spellTraps.flatMap((c) => (c ? [c.instanceId] : [])),
-            ),
+            activatableSetCards(legalActions, viewer, [
+              ...spellTraps.flatMap((c) => (c ? [c.instanceId] : [])),
+              ...(field ? [field.instanceId] : []),
+            ]),
           )
         : new Set<string>();
     spellTraps.forEach((c, i) => {
@@ -270,10 +305,9 @@ export function present(
       const r = renderCard(c, side, 'spellTrap', sl.spellTrapZones[i]!, viewer, ctx.lookup);
       cards.push(activatable.has(c.instanceId) ? { ...r, activatable: true } : r);
     });
-    if (player.board.fieldZone) {
-      cards.push(
-        renderCard(player.board.fieldZone, side, 'field', sl.fieldZone, viewer, ctx.lookup),
-      );
+    if (field) {
+      const r = renderCard(field, side, 'field', sl.fieldZone, viewer, ctx.lookup);
+      cards.push(activatable.has(field.instanceId) ? { ...r, activatable: true } : r);
     }
 
     const slots = handSlots(player.hand.length, side);
@@ -440,8 +474,12 @@ function chainBanner(view: StateView, lookup: CardLookup): RenderModel['chain'] 
   const w = view.chainWindow;
   if (!w) return null;
   if (w.priorityPlayer !== view.viewerIndex) return { text: t('chain.waitOpponent'), mine: false };
-  if (w.reactionTo?.kind === 'Attack') return { text: t('chain.reactionAttack'), mine: true };
-  if (w.reactionTo?.kind === 'Summon') return { text: t('chain.reactionSummon'), mine: true };
+  // "The opponent attacks / summons" only while nothing is on the chain yet: once a link was added (the window keeps
+  // its `reactionTo`), what I answer is the chain (task 4.3b; noted at 3.8).
+  if (view.chain.length === 0) {
+    if (w.reactionTo?.kind === 'Attack') return { text: t('chain.reactionAttack'), mine: true };
+    if (w.reactionTo?.kind === 'Summon') return { text: t('chain.reactionSummon'), mine: true };
+  }
   const top = view.chain[view.chain.length - 1];
   const def = top ? lookup(top.card.definitionId) : undefined;
   const name = def ? cardName(def) : (top?.card.definitionId ?? '?');

@@ -26,7 +26,12 @@ export interface PlayerV {
   handCount: number;
   deckCount: number;
   graveyard: CardV[];
-  board: { monsterZones: (CardV | null)[]; spellTrapZones?: (CardV | null)[] };
+  board: {
+    monsterZones: (CardV | null)[];
+    spellTrapZones?: (CardV | null)[];
+    /** Task 4.3b: the card in the Field Zone (hidden for the opponent while face-down). */
+    fieldZone?: CardV | null;
+  };
 }
 
 export interface ViewV {

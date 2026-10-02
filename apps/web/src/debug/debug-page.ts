@@ -103,8 +103,8 @@ export function mountDebugPage({ api, root }: DebugPageDeps): void {
       }),
     );
 
-  const describeAi = (action: PlayerAction, view: StateView): string =>
-    describeAiAction(action, { instanceLabel: (id) => instanceLabelIn(view, id) });
+  const describeAi = (action: PlayerAction, view: StateView, promptKind?: string): string =>
+    describeAiAction(action, { instanceLabel: (id) => instanceLabelIn(view, id) }, promptKind);
 
   async function run(task: () => Promise<void>): Promise<void> {
     if (busy) return;

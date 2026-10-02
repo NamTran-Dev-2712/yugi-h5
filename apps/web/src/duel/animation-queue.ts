@@ -37,7 +37,11 @@ export type StepKind =
   // Task 4.2d
   | 'specialSummon'
   | 'flipSummon'
-  | 'equip';
+  | 'equip'
+  // Task 4.3b: the Field Zone
+  | 'fieldSet'
+  | 'fieldReplace'
+  | 'fieldDestroy';
 
 /**
  * How long each step lasts at speed 1 (ms). One place to tune the feel (`?fast=1` = ×3, `?anim=off` = none).
@@ -77,6 +81,10 @@ export const DURATION_MS: Readonly<Record<StepKind, number>> = {
   specialSummon: 1300, // [GUESS]
   flipSummon: 900, // [GUESS]
   equip: 700, // [GUESS]
+  // Task 4.3b — no footage of a Field Spell yet ([GUESS], G21): the same groups as their Spell/Trap Zone counterparts.
+  fieldSet: 500, // [GUESS] same as a Spell/Trap Set
+  fieldReplace: 350, // [GUESS] same as a card going to the graveyard
+  fieldDestroy: 375, // [GUESS] same as destroying a Spell/Trap
 };
 /** Several cards drawn in a row (the opening hand) play as one longer step instead of N short ones. */
 const DRAW_MANY_MS = 600;
@@ -173,6 +181,15 @@ export type AnimationStep =
       readonly playerIndex: PlayerIndex;
       readonly instanceId: string;
       readonly targetInstanceId: string;
+    })
+  | (StepBase & {
+      /**
+       * Task 4.3b: the card in `playerIndex`'s Field Zone was Set face-down / replaced by its controller's new Field
+       * Spell (sent to the graveyard) / destroyed. One slot per player, so no zone index.
+       */
+      readonly kind: 'fieldSet' | 'fieldReplace' | 'fieldDestroy';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
     });
 
 export interface AnimationSegment {
@@ -288,10 +305,22 @@ function stepFor(e: EventView, text: string): AnimationStep | null {
         playerIndex: e.playerIndex,
         instanceId: e.instanceId,
       };
-    case 'CardSentToGraveyard':
+    case 'CardSentToGraveyard': {
+      // Task 4.3b: `from: 'FieldZone'` = a Field Spell replaced by its controller's new one (the server says so).
+      const kind = e.from === 'FieldZone' ? 'fieldReplace' : 'toGraveyard';
+      return { kind, ...d(kind), playerIndex: e.ownerIndex, instanceId: e.instanceId };
+    }
+    case 'FieldSpellSet':
       return {
-        kind: 'toGraveyard',
-        ...d('toGraveyard'),
+        kind: 'fieldSet',
+        ...d('fieldSet'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+      };
+    case 'FieldSpellDestroyed':
+      return {
+        kind: 'fieldDestroy',
+        ...d('fieldDestroy'),
         playerIndex: e.ownerIndex,
         instanceId: e.instanceId,
       };
@@ -388,7 +417,8 @@ const clamp = (n: number, lo: number, hi: number): number => Math.min(hi, Math.m
 export function segmentsFor(
   response: Pick<ViewResponse, 'events' | 'aiActions'>,
   describe: Describe,
-  describeAi: (action: PlayerAction) => string,
+  /** `promptKind` (task 4.3b): the kind of the prompt a `ResolvePendingPrompt` answered, as the server sent it. */
+  describeAi: (action: PlayerAction, promptKind?: string) => string,
 ): AnimationSegment[] {
   const { events } = response;
   const aiActions = response.aiActions ?? [];
@@ -404,7 +434,7 @@ export function segmentsFor(
     const label: AnimationStep = {
       kind: 'aiLabel',
       durationMs: DURATION_MS.aiLabel,
-      text: describeAi(ai.action),
+      text: describeAi(ai.action, ai.promptKind),
     };
     segments.push({ ai: true, steps: [label, ...stepsFor(events.slice(from, to), describe)] });
   }

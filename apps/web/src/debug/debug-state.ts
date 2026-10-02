@@ -66,7 +66,7 @@ export function applyActionError(prev: DebugState, err: unknown): DebugState {
 export function logLinesFor(
   response: ViewResponse,
   describe: (events: readonly EventView[], view: StateView) => readonly string[],
-  describeAi?: (action: PlayerAction, view: StateView) => string,
+  describeAi?: (action: PlayerAction, view: StateView, promptKind?: string) => string,
 ): string[] {
   const { events, view } = response;
   const ai = response.aiActions ?? [];
@@ -77,7 +77,7 @@ export function logLinesFor(
     if (step.eventsFrom > cursor) {
       lines.push(...describe(events.slice(cursor, step.eventsFrom), view));
     }
-    lines.push(describeAi(step.action, view));
+    lines.push(describeAi(step.action, view, step.promptKind));
     lines.push(...describe(events.slice(step.eventsFrom, step.eventsTo), view));
     cursor = Math.max(cursor, step.eventsTo);
   }
@@ -93,7 +93,7 @@ export function applyActionSuccess(
   prev: DebugState,
   response: ViewResponse,
   describe: (events: readonly EventView[], view: StateView) => readonly string[],
-  describeAi?: (action: PlayerAction, view: StateView) => string,
+  describeAi?: (action: PlayerAction, view: StateView, promptKind?: string) => string,
 ): DebugState {
   return {
     ...prev,

@@ -136,14 +136,14 @@ async function load(name: string): Promise<void> {
 
 // layout.ts: zone rows start at x=406, step 96, zone 84x104. Own Spell/Trap row y=516, own monsters y=402,
 // opponent monsters y=214, opponent Spell/Trap y=100. "Bỏ qua" (= "Phase tiếp theo" slot) 1032,476 232x56;
-// overlay Confirm 480,350 150x42.
+// overlay Confirm 702,354 150x40 (task 4.3b).
 const col = (i: number): number => 406 + i * 96 + 42;
 const selfSpellZone = (i: number): P => [col(i), 568];
 const selfZone = (i: number): P => [col(i), 454];
 const oppZone = (i: number): P => [col(i), 266];
 const oppSpellZone = (i: number): P => [col(i), 152];
 const PASS: P = [1148, 504];
-const CONFIRM: P = [555, 371];
+const CONFIRM: P = [777, 374]; // task 4.3b: the confirm bar moved under the turn/phase line (layout.overlay.confirm 702,354 150x40)
 
 try {
   await cdp('Page.enable');

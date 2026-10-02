@@ -103,6 +103,8 @@ export interface SubmitActionResult {
 interface AiStep {
   readonly action: PlayerAction;
   readonly events: readonly GameEvent[];
+  /** Task 4.3b: kind of the prompt a `ResolvePendingPrompt` answered (read from the state BEFORE the action). */
+  readonly promptKind?: string;
 }
 
 /**
@@ -270,6 +272,7 @@ export class DuelManager {
         action: redactAction(step.action, hidden[human]),
         eventsFrom,
         eventsTo: eventsByViewer[human].length,
+        ...(step.promptKind !== undefined ? { promptKind: step.promptKind } : {}),
       });
     }
     return out;
@@ -392,8 +395,15 @@ export class DuelManager {
         }
         throw e;
       }
+      // The prompt kind is public (both seats' StateView carry it); it tells the client how to word the answer.
+      const promptKind =
+        action.type === 'ResolvePendingPrompt' ? session.state.pendingPrompt?.kind : undefined;
       session = applied.session;
-      steps.push({ action, events: applied.events });
+      steps.push({
+        action,
+        events: applied.events,
+        ...(promptKind !== undefined ? { promptKind } : {}),
+      });
     }
     return { session, steps };
   }

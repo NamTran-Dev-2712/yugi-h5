@@ -1,0 +1,8 @@
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to E:\code\game\turn_battle\yugi-h5\package.json.
+play-vs-ai against http://localhost:3000
+   deck: FIELD_DEMO_DECK (40 cards)
+   effect stats: {"chainLinks":3,"humanWindows":0,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":51,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":1,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":48,"myFaceDownField":2,"stayingFaceUp":49,"setSpellActivated":2,"aiPromptKinds":0}
+
+human actions 54, AI actions 36 over 5 responses, winner 0, turns 11
+68/68 checks passed

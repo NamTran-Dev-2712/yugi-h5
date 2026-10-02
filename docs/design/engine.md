@@ -144,7 +144,7 @@ Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `defin
 
 Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
 
-Task 4.3 thêm: `FieldSpellSet {playerIndex,instanceId}` (Set lá Field vào Field Zone; không `definitionId`), `FieldSpellDestroyed {ownerIndex,instanceId,definitionId}` (lá ở Field Zone bị effect phá), và `CardSentToGraveyard.from` thêm `'FieldZone'` (lá Field bị lá mới của chính chủ thay). **Chưa được API forward** (cả ba trả `null`, nối wire = 4.3b).
+Task 4.3 thêm: `FieldSpellSet {playerIndex,instanceId}` (Set lá Field vào Field Zone; không `definitionId`), `FieldSpellDestroyed {ownerIndex,instanceId,definitionId}` (lá ở Field Zone bị effect phá), và `CardSentToGraveyard.from` thêm `'FieldZone'` (lá Field bị lá mới của chính chủ thay). **Lên wire ở task 4.3b** (cả ba PUBLIC ở `toEventView`, shape giữ nguyên; engine không đổi dòng nào).
 
 Task 4.2c thêm: `CardEquipped {playerIndex,instanceId,definitionId,targetInstanceId}` (lá Equip gắn vào quái). Equip rời sân theo quái dùng lại `CardSentToGraveyard {from:'SpellTrapZone'}`. API forward từ task 4.2d (PUBLIC); `CardInstance.equippedTo` ra wire thành `VisibleCardView.equippedTo`.
 
@@ -399,7 +399,7 @@ target.instanceId`, event `CardEquipped {playerIndex, instanceId, definitionId, 
 
 ## Field Spell + lá ở lại sân (task 4.3)
 
-Engine-only (nối wire = 4.3b). Chủ dự án chốt 2026-10-01: Field Spell được Set; mỗi bên 1 lá Field riêng; Phép Speed 1 đã Set kích
+Lên wire ở task 4.3b (event Field Zone trong `EventView`, UI ô Môi trường, lá thật trong `FIELD_DEMO_DECK` + 4 scenario Sandbox; engine không đổi — ADR 064). Chủ dự án chốt 2026-10-01: Field Spell được Set; mỗi bên 1 lá Field riêng; Phép Speed 1 đã Set kích
 hoạt được ngay lượt vừa Set; lá bị phá khi link còn chờ xử lý như Equip. Chi tiết + lý do: ADR 063.
 
 - **Lá nào ở lại sân** (đọc từ `subType`, `staysOnField` ở `@yugi/shared`): Spell `Continuous`/`Field`, Trap `Continuous`. Sau khi

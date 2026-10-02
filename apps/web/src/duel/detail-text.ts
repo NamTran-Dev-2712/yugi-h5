@@ -18,7 +18,10 @@ export function formatDetail(
     );
     if (modified) lines.push(t('detail.printedStats', { atk: detail.atk, def: detail.def }));
   }
-  if (detail.position) lines.push(t(`detail.position.${detail.position}`));
+  // Task 4.3b: a Field / Continuous card resting on the field says it is in force (a battle position means nothing
+  // for it); every other card keeps its position line.
+  if (detail.active) lines.push(t('detail.active'));
+  else if (detail.position) lines.push(t(`detail.position.${detail.position}`));
   if (detail.effectText) lines.push('', detail.effectText);
   return lines.join('\n');
 }

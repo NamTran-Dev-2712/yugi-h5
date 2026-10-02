@@ -91,6 +91,22 @@ export class DuelScene extends Phaser.Scene {
       if (/\.(monster|spellTrap|field|extraDeck|deck|graveyard)/.test(name)) {
         this.add.image(rect.x, rect.y, 'zone-slot').setOrigin(0, 0).setAlpha(0.9);
       }
+      // Task 4.3b [GUESS] G21: the Field Zone says what it is while empty (a card drawn there covers the caption).
+      if (name.endsWith('.field')) {
+        this.add
+          .rectangle(rect.x + 3, rect.y + 3, rect.w - 6, rect.h - 6)
+          .setOrigin(0, 0)
+          .setStrokeStyle(2, theme.colors.fieldFrame, 0.55);
+        this.add
+          .text(rect.x + rect.w / 2, rect.y + rect.h / 2, strings.fieldZone, {
+            fontFamily: theme.fonts.ui,
+            fontSize: `${theme.fontSize.small}px`,
+            color: theme.css.textDim,
+            align: 'center',
+            wordWrap: { width: rect.w - 10 },
+          })
+          .setOrigin(0.5);
+      }
     }
 
     const { detail, log } = this.layout;
@@ -367,17 +383,25 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private drawConfirmBar(enabled: boolean, showCancel: boolean, purpose: SelectionPurpose): void {
-    const { hint, confirm, cancel } = this.layout.overlay;
+    const { bar, hint, confirm, cancel } = this.layout.overlay;
     const c = theme.colors;
-    this.overlay.add(this.add.rectangle(hint.x, hint.y, hint.w, 80, c.dim, 0.55).setOrigin(0, 0));
+    // Task 4.3b: an opaque bar UNDER the turn / phase line (it replaces the note / chain banner while choosing), the
+    // hint on the left and the buttons on the right — nothing is drawn over the turn / phase text any more.
     this.overlay.add(
       this.add
-        .text(hint.x + hint.w / 2, hint.y + 4, CONFIRM_HINT[purpose](), {
+        .rectangle(bar.x, bar.y, bar.w, bar.h, c.panel, 1)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, c.panelLine, 0.8),
+    );
+    this.overlay.add(
+      this.add
+        .text(hint.x, hint.y + hint.h / 2, CONFIRM_HINT[purpose](), {
           fontFamily: theme.fonts.ui,
           fontSize: `${theme.fontSize.body}px`,
           color: theme.css.gold,
+          wordWrap: { width: hint.w },
         })
-        .setOrigin(0.5, 0),
+        .setOrigin(0, 0.5),
     );
     const button = (r: Rect, label: string, on: boolean): void => {
       const box = this.add
@@ -566,6 +590,19 @@ export class DuelScene extends Phaser.Scene {
         if (to) flash(to, c.equipLink);
         break;
       }
+      // Task 4.3b [GUESS] G21: the Field Zone of that side.
+      case 'fieldSet': {
+        const zone = this.layout[sideOf(step.playerIndex)].fieldZone;
+        flash(zone, c.dim);
+        pop(zone, 'card-back');
+        break;
+      }
+      case 'fieldReplace':
+        flash(this.layout[sideOf(step.playerIndex)].fieldZone, c.dim);
+        break;
+      case 'fieldDestroy':
+        flash(this.layout[sideOf(step.playerIndex)].fieldZone, c.danger);
+        break;
       case 'discard':
       case 'deckOut':
       case 'phase':
@@ -732,15 +769,18 @@ export class DuelScene extends Phaser.Scene {
 
   private drawPhase(model: RenderModel, state: DuelUiState): void {
     const r = this.layout.phase;
+    const line = this.layout.phaseLine;
     const mine = model.phase.turnOwner === 'self';
+    // The turn / phase text has the top line of the panel to itself (task 4.3b); the note, the chain banner and the
+    // selection bar share the part under it.
     this.dynamic.add(
       this.add
-        .text(r.x + r.w / 2, r.y + 14, model.phase.text, {
+        .text(line.x + line.w / 2, line.y + line.h / 2, model.phase.text, {
           fontFamily: theme.fonts.title,
           fontSize: `${theme.fontSize.title}px`,
           color: mine ? theme.css.good : theme.css.danger,
         })
-        .setOrigin(0.5, 0),
+        .setOrigin(0.5),
     );
     const quiet = !state.animating && !state.busy && !model.prompt;
     // Chain / reaction window banner (task 3.7): a coloured strip, brighter when I hold priority.

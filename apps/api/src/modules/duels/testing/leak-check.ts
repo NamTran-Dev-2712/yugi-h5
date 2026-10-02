@@ -10,6 +10,9 @@ import type { CardInstance, GameState } from '@yugi/game-engine';
  *    hand or on the field (face-down included). A card in a deck or Extra Deck is never shown, not even to its owner;
  *  - a `definitionId` without an `instanceId` next to it is flagged too (it cannot be checked, so it is not allowed).
  * Knowing nothing about the wire shape is the point: a new field that smuggles a card identity is caught as well.
+ * Task 4.3b: the Field Zone is a field zone like the others here (a face-down Field Spell is hidden from the opponent
+ * wherever its definitionId shows up), and a face-down Set event (`MonsterSet` / `SpellTrapSet` / `FieldSpellSet`) that
+ * carries a `definitionId` is flagged for BOTH seats (one more rule; none was relaxed).
  */
 
 export interface LeakViolation {
@@ -149,9 +152,49 @@ function equipProblem(state: GameState, owner: Record<string, unknown>, id: stri
   return 'equippedTo names a card that is not a monster on the field';
 }
 
+/** Events that tell "a card was Set face-down": they never carry the card's identity, for either seat. */
+const SET_EVENT_TYPES: ReadonlySet<string> = new Set([
+  'MonsterSet',
+  'SpellTrapSet',
+  'FieldSpellSet',
+]);
+
+/**
+ * Task 4.3b: every object (any depth) typed as a face-down Set event that also has a `definitionId` key. The owner knows
+ * the card, but the event is the same object for both seats, so the key itself is the leak.
+ */
+function collectNamedSetEvents(value: unknown): Pair[] {
+  const out: Pair[] = [];
+  const walk = (v: unknown, p: string): void => {
+    if (Array.isArray(v)) {
+      v.forEach((item, i) => walk(item, `${p}[${i}]`));
+      return;
+    }
+    if (typeof v !== 'object' || v === null) return;
+    const rec = v as Record<string, unknown>;
+    if (
+      typeof rec['type'] === 'string' &&
+      SET_EVENT_TYPES.has(rec['type']) &&
+      'definitionId' in rec
+    ) {
+      out.push({
+        path: p,
+        instanceId: typeof rec['instanceId'] === 'string' ? rec['instanceId'] : null,
+        definitionId: String(rec['definitionId']),
+      });
+    }
+    for (const [k, child] of Object.entries(rec)) walk(child, `${p}.${k}`);
+  };
+  walk(value, '$');
+  return out;
+}
+
 /** All violations in `payload` (whatever the viewer received) against the raw state after the action. */
 export function findLeaks(state: GameState, viewer: 0 | 1, payload: unknown): LeakViolation[] {
   const violations: LeakViolation[] = [];
+  for (const pair of collectNamedSetEvents(payload)) {
+    violations.push({ viewer, ...pair, reason: 'a face-down Set event carries a definitionId' });
+  }
   const pointers = collectPointers(payload);
   for (const { path, id } of pointers.ids) {
     if (pointsAtHidden(locate(state, id), viewer)) {

@@ -100,7 +100,16 @@ export function describeEvent(event: EventView, ctx: DescribeContext): string {
         card: ctx.cardName(event.definitionId),
       });
     case 'CardSentToGraveyard':
-      return t('event.cardSentToGraveyard', {
+      // Task 4.3b: from the Field Zone = a Field Spell replaced by its controller's new one (sent, not destroyed).
+      return t(
+        event.from === 'FieldZone' ? 'event.fieldSpellReplaced' : 'event.cardSentToGraveyard',
+        { player: p(event.ownerIndex), card: ctx.cardName(event.definitionId) },
+      );
+    case 'FieldSpellSet':
+      // Set face-down: the event has no definitionId, so the line cannot name the card.
+      return t('event.fieldSpellSet', { player: p(event.playerIndex) });
+    case 'FieldSpellDestroyed':
+      return t('event.fieldSpellDestroyed', {
         player: p(event.ownerIndex),
         card: ctx.cardName(event.definitionId),
       });

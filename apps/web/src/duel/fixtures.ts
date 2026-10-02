@@ -52,6 +52,8 @@ interface PlayerParts {
   readonly graveyard?: readonly CardView[];
   readonly monsters?: Five<CardView | null>;
   readonly spellTraps?: Five<CardView | null>;
+  /** Task 4.3b: the card in the Field Zone. */
+  readonly field?: CardView | null;
   readonly normalSummonUsed?: boolean;
 }
 
@@ -71,7 +73,7 @@ function player(p: PlayerParts): PlayerView {
     board: {
       monsterZones: p.monsters ?? emptyFive,
       spellTrapZones: p.spellTraps ?? emptyFive,
-      fieldZone: null,
+      fieldZone: p.field ?? null,
     },
     hasNormalSummonedThisTurn: p.normalSummonUsed ?? false,
   };
@@ -897,8 +899,127 @@ function specialSummonFixture(): Fixture {
   };
 }
 
+// ---- Task 4.3b: Field Zone + cards that stay on the field (real cards SMP-113 / SMP-114 / SMP-115 / SMP-208) ----
+
+const setSpellAt = (cardInstanceId: string, zones: readonly number[]): PlayerAction[] =>
+  zones.map((zoneIndex) => ({
+    type: 'SetSpellTrap',
+    payload: { playerIndex: 0, cardInstanceId, zoneIndex },
+  }));
+
+/**
+ * Main 1, my Field Zone is empty: SMP-113 (Field Spell) in hand lists ONE Set (`zoneIndex` 0 = the Field Zone) and its
+ * activation; SMP-114 (Continuous Spell) lists a Set per Spell/Trap Zone and its activation.
+ */
+function fieldFixture(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [
+      up('p0-1', 'SMP-113', 0, null),
+      up('p0-2', 'SMP-114', 0, null),
+      up('p0-3', 'SMP-006', 0, null),
+    ],
+    deckCount: 30,
+    normalSummonUsed: true,
+    monsters: five<CardView>([[1, withStats(up('p0-10', 'SMP-008', 0, 'Attack'), 1600, 900)]]),
+  });
+  const opp = oppBasic({
+    monsters: five<CardView>([[2, withStats(up('p1-12', 'SMP-030', 1, 'Attack'), 1700, 1000)]]),
+  });
+  return {
+    view: view({ turnCount: 5, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [
+      ...setSpellAt('p0-1', [0]),
+      activate('p0-1', 'activate'),
+      ...setSpellAt('p0-2', [0, 1, 2, 3, 4]),
+      activate('p0-2', 'activate'),
+      endPhase,
+      surrender,
+    ],
+  };
+}
+
+/**
+ * My Field Spell is Set (face-down) in my Field Zone and may be activated (a tap, C13); my Set SMP-115 too (a Normal
+ * Spell Set this very turn). A second SMP-113 in hand would replace the first. The opponent has a face-down Field card.
+ */
+function fieldSetFixture(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-1', 'SMP-113', 0, null), up('p0-3', 'SMP-006', 0, null)],
+    deckCount: 30,
+    normalSummonUsed: true,
+    monsters: five<CardView>([[1, withStats(up('p0-10', 'SMP-008', 0, 'Attack'), 1600, 900)]]),
+    spellTraps: five<CardView>([[1, up('p0-31', 'SMP-115', 0, 'DefenseDown')]]),
+    field: up('p0-30', 'SMP-113', 0, 'DefenseDown'),
+  });
+  const opp = oppBasic({
+    monsters: five<CardView>([[2, withStats(up('p1-12', 'SMP-030', 1, 'Attack'), 1700, 1000)]]),
+    field: hidden('p1-30', 1),
+  });
+  return {
+    view: view({ turnCount: 5, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [
+      activate('p0-30', 'activate'),
+      activate('p0-31', 'ember-burn'),
+      ...setSpellAt('p0-1', [0]),
+      activate('p0-1', 'activate'),
+      endPhase,
+      surrender,
+    ],
+  };
+}
+
+/**
+ * Everything face-up and in force: my SMP-113 in the Field Zone (WIND +300, both sides), my SMP-114 (my Warriors +300)
+ * and my SMP-208 (opponent −300) resting in Spell/Trap Zones; the opponent has its own face-up Field Spell. Nothing can
+ * be activated again.
+ */
+function fieldActiveFixture(): Fixture {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [up('p0-3', 'SMP-006', 0, null)],
+    deckCount: 30,
+    normalSummonUsed: true,
+    monsters: five<CardView>([
+      // SMP-008: WIND Warrior 1600 → +300 (mine) +300 (theirs) +300 (SMP-114) = 2500.
+      [1, withStats(up('p0-10', 'SMP-008', 0, 'Attack'), 2500, 900)],
+      // SMP-006: WATER Spellcaster 1500, untouched.
+      [2, withStats(up('p0-11', 'SMP-006', 0, 'Attack'), 1500, 1100)],
+    ]),
+    spellTraps: five<CardView>([
+      [0, up('p0-31', 'SMP-114', 0, 'Attack')],
+      [2, up('p0-32', 'SMP-208', 0, 'Attack')],
+      [4, up('p0-33', 'SMP-208', 0, 'DefenseDown')],
+    ]),
+    field: up('p0-30', 'SMP-113', 0, 'Attack'),
+  });
+  const opp = oppBasic({
+    monsters: five<CardView>([
+      // SMP-030: WIND 1700 +300 +300 −300 = 2000; SMP-009: DARK 1700 −300 = 1400.
+      [2, withStats(up('p1-12', 'SMP-030', 1, 'Attack'), 2000, 1000)],
+      [3, withStats(up('p1-13', 'SMP-009', 1, 'Attack'), 1400, 1000)],
+    ]),
+    spellTraps: five<CardView>([[1, hidden('p1-21', 1)]]),
+    field: up('p1-30', 'SMP-113', 1, 'Attack'),
+  });
+  return {
+    view: view({ turnCount: 6, turnPlayerIndex: 0, phase: 'Main1' }, self, opp),
+    legalActions: [endPhase, surrender],
+  };
+}
+
 export function loadFixture(name: FixtureName): Fixture {
   switch (name) {
+    case 'field':
+      return fieldFixture();
+    case 'field-set':
+      return fieldSetFixture();
+    case 'field-active':
+      return fieldActiveFixture();
     case 'flip':
       return flipFixture();
     case 'equip':

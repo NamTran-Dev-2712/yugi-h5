@@ -231,6 +231,19 @@ const EVENTS: Record<EventView['type'], { event: EventView; en: string }> = {
     },
     en: 'P0 equips Name(SMP-112) to <p0-2>',
   },
+  FieldSpellSet: {
+    event: { type: 'FieldSpellSet', playerIndex: 1, instanceId: 'p1-30' },
+    en: 'P1 sets a card in the Field Zone',
+  },
+  FieldSpellDestroyed: {
+    event: {
+      type: 'FieldSpellDestroyed',
+      ownerIndex: 1,
+      instanceId: 'p1-30',
+      definitionId: 'SMP-113',
+    },
+    en: 'P1 loses Field Spell Name(SMP-113), destroyed',
+  },
 };
 
 describe('English wording', () => {
@@ -265,6 +278,18 @@ describe('English wording', () => {
     expect(describeEvent({ type: 'DuelEnded', winnerIndex: null, reason: 'LP_ZERO' }, ctx)).toBe(
       'Duel over: draw (LP_ZERO)',
     );
+    expect(
+      describeEvent(
+        {
+          type: 'CardSentToGraveyard',
+          ownerIndex: 0,
+          instanceId: 'p0-30',
+          definitionId: 'SMP-113',
+          from: 'FieldZone',
+        },
+        ctx,
+      ),
+    ).toBe("P0's Field Spell Name(SMP-113) is replaced and goes to the Graveyard");
   });
 
   it('describeAiAction', () => {
@@ -302,12 +327,23 @@ describe('English wording', () => {
         payload: { playerIndex: 1, attackerInstanceId: 'a', targetInstanceId: 'z' },
       }),
     ).toBe('🤖 AI attacks «z» with «a»');
-    expect(
-      say({
-        type: 'ResolvePendingPrompt',
-        payload: { playerIndex: 1, promptId: 'd', cardInstanceIds: ['a', 'b'] },
-      }),
-    ).toBe('🤖 AI discards «a», «b» to the Graveyard');
+    const answer: PlayerAction = {
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: 1, promptId: 'd', cardInstanceIds: ['a', 'b'] },
+    };
+    const sayKind = (a: PlayerAction, kind?: string) =>
+      describeAiAction(a, { instanceLabel: (id) => `«${id}»` }, kind);
+    expect(sayKind(answer, 'DiscardToHandLimit')).toBe('🤖 AI discards «a», «b» to the Graveyard');
+    expect(sayKind(answer, 'SelectEffectTarget')).toBe(
+      "🤖 AI chooses the effect's target: «a», «b»",
+    );
+    expect(sayKind(answer, 'TriggerActivation')).toBe(
+      '🤖 AI activates its trigger effect, target: «a», «b»',
+    );
+    expect(sayKind(answer)).toBe('🤖 AI answers a choice: «a», «b»');
+    const empty: PlayerAction = { ...answer, payload: { ...answer.payload, cardInstanceIds: [] } };
+    expect(sayKind(empty, 'SelectEffectTarget')).toBe("🤖 AI chooses the effect's target");
+    expect(sayKind(empty)).toBe('🤖 AI answers a choice');
     expect(say({ type: 'Surrender', payload: { playerIndex: 1 } })).toBe('🤖 AI surrenders');
     expect(
       say({
@@ -335,10 +371,14 @@ describe('English wording', () => {
       }),
     ).toBe('🤖 AI declines its trigger effect');
     expect(
-      say({
-        type: 'ResolvePendingPrompt',
-        payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [] },
-      }),
+      describeAiAction(
+        {
+          type: 'ResolvePendingPrompt',
+          payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [] },
+        },
+        { instanceLabel: (id) => `«${id}»` },
+        'TriggerActivation',
+      ),
     ).toBe('🤖 AI activates its trigger effect');
   });
 

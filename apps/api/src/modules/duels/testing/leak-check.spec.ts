@@ -192,3 +192,91 @@ describe('findLeaks — id lists and equippedTo (task 4.2d)', () => {
       expect(findLeaks(s, 0, payload), JSON.stringify(payload)).toHaveLength(1);
   });
 });
+
+describe('findLeaks — Field Zone (task 4.3b)', () => {
+  /** Both players hold a face-down Field Spell; player 1 also a face-up Continuous Spell. */
+  const withFields = (): GameState => {
+    const s = state();
+    const [p0, p1] = s.players;
+    return {
+      ...s,
+      players: [
+        { ...p0, board: { ...p0.board, fieldZone: card('f0', 'SET-FIELD-0', 0, 'DefenseDown') } },
+        {
+          ...p1,
+          board: {
+            ...p1.board,
+            fieldZone: card('f1', 'SET-FIELD-1', 1, 'DefenseDown'),
+            spellTrapZones: [
+              card('s1', 'SET-SPELL', 1, 'DefenseDown'),
+              card('c1', 'UP-CONT', 1, 'Attack'),
+              null,
+              null,
+              null,
+            ],
+          },
+        },
+      ],
+    };
+  };
+  const SECRET = { instanceId: 'f1', definitionId: 'SET-FIELD-1' };
+
+  it("flags the opponent's face-down Field Spell wherever its definitionId shows up", () => {
+    const s = withFields();
+    const payloads: unknown[] = [
+      { view: { players: [{}, { board: { fieldZone: { hidden: false, ...SECRET } } }] } },
+      { events: [{ type: 'EffectActivated', playerIndex: 1, ...SECRET, effectId: 'e1' }] },
+      { view: { chain: [{ linkId: 'l', card: { hidden: false, ...SECRET } }] } },
+      { post: { aiActions: [{ action: { type: 'SetSpellTrap', payload: {} }, card: SECRET }] } },
+      { some: { new: [{ field: { deeply: SECRET } }] } },
+    ];
+    for (const payload of payloads) {
+      expect(findLeaks(s, 0, payload), JSON.stringify(payload)).toMatchObject([
+        { instanceId: 'f1', reason: 'card is face-down on the opponent field' },
+      ]);
+    }
+  });
+
+  it('accepts my own face-down Field Spell, a face-up one of the opponent, and a face-up Continuous Spell', () => {
+    const s = withFields();
+    expect(findLeaks(s, 1, { board: { fieldZone: { hidden: false, ...SECRET } } })).toEqual([]);
+    expect(findLeaks(s, 0, { instanceId: 'f0', definitionId: 'SET-FIELD-0' })).toEqual([]);
+    expect(findLeaks(s, 0, { instanceId: 'c1', definitionId: 'UP-CONT' })).toEqual([]);
+    const faceUp: GameState = {
+      ...s,
+      players: [
+        s.players[0],
+        {
+          ...s.players[1],
+          board: { ...s.players[1].board, fieldZone: card('f1', 'SET-FIELD-1', 1, 'Attack') },
+        },
+      ],
+    };
+    expect(findLeaks(faceUp, 0, SECRET)).toEqual([]);
+  });
+
+  it('a hidden Field card and a target list naming a face-down Field card are fine (ids are public)', () => {
+    const s = withFields();
+    expect(
+      findLeaks(s, 0, {
+        fieldZone: { hidden: true, instanceId: 'f1', ownerIndex: 1 },
+        targetInstanceIds: ['f1', 's1'],
+      }),
+    ).toEqual([]);
+  });
+
+  it.each(['FieldSpellSet', 'SpellTrapSet', 'MonsterSet'])(
+    'flags a face-down Set event (%s) that carries a definitionId — for BOTH viewers, the owner included',
+    (type) => {
+      const s = withFields();
+      const event = { type, playerIndex: 1, ...SECRET };
+      for (const viewer of [0, 1] as const) {
+        expect(
+          findLeaks(s, viewer, { events: [event] }).map((v) => v.reason),
+          `viewer ${viewer}`,
+        ).toContain('a face-down Set event carries a definitionId');
+      }
+      expect(findLeaks(s, 1, { events: [{ type, playerIndex: 1, instanceId: 'f1' }] })).toEqual([]);
+    },
+  );
+});

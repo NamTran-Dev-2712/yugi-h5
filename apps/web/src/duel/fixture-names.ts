@@ -18,6 +18,10 @@ export const FIXTURE_NAMES = [
   'equip',
   'gy-target',
   'special-summon',
+  // Task 4.3b.
+  'field',
+  'field-set',
+  'field-active',
 ] as const;
 export type FixtureName = (typeof FIXTURE_NAMES)[number];
 

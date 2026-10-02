@@ -134,18 +134,18 @@ Task con:
 
 Mỗi batch là 1 phiên nhỏ, theo `card-and-effect-plan.md`.
 
-| #    | Task                                                                                                                               | Lớp            | Độ khó |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------- | ------ |
-| 4.1  | Batch 1: 20 vanilla + 10 spell/trap cơ bản (✅ nháp; data TS, CSV để sau — ADR 2026-09-30)                                         | Shared         | M      |
-| 4.2a | Special Summon — chỉ operation, từ tay/mộ của mình (✅ nháp; tách từ 4.2 gốc — ADR 2026-09-30)                                     | Engine         | M      |
-| 4.2b | Flip Summon (action) + Flip effect (`OnFlip`) (✅ nháp)                                                                            | Engine         | M      |
-| 4.2c | Equip Spell (`Equip` + `ModifyStat.equipped`, rời sân theo quái; không thêm Duration) (✅ nháp)                                    | Engine         | M      |
-| 4.2d | Nối wire 4.2a/b/c: FlipSummon + 3 event + `equippedTo` + lọc target tay + UI + 3 lá (SMP-044/111/112) + `MECH_DEMO_DECK` (✅ nháp) | API+Shared+Web | M/L    |
-| 4.3  | Field Spell + Continuous Spell/Trap đầy đủ + Phép Speed 1 đã Set; 4 lá SMP-113/114/115/208 (✅ nháp, engine-only)                  | Engine+Shared  | M      |
-| 4.3b | Nối wire 4.3: event Field Zone trong `EventView`, UI ô Field, lá thật vào deck demo + scenario Sandbox, fuzz leak với lá Field úp  | API+Shared+Web | M      |
-| 4.4  | Counter Trap (Speed 3)                                                                                                             | Engine         | M      |
-| 4.5  | Fusion (Polymerization-like, Extra Deck)                                                                                           | Engine         | L      |
-| 4.7  | Batch 2/3: trigger, continuous, quirk nhiều lá                                                                                     | Shared         | M/lô   |
+| #    | Task                                                                                                                                                                                                                                                                                       | Lớp            | Độ khó |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------ |
+| 4.1  | Batch 1: 20 vanilla + 10 spell/trap cơ bản (✅ nháp; data TS, CSV để sau — ADR 2026-09-30)                                                                                                                                                                                                 | Shared         | M      |
+| 4.2a | Special Summon — chỉ operation, từ tay/mộ của mình (✅ nháp; tách từ 4.2 gốc — ADR 2026-09-30)                                                                                                                                                                                             | Engine         | M      |
+| 4.2b | Flip Summon (action) + Flip effect (`OnFlip`) (✅ nháp)                                                                                                                                                                                                                                    | Engine         | M      |
+| 4.2c | Equip Spell (`Equip` + `ModifyStat.equipped`, rời sân theo quái; không thêm Duration) (✅ nháp)                                                                                                                                                                                            | Engine         | M      |
+| 4.2d | Nối wire 4.2a/b/c: FlipSummon + 3 event + `equippedTo` + lọc target tay + UI + 3 lá (SMP-044/111/112) + `MECH_DEMO_DECK` (✅ nháp)                                                                                                                                                         | API+Shared+Web | M/L    |
+| 4.3  | Field Spell + Continuous Spell/Trap đầy đủ + Phép Speed 1 đã Set; 4 lá SMP-113/114/115/208 (✅ nháp, engine-only)                                                                                                                                                                          | Engine+Shared  | M      |
+| 4.3b | Dọn nợ duyệt (OPEN-ISSUES + 21 dòng RULES-REVIEW-SHEET) + nối wire 4.3: event Field Zone trong `EventView`, UI ô Môi trường, `FIELD_DEMO_DECK` + 4 scenario Sandbox, fuzz leak với lá Field úp, `promptKind` cho log AI, thanh chọn dưới dòng phase, banner chuỗi (✅ nháp; engine 0 dòng) | API+Shared+Web | M/L    |
+| 4.4  | Counter Trap (Speed 3)                                                                                                                                                                                                                                                                     | Engine         | M      |
+| 4.5  | Fusion (Polymerization-like, Extra Deck)                                                                                                                                                                                                                                                   | Engine         | L      |
+| 4.7  | Batch 2/3: trigger, continuous, quirk nhiều lá                                                                                                                                                                                                                                             | Shared         | M/lô   |
 
 Done: mỗi batch có test tự động sinh cho từng lá; parity-board cập nhật.
 

@@ -137,7 +137,7 @@ const handCard = (i: number, n: number): P => {
   return [260 + (760 - total) / 2 + i * 72 + 32, 673];
 };
 const firstOption = (drop: P): P => [drop[0] + 80, drop[1] + 20];
-const CONFIRM: P = [555, 371];
+const CONFIRM: P = [777, 374]; // task 4.3b: the confirm bar moved under the turn/phase line (layout.overlay.confirm 702,354 150x40)
 
 const SCENARIO = {
   name: 'spell-trap-shots',

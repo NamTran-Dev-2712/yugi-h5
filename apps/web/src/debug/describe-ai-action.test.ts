@@ -47,10 +47,14 @@ describe('describeAiAction', () => {
       }),
     ).toBe('🤖 AI tấn công «p0-7» bằng «p1-6»');
     expect(
-      say({
-        type: 'ResolvePendingPrompt',
-        payload: { playerIndex: 1, promptId: 'discard-4', cardInstanceIds: ['p1-1', 'p1-2'] },
-      }),
+      describeAiAction(
+        {
+          type: 'ResolvePendingPrompt',
+          payload: { playerIndex: 1, promptId: 'discard-4', cardInstanceIds: ['p1-1', 'p1-2'] },
+        },
+        ctx,
+        'DiscardToHandLimit',
+      ),
     ).toBe('🤖 AI bỏ «p1-1», «p1-2» xuống mộ');
     expect(say({ type: 'Surrender', payload: { playerIndex: 1 } })).toBe('🤖 AI đầu hàng');
     expect(say({ type: 'FlipSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-4' } })).toBe(
@@ -75,17 +79,68 @@ describe('describeAiAction', () => {
       '🤖 AI bỏ qua (không phản ứng)',
     );
     expect(
-      say({
-        type: 'ResolvePendingPrompt',
-        payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [], decline: true },
-      }),
+      describeAiAction(
+        {
+          type: 'ResolvePendingPrompt',
+          payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [], decline: true },
+        },
+        ctx,
+        'TriggerActivation',
+      ),
     ).toBe('🤖 AI không kích hoạt hiệu ứng trigger');
     expect(
-      say({
-        type: 'ResolvePendingPrompt',
-        payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [] },
-      }),
+      describeAiAction(
+        {
+          type: 'ResolvePendingPrompt',
+          payload: { playerIndex: 1, promptId: 'x', cardInstanceIds: [] },
+        },
+        ctx,
+        'TriggerActivation',
+      ),
     ).toBe('🤖 AI kích hoạt hiệu ứng trigger');
+  });
+
+  describe('prompt answers are worded from the KIND of the prompt, never guessed from the ids (task 4.3b)', () => {
+    const answer = (cardInstanceIds: string[], decline?: boolean): PlayerAction => ({
+      type: 'ResolvePendingPrompt',
+      payload: {
+        playerIndex: 1,
+        promptId: 'x',
+        cardInstanceIds,
+        ...(decline ? { decline: true } : {}),
+      },
+    });
+    const sayKind = (a: PlayerAction, kind?: string) => describeAiAction(a, ctx, kind);
+
+    it('SelectEffectTarget: "chooses a target", not "discards … to the Graveyard"', () => {
+      expect(sayKind(answer(['p0-7']), 'SelectEffectTarget')).toBe(
+        '🤖 AI chọn mục tiêu cho hiệu ứng: «p0-7»',
+      );
+      expect(sayKind(answer(['p0-7', 'p0-8']), 'SelectEffectTarget')).toBe(
+        '🤖 AI chọn mục tiêu cho hiệu ứng: «p0-7», «p0-8»',
+      );
+    });
+
+    it('SelectEffectTarget with every id redacted by the server (targets in its hand): no card is named', () => {
+      expect(sayKind(answer([]), 'SelectEffectTarget')).toBe('🤖 AI chọn mục tiêu cho hiệu ứng');
+    });
+
+    it('TriggerActivation with targets: the trigger sentence plus the targets', () => {
+      expect(sayKind(answer(['p0-7']), 'TriggerActivation')).toBe(
+        '🤖 AI kích hoạt hiệu ứng trigger, mục tiêu: «p0-7»',
+      );
+    });
+
+    it('DiscardToHandLimit keeps "bỏ … xuống mộ"', () => {
+      expect(sayKind(answer(['p1-1']), 'DiscardToHandLimit')).toBe('🤖 AI bỏ «p1-1» xuống mộ');
+    });
+
+    it('an unknown or missing kind gets a neutral sentence (no guess from the ids)', () => {
+      expect(sayKind(answer(['p1-1']))).toBe('🤖 AI trả lời lựa chọn: «p1-1»');
+      expect(sayKind(answer(['p1-1']), 'FutureKind')).toBe('🤖 AI trả lời lựa chọn: «p1-1»');
+      expect(sayKind(answer([]))).toBe('🤖 AI trả lời một lựa chọn');
+      expect(sayKind(answer([], true))).toBe('🤖 AI không kích hoạt hiệu ứng trigger');
+    });
   });
 
   it('treats a null target as a direct attack', () => {

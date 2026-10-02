@@ -23,6 +23,12 @@ export interface AiActionView {
   readonly action: PlayerAction;
   readonly eventsFrom: number;
   readonly eventsTo: number;
+  /**
+   * Task 4.3b: only on a `ResolvePendingPrompt` — the `kind` of the prompt the AI answered (`DiscardToHandLimit`,
+   * `SelectEffectTarget`, `TriggerActivation`…), so a client words the answer without guessing from its ids. Public: the
+   * prompt kind is in both seats' `StateView.pendingPrompt` anyway.
+   */
+  readonly promptKind?: string;
 }
 
 /** `POST /duels/:id/actions` → the sender seat's view + that seat's filtered events. */

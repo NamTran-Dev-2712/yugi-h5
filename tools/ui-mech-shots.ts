@@ -150,7 +150,7 @@ async function drag(from: P, to: P, wait = 800): Promise<void> {
 }
 
 // layout.ts: zone rows start at x=406, step 96, zone 84x104. Own Spell/Trap row y=516, own monsters y=402, opponent
-// monsters y=214. Menu entries (optionRects): 160x40 from the click point, gap 4. Confirm 480,350 150x42. Hand of 3
+// monsters y=214. Menu entries (optionRects): 160x40 from the click point, gap 4. Confirm 702,354 150x40 (task 4.3b). Hand of 3
 // cards: x0=536, step 72, y=628, 64x90. Graveyard picker of 2 (pickerSlots): x0=572, step 72, y=222, 64x90.
 const col = (i: number): number => 406 + i * 96 + 42;
 const selfSpellZone = (i: number): P => [col(i), 568];
@@ -159,7 +159,7 @@ const oppZone = (i: number): P => [col(i), 266];
 const menuEntry = (anchor: P, i: number): P => [anchor[0] + 80, anchor[1] + 20 + i * 44];
 const hand3 = (i: number): P => [536 + i * 72 + 32, 673];
 const picker2 = (i: number): P => [572 + i * 72 + 32, 267];
-const CONFIRM: P = [555, 371];
+const CONFIRM: P = [777, 374]; // task 4.3b: the confirm bar moved under the turn/phase line (layout.overlay.confirm 702,354 150x40)
 
 try {
   await cdp('Page.enable');

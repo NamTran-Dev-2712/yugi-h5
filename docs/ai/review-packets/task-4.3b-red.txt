@@ -1,0 +1,224 @@
+# Task 4.3b — test ĐỎ trước khi sửa code (2026-10-01)
+
+## 1. shared: FIELD_DEMO_DECK (chưa có file deck)
+      4| import { SAMPLE_CARDS } from '../cards/sample-cards.js';
+      5| import { FIELD_DEMO_DECK } from './field-demo-deck.js';
+       | ^
+      6| import { STARTER_DECK } from './starter-deck.js';
+      7| import { validateDeck } from './validate-deck.js';
+Caused by: Error: Failed to load url ./field-demo-deck.js (resolved id: ./field-demo-deck.js) in E:/code/game/turn_battle/yugi-h5/packages/shared/src/deck/field-demo-deck.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@7.3.6_@types+node@22.2_194e501776750d489097a3705aac3374/node_modules/vite/dist/node/chunks/config.js:22739:33
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  23:28:03
+   Duration  1.07s (transform 209ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 179ms)
+undefined
+E:\code\game\turn_battle\yugi-h5\packages\shared:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/deck/field-demo-deck.test.ts
+
+## 2. api: event Field lên wire, oracle, scenario, fuzz, AI promptKind (code chưa đổi)
+   ✓ toEventView > covers every engine event type 2ms
+   ✓ toEventView > no event type is engine-only any more: every type but CardDrawn is public (task 4.3b) 1ms
+   × toEventView > forwards the Field Zone event FieldSpellSet unchanged to both viewers (task 4.3b) 7ms
+     → expected null to deeply equal { type: 'FieldSpellSet', …(2) }
+   × toEventView > forwards the Field Zone event FieldSpellDestroyed unchanged to both viewers (task 4.3b) 1ms
+     → expected null to deeply equal { type: 'FieldSpellDestroyed', …(3) }
+   × toEventView > CardSentToGraveyard: forwarded from the hand, a Spell/Trap Zone and the Field Zone (task 4.3b) 1ms
+     → expected null to deeply equal { type: 'CardSentToGraveyard', …(4) }
+   ✓ toEventView > forwards event MonsterSpecialSummoned unchanged to both viewers (task 4.2d) 0ms
+   ✓ toEventView > forwards event FlipSummoned unchanged to both viewers (task 4.2d) 0ms
+   ✓ toEventView > forwards event CardEquipped unchanged to both viewers (task 4.2d) 0ms
+   ✓ toEventView > ChainLinkAdded: drops the target ids hidden from the viewer, keeps the others in order (task 4.2d) 1ms
+   ✓ toEventView > the hidden set only filters target lists: other events are untouched even if they mention a hidden id 0ms
+   ✓ toEventView > forwards chain event ChainLinkAdded unchanged to both viewers (task 3.4b) 0ms
+   ✓ toEventView > forwards chain event ChainLinkFizzled unchanged to both viewers (task 3.4b) 0ms
+   ✓ toEventView > forwards chain event ChainResolved unchanged to both viewers (task 3.4b) 0ms
+   ✓ toEventView > passes public event DuelStarted through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event DeckOut through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event CardDiscarded through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event PhaseChanged through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event TurnChanged through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event NormalSummoned through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event MonsterSpecialSummoned through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event FlipSummoned through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event CardEquipped through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event MonsterSet through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event MonsterTributed through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event PositionChanged through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event AttackDeclared through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event MonsterFlipped through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event MonsterDestroyed through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event DamageDealt through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event SpellTrapSet through unchanged to both viewers 0ms
+   × toEventView > passes public event FieldSpellSet through unchanged to both viewers 1ms
+     → expected null to deeply equal { type: 'FieldSpellSet', …(2) }
+   × toEventView > passes public event FieldSpellDestroyed through unchanged to both viewers 1ms
+     → expected null to deeply equal { type: 'FieldSpellDestroyed', …(3) }
+   ✓ toEventView > passes public event EffectActivated through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event EffectResolved through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event CardSentToGraveyard through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event LifePointsRecovered through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event LifePointsPaid through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event SpellTrapDestroyed through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event ChainLinkAdded through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event ChainLinkFizzled through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event ChainResolved through unchanged to both viewers 0ms
+   ✓ toEventView > passes public event DuelEnded through unchanged to both viewers 0ms
+   ✓ toEventView > forwards every task 3.2 Spell/Trap event (none is dropped any more) 1ms
+   ✓ toEventView > shows CardDrawn in full to the drawer 0ms
+   ✓ toEventView > shows CardDrawn as a hidden card to the opponent, without the definitionId 0ms
+   ✓ toEventView > draws for player 1 are symmetric 0ms
+   ✓ toEventView > never leaks a definitionId through the face-down Set event MonsterSet 0ms
+   ✓ toEventView > never leaks a definitionId through the face-down Set event SpellTrapSet 0ms
+   × toEventView > never leaks a definitionId through the face-down Set event FieldSpellSet 0ms
+     → expected null not to be null
+   ✓ toEventView > denies by default: an unclassified event type yields null 0ms
+   ✓ toEventView > toEventViews keeps order and drops hidden events 0ms
+   ✓ collectDefinitionIds > finds definitionIds at any depth, with the instanceId next to them 4ms
+   ✓ findLeaks > accepts public and own cards 4ms
+   ✓ findLeaks > flags a face-down card of the opponent (Set Spell and Set monster) 4ms
+   ✓ findLeaks > flags a card in the opponent's hand, and a deck card even for its owner 1ms
+   ✓ findLeaks > flags an unknown instance, a wrong definitionId and an unpaired definitionId 1ms
+   ✓ findLeaks — chain (task 3.4b) > accepts a card activated from the hand that now lives in a chain link (public) 1ms
+   ✓ findLeaks — chain (task 3.4b) > still flags a wrong definitionId for a chain card 1ms
+   ✓ findLeaks — id lists and equippedTo (task 4.2d) > flags an id of the opponent's hand or of a deck in any *InstanceIds list / *InstanceId field 1ms
+   ✓ findLeaks — id lists and equippedTo (task 4.2d) > accepts ids the viewer may point at: own hand, graveyard, field (face-down too), and plain instanceId keys 1ms
+   ✓ findLeaks — id lists and equippedTo (task 4.2d) > accepts equippedTo on a face-up card pointing at a face-up monster on the field 1ms
+   ✓ findLeaks — id lists and equippedTo (task 4.2d) > flags equippedTo on a face-down/hidden card, or pointing at a face-down, missing or non-field card 3ms
+   ✓ findLeaks — Field Zone (task 4.3b) > flags the opponent's face-down Field Spell wherever its definitionId shows up 2ms
+   ✓ findLeaks — Field Zone (task 4.3b) > accepts my own face-down Field Spell, a face-up one of the opponent, and a face-up Continuous Spell 1ms
+   ✓ findLeaks — Field Zone (task 4.3b) > a hidden Field card and a target list naming a face-down Field card are fine (ids are public) 1ms
+   × findLeaks — Field Zone (task 4.3b) > flags a face-down Set event (FieldSpellSet) that carries a definitionId — for BOTH viewers, the owner included 17ms
+     → viewer 0: expected [ Array(1) ] to include 'a face-down Set event carries a defin…'
+   × findLeaks — Field Zone (task 4.3b) > flags a face-down Set event (SpellTrapSet) that carries a definitionId — for BOTH viewers, the owner included 1ms
+     → viewer 0: expected [ Array(1) ] to include 'a face-down Set event carries a defin…'
+   × findLeaks — Field Zone (task 4.3b) > flags a face-down Set event (MonsterSet) that carries a definitionId — for BOTH viewers, the owner included 1ms
+     → viewer 0: expected [ Array(1) ] to include 'a face-down Set event carries a defin…'
+ ✓ src/modules/duels/ai/choose-action.field.spec.ts (5 tests) 32ms
+   × Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > field-real: a Field Spell in the hand lists ONE Set (zoneIndex 0) and its activation 10ms
+   × Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > field-real: activating from the hand puts it face-up in the Field Zone for both seats; WIND monsters of both sides +300 2ms
+   × Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > field-real: a second Field Spell replaces mine — CardSentToGraveyard from the FieldZone reaches both seats 1ms
+   × Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > field-set-real: the script Set it — FieldSpellSet without a definitionId, hidden from the opponent, known to me 1ms
+   × Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > field-set-real: activated from the Field Zone on the turn it was Set; the link source is the FieldZone 1ms
+   × Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > a face-down Field Spell destroyed by "destroy 1 Spell/Trap": FieldSpellDestroyed (public graveyard) for both seats 1ms
+   × Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > continuous-real-2: the Continuous Spell goes face-up into the lowest empty Spell/Trap Zone and STAYS; my Warriors +300 1ms
+   × Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > continuous-real-2: the Set Continuous Trap flips face-up in place and stays; the opponent loses 300 ATK 1ms
+   × Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > normal-set-real: a Normal Spell is Set, then activated from its zone on the SAME turn; it goes to the graveyard 1ms
+   ✓ AI hand targets never reach the human (task 4.2d) > aiActions, ChainLinkAdded and chain drop the AI hand card the trigger chose 32ms
+   × AI hand targets never reach the human (task 4.2d) > task 4.3b: an AI prompt answer carries the kind of the prompt it answered; other AI actions carry none 33ms
+     → expected undefined to be 'TriggerActivation' // Object.is equality
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > covered the Field Zone and the staying cards (task 4.3b)
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 0: every response to both viewers passes the leak oracle  549ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 1: every response to both viewers passes the leak oracle  673ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 2: every response to both viewers passes the leak oracle  1772ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 3: every response to both viewers passes the leak oracle  767ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 4: every response to both viewers passes the leak oracle  986ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 5: every response to both viewers passes the leak oracle  777ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 6: every response to both viewers passes the leak oracle  411ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 7: every response to both viewers passes the leak oracle  1520ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 0 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  1145ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 1 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  876ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 2 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  676ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 3 (solo-vs-ai): every response to both viewers, aiActions included, passes the leak oracle  741ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 0 (Field / Continuous deck, task 4.3b): every response to both viewers passes the leak oracle  1813ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 1 (Field / Continuous deck, task 4.3b): every response to both viewers passes the leak oracle  792ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 2 (Field / Continuous deck, task 4.3b): every response to both viewers passes the leak oracle  762ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 3 (Field / Continuous deck, task 4.3b): every response to both viewers passes the leak oracle  1048ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 4 (Field / Continuous deck, task 4.3b): every response to both viewers passes the leak oracle  676ms
+   ✓ fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > seed 5 (Field / Continuous deck, task 4.3b): every response to both viewers passes the leak oracle  908ms
+   × fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > covered the Field Zone and the staying cards (task 4.3b) 14ms
+     → fieldSets: expected 0 to be greater than 0
+   × fuzz gate: no hidden definitionId over the wire with Spell/Trap (8 seeds × 120 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts 3ms
+     → FieldSpellSet: expected 0 to be greater than 0
+⎯⎯⎯⎯⎯⎯ Failed Tests 21 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/modules/duels/duel-manager.ai-redact.spec.ts > AI hand targets never reach the human (task 4.2d) > task 4.3b: an AI prompt answer carries the kind of the prompt it answered; other AI actions carry none
+AssertionError: expected undefined to be 'TriggerActivation' // Object.is equality
+ FAIL  src/modules/duels/duel-manager.scenario-field.spec.ts > Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > field-real: a Field Spell in the hand lists ONE Set (zoneIndex 0) and its activation
+ FAIL  src/modules/duels/duel-manager.scenario-field.spec.ts > Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > field-real: activating from the hand puts it face-up in the Field Zone for both seats; WIND monsters of both sides +300
+ FAIL  src/modules/duels/duel-manager.scenario-field.spec.ts > Sandbox scenarios on the Field Zone and staying cards (task 4.3b) > field-real: a second Field Spell replaces mine — CardSentToGraveyard from the FieldZone reaches both seats
+
+## 3. web: ô Môi trường (kéo/chạm), dấu hiệu lực, step animation, nhóm log, câu event/AI, bố cục thanh chọn, banner chuỗi (code chưa đổi)
+⎯⎯⎯⎯⎯⎯ Failed Tests 41 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/debug/describe-ai-action.test.ts > describeAiAction > prompt answers are worded from the KIND of the prompt, never guessed from the ids (task 4.3b) > SelectEffectTarget: "chooses a target", not "discards … to the Grav
+AssertionError: expected '🤖 AI bỏ «p0-7» xuống mộ' to be '🤖 AI chọn mục tiêu cho hiệu ứng: «p0…' // Object.is equality
+ FAIL  src/debug/describe-ai-action.test.ts > describeAiAction > prompt answers are worded from the KIND of the prompt, never guessed from the ids (task 4.3b) > SelectEffectTarget with every id redacted by the server (targets in i
+AssertionError: expected '🤖 AI kích hoạt hiệu ứng trigger' to be '🤖 AI chọn mục tiêu cho hiệu ứng' // Object.is equality
+ FAIL  src/debug/describe-ai-action.test.ts > describeAiAction > prompt answers are worded from the KIND of the prompt, never guessed from the ids (task 4.3b) > TriggerActivation with targets: the trigger sentence plus the targets
+AssertionError: expected '🤖 AI bỏ «p0-7» xuống mộ' to be '🤖 AI kích hoạt hiệu ứng trigger, mục…' // Object.is equality
+ FAIL  src/debug/describe-ai-action.test.ts > describeAiAction > prompt answers are worded from the KIND of the prompt, never guessed from the ids (task 4.3b) > an unknown or missing kind gets a neutral sentence (no guess from the
+AssertionError: expected '🤖 AI bỏ «p1-1» xuống mộ' to be '🤖 AI trả lời lựa chọn: «p1-1»' // Object.is equality
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes FieldSpellSet
+AssertionError: expected 'Event không rõ: {"type":"FieldSpellSe…' to be 'P1 úp 1 lá vào ô Môi trường' // Object.is equality
+ FAIL  src/debug/describe-event.test.ts > describeEvent > describes FieldSpellDestroyed
+AssertionError: expected 'Event không rõ: {"type":"FieldSpellDe…' to be 'P1 mất lá Môi trường Name(SMP-113) do…' // Object.is equality
+ FAIL  src/debug/describe-event.test.ts > describeEvent > a Field Spell replaced by a new one has its own sentence; other graveyard moves keep theirs (task 4.3b)
+AssertionError: expected 'Name(SMP-113) của P0 vào mộ' to be 'Lá Môi trường Name(SMP-113) của P0 bị…' // Object.is equality
+ FAIL  src/debug/describe-event.test.ts > describeEvent > the Field Spell Set line never names the card (the event has no definitionId)
+AssertionError: expected 'Event không rõ: {"type":"FieldSpellSe…' not to contain 'p0-30'
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > FieldSpellSet → fieldSet
+AssertionError: expected undefined to be 'fieldSet' // Object.is equality
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > FieldSpellDestroyed → fieldDestroy
+AssertionError: expected undefined to be 'fieldDestroy' // Object.is equality
+ FAIL  src/duel/animation-queue.test.ts > stepsFor > never puts a hidden card name into a step (captions come from the injected describer only)
+AssertionError: expected '[{"kind":"draw","durationMs":450,"tex…' not to contain 'definitionId'
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — Field Zone (task 4.3b) > Set / destroyed steps carry the side and the card, no zone index and never a definitionId
+AssertionError: expected [ …(2) ] to deeply equal [ { kind: 'fieldSet', …(4) }, …(1) ]
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — Field Zone (task 4.3b) > a Field Spell replaced by a new one (CardSentToGraveyard from the FieldZone) is its own step
+AssertionError: expected [ { kind: 'toGraveyard', …(4) } ] to deeply equal [ { kind: 'fieldReplace', …(4) } ]
+ FAIL  src/duel/animation-queue.test.ts > stepsFor — Field Zone (task 4.3b) > the three kinds have a duration
+TypeError: actual value must be number or bigint, received "undefined"
+ FAIL  src/duel/animation-queue.test.ts > segmentsFor — the AI label gets the prompt kind (task 4.3b) > passes promptKind of each AI step to the describer
+AssertionError: expected [ undefined, undefined ] to deeply equal [ 'SelectEffectTarget', undefined ]
+ FAIL  src/duel/detail-text.test.ts > formatDetail > a Field / Continuous card in force says so instead of a battle position (task 4.3b)
+AssertionError: p0-30: expected 'Thảo Nguyên Lộng Gió\nPhép\nThế công\…' to contain 'Đang có hiệu lực trên sân'
+ FAIL  src/duel/interaction.field.test.ts > fieldZoneAt > is true inside the Field Zone of that side only
+TypeError: (0 , fieldZoneAt) is not a function
+ FAIL  src/duel/interaction.field.test.ts > a Field Spell dragged from the hand (task 4.3b) > highlights my Field Zone and nothing else as a drop zone
+AssertionError: expected [ …(5) ] to deeply equal [ { x: 310, y: 402, w: 84, h: 104 } ]
+ FAIL  src/duel/interaction.field.test.ts > a Field Spell dragged from the hand (task 4.3b) > dropped on my Field Zone: a menu "Kích hoạt" / "Úp"
+AssertionError: expected 'idle' to be 'choosing-option' // Object.is equality
+ FAIL  src/duel/interaction.field.test.ts > a Field Spell dragged from the hand (task 4.3b) > "Kích hoạt" sends the listed activation; "Úp" sends the listed Set (zoneIndex 0)
+ FAIL  src/duel/interaction.field.test.ts > a Field Spell dragged from the hand (task 4.3b) > only the Set is listed → dropping sends it at once; nothing listed → the card is not draggable
+AssertionError: expected [] to deeply equal [ { type: 'SetSpellTrap', …(1) } ]
+ FAIL  src/duel/interaction.field.test.ts > a Field Spell dragged from the hand (task 4.3b) > dropped on a Spell/Trap Zone (zone 0 too), a Monster Zone or the opponent Field Zone: nothing is sent
+AssertionError: expected 'choosing-option' to be 'idle' // Object.is equality
+ FAIL  src/duel/interaction.field.test.ts > a Set Field Spell (task 4.3b, C13) > a tap activates it at once with the listed action (no dialog)
+AssertionError: expected [] to deeply equal [ { type: 'ActivateEffect', …(1) } ]
+ FAIL  src/duel/interaction.field.test.ts > a Set Field Spell (task 4.3b, C13) > a second Field Spell dropped on my occupied Field Zone still offers "Kích hoạt" / "Úp" (it replaces mine)
+AssertionError: expected [] to deeply equal [ 'Kích hoạt', 'Úp' ]
+ FAIL  src/duel/layout.hit-test.test.ts > selection bar hit areas (task 4.3b) > a point on the turn / phase line is not a Confirm / Cancel press, and the buttons are not on that line
+TypeError: Cannot read properties of undefined (reading 'x')
+ FAIL  src/duel/layout.test.ts > selection bar and graveyard picker never cover the turn / phase line (task 4.3b, debt of 4.2d) > the phase panel is split into the turn/phase line (top) and the bar under it
+TypeError: Cannot read properties of undefined (reading 'x')
+ FAIL  src/duel/layout.test.ts > selection bar and graveyard picker never cover the turn / phase line (task 4.3b, debt of 4.2d) > hint, confirm and cancel sit inside the bar, apart from each other and off the turn/phase line
+TypeError: Cannot read properties of undefined (reading 'x')
+ FAIL  src/duel/layout.test.ts > selection bar and graveyard picker never cover the turn / phase line (task 4.3b, debt of 4.2d) > the graveyard picker (1..12 cards) stays above the phase panel and inside the frame
+TypeError: Cannot read properties of undefined (reading 'x')
+ FAIL  src/duel/log-entries.test.ts > category tables > event FieldSpellSet -> field
+ FAIL  src/duel/log-entries.test.ts > category tables > event FieldSpellDestroyed -> field
+ FAIL  src/duel/log-entries.test.ts > entriesFor — the AI header gets the prompt kind (task 4.3b) > passes promptKind to the describer, in entriesFor and in logLinesFor alike
+AssertionError: expected [ 'AI:ResolvePendingPrompt:-', …(2) ] to deeply equal [ …(3) ]
+ FAIL  src/duel/presenter.field.test.ts > present — the card in the Field Zone (task 4.3b) > my Set Field Spell: face-down, upright, known to me, and tappable only when the server lists its activation
+AssertionError: expected { id: 'p0-30', side: 'self', …(11) } to match object { zone: 'field', faceDown: true, …(4) }
+ FAIL  src/duel/presenter.field.test.ts > present — the card in the Field Zone (task 4.3b) > the opponent's Set Field card is a nameless card back: nothing about it is in the model
+AssertionError: expected { id: 'p1-30', side: 'opp', …(11) } to match object { zone: 'field', faceDown: true, …(5) }
+ FAIL  src/duel/presenter.field.test.ts > present — the card in the Field Zone (task 4.3b) > defence in depth: a face-down opponent Field card sent "visible" by mistake is still drawn nameless
+AssertionError: expected { id: 'p1-30', side: 'opp', …(11) } to match object { faceDown: true, label: null, …(2) }
+ FAIL  src/duel/presenter.field.test.ts > present — fieldCard (which hand cards go to the Field Zone) > is true for a Field Spell the viewer knows, false for every other card
+AssertionError: expected undefined to be true // Object.is equality
+ FAIL  src/duel/presenter.field.test.ts > present — the "in force" mark (active) > marks face-up Field / Continuous Spell / Continuous Trap cards resting on the field, on both sides
+AssertionError: expected [] to deeply equal [ 'p0-31', 'p0-32', 'p0-30', 'p1-30' ]
+ FAIL  src/duel/presenter.field.test.ts > present — the "in force" mark (active) > never marks a face-down card, a hand card, a monster or a hidden card
+AssertionError: expected undefined to be false // Object.is equality
+ FAIL  src/duel/presenter.field.test.ts > present — the "in force" mark (active) > a staying card whose activation link is still on the chain is not in force yet
+AssertionError: expected undefined to be false // Object.is equality
+ FAIL  src/duel/presenter.field.test.ts > present — the "in force" mark (active) > the detail panel of a card in force says so
+AssertionError: expected undefined to be true // Object.is equality
+ FAIL  src/duel/presenter.field.test.ts > chain banner in a reaction window that already has links (task 4.3b, debt of 3.8) > once a link is on the chain it says "chain of N links" (and names the top card), not "the opponent attac
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+ FAIL  src/duel/presenter.field.test.ts > chain banner in a reaction window that already has links (task 4.3b, debt of 3.8) > a Summon reaction window with a link: the same
+AssertionError: expected 'Đối thủ triệu hồi — chạm lá úp sáng v…' to be 'Chuỗi 1 mắt xích (trên cùng: Bẫy Phản…' // Object.is equality
+ Test Files  9 failed | 26 passed (35)
+      Tests  41 failed | 593 passed (634)

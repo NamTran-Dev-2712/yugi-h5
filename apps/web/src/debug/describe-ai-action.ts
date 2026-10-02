@@ -10,7 +10,15 @@ export interface DescribeAiContext {
  * One readable line for an action the SERVER played for the AI seat. Exhaustive on purpose: a new player action
  * is a compile error until it is worded. Only ids the person already sees in the events are printed.
  */
-export function describeAiAction(action: PlayerAction, ctx: DescribeAiContext): string {
+export function describeAiAction(
+  action: PlayerAction,
+  ctx: DescribeAiContext,
+  /**
+   * Task 4.3b: `AiActionView.promptKind` — the kind of the prompt a `ResolvePendingPrompt` answered, as the server sent
+   * it. The sentence is chosen from it, never guessed from the ids or the prompt id text.
+   */
+  promptKind?: string,
+): string {
   const label = ctx.instanceLabel;
   switch (action.type) {
     case 'EndPhase':
@@ -45,12 +53,24 @@ export function describeAiAction(action: PlayerAction, ctx: DescribeAiContext): 
             attacker: label(attackerInstanceId),
           });
     }
-    case 'ResolvePendingPrompt':
-      // Task 3.4b: the AI also answers trigger prompts (accept with no ids / decline). A choice of ids is still worded
-      // as the hand-limit discard (the only kind of answer with ids the card pool reaches over HTTP today).
+    case 'ResolvePendingPrompt': {
+      // `decline` only answers a TriggerActivation prompt (engine rule), so it needs no kind.
       if (action.payload.decline === true) return t('ai.declineTrigger');
-      if (action.payload.cardInstanceIds.length === 0) return t('ai.acceptTrigger');
-      return t('ai.discard', { cards: action.payload.cardInstanceIds.map(label).join(', ') });
+      // The server may have removed ids still hidden from the viewer (the AI's hand): then no card is named.
+      const ids = action.payload.cardInstanceIds;
+      const cards = ids.map(label).join(', ');
+      switch (promptKind) {
+        case 'DiscardToHandLimit':
+          return t('ai.discard', { cards });
+        case 'SelectEffectTarget':
+          return ids.length === 0 ? t('ai.chooseTargetHidden') : t('ai.chooseTarget', { cards });
+        case 'TriggerActivation':
+          return ids.length === 0 ? t('ai.acceptTrigger') : t('ai.acceptTriggerTargets', { cards });
+        default:
+          // An unknown / missing kind (an older server, a future prompt): a neutral sentence, no guess.
+          return ids.length === 0 ? t('ai.answerPromptNone') : t('ai.answerPrompt', { cards });
+      }
+    }
     case 'Surrender':
       return t('ai.surrender');
     case 'SetSpellTrap':

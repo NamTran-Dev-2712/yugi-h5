@@ -1,0 +1,41 @@
+KILLED   FieldSpellSet forwarded WITH a definitionId (leak)
+KILLED   FieldSpellSet dropped (still engine-only)
+KILLED   FieldSpellDestroyed dropped
+KILLED   CardSentToGraveyard from the FieldZone dropped
+KILLED   backrowView shows a face-down Field Spell to the opponent
+KILLED   fieldZone never sent
+KILLED   oracle: a FieldSpellSet with a definitionId not flagged   (chạy lại riêng: lần đầu MISSING vì formatter xuống dòng hằng SET_EVENT_TYPES, đã sửa mẫu thay thế)
+KILLED   oracle: does not look in the Field Zone
+KILLED   aiActions never carry promptKind
+KILLED   promptKind hard-coded to the discard prompt
+KILLED   FIELD_DEMO_DECK without the Continuous Trap
+KILLED   FIELD_DEMO_DECK cannot destroy a Field Spell
+KILLED   FIELD_DEMO_DECK has 39 cards
+KILLED   field-set-real Sets the Field Spell with zoneIndex 1
+KILLED   continuous-real-2 without the Set Continuous Trap
+KILLED   a Field Spell is dropped like any Spell (Spell/Trap Zone 0)
+KILLED   a Field Spell is dropped on the OPPONENT Field Zone
+KILLED   any Spell may be dropped on the Field Zone
+KILLED   tapping my Set Field Spell does nothing
+KILLED   dragging a Field Spell highlights the Spell/Trap Zones
+KILLED   fieldZoneAt tests the deck rect
+KILLED   my Set Field Spell is never outlined as activatable
+KILLED   the "in force" mark on a face-down card
+KILLED   the "in force" mark never shown
+KILLED   the "in force" mark on every face-up Spell/Trap (Equip, a waiting Trap)
+KILLED   every Spell is a Field card
+KILLED   chain banner still says "the opponent attacks" once a link is on the chain
+KILLED   a replaced Field Spell animates as a plain graveyard move
+KILLED   FieldSpellSet animates as a destruction
+KILLED   the AI label of an animation ignores promptKind
+KILLED   Field Zone events logged as combat
+KILLED   the log header of an AI action ignores promptKind
+KILLED   the debug log line of an AI action ignores promptKind
+KILLED   a replaced Field Spell is worded as a used card
+KILLED   an AI target answer is worded "bỏ … xuống mộ" (the 4.2d bug)
+KILLED   an unknown prompt kind is guessed from the ids
+KILLED   the selection bar covers the turn / phase line again
+KILLED   the graveyard picker overlaps the phase panel
+KILLED   the detail panel never says "in force"
+
+39/39 mutants killed (lần đầu 38/39 + 1 MISSING, xem dòng oracle ở trên)

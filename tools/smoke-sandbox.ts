@@ -7,8 +7,17 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { call, BASE, type ViewV } from './lib/http.ts';
 
-const NAMES = ['tribute-summon', 'attack-defense', 'chain-basic'];
-const OUT = 'docs/ai/review-packets/task-2.11-smoke.md';
+const NAMES = [
+  'tribute-summon',
+  'attack-defense',
+  'chain-basic',
+  // Task 4.3b: the Field Zone / staying-card scenarios (real cards SMP-113 / 114 / 115 / 208).
+  'field-real',
+  'field-set-real',
+  'continuous-real-2',
+  'normal-set-real',
+];
+const OUT = process.env.OUT ?? 'docs/ai/review-packets/task-2.11-smoke.md';
 const md: string[] = [
   '# Task 2.11 — Smoke Duel Sandbox (HTTP thật)',
   '',

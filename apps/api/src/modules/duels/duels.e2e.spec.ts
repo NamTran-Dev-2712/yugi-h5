@@ -6,6 +6,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { createRng, nextInt } from '@yugi/game-engine';
 import {
+  FIELD_DEMO_DECK,
   MECH_DEMO_DECK,
   PlayerActionSchema,
   SAMPLE_CARDS,
@@ -811,6 +812,173 @@ describe('task 4.2 mechanics over HTTP (task 4.2d gate)', () => {
     expect(
       (seen.get('MonsterSpecialSummoned') ?? 0) + (seen.get('CardEquipped') ?? 0),
     ).toBeGreaterThan(0);
+  });
+});
+
+describe('Field Zone and staying cards over HTTP (task 4.3b gate)', () => {
+  const seen = new Map<string, number>();
+  const observed = { faceUpField: 0, hiddenFieldForOpponent: 0, stayingCard: 0 };
+  const rawState = async (duelId: string) => (await app.get(DuelService).getDuel(duelId)).state;
+  const fieldIds = new Set(
+    SAMPLE_CARDS.filter((c) => c.kind === 'Spell' && c.subType === 'Field').map((c) => c.id),
+  );
+
+  it.each([1, 2, 3])(
+    'fuzz over HTTP with FIELD_DEMO_DECK, run %i: Set / activate a Field Spell, Continuous cards that stay — no leak to either viewer',
+    async (run) => {
+      const d = await newDuel({ deck: [...FIELD_DEMO_DECK] });
+      const problems: string[] = [];
+      let rng = createRng(`http-field-${run}`);
+      for (let step = 0; step < 160; step++) {
+        const state = await rawState(d.duelId);
+        if (state.winnerIndex !== null) break;
+        const actor = (state.pendingPrompt?.playerIndex ??
+          state.chainWindow?.priorityPlayer ??
+          state.turnPlayerIndex) as 0 | 1;
+        const legal = ((await legalOf(d, actor)) as PlayerAction[]).filter(
+          (a) => a.type !== 'Surrender',
+        );
+        // Favour Spell/Trap actions, and among them the ones on a Field Spell of the hand (Set or activate).
+        const spells = legal.filter(
+          (a) => a.type === 'SetSpellTrap' || a.type === 'ActivateEffect',
+        );
+        const onField = spells.filter((a) => {
+          const id = (a.payload as { cardInstanceId: string }).cardInstanceId;
+          const card = state.players[actor].hand.find((c) => c.instanceId === id);
+          return card !== undefined && fieldIds.has(card.definitionId);
+        });
+        const [roll, r1] = nextInt(rng, 100);
+        const pool =
+          onField.length > 0 && roll < 40
+            ? onField
+            : spells.length > 0 && roll < 70
+              ? spells
+              : legal;
+        const [i, r2] = nextInt(r1, pool.length);
+        rng = r2;
+        const action = pool[i]!;
+        expect(PlayerActionSchema.safeParse(action).success).toBe(true);
+        const res = await http()
+          .post(`/duels/${d.duelId}/actions`)
+          .set(d.guest.auth)
+          .send({ playerIndex: actor, action })
+          .expect(200);
+        for (const e of res.body.events as { type: string; from?: string }[]) {
+          seen.set(e.type, (seen.get(e.type) ?? 0) + 1);
+          if (e.type === 'FieldSpellSet') expect(e).not.toHaveProperty('definitionId');
+        }
+        const after = await rawState(d.duelId);
+        for (const viewer of [0, 1] as const) {
+          const got = (
+            await http().get(`/duels/${d.duelId}?viewer=${viewer}`).set(d.guest.auth).expect(200)
+          ).body as { view: StateView };
+          const body = viewer === actor ? { got, posted: res.body } : { got };
+          for (const v of findLeaks(after, viewer, body)) {
+            problems.push(`${run}.${step} ${action.type} viewer ${viewer}: ${v.path} ${v.reason}`);
+          }
+          const theirs = got.view.players[viewer === 0 ? 1 : 0].board;
+          if (theirs.fieldZone?.hidden === true) observed.hiddenFieldForOpponent++;
+          if (theirs.fieldZone?.hidden === false) observed.faceUpField++;
+          if (theirs.spellTrapZones.some((c) => c !== null && !c.hidden)) observed.stayingCard++;
+        }
+      }
+      expect(problems).toEqual([]);
+    },
+    90_000,
+  );
+
+  it('the runs above really Set and activated Field Spells and kept staying cards face-up', () => {
+    console.info('[http field]', Object.fromEntries(seen), observed);
+    expect(seen.get('FieldSpellSet') ?? 0).toBeGreaterThan(0);
+    expect(observed.hiddenFieldForOpponent).toBeGreaterThan(0);
+    expect(observed.faceUpField).toBeGreaterThan(0);
+    expect(observed.stayingCard).toBeGreaterThan(0);
+  });
+
+  it('golden: Set a Field Spell (zoneIndex 0), activate it from the Field Zone, replace it with a second one', async () => {
+    const d = await newDuel({ deck: [...FIELD_DEMO_DECK] });
+    // The deal is shuffled: make seat 0's first two opening cards SMP-113 (same instance ids), as the 3.2b golden does.
+    const store = app.get<DuelStore>(DUEL_STORE);
+    const session = (await store.get(d.duelId))!;
+    const [p0, p1] = session.state.players;
+    const [h0, h1, ...rest] = p0.hand;
+    const first = h0!.instanceId;
+    const second = h1!.instanceId;
+    await store.save({
+      ...session,
+      state: {
+        ...session.state,
+        players: [
+          {
+            ...p0,
+            hand: [
+              { ...h0!, definitionId: 'SMP-113' },
+              { ...h1!, definitionId: 'SMP-113' },
+              ...rest,
+            ],
+          },
+          p1,
+        ],
+      },
+    });
+    const problems: string[] = [];
+    const send = async (type: string, extra: object = {}) => {
+      const res = await act(d, 0, type, extra).expect(200);
+      const state = await rawState(d.duelId);
+      for (const viewer of [0, 1] as const) {
+        const got = (
+          await http().get(`/duels/${d.duelId}?viewer=${viewer}`).set(d.guest.auth).expect(200)
+        ).body;
+        const body = viewer === 0 ? { got, posted: res.body } : { got };
+        for (const v of findLeaks(state, viewer, body)) {
+          problems.push(`${type} viewer ${viewer}: ${v.path} ${v.reason}`);
+        }
+      }
+      return res.body as { view: StateView; events: Record<string, unknown>[] };
+    };
+    let phase = (await send('EndPhase')).view.phase;
+    while (phase !== 'Main1') phase = (await send('EndPhase')).view.phase;
+
+    // The Field Zone has one slot: any other zoneIndex is refused by the engine (409), zoneIndex 0 is accepted.
+    await act(d, 0, 'SetSpellTrap', { cardInstanceId: first, zoneIndex: 3 }).expect(409);
+    const set = await send('SetSpellTrap', { cardInstanceId: first, zoneIndex: 0 });
+    expect(set.events).toEqual([{ type: 'FieldSpellSet', playerIndex: 0, instanceId: first }]);
+    const opp = await viewOf(d, 1);
+    expect(opp.players[0].board.fieldZone).toEqual({
+      hidden: true,
+      instanceId: first,
+      ownerIndex: 0,
+    });
+    expect(opp.players[0].board.spellTrapZones.every((c) => c === null)).toBe(true);
+
+    const legal = (await legalOf(d, 0)) as PlayerAction[];
+    const activate = (id: string) =>
+      legal.find((a) => a.type === 'ActivateEffect' && a.payload.cardInstanceId === id)!;
+    const used = await send('ActivateEffect', activate(first).payload);
+    expect(used.events.map((e) => e['type'])).toEqual([
+      'EffectActivated',
+      'ChainLinkAdded',
+      'EffectResolved',
+      'ChainResolved',
+    ]);
+    expect((await viewOf(d, 1)).players[0].board.fieldZone).toMatchObject({
+      hidden: false,
+      definitionId: 'SMP-113',
+      position: 'Attack',
+    });
+
+    const replaced = await send('ActivateEffect', activate(second).payload);
+    expect(replaced.events).toContainEqual({
+      type: 'CardSentToGraveyard',
+      ownerIndex: 0,
+      instanceId: first,
+      definitionId: 'SMP-113',
+      from: 'FieldZone',
+    });
+    const end = await viewOf(d, 1);
+    expect(end.players[0].board.fieldZone).toMatchObject({ instanceId: second, hidden: false });
+    expect(end.players[0].graveyard.map((c) => c.instanceId)).toEqual([first]);
+    expect(problems).toEqual([]);
   });
 });
 

@@ -150,6 +150,10 @@ export const strings = {
   get pickerTitle() {
     return t('duel.pickerTitle');
   },
+  /** Task 4.3b: caption of the (empty) Field Zone. */
+  get fieldZone() {
+    return t('duel.fieldZone');
+  },
   get confirm() {
     return t('duel.confirm');
   },

@@ -116,6 +116,16 @@ export interface SpellTrapSetEventView {
   readonly zoneIndex: number;
 }
 
+/**
+ * Task 4.3 (on the wire since 4.3b): a Field Spell was Set face-down in `playerIndex`'s Field Zone. No `zoneIndex` (one
+ * slot per player) and no `definitionId`, for both viewers.
+ */
+export interface FieldSpellSetEventView {
+  readonly type: 'FieldSpellSet';
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+}
+
 /** Activating a card reveals it, so `definitionId` is public. */
 export interface EffectActivatedEventView {
   readonly type: 'EffectActivated';
@@ -135,14 +145,16 @@ export interface EffectResolvedEventView {
 
 /**
  * A used (already revealed) Spell/Trap went to its owner's graveyard: `Hand` = activated from the hand, `SpellTrapZone`
- * = a Set card that was flipped face-up to activate (task 3.4).
+ * = a Set card that was flipped face-up to activate (task 3.4). `FieldZone` (task 4.3, on the wire since 4.3b) = a Field
+ * Spell replaced by its controller's new one: sent, not destroyed; the graveyard is public, so the `definitionId` is
+ * shown even if the replaced card was still face-down.
  */
 export interface CardSentToGraveyardEventView {
   readonly type: 'CardSentToGraveyard';
   readonly ownerIndex: PlayerIndex;
   readonly instanceId: string;
   readonly definitionId: string;
-  readonly from: 'Hand' | 'SpellTrapZone';
+  readonly from: 'Hand' | 'SpellTrapZone' | 'FieldZone';
 }
 
 export interface LifePointsRecoveredEventView {
@@ -164,6 +176,17 @@ export interface SpellTrapDestroyedEventView {
   readonly instanceId: string;
   readonly definitionId: string;
   readonly zoneIndex: number;
+}
+
+/**
+ * Task 4.3 (on the wire since 4.3b): the card in `ownerIndex`'s Field Zone was destroyed by an effect and went to the
+ * (public) graveyard, so `definitionId` is shown even if it was Set.
+ */
+export interface FieldSpellDestroyedEventView {
+  readonly type: 'FieldSpellDestroyed';
+  readonly ownerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
 }
 
 /** Chain (task 3.3, on the wire since 3.4b). The linked card was revealed by EffectActivated: public. */
@@ -248,12 +271,14 @@ export type EventView =
   | MonsterDestroyedEventView
   | DamageDealtEventView
   | SpellTrapSetEventView
+  | FieldSpellSetEventView
   | EffectActivatedEventView
   | EffectResolvedEventView
   | CardSentToGraveyardEventView
   | LifePointsRecoveredEventView
   | LifePointsPaidEventView
   | SpellTrapDestroyedEventView
+  | FieldSpellDestroyedEventView
   | ChainLinkAddedEventView
   | ChainLinkFizzledEventView
   | ChainResolvedEventView

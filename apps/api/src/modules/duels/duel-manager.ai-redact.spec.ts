@@ -98,4 +98,32 @@ describe('AI hand targets never reach the human (task 4.2d)', () => {
     expect(r.views[0].chain[0]?.targetInstanceIds).toEqual([]);
     expect(findLeaks(state, 0, human)).toEqual([]);
   });
+
+  it('task 4.3b: an AI prompt answer carries the kind of the prompt it answered; other AI actions carry none', async () => {
+    const manager = new DuelManager({
+      store: new InMemoryDuelStore(),
+      cardDefinitions: lookup,
+      newDuelId: () => 'duel-1',
+    });
+    const r = await manager.createDuelFromState({
+      state: scenarioToState(
+        scenario,
+        { matchId: 'duel-1', playerIds: ['owner', 'owner:ai'] },
+        lookup,
+      ),
+      seed: scenario.seed,
+      mode: 'solo-vs-ai',
+      ownerId: 'owner',
+      aiSeat: 1,
+    });
+    const steps = r.aiActions ?? [];
+    expect(steps.length).toBeGreaterThan(1);
+    for (const step of steps) {
+      if (step.action.type === 'ResolvePendingPrompt') {
+        expect(step.promptKind).toBe('TriggerActivation');
+      } else {
+        expect(step).not.toHaveProperty('promptKind');
+      }
+    }
+  });
 });

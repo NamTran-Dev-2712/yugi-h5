@@ -30,6 +30,8 @@ export interface BoardLayout {
   readonly self: SideLayout;
   readonly opp: SideLayout;
   readonly phase: Rect;
+  /** Top line of the phase panel: the turn / phase text. Nothing is ever drawn over it (task 4.3b). */
+  readonly phaseLine: Rect;
   readonly detail: Rect;
   readonly log: Rect;
   readonly thinking: Rect;
@@ -38,8 +40,16 @@ export interface BoardLayout {
     readonly endTurn: Rect;
     readonly surrender: Rect;
   };
-  /** Confirm / cancel while choosing tributes or cards to discard (drawn over the phase panel). */
-  readonly overlay: { readonly confirm: Rect; readonly cancel: Rect; readonly hint: Rect };
+  /**
+   * Confirm / cancel while choosing tributes, cards to discard, costs or targets. `bar` is the lower part of the phase
+   * panel (under `phaseLine`, where the note / chain banner normally is): the hint on the left, the buttons on the right.
+   */
+  readonly overlay: {
+    readonly bar: Rect;
+    readonly confirm: Rect;
+    readonly cancel: Rect;
+    readonly hint: Rect;
+  };
 }
 
 const { frame, card } = theme;
@@ -54,6 +64,18 @@ const ROW_X = BOARD_CENTER - ROW_W / 2;
 const SELF_ST_Y = 516;
 const SELF_MON_Y = 402;
 const SELF_HAND_Y = 628;
+
+// The phase panel between the two sides: a turn / phase line on top, the note / chain banner / selection bar under it.
+const PHASE_Y = 322;
+const PHASE_H = 76;
+const PHASE_LINE_H = 28;
+const BAR_Y = PHASE_Y + PHASE_LINE_H;
+const BAR_H = PHASE_H - PHASE_LINE_H;
+const BAR_PAD = 8;
+const BAR_BUTTON_W = 150;
+const BAR_BUTTON_H = 40;
+const BAR_BUTTON_GAP = 10;
+const BAR_BUTTON_INSET = (BAR_H - BAR_BUTTON_H) / 2;
 
 function mirrorY(y: number, h: number): number {
   return frame.height - y - h;
@@ -98,7 +120,8 @@ export function computeLayout(): BoardLayout {
     frame: { x: 0, y: 0, w: frame.width, h: frame.height },
     self: sideLayout('self'),
     opp: sideLayout('opp'),
-    phase: { x: BOARD_LEFT, y: 322, w: BOARD_RIGHT - BOARD_LEFT, h: 76 },
+    phase: { x: BOARD_LEFT, y: PHASE_Y, w: BOARD_RIGHT - BOARD_LEFT, h: PHASE_H },
+    phaseLine: { x: BOARD_LEFT, y: PHASE_Y, w: BOARD_RIGHT - BOARD_LEFT, h: PHASE_LINE_H },
     detail: { x: 16, y: 120, w: 228, h: 480 },
     log: { x: 1032, y: 16, w: 232, h: 440 },
     thinking: { x: BOARD_LEFT, y: 100, w: BOARD_RIGHT - BOARD_LEFT, h: 0 },
@@ -108,9 +131,25 @@ export function computeLayout(): BoardLayout {
       surrender: { x: 1032, y: 640, w: 232, h: 56 },
     },
     overlay: {
-      hint: { x: BOARD_LEFT, y: 322, w: BOARD_RIGHT - BOARD_LEFT, h: 24 },
-      confirm: { x: BOARD_CENTER - 160, y: 350, w: 150, h: 42 },
-      cancel: { x: BOARD_CENTER + 10, y: 350, w: 150, h: 42 },
+      bar: { x: BOARD_LEFT, y: BAR_Y, w: BOARD_RIGHT - BOARD_LEFT, h: BAR_H },
+      hint: {
+        x: BOARD_LEFT + BAR_PAD,
+        y: BAR_Y + BAR_BUTTON_INSET,
+        w: BOARD_RIGHT - BOARD_LEFT - 3 * BAR_PAD - 2 * BAR_BUTTON_W - BAR_BUTTON_GAP,
+        h: BAR_BUTTON_H,
+      },
+      confirm: {
+        x: BOARD_RIGHT - BAR_PAD - 2 * BAR_BUTTON_W - BAR_BUTTON_GAP,
+        y: BAR_Y + BAR_BUTTON_INSET,
+        w: BAR_BUTTON_W,
+        h: BAR_BUTTON_H,
+      },
+      cancel: {
+        x: BOARD_RIGHT - BAR_PAD - BAR_BUTTON_W,
+        y: BAR_Y + BAR_BUTTON_INSET,
+        w: BAR_BUTTON_W,
+        h: BAR_BUTTON_H,
+      },
     },
   };
 }
@@ -137,6 +176,11 @@ export function zoneIndexAt(layout: BoardLayout, side: Side, p: Point): number |
 export function spellZoneIndexAt(layout: BoardLayout, side: Side, p: Point): number | null {
   const i = layout[side].spellTrapZones.findIndex((r) => pointInRect(r, p));
   return i === -1 ? null : i;
+}
+
+/** Task 4.3b: `p` is inside the Field Zone of `side` (one slot per side, so no index). */
+export function fieldZoneAt(layout: BoardLayout, side: Side, p: Point): boolean {
+  return pointInRect(layout[side].fieldZone, p);
 }
 
 const OPTION_W = 160;
@@ -230,8 +274,8 @@ export function staticRects(layout: BoardLayout): { name: string; rect: Rect }[]
   return out;
 }
 
-/** Top edge of the graveyard picker row: just above the confirm bar's hint line. */
-const PICKER_BOTTOM = 322 - 10;
+/** Bottom edge of the graveyard picker row: its panel ends just above the phase panel (the turn / phase line). */
+const PICKER_BOTTOM = PHASE_Y - 10;
 
 /**
  * Task 4.2d: slots for `count` cards of the graveyard picker (effect targets that are not on the board), a centred row

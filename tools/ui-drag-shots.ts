@@ -119,7 +119,7 @@ async function open(fixture: string): Promise<void> {
 const selfZone = (i: number): P => [406 + i * 96 + 42, 454];
 const oppZone = (i: number): P => [406 + i * 96 + 42, 266];
 const OPP_LP: P = [130, 50];
-const CONFIRM: P = [555, 371];
+const CONFIRM: P = [777, 374]; // task 4.3b: the confirm bar moved under the turn/phase line (layout.overlay.confirm 702,354 150x40)
 
 try {
   await cdp('Page.enable');

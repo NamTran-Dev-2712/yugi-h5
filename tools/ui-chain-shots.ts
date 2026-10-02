@@ -121,12 +121,12 @@ async function open(fixture: string, lang = 'vi'): Promise<void> {
 }
 
 // layout.ts: zone rows start at x=406, step 96, zone 84x104; own Spell/Trap row y=516, own monster row y=402,
-// opponent monster row y=214. "Phase tiếp theo" / "Bỏ qua" button 1032,476 232x56; Confirm 480,350 / Cancel 650,350.
+// opponent monster row y=214. "Phase tiếp theo" / "Bỏ qua" button 1032,476 232x56; Confirm 702,354 / Cancel 862,354 (task 4.3b).
 const selfSpellZone = (i: number): P => [406 + i * 96 + 42, 568];
 const selfZone = (i: number): P => [406 + i * 96 + 42, 454];
 const oppZone = (i: number): P => [406 + i * 96 + 42, 266];
 const PASS: P = [1148, 504];
-const CONFIRM: P = [555, 371];
+const CONFIRM: P = [777, 374]; // task 4.3b: the confirm bar moved under the turn/phase line (layout.overlay.confirm 702,354 150x40)
 
 try {
   await cdp('Page.enable');

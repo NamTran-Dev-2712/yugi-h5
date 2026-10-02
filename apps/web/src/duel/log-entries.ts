@@ -51,6 +51,11 @@ export function categoryOfEvent(type: EventView['type']): LogCategory {
     case 'FlipSummoned':
     case 'CardEquipped':
       return 'field';
+    // Task 4.3b: everything that happens in the Field Zone is in the "Sân" group (the brief's choice; a Spell/Trap
+    // Zone card destroyed stays with the battle results above).
+    case 'FieldSpellSet':
+    case 'FieldSpellDestroyed':
+      return 'field';
     default: {
       const unhandled: never = type;
       throw new Error(`Event chưa có nhóm log: ${String(unhandled)}`);
@@ -92,7 +97,7 @@ export const errorEntry = (text: string): LogEntry => ({ text, category: 'error'
 export function entriesFor(
   response: ViewResponse,
   describe: (events: readonly EventView[], view: StateView) => readonly string[],
-  describeAi: (action: PlayerAction, view: StateView) => string,
+  describeAi: (action: PlayerAction, view: StateView, promptKind?: string) => string,
 ): LogEntry[] {
   const { events, view } = response;
   const ai = response.aiActions ?? [];
@@ -110,7 +115,7 @@ export function entriesFor(
   for (const step of ai) {
     if (step.eventsFrom > cursor) out.push(...eventEntries(cursor, step.eventsFrom));
     out.push({
-      text: describeAi(step.action, view),
+      text: describeAi(step.action, view, step.promptKind),
       category: categoryOfAiAction(step.action.type),
     });
     out.push(...eventEntries(step.eventsFrom, step.eventsTo));

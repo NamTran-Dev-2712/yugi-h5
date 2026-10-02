@@ -16,6 +16,7 @@ import {
 } from './legal-index';
 import { t } from '../i18n/i18n';
 import {
+  fieldZoneAt,
   hitTest,
   optionRects,
   pickerSlots,
@@ -215,6 +216,21 @@ function dropSpell(
 }
 
 /**
+ * Task 4.3b: a Field Spell from the hand dropped on MY Field Zone — the same two groups as a Spell/Trap Zone drop:
+ * "Activate" and "Set" (every Set the server lists for it: the Field Zone is one slot, so that is one action).
+ */
+function dropFieldSpell(cardId: string, point: Point, ctx: InteractionContext): Transition {
+  const viewer = ctx.view.viewerIndex;
+  const set = spellSetOptions(ctx.legalActions, viewer, cardId).map((o) => o.action);
+  const byEffect = activationsByEffect(ctx.legalActions, viewer, cardId);
+  const activate =
+    byEffect.length > 1
+      ? byEffect.map((actions, i) => ({ label: t('duel.activateEffectN', { n: i + 1 }), actions }))
+      : [{ label: strings.activateOption, actions: byEffect[0] ?? [] }];
+  return offer([...activate, { label: strings.setSpellOption, actions: set }], point, ctx);
+}
+
+/**
  * A tap on one of my Set cards (C13, no "Activate?" dialog): its listed activations grouped by effect. One effect sends
  * at once (or asks for its cost cards); several open the option menu, one entry per effect.
  */
@@ -295,6 +311,10 @@ function settle(ctx: InteractionContext, effects: InteractionEffect[]): Transiti
   };
 }
 
+/** The presenter marked this (known) card as a Field Spell: its place is the Field Zone (card data, not a rule). */
+const isFieldCard = (cardId: string, ctx: InteractionContext): boolean =>
+  ctx.model.cards.some((c) => c.id === cardId && c.fieldCard);
+
 function onDown(point: Point, ctx: InteractionContext): Transition {
   const hit = hitTest(ctx.layout, ctx.model, point);
   if (hit.kind !== 'card') return stay(IDLE);
@@ -314,8 +334,12 @@ function onDown(point: Point, ctx: InteractionContext): Transition {
       effects: [],
     };
   }
-  if (card.zone === 'spellTrap' && activations(ctx.legalActions, viewer, card.id).length > 0) {
-    // A Set card the server lets me activate (C13): a tap activates it; it never follows the pointer.
+  if (
+    (card.zone === 'spellTrap' || card.zone === 'field') &&
+    activations(ctx.legalActions, viewer, card.id).length > 0
+  ) {
+    // A Set card the server lets me activate (C13): a tap activates it; it never follows the pointer. Task 4.3b: the
+    // card in my Field Zone too.
     return {
       state: {
         kind: 'dragging-card',
@@ -366,11 +390,21 @@ function onUpDraggingCard(
 ): Transition {
   if (!state.moved) {
     const card = ctx.model.cards.find((c) => c.id === state.cardId);
-    if (card?.zone === 'spellTrap') return activateSetCard(card.id, point, ctx);
+    if (card?.zone === 'spellTrap' || card?.zone === 'field') {
+      return activateSetCard(card.id, point, ctx);
+    }
     // A click on a hand card: only one the server turned into a one-click answer (discard) does anything.
     return card?.action ? emit(card.action, ctx) : stay(IDLE);
   }
   if (!state.draggable) return toIdle(toast(strings.toastCardLocked));
+  // Task 4.3b: a Field Spell goes to my Field Zone and nowhere else (a Set of it carries zoneIndex 0, which must not be
+  // read as Spell/Trap Zone 0); any other card dropped on the Field Zone has no legal zone there.
+  if (isFieldCard(state.cardId, ctx)) {
+    return fieldZoneAt(ctx.layout, 'self', point)
+      ? dropFieldSpell(state.cardId, point, ctx)
+      : toIdle(toast(strings.toastNoZone));
+  }
+  if (fieldZoneAt(ctx.layout, 'self', point)) return toIdle(toast(strings.toastNoZone));
   const spellZone = spellZoneIndexAt(ctx.layout, 'self', point);
   if (spellZone !== null) return dropSpell(state.cardId, spellZone, point, ctx);
   const zone = zoneIndexAt(ctx.layout, 'self', point);
@@ -561,13 +595,17 @@ export function overlayFor(state: InteractionState, ctx: InteractionContext): Ov
       const monsterZones = summonOptions(ctx.legalActions, viewer, state.cardId).map(
         (o) => ctx.layout.self.monsterZones[o.zoneIndex]!,
       );
-      // An activation may be dropped on any of my Spell/Trap Zones; a Set only on the zones listed for it.
-      const spellZones =
-        activations(ctx.legalActions, viewer, state.cardId).length > 0
+      const canActivate = activations(ctx.legalActions, viewer, state.cardId).length > 0;
+      const sets = spellSetOptions(ctx.legalActions, viewer, state.cardId);
+      // Task 4.3b: a Field Spell has one drop zone, my Field Zone (when the server lists a Set or an activation of it).
+      // Any other card: an activation may be dropped on any of my Spell/Trap Zones; a Set only on the zones listed.
+      const spellZones = isFieldCard(state.cardId, ctx)
+        ? canActivate || sets.length > 0
+          ? [ctx.layout.self.fieldZone]
+          : []
+        : canActivate
           ? [...ctx.layout.self.spellTrapZones]
-          : spellSetOptions(ctx.legalActions, viewer, state.cardId).map(
-              (o) => ctx.layout.self.spellTrapZones[o.zoneIndex]!,
-            );
+          : sets.map((o) => ctx.layout.self.spellTrapZones[o.zoneIndex]!);
       return {
         ...EMPTY_OVERLAY,
         zones: [...monsterZones, ...spellZones],

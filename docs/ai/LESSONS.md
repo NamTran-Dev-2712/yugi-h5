@@ -30,6 +30,9 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   `pnpm exec prettier --write "packages/game-engine/src/__golden__/*.json"` rồi mới đọc `git diff` (ADR 063).
 - Thêm lá vào pool fuzz có thể làm test "checker bắt engine hỏng" bắt lỗi bằng **bất biến khác** (thông báo khác): thu hẹp
   phép phá cho đúng bất biến cần chứng minh, không nới regex (ADR 063).
+- Nhánh fuzz quá hiếm với nước đi ngẫu nhiên (vd phá lá Field **úp**): thêm variant riêng (deck + dòng rng riêng + `steer`
+  ưu tiên nước đi, chỉ ở test); không đổi deck/seed cũ, không nới oracle (ADR 064).
+- `ScenarioSchema` không có ô Field ⇒ scenario cần lá ở ô Môi trường phải bắt đầu từ tay + `script` (ADR 064).
 - Đổi shape một field (vd `name` → `{vi,en}`): template literal nhận object không làm `tsc` đỏ (`[object Object]`) ⇒ grep
   mọi nơi dùng (ADR 046, 055).
 
@@ -45,6 +48,10 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - Tránh thêm field top-level vào `GameState` (vỡ `scenario-to-state` ở api + golden cũ): đặt trên `CardInstance`,
   `ChainWindow` hoặc payload prompt (ADR 051, 052, 061).
 - Web: không thêm kind vào máy trạng thái tương tác; tái dùng `selecting-tribute` + `purpose` (ADR 048, 056, 062).
+- Dấu/nhãn hiển thị ở client phải đi theo điều server gửi (vd dấu "đang hiệu lực" ↔ `effectiveStats`), không tự suy
+  thời điểm theo luật; chỉ ảnh chạy thật mới lộ chỗ lệch ⇒ luôn mở ảnh đã chụp ra xem (ADR 064).
+- Client cần biết "loại gì" của một việc server làm (vd AI trả lời prompt nào) ⇒ server gửi kèm field công khai
+  (`AiActionView.promptKind`), client không đoán từ id/chuỗi (ADR 064).
 
 ## Quyết định của chủ dự án dễ bị làm ngược
 
@@ -54,4 +61,7 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - AI server không tự Set/kích hoạt Phép/Bẫy ngoài cửa sổ ưu tiên (ADR 048, 055).
 - Brief mâu thuẫn tài liệu đã duyệt (☑ trong `RULES-REVIEW-SHEET.md`) ⇒ theo tài liệu đã duyệt và ghi rõ chỗ lệch trong
   ADR (ADR 025); brief lệch luật chuẩn ⇒ hỏi chủ dự án trong phiên plan (ADR 049, 050, 052).
+- Cột duyệt `RULES-REVIEW-SHEET.md` có 3 ký hiệu: `☑` trần chỉ của chủ dự án; AI chỉ ghi "☑ (AI duyệt thay, …)" cho dòng
+  thuần `[RULE]` đủ 4 điều kiện, dòng `[ASSUMED]`/`[DECISION]`/`[GUESS]` phải hỏi ("☑ (chủ dự án chọn qua hộp thoại, …)");
+  `parity-board.md` vẫn tối đa 🟨 (ADR 064).
 - Số task thực tế lệch `MASTER-PLAN.md` gốc (P1, P2 đã đổi số nhiều lần) ⇒ tin `docs/ai/PROGRESS.md` + `docs/ai/progress/`.
