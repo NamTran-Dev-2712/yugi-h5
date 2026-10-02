@@ -140,6 +140,44 @@ describe('POST /dev/sandbox/duels (NODE_ENV=test)', () => {
     expect((res.body as CreateSoloResponse).view.phase).toBe('Battle');
   });
 
+  it.each([
+    ['negate-attack-real', 'SMP-201', 'AttackNegated'],
+    ['counter-summon-real', 'SMP-210', 'SummonNegated'],
+    ['counter-spell-real', 'SMP-209', 'ChainLinkNegated'],
+  ])(
+    'task 4.4b: %s loads with a window held by the caller; tapping the Set %s over HTTP returns %s',
+    async (name, trap, negated) => {
+      const auth = await guest();
+      const res = await load(auth, scenario(name));
+      expect(res.status).toBe(201);
+      const created = res.body as CreateSoloResponse;
+      expect(created).toMatchObject({ mode: 'solo-vs-ai', viewer: 0, aiSeat: 1 });
+      expect(created.view.chainWindow).toMatchObject({ priorityPlayer: 0 });
+      for (const a of created.legalActions) {
+        expect(PlayerActionSchema.safeParse(a).success).toBe(true);
+      }
+      expect(created.legalActions.some((a) => a.type === 'PassPriority')).toBe(true);
+      const set = created.view.players[0].board.spellTrapZones.find(
+        (c) => c !== null && !c.hidden && c.definitionId === trap,
+      );
+      const activate = created.legalActions.find(
+        (a) => a.type === 'ActivateEffect' && a.payload.cardInstanceId === set?.instanceId,
+      );
+      expect(activate, `${trap} is listed`).toBeDefined();
+      const done = await http()
+        .post(`/duels/${created.duelId}/actions`)
+        .set(auth)
+        .send({ playerIndex: 0, action: activate });
+      expect(done.status).toBe(200);
+      const types = (done.body.events as { type: string }[]).map((e) => e.type);
+      expect(types).toContain(negated);
+      // The AI seat's hand never shows, before or after.
+      for (const body of [created, done.body as CreateSoloResponse]) {
+        expect(body.view.players[1].hand.every((c) => c.hidden)).toBe(true);
+      }
+    },
+  );
+
   it('a refused script step is 409 with the step number', async () => {
     const auth = await guest();
     const body = {

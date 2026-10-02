@@ -93,13 +93,13 @@ export function toEventView(
     case 'CardSentToGraveyard':
       return event;
 
-    // Task 4.4 (engine-only until 4.4b): Counter Trap / Negate events are not on the wire yet — dropped for both
-    // viewers. They are classified PUBLIC in docs/design/event-visibility.md (no hidden card data); forwarding them
-    // needs the EventView types, the leak-oracle fuzz and the UI of task 4.4b.
+    // Task 4.4, forwarded since 4.4b: the negated card was revealed when it was activated and is in the public graveyard
+    // by the time the event is emitted, like the monster whose Summon was negated (it was face-up); `byInstanceId` is
+    // the answering card on the chain. AttackNegated carries ids only, like AttackDeclared (the target may be face-down).
     case 'ChainLinkNegated':
     case 'AttackNegated':
     case 'SummonNegated':
-      return null;
+      return event;
 
     default: {
       const unclassified: never = event;

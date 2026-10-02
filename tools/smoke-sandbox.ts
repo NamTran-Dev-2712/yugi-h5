@@ -16,7 +16,18 @@ const NAMES = [
   'field-set-real',
   'continuous-real-2',
   'normal-set-real',
+  // Task 4.4b: Counter Trap / Negate scenarios (real cards SMP-201 / 210 / 209). The AI seat moves first (or the script
+  // does), so they load with a reaction window held by the caller.
+  'negate-attack-real',
+  'counter-summon-real',
+  'counter-spell-real',
 ];
+/** Task 4.4b: scenario → the Negate event that tapping the listed Set card must return. */
+const NEGATES: Record<string, string> = {
+  'negate-attack-real': 'AttackNegated',
+  'counter-summon-real': 'SummonNegated',
+  'counter-spell-real': 'ChainLinkNegated',
+};
 const OUT = process.env.OUT ?? 'docs/ai/review-packets/task-2.11-smoke.md';
 const md: string[] = [
   '# Task 2.11 — Smoke Duel Sandbox (HTTP thật)',
@@ -54,7 +65,47 @@ for (const name of NAMES) {
   check(`${name}: nạp → 201`, r.status === 201, `status ${r.status}`);
   if (r.status !== 201) continue;
   const c = r.json as Created;
-  check(`${name}: phase/lượt đúng scenario`, c.view.phase === s.phase && c.view.turnCount === 3);
+  const turn = (s.turn as { count: number }).count;
+  const negated = NEGATES[name];
+  if (negated === undefined) {
+    check(
+      `${name}: phase/lượt đúng scenario`,
+      c.view.phase === s.phase && c.view.turnCount === turn,
+    );
+  } else {
+    // The AI (or the script) already moved: the caller holds the window instead of being at the scenario's phase.
+    check(
+      `${name}: lượt đúng scenario, người chơi đang giữ cửa sổ phản ứng`,
+      c.view.turnCount === turn && c.view.chainWindow?.priorityPlayer === 0,
+      `turn ${c.view.turnCount}, window ${JSON.stringify(c.view.chainWindow ?? null)}`,
+    );
+    const answer = c.legalActions.find((a) => a.type === 'ActivateEffect');
+    check(`${name}: lá úp đáp trả có trong legalActions`, answer !== undefined);
+    if (answer) {
+      const lpBefore = c.view.players[0].lifePoints;
+      const a = await call('POST', `/duels/${c.duelId}/actions`, {
+        token,
+        body: { playerIndex: 0, action: answer },
+      });
+      const body = a.json as { events?: { type: string }[]; view?: ViewV };
+      const events = body.events ?? [];
+      check(
+        `${name}: kích hoạt → event ${negated}`,
+        a.status === 200 && events.some((e) => e.type === negated),
+        `status ${a.status}, events ${events.map((e) => e.type).join(',')}`,
+      );
+      if (negated === 'AttackNegated') {
+        check(
+          `${name}: đòn bị vô hiệu không mất LP, không quái nào bị phá`,
+          body.view?.players[0].lifePoints === lpBefore &&
+            !events.some((e) => e.type === 'DamageDealt' || e.type === 'MonsterDestroyed'),
+        );
+      }
+    }
+    const fresh = await call('POST', '/dev/sandbox/duels', { token, body: s });
+    if (fresh.status !== 201) continue;
+    Object.assign(c, fresh.json as Created);
+  }
   check(`${name}: có legalActions`, c.legalActions.length > 0, `${c.legalActions.length} action`);
   check(
     `${name}: tay đối thủ ẩn`,

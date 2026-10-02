@@ -13,6 +13,9 @@ import type { CardInstance, GameState } from '@yugi/game-engine';
  * Task 4.3b: the Field Zone is a field zone like the others here (a face-down Field Spell is hidden from the opponent
  * wherever its definitionId shows up), and a face-down Set event (`MonsterSet` / `SpellTrapSet` / `FieldSpellSet`) that
  * carries a `definitionId` is flagged for BOTH seats (one more rule; none was relaxed).
+ * Task 4.4b: an id-only event (`AttackNegated`) that names a card anywhere inside it is flagged for BOTH seats too (one
+ * more rule; none was relaxed). `ChainLinkNegated` / `SummonNegated` carry a `definitionId` + `instanceId` and are checked
+ * by the rules above like any other pair.
  */
 
 export interface LeakViolation {
@@ -189,11 +192,51 @@ function collectNamedSetEvents(value: unknown): Pair[] {
   return out;
 }
 
+/**
+ * Events that only point at cards by id (task 4.4b): an attack may aim at a face-down monster, so the event never names
+ * a card — not on itself and not in anything nested under it, for either seat.
+ */
+const ID_ONLY_EVENT_TYPES: ReadonlySet<string> = new Set(['AttackNegated']);
+
+/** True when `value` (any depth) holds a `definitionId` key. */
+function namesACard(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(namesACard);
+  if (typeof value !== 'object' || value === null) return false;
+  const rec = value as Record<string, unknown>;
+  return 'definitionId' in rec || Object.values(rec).some(namesACard);
+}
+
+/** Task 4.4b: every object (any depth) typed as an id-only event that names a card somewhere inside it. */
+function collectNamedIdOnlyEvents(value: unknown): Pair[] {
+  const out: Pair[] = [];
+  const walk = (v: unknown, p: string): void => {
+    if (Array.isArray(v)) {
+      v.forEach((item, i) => walk(item, `${p}[${i}]`));
+      return;
+    }
+    if (typeof v !== 'object' || v === null) return;
+    const rec = v as Record<string, unknown>;
+    if (
+      typeof rec['type'] === 'string' &&
+      ID_ONLY_EVENT_TYPES.has(rec['type']) &&
+      namesACard(rec)
+    ) {
+      out.push({ path: p, instanceId: null, definitionId: `(${rec['type']})` });
+    }
+    for (const [k, child] of Object.entries(rec)) walk(child, `${p}.${k}`);
+  };
+  walk(value, '$');
+  return out;
+}
+
 /** All violations in `payload` (whatever the viewer received) against the raw state after the action. */
 export function findLeaks(state: GameState, viewer: 0 | 1, payload: unknown): LeakViolation[] {
   const violations: LeakViolation[] = [];
   for (const pair of collectNamedSetEvents(payload)) {
     violations.push({ viewer, ...pair, reason: 'a face-down Set event carries a definitionId' });
+  }
+  for (const pair of collectNamedIdOnlyEvents(payload)) {
+    violations.push({ viewer, ...pair, reason: 'an id-only event carries a definitionId' });
   }
   const pointers = collectPointers(payload);
   for (const { path, id } of pointers.ids) {

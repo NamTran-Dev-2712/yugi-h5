@@ -14,7 +14,7 @@
     },
     {
       "lp": 8000,
-      "hand": ["SMP-114"],
+      "hand": ["SMP-114", "SMP-207"],
       "deck": ["SMP-004", "SMP-005", "SMP-009", "SMP-010", "SMP-012", "SMP-011"],
       "field": {
         "monsters": [

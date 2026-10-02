@@ -789,6 +789,17 @@ function steerToNegate(
   if (sets.length > 0) return sets;
   // 4) They hold Set cards: do the things those cards answer.
   if (theirSet.length === 0) return [];
+  // An attack on a FACE-DOWN monster first: a negated one must still tell nobody what the target is.
+  const faceDown = new Set(
+    them.board.monsterZones.flatMap((c) => (c?.position === 'DefenseDown' ? [c.instanceId] : [])),
+  );
+  const blind = legal.filter(
+    (a) =>
+      a.type === 'DeclareAttack' &&
+      typeof a.payload.targetInstanceId === 'string' &&
+      faceDown.has(a.payload.targetInstanceId),
+  );
+  if (blind.length > 0) return blind;
   return legal.filter((a) => {
     if (a.type === 'NormalSummon' || a.type === 'DeclareAttack') return true;
     if (a.type !== 'ActivateEffect') return false;

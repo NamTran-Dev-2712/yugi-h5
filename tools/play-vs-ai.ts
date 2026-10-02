@@ -18,6 +18,10 @@
  * Field Zone with `zoneIndex` 0), then activates the Set ones — a Normal / Continuous / Field Spell on the very turn it was
  * Set. The run must see `FieldSpellSet` (never with a definitionId), a face-up Field Spell, a Continuous card staying
  * face-up in a Spell/Trap Zone, and a Set Normal Spell activated from its zone.
+ * Task 4.4b: `DECK=negate` plays both seats with `NEGATE_DEMO_DECK` (SMP-201 negates an attack, SMP-210 a Summon,
+ * SMP-209 a Spell/Trap activation). The human Sets them and answers in every window the server opens; the run must see
+ * an attack or a Summon of the AI negated (`AttackNegated` never with a definitionId), and the AI must never Set or
+ * activate a Spell/Trap itself (it is not taught to; the deck has no Quick card that harms the opponent).
  */
 import {
   BASE,
@@ -63,6 +67,7 @@ const EFFECT_DECK = process.env.DECK === 'effect';
 const BATCH1_DECK = process.env.DECK === 'batch1';
 const MECH_DECK = process.env.DECK === 'mech';
 const FIELD_DECK = process.env.DECK === 'field';
+const NEGATE_DECK = process.env.DECK === 'negate';
 
 /**
  * Cards of the AI seat still hidden from the human in this very view (hand + face-down monsters, Spells/Traps and the
@@ -141,6 +146,12 @@ async function main(): Promise<void> {
     };
     deck = shared.FIELD_DEMO_DECK;
     say(`   deck: FIELD_DEMO_DECK (${deck.length} cards)`);
+  } else if (NEGATE_DECK) {
+    const shared = (await import('../packages/shared/dist/index.js')) as {
+      NEGATE_DEMO_DECK: readonly string[];
+    };
+    deck = shared.NEGATE_DEMO_DECK;
+    say(`   deck: NEGATE_DEMO_DECK (${deck.length} cards)`);
   }
   const created = await call('POST', '/duels/solo', {
     token,
@@ -187,6 +198,12 @@ async function main(): Promise<void> {
     stayingFaceUp: 0,
     setSpellActivated: 0,
     aiPromptKinds: 0,
+    // Task 4.4b (DECK=negate).
+    linksNegated: 0,
+    attacksNegated: 0,
+    summonsNegated: 0,
+    attackNegatedWithDefinitionId: 0,
+    aiSpellTrapMoves: 0,
   };
   while (res.view.winnerIndex === null) {
     if (res.view.chainWindow?.priorityPlayer === 0) seen.humanWindows++;
@@ -242,7 +259,17 @@ async function main(): Promise<void> {
       }
       if (e.type === 'CardSentToGraveyard' && e.from === 'FieldZone') seen.fieldReplaced++;
       if (e.type === 'FieldSpellDestroyed') seen.fieldDestroyed++;
+      // Task 4.4b: the Negate events.
+      if (e.type === 'ChainLinkNegated') seen.linksNegated++;
+      if (e.type === 'SummonNegated') seen.summonsNegated++;
+      if (e.type === 'AttackNegated') {
+        seen.attacksNegated++;
+        if ('definitionId' in e) seen.attackNegatedWithDefinitionId++;
+      }
     }
+    seen.aiSpellTrapMoves += steps.filter(
+      (s) => s.action.type === 'SetSpellTrap' || s.action.type === 'ActivateEffect',
+    ).length;
     const fields = res.view.players.map((p) => p.board.fieldZone ?? null);
     if (fields.some((c) => c && !c.hidden && c.position === 'Attack')) seen.faceUpField++;
     if (fields[0] && !fields[0].hidden && fields[0].position === 'DefenseDown')
@@ -345,6 +372,29 @@ async function main(): Promise<void> {
     check(
       'a Set Spell/Trap was activated from its zone',
       seen.setSpellActivated > 0,
+      JSON.stringify(seen),
+    );
+  }
+
+  check(
+    'no AttackNegated event ever carried a definitionId',
+    seen.attackNegatedWithDefinitionId === 0,
+    JSON.stringify(seen),
+  );
+  if (NEGATE_DECK) {
+    check(
+      'the human held a reaction window with a Set negating card',
+      seen.humanWindows > 0,
+      JSON.stringify(seen),
+    );
+    check(
+      'an attack or a Summon of the AI was negated over HTTP (AttackNegated / SummonNegated)',
+      seen.attacksNegated + seen.summonsNegated > 0,
+      JSON.stringify(seen),
+    );
+    check(
+      'the AI never Set or activated a Spell/Trap itself',
+      seen.aiSpellTrapMoves === 0,
       JSON.stringify(seen),
     );
   }

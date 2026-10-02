@@ -8,9 +8,11 @@ import { createRng, nextInt } from '@yugi/game-engine';
 import {
   FIELD_DEMO_DECK,
   MECH_DEMO_DECK,
+  NEGATE_DEMO_DECK,
   PlayerActionSchema,
   SAMPLE_CARDS,
   STARTER_DECK,
+  isNegateOperationKind,
   type PlayerAction,
   type StateView,
 } from '@yugi/shared';
@@ -983,6 +985,106 @@ describe('Field Zone and staying cards over HTTP (task 4.3b gate)', () => {
     expect(end.players[0].board.fieldZone).toMatchObject({ instanceId: second, hidden: false });
     expect(end.players[0].graveyard.map((c) => c.instanceId)).toEqual([first]);
     expect(problems).toEqual([]);
+  });
+});
+
+describe('Counter Trap / Negate over HTTP (task 4.4b gate)', () => {
+  const seen = new Map<string, number>();
+  const rawState = async (duelId: string) => (await app.get(DuelService).getDuel(duelId)).state;
+  const defs = new Map(SAMPLE_CARDS.map((c) => [c.id, c]));
+  /** Read from the card data (the three operation kinds of task 4.4), not from the id. */
+  const negates = (definitionId: string): boolean =>
+    (defs.get(definitionId)?.effects ?? []).some((e) =>
+      e.operations.some((o) => isNegateOperationKind(o.kind)),
+    );
+
+  it.each([1, 2, 3])(
+    'fuzz over HTTP with NEGATE_DEMO_DECK, run %i: Set and use the negating cards — the three Negate events reach the sender, no leak to either viewer',
+    async (run) => {
+      const d = await newDuel({ deck: [...NEGATE_DEMO_DECK] });
+      const problems: string[] = [];
+      let rng = createRng(`http-negate-${run}`);
+      for (let step = 0; step < 220; step++) {
+        const state = await rawState(d.duelId);
+        if (state.winnerIndex !== null) break;
+        const actor = (state.pendingPrompt?.playerIndex ??
+          state.chainWindow?.priorityPlayer ??
+          state.turnPlayerIndex) as 0 | 1;
+        const legal = ((await legalOf(d, actor)) as PlayerAction[]).filter(
+          (a) => a.type !== 'Surrender',
+        );
+        const me = state.players[actor];
+        const them = state.players[actor === 0 ? 1 : 0];
+        const mine = (id: string) =>
+          [...me.hand, ...me.board.spellTrapZones].find((c) => c?.instanceId === id);
+        const onNegating = (a: PlayerAction, type: PlayerAction['type']): boolean => {
+          if (a.type !== type) return false;
+          const card = mine((a.payload as { cardInstanceId: string }).cardInstanceId);
+          return card != null && negates(card.definitionId);
+        };
+        // Steering (the engine decides what is legal): answer with a negation, else Set one, else walk into their
+        // Set cards (Summon, attack, activate a Spell from the hand).
+        const answers = legal.filter((a) => onNegating(a, 'ActivateEffect'));
+        const sets = legal.filter((a) => onNegating(a, 'SetSpellTrap'));
+        const theySet = them.board.spellTrapZones.some((c) => c?.position === 'DefenseDown');
+        const provoke = theySet
+          ? legal.filter(
+              (a) =>
+                a.type === 'NormalSummon' ||
+                a.type === 'DeclareAttack' ||
+                (a.type === 'ActivateEffect' &&
+                  me.hand.some((c) => c.instanceId === a.payload.cardInstanceId)),
+            )
+          : [];
+        const [roll, r1] = nextInt(rng, 100);
+        const steered = [answers, sets, provoke].find((group) => group.length > 0);
+        const pool = steered && roll < 70 ? steered : legal;
+        const [i, r2] = nextInt(r1, pool.length);
+        rng = r2;
+        const action = pool[i]!;
+        expect(PlayerActionSchema.safeParse(action).success).toBe(true);
+        const res = await http()
+          .post(`/duels/${d.duelId}/actions`)
+          .set(d.guest.auth)
+          .send({ playerIndex: actor, action })
+          .expect(200);
+        for (const e of res.body.events as { type: string }[]) {
+          seen.set(e.type, (seen.get(e.type) ?? 0) + 1);
+          if (e.type === 'AttackNegated') expect(e).not.toHaveProperty('definitionId');
+        }
+        const after = await rawState(d.duelId);
+        for (const viewer of [0, 1] as const) {
+          const got = (
+            await http().get(`/duels/${d.duelId}?viewer=${viewer}`).set(d.guest.auth).expect(200)
+          ).body;
+          const body = viewer === actor ? { got, posted: res.body } : { got };
+          for (const v of findLeaks(after, viewer, body)) {
+            problems.push(`${run}.${step} ${action.type} viewer ${viewer}: ${v.path} ${v.reason}`);
+          }
+        }
+      }
+      expect(problems).toEqual([]);
+    },
+    120_000,
+  );
+
+  it('the runs above really negated an activation, an attack and a Summon over HTTP', () => {
+    console.info('[http negate]', Object.fromEntries(seen));
+    for (const type of ['ChainLinkNegated', 'AttackNegated', 'SummonNegated']) {
+      expect(seen.get(type) ?? 0, type).toBeGreaterThan(0);
+    }
+  });
+
+  it('NEGATE_DEMO_DECK is accepted as `deck` by POST /duels/solo in solo-vs-ai, and the opening leaks nothing', async () => {
+    const guest = await newGuest();
+    const res = await http()
+      .post('/duels/solo')
+      .set(guest.auth)
+      .send({ mode: 'solo-vs-ai', deck: [...NEGATE_DEMO_DECK] })
+      .expect(201);
+    expect(res.body.view.players[0].hand).toHaveLength(5);
+    const state = await rawState(res.body.duelId as string);
+    expect(findLeaks(state, 0, res.body)).toEqual([]);
   });
 });
 

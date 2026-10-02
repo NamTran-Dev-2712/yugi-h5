@@ -317,10 +317,14 @@ describe('sample scenarios', () => {
     // Task 4.3b: Field Zone / staying cards on real cards (continuous-real-2, field-real, field-set-real,
     // normal-set-real), in sort order between the task 4.2d ones (equip-real, flip-real, special-summon-real).
     'continuous-real-2',
+    // Task 4.4b: Counter Trap / Negate on real cards (counter-spell-real, counter-summon-real, negate-attack-real).
+    'counter-spell-real',
+    'counter-summon-real',
     'equip-real',
     'field-real',
     'field-set-real',
     'flip-real',
+    'negate-attack-real',
     'normal-set-real',
     'special-summon-real',
     'tribute-summon',
