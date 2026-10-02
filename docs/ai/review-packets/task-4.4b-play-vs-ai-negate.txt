@@ -1,0 +1,11 @@
+(node:27520) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27520) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///E:/code/game/turn_battle/yugi-h5/tools/play-vs-ai.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to E:\code\game\turn_battle\yugi-h5\package.json.
+play-vs-ai against http://localhost:3000
+   deck: NEGATE_DEMO_DECK (40 cards)
+   effect stats: {"chainLinks":3,"humanWindows":1,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":50,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":3,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":1,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+
+human actions 53, AI actions 35 over 6 responses, winner 0, turns 11
+67/67 checks passed

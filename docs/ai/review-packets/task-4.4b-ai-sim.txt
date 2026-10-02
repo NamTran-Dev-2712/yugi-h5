@@ -1,0 +1,47 @@
+# Task 4.4b — mô phỏng AI 100 ván với NEGATE_DEMO_DECK (2026-10-02)
+AI_SIM_GAMES=100 pnpm --filter @yugi/api exec vitest run simulate.negate-deck
+
+
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/apps/api
+
+stdout | src/modules/duels/ai/simulate.negate-deck.spec.ts > AI vs AI with NEGATE_DEMO_DECK (task 4.4b, real Counter Trap / Negate cards) > the server AI as-is: Sets of negating cards are listed, it takes none of them on its own, every game ends
+[AI vs AI negate deck] games=100 finished=100 meanTurns=15.0 {
+  decisions: 11244,
+  negateSetListed: 3831,
+  spellTrapOnItsOwn: 0,
+  windows: 0,
+  negationListedInWindow: 0,
+  negationsActivated: 0,
+  passes: 0
+}
+
+stdout | src/modules/duels/ai/simulate.negate-deck.spec.ts > AI vs AI with NEGATE_DEMO_DECK (task 4.4b, real Counter Trap / Negate cards) > with Set negating cards (test wrapper): the AI holds their windows and passes, it never negates, every game ends
+[AI vs AI negate deck, sets first] games=100 finished=100 meanTurns=13.7 {
+  decisions: 11012,
+  negateSetListed: 0,
+  spellTrapOnItsOwn: 0,
+  windows: 844,
+  negationListedInWindow: 844,
+  negationsActivated: 0,
+  passes: 844
+}
+
+stdout | src/modules/duels/ai/simulate.negate-deck.spec.ts > AI vs AI with NEGATE_DEMO_DECK (task 4.4b, real Counter Trap / Negate cards) > against a seat that really negates its attacks / Summons: the server AI never gets stuck, every game ends
+[negator vs AI, negate deck] games=100 finished=100 meanTurns=16.1 {
+  negations: 72,
+  spells: 246,
+  aiDecisions: 5522,
+  aiSpellTrapOnItsOwn: 0
+}
+
+ ✓ src/modules/duels/ai/simulate.negate-deck.spec.ts (3 tests) 401397ms
+   ✓ AI vs AI with NEGATE_DEMO_DECK (task 4.4b, real Counter Trap / Negate cards) > the server AI as-is: Sets of negating cards are listed, it takes none of them on its own, every game ends  166125ms
+   ✓ AI vs AI with NEGATE_DEMO_DECK (task 4.4b, real Counter Trap / Negate cards) > with Set negating cards (test wrapper): the AI holds their windows and passes, it never negates, every game ends  67534ms
+   ✓ AI vs AI with NEGATE_DEMO_DECK (task 4.4b, real Counter Trap / Negate cards) > against a seat that really negates its attacks / Summons: the server AI never gets stuck, every game ends  167735ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  22:28:20
+   Duration  404.77s (transform 708ms, setup 0ms, collect 2.89s, tests 401.40s, environment 0ms, prepare 167ms)
+
+exit code: 0

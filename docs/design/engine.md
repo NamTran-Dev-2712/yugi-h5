@@ -150,7 +150,7 @@ Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `defin
 
 Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
 
-Task 4.4 thêm (engine-only, nối wire ở 4.4b; mức hiển thị đã khai ở `event-visibility.md`: cả ba PUBLIC): `ChainLinkNegated {linkId,playerIndex,instanceId,definitionId,effectId,byInstanceId}` (việc kích hoạt của một mắt xích bị vô hiệu; `playerIndex` = người bị vô hiệu, `byInstanceId` = lá vô hiệu; **thay** cho `EffectResolved` của mắt xích đó và được theo ngay bởi `CardSentToGraveyard` của lá bị vô hiệu nếu đó là Phép/Bẫy), `AttackNegated {playerIndex,attackerInstanceId,targetInstanceId}` (đòn tấn công bị vô hiệu: không có lật / phá / sát thương theo sau), `SummonNegated {playerIndex,instanceId,definitionId,zoneIndex}` (Normal/Flip Summon bị vô hiệu, quái rời ô vào mộ chủ; không có `MonsterDestroyed`).
+Task 4.4 thêm (lên wire từ 4.4b; mức hiển thị ở `event-visibility.md`: cả ba PUBLIC): `ChainLinkNegated {linkId,playerIndex,instanceId,definitionId,effectId,byInstanceId}` (việc kích hoạt của một mắt xích bị vô hiệu; `playerIndex` = người bị vô hiệu, `byInstanceId` = lá vô hiệu; **thay** cho `EffectResolved` của mắt xích đó và được theo ngay bởi `CardSentToGraveyard` của lá bị vô hiệu nếu đó là Phép/Bẫy), `AttackNegated {playerIndex,attackerInstanceId,targetInstanceId}` (đòn tấn công bị vô hiệu: không có lật / phá / sát thương theo sau), `SummonNegated {playerIndex,instanceId,definitionId,zoneIndex}` (Normal/Flip Summon bị vô hiệu, quái rời ô vào mộ chủ; không có `MonsterDestroyed`).
 
 Task 4.3 thêm: `FieldSpellSet {playerIndex,instanceId}` (Set lá Field vào Field Zone; không `definitionId`), `FieldSpellDestroyed {ownerIndex,instanceId,definitionId}` (lá ở Field Zone bị effect phá), và `CardSentToGraveyard.from` thêm `'FieldZone'` (lá Field bị lá mới của chính chủ thay). **Lên wire ở task 4.3b** (cả ba PUBLIC ở `toEventView`, shape giữ nguyên; engine không đổi dòng nào).
 
@@ -448,8 +448,8 @@ hoạt được ngay lượt vừa Set; lá bị phá khi link còn chờ xử l
 
 ## Counter Trap + Negate (task 4.4)
 
-Engine-only (nối wire + UI: task 4.4b). Chủ dự án chốt 2026-10-02 (ADR 065): `NegateSummon` chỉ cho Normal/Flip Summon;
-containment ở api/web. Các quy ước chưa có tư liệu gốc gom ở **G23** (`fidelity-spec.md`).
+Đã lên wire + UI ở task 4.4b (ADR 066; engine không đổi). Chủ dự án chốt 2026-10-02 (ADR 065): `NegateSummon` chỉ cho
+Normal/Flip Summon. Các quy ước chưa có tư liệu gốc gom ở **G23** (`fidelity-spec.md`; chủ dự án chốt giữ 2026-10-02).
 
 - **Bẫy Phản công chỉ để đáp trả** `[RULE]`: lá Trap `subType: 'Counter'` (Spell Speed 3) mà `chainWindow === null` ⇒
   `NOTHING_TO_RESPOND_TO`. Nó chỉ kích hoạt được khi có mắt xích để đáp, hoặc trong cửa sổ phản ứng (tấn công / triệu hồi, kể

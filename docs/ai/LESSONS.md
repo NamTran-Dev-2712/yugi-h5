@@ -38,6 +38,10 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   "không có effect" trong test engine dùng fixture `TRAP_PLAIN`, không dùng lá thật (ADR 065).
 - Hook sau mỗi Edit chạy `eslint --fix`: biến `let` chưa có chỗ gán lại bị đổi thành `const` ⇒ thêm khai báo và chỗ gán
   trong **cùng một lần sửa** (ADR 065).
+- Script chụp ảnh bước animation ngắn (≤ 0,5 s): không hard-code thời gian — chạy trang với `?slow=1` và lưu khung đầu tiên
+  có màu đặc trưng của bước đó (`tools/ui-negate-shots.ts`); lần đầu canh giờ đã trượt 2/3 lần chạy (ADR 066).
+- Sửa nhiều chỗ bằng `node -e` trong Bash mà nội dung có dấu backtick sẽ bị shell nuốt (comment mất tên biến) ⇒ dùng
+  Edit/Write; nếu buộc dùng script thì đọc lại diff ngay (ADR 066).
 - `ScenarioSchema` không có ô Field ⇒ scenario cần lá ở ô Môi trường phải bắt đầu từ tay + `script` (ADR 064).
 - Đổi shape một field (vd `name` → `{vi,en}`): template literal nhận object không làm `tsc` đỏ (`[object Object]`) ⇒ grep
   mọi nơi dùng (ADR 046, 055).
@@ -58,6 +62,10 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   `OperationContext.respondsTo` / `window`. Luật kích hoạt đọc từ subType / operation của lá, không từ id lá (ADR 065).
 - Thêm dữ liệu cho cửa sổ phản ứng: đặt field optional cạnh `reactionTo` trên `ChainWindow`, **không** vào `ReactionTo`
   hay payload prompt (hai thứ đó api gửi nguyên ra wire) (ADR 065).
+- Event công khai mà **chỉ được mang id** (mục tiêu có thể là lá úp): thêm vào `ID_ONLY_EVENT_TYPES` của oracle — luật
+  "definitionId của lá ẩn" không bắt được ở ghế chủ lá (ADR 066; cùng lý do với event Set úp của ADR 064).
+- Hiệu ứng tạm vẽ ở giữa hai hàng quái (đầu mũi tên, dấu X…) nằm trong panel phase và bị caption che ⇒ vẽ lên chính lá;
+  chỉ ảnh thật mới lộ (ADR 066).
 - Web: không thêm kind vào máy trạng thái tương tác; tái dùng `selecting-tribute` + `purpose` (ADR 048, 056, 062).
 - Dấu/nhãn hiển thị ở client phải đi theo điều server gửi (vd dấu "đang hiệu lực" ↔ `effectiveStats`), không tự suy
   thời điểm theo luật; chỉ ảnh chạy thật mới lộ chỗ lệch ⇒ luôn mở ảnh đã chụp ra xem (ADR 064).
@@ -67,6 +75,8 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 ## Quyết định của chủ dự án dễ bị làm ngược
 
 - `STARTER_DECK` **không đổi**; lá mới thêm vào CUỐI dãy; lá effect đi qua deck demo riêng (ADR 057, 058).
+- G23 **giữ**; buff của lá Liên tục / Môi trường có hiệu lực ngay khi lá nằm ngửa: **giữ**; AI không được dạy dùng lá
+  Negate / tự Set-kích hoạt Phép/Bẫy trước P8 (chủ dự án chốt 2026-10-02, ADR 066).
 - `NegateSummon` chỉ Normal/Tribute/Flip Summon; Special Summon bằng effect chặn qua `NegateActivation`; Set không phải
   triệu hồi. Bẫy Phản công không tự mở chuỗi. Lá/quái bị vô hiệu "được gửi vào mộ" (không "bị phá"), cost không hoàn (ADR 065).
 - Card data viết bằng TS, **không** pipeline CSV (ADR 058). Không Duration, không action `SpecialSummon` (ADR 059, 061).

@@ -1,0 +1,43 @@
+KILLED   ChainLinkNegated dropped (still engine-only)
+KILLED   AttackNegated dropped (still engine-only)
+KILLED   SummonNegated dropped (still engine-only)
+KILLED   AttackNegated forwarded to the attacker only
+KILLED   SummonNegated hidden from the player whose Summon was negated
+KILLED   AttackNegated forwarded WITH a definitionId (names the face-down target: leak)
+KILLED   AttackNegated forwarded with a nested card naming its target (leak)
+KILLED   ChainLinkNegated carries a card of a hand / deck hidden from the viewer (leak)
+KILLED   SummonNegated names another card than the server holds
+KILLED   oracle: an AttackNegated with a definitionId not flagged
+KILLED   oracle: a card nested inside an id-only event not flagged
+KILLED   oracle: the id-only rule checks one seat only
+KILLED   AI treats a negation as worth activating in a window
+KILLED   NEGATE_DEMO_DECK without SMP-209
+KILLED   NEGATE_DEMO_DECK has 41 cards
+KILLED   the animation skips every negate step
+KILLED   a negated attack is replayed as an attack
+KILLED   negateSummon step loses its zone
+KILLED   negateLink step crosses out the negating card instead of the negated one
+KILLED   negateLink has no duration
+KILLED   a negated chain link is never struck through
+KILLED   every chain caption is struck through
+KILLED   ?slow=1 does nothing
+KILLED   a negated attack is logged in the wrong group
+KILLED   negated activation / Summon logged in the wrong group
+KILLED   direct / targeted negated-attack sentences swapped
+KILLED   a negated link is described as a fizzled one
+KILLED   the Summon-negated log line no longer says "vô hiệu"
+KILLED   en: the direct negated attack drops its {attacker} param
+KILLED   the animation caption is back over the turn / phase line
+KILLED   every Set card of mine is outlined as activatable (Counter Trap on Main Phase too)
+KILLED   the drop menu shows "Kích hoạt" although no activation is listed
+KILLED   counter-window fixture lists the wrong Set card
+
+33/33 mutants killed
+
+--- lần chạy thứ hai: node tools/mutants-4.4b.mjs "fuzz oracle alone" (4 mutant rò, chỉ chạy cổng fuzz: oracle findLeaks phải tự bắt) ---
+KILLED   fuzz oracle alone: AttackNegated with a definitionId
+KILLED   fuzz oracle alone: AttackNegated with a nested card naming its target
+KILLED   fuzz oracle alone: ChainLinkNegated carrying a hidden hand / deck card
+KILLED   fuzz oracle alone: SummonNegated naming another card than the server holds
+
+4/4 mutants killed

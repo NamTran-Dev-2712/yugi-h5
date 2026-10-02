@@ -14,7 +14,7 @@ raw events never leave the class.
 - **HIDDEN** — the opponent gets nothing (`toEventView` returns `null`). No event is HIDDEN today;
   this is also the **default for any unclassified event** (deny by default).
 - **engine-only** (a state, not a class) — the event is classified, but not on the wire yet: `toEventView` returns
-  `null` for BOTH viewers until the task that wires it (today: the three task 4.4 events).
+  `null` for BOTH viewers until the task that wires it (today: none — the three task 4.4 events were wired by 4.4b).
 
 ## Table (33 engine events)
 
@@ -50,17 +50,20 @@ raw events never leave the class.
 | MonsterSpecialSummoned | definitionId             | PUBLIC                   | Task 4.2a, forwarded since 4.2d: always face-up, from your hand (the card is revealed) or the public graveyard.                                                                      |
 | FieldSpellSet          | — (no definitionId)      | PUBLIC                   | Task 4.3, forwarded since 4.3b. Like `SpellTrapSet`: a Field Spell Set face-down in its controller's Field Zone (one slot: no `zoneIndex`).                                          |
 | FieldSpellDestroyed    | definitionId             | PUBLIC                   | Task 4.3, forwarded since 4.3b. The card in a Field Zone destroyed by an effect goes to the public graveyard (revealed even if it was Set), like `SpellTrapDestroyed`.               |
-| ChainLinkNegated       | definitionId             | PUBLIC — **engine-only** | Task 4.4, not forwarded until 4.4b. The negated card was revealed when it was activated (`EffectActivated`); `byInstanceId` is the face-up negating card.                            |
-| AttackNegated          | instance ids only        | PUBLIC — **engine-only** | Task 4.4, not forwarded until 4.4b. Same ids as the `AttackDeclared` it answers (the target may be face-down: only its id).                                                          |
-| SummonNegated          | definitionId             | PUBLIC — **engine-only** | Task 4.4, not forwarded until 4.4b. The monster was face-up (Normal / Flip Summon) and goes to the public graveyard.                                                                 |
+| ChainLinkNegated       | definitionId             | PUBLIC                   | Task 4.4, forwarded since 4.4b. The negated card was revealed when it was activated (`EffectActivated`) and is in the public graveyard; `byInstanceId` is the face-up negating card. |
+| AttackNegated          | instance ids only        | PUBLIC                   | Task 4.4, forwarded since 4.4b. Same ids as the `AttackDeclared` it answers (the target may be face-down: only its id). Never a `definitionId` (oracle rule).                        |
+| SummonNegated          | definitionId             | PUBLIC                   | Task 4.4, forwarded since 4.4b. The monster was face-up (Normal / Flip Summon) and goes to the public graveyard.                                                                     |
 
-> Task 4.4 (engine-only): the three Negate events are **classified PUBLIC** above — none carries the `definitionId` of a
-> card still hidden from either player — but `toEventView` returns `null` for them (both viewers) until task 4.4b adds
-> them to `EventView`, to the leak-oracle fuzz (Negate cards in the deck, own seeds) and to the UI. Until then a client
-> sees a negation only through the `StateView` and the neighbouring public events (`ChainLinkAdded`, `EffectResolved` of
-> the negating card, `CardSentToGraveyard` of the negated one). `ChainWindow.summoned` (engine state, task 4.4) is not in
-> `StateView.chainWindow`; if 4.4b sends it, it names a face-up monster (public). The fixed fuzz seeds keep the deck they
-> had before 4.4 (`NEGATE_CARDS` in `event-visibility.fuzz.spec.ts`).
+> Task 4.4b (wire for 4.4): the three Negate events are forwarded to both viewers with the engine shape (before 4.4b they
+> were dropped); no event is engine-only any more. The oracle gained one rule and lost none: an object typed as an
+> **id-only event** (`ID_ONLY_EVENT_TYPES`, today `AttackNegated`) that holds a `definitionId` key at any depth inside it
+> is a violation for both seats (the owner of a face-down target knows its card, so the "hidden definitionId" rule alone
+> would not catch it there). `ChainLinkNegated` / `SummonNegated` are checked by the existing rules (the card must be in a
+> graveyard / face-up / the viewer's own). The fuzz gate has a third set of seeds (`negateDeckList`, `steerToNegate`,
+> `FUZZ_NEGATE_SEEDS`, two-seat and `solo-vs-ai`) that must cover the three events, a Counter Trap activation and a Set Trap
+> destroyed while face-down, and checks that both seats receive the very same Negate events; the fixed seeds keep the deck
+> they had before 4.4 (`NEGATE_CARDS` filter). `ChainWindow.summoned` (engine state, task 4.4) is still not in
+> `StateView.chainWindow` (the UI does not need it). ADR 066.
 
 > Task 4.3b (wire for 4.3): the two Field Zone events and `CardSentToGraveyard` with `from: 'FieldZone'` are forwarded
 > (PUBLIC, engine shape; before 4.3b they were dropped). No event was engine-only after 4.3b (task 4.4 added three: see
