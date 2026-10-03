@@ -36,6 +36,13 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   đó đang được dùng như "lá không làm gì", và có deck fuzz tự gom mọi lá có effect ⇒ chạy test api + web **ngay** sau khi đổi
   dữ liệu lá; harness tự tính "ai phải hành động" phải dùng `pendingPrompt → chainWindow.priorityPlayer → turn player`; lá
   "không có effect" trong test engine dùng fixture `TRAP_PLAIN`, không dùng lá thật (ADR 065).
+- Đổi luật engine làm **`legalActions` đổi** (vd một lá úp nay kích hoạt được) cũng làm lệch đường đi ngẫu nhiên của các
+  seed fuzz cố định ở api ⇒ bộ đếm độ phủ hiếm có thể về 0 dù không thêm lá nào: chạy test api **ngay** sau mỗi thay đổi
+  engine; chữa bằng variant riêng (deck + rng + `steer`), không đổi seed cũ, không nới oracle (ADR 067).
+- Nhánh bảo vệ không quan sát được qua `applyAction` (vì một kiểm tra khác cũng chặn cùng tình huống) vẫn phải có test: xuất
+  hàm thuần đó và test trực tiếp, đừng để mutant "sống" hoặc bỏ nhánh (`owedSummonEvents`, ADR 067).
+- Sửa nhiều dòng bảng dài trong docs: viết script `.mjs` vào thư mục scratchpad bằng Write rồi `node <file>` (hook chặn
+  heredoc có nháy; `node -e` nuốt backtick), xong chạy `prettier --write` lên các file đó (ADR 067).
 - Hook sau mỗi Edit chạy `eslint --fix`: biến `let` chưa có chỗ gán lại bị đổi thành `const` ⇒ thêm khai báo và chỗ gán
   trong **cùng một lần sửa** (ADR 065).
 - Script chụp ảnh bước animation ngắn (≤ 0,5 s): không hard-code thời gian — chạy trang với `?slow=1` và lưu khung đầu tiên
@@ -79,6 +86,9 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   Negate / tự Set-kích hoạt Phép/Bẫy trước P8 (chủ dự án chốt 2026-10-02, ADR 066).
 - `NegateSummon` chỉ Normal/Tribute/Flip Summon; Special Summon bằng effect chặn qua `NegateActivation`; Set không phải
   triệu hồi. Bẫy Phản công không tự mở chuỗi. Lá/quái bị vô hiệu "được gửi vào mộ" (không "bị phá"), cost không hoàn (ADR 065).
+- Cửa sổ phản ứng triệu hồi đứng **trước** trigger `OnSummon` / `OnFlip` và nhận **mọi** lá đáp trả (không chỉ lá vô hiệu
+  triệu hồi) — chủ dự án chọn qua hộp thoại 2026-10-03, G25; triệu hồi bị vô hiệu ⇒ trigger không xảy ra `[RULE]`. Equip đã
+  Set kích hoạt được, lật tại ô đang úp (ADR 067).
 - Card data viết bằng TS, **không** pipeline CSV (ADR 058). Không Duration, không action `SpecialSummon` (ADR 059, 061).
 - C11: Trap phải Set mới kích hoạt (ADR 018). C13: phản ứng = chạm lá, **không** dialog "Kích hoạt?" (ADR 054).
 - AI server không tự Set/kích hoạt Phép/Bẫy ngoài cửa sổ ưu tiên (ADR 048, 055).

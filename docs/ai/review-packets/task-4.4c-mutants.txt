@@ -1,0 +1,22 @@
+KILLED   Normal Summon: a trigger still goes on the chain before the Summon window (old order)
+KILLED   Normal Summon: the window does not keep the Summon event (the trigger is lost after the window)
+KILLED   Flip Summon: a trigger still goes on the chain before the Summon window (old order)
+KILLED   Flip Summon: the window does not keep the Summon event
+KILLED   the Summon event is dropped when a link is added in the Summon window (windowFor)
+KILLED   openReactionWindow does not store the Summon event
+KILLED   a negated Summon still hands its event to the trigger collector
+KILLED   any negated Summon cancels the owed event (instance not compared)
+KILLED   no trigger after the opponent passed the Summon window
+KILLED   no trigger after a chain built in the Summon window resolved
+KILLED   the Summon trigger is ordered after the triggers fired by the window’s chain
+KILLED   a monster that left its zone inside the Summon window still gets its trigger
+KILLED   the trigger prompt still claims a Summon window comes afterwards
+KILLED   a Set Equip Spell is not activatable (pre-4.4c)
+KILLED   a Set Equip Spell is activatable on the opponent’s turn (in a window)
+KILLED   a Set Equip Spell is activatable outside a Main Phase
+KILLED   a Set Equip Spell cannot be activated on the turn it was Set
+KILLED   a Set Equip Spell moves to the lowest empty zone when activated
+KILLED   an Equip Spell whose target is gone stays on the field instead of going to the graveyard
+KILLED   a negated card (a Set Equip included) is not sent to the graveyard at once
+
+20/20 mutants killed

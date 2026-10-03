@@ -177,6 +177,26 @@ describe('Summon window before the OnSummon trigger — Normal Summon', () => {
     expect(state.pendingPrompt).toBeNull();
   });
 
+  it('the Summon comes first in trigger order: its link is added before a trigger fired by the window’s own chain', () => {
+    // P1 destroys P0's DES_BURN (OnDestroyed, mandatory) inside the Summon window. Both triggers are P0's: the Summon
+    // happened first, so SUM_BURN is link 1 and DES_BURN link 2 (G15: the order of the events).
+    const before = main({
+      hand: ['SUM_BURN'],
+      myMonsters: [[0, 'DES_BURN']],
+      oppSpellTraps: [[0, 'TRAP_KILL_MON']],
+    });
+    const opened = apply(before, summon()).state;
+    const asked = apply(opened, act('os-0')).state;
+    expect(asked.pendingPrompt?.kind).toBe('SelectEffectTarget');
+    const { state, events } = apply(asked, answer(asked, ['m0-0']));
+    const links = events.flatMap((e) =>
+      e.type === 'ChainLinkAdded' ? [(e as { instanceId: string }).instanceId] : [],
+    );
+    expect(links).toEqual(['os-0', 'h0', 'm0-0']);
+    expect(state.players[1].lifePoints).toBe(before.players[1].lifePoints - 700);
+    expect(state.chainWindow).toBeNull();
+  });
+
   it('the negation is itself negated: the monster stays and its trigger then happens', () => {
     const before = main({
       hand: ['SUM_BURN'],
@@ -248,6 +268,8 @@ describe('Summon window before the trigger — optional / targeting triggers kee
     expect(asked.state.pendingPrompt?.payload).toMatchObject({
       optional: true,
       trigger: { instanceId: 'h0', effectId: 'e1' },
+      // Nothing is left to do "afterward": the Summon window already happened.
+      afterward: null,
     });
 
     const accepted = apply(asked.state, answer(asked.state));

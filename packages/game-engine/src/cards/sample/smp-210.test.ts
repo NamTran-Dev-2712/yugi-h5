@@ -4,6 +4,7 @@ import { expectEngineError } from '../../testing/expect-engine-error.js';
 import {
   activate,
   apply,
+  lp,
   main,
   pass,
   setMonster,
@@ -59,6 +60,72 @@ describe('SMP-210', () => {
     expect(types(events)).toContain('SummonNegated');
     expect(state.players[0].board.monsterZones[1]).toBeNull();
     expect(state.players[0].graveyard.map((c) => c.instanceId)).toEqual(['m0-1']);
+  });
+
+  it('task 4.4c: negates the Summon of SMP-019 (mandatory "when Summoned" burn) — the 300 damage never happens', () => {
+    const before = main({ hand: ['SMP-019'], oppSpellTraps: [[0, 'SMP-210']] });
+    const opened = apply(before, summon('h0', 2));
+    // The Summon window comes before the trigger: nothing on the chain yet.
+    expect(types(opened.events)).toEqual(['NormalSummoned']);
+    expect(opened.state.chainStack).toEqual([]);
+    expect(opened.state.chainWindow).toMatchObject({
+      priorityPlayer: 1,
+      reactionTo: { kind: 'Summon' },
+    });
+
+    const { state, events } = apply(opened.state, activate('os-0', NEGATE, 1));
+    expect(types(events)).toEqual([
+      'EffectActivated',
+      'ChainLinkAdded',
+      'SummonNegated',
+      'EffectResolved',
+      'CardSentToGraveyard',
+      'ChainResolved',
+    ]);
+    expect(lp(state)).toEqual(lp(before));
+    expect(state.players[0].graveyard.map((c) => c.definitionId)).toEqual(['SMP-019']);
+    expect(state.players[0].hasNormalSummonedThisTurn).toBe(true);
+    expect(state.chainWindow).toBeNull();
+  });
+
+  it('task 4.4c: the holder passes instead — SMP-019 then burns for 300, as with no Set card at all', () => {
+    const before = main({ hand: ['SMP-019'], oppSpellTraps: [[0, 'SMP-210']] });
+    const opened = apply(before, summon('h0', 2)).state;
+    const { state, events } = apply(opened, pass(1));
+    expect(types(events)).toEqual([
+      'EffectActivated',
+      'ChainLinkAdded',
+      'DamageDealt',
+      'EffectResolved',
+      'ChainResolved',
+    ]);
+    const direct = apply(main({ hand: ['SMP-019'] }), summon('h0', 2)).state;
+    expect(lp(state)).toEqual(lp(direct));
+    expect(lp(state)[1]).toBe(lp(before)[1] - 300);
+    expect(state.players[1].board.spellTrapZones[0]?.position).toBe('DefenseDown');
+  });
+
+  it('task 4.4c: negates the Flip Summon of SMP-044 (optional FLIP effect) — its owner is never asked', () => {
+    const before = main({
+      myMonsters: [[1, 'SMP-044', 'DefenseDown']],
+      oppMonsters: [[0, 'M1']],
+      oppSpellTraps: [[0, 'SMP-210']],
+    });
+    const flip: Action = {
+      type: 'FlipSummon',
+      payload: { playerIndex: 0, cardInstanceId: 'm0-1' },
+    };
+    const opened = apply(before, flip).state;
+    expect(opened.pendingPrompt).toBeNull();
+    const { state, events } = apply(opened, activate('os-0', NEGATE, 1));
+    expect(types(events)).toContain('SummonNegated');
+    expect(state.pendingPrompt).toBeNull();
+    expect(state.players[0].graveyard.map((c) => c.instanceId)).toEqual(['m0-1']);
+    expect(state.players[1].board.monsterZones[0]?.instanceId).toBe('o0-0');
+
+    // Passing instead: the owner is asked about the FLIP effect only now.
+    const asked = apply(opened, pass(1)).state;
+    expect(asked.pendingPrompt).toMatchObject({ kind: 'TriggerActivation', playerIndex: 0 });
   });
 
   it('a Set is not a Summon: no window; the holder may also just pass on a Summon', () => {

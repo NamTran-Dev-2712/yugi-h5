@@ -1,0 +1,81 @@
+# Task 4.4c — fuzz chống rò dài (2026-10-03)
+FUZZ_SEEDS=200 FUZZ_STEPS=400 pnpm --filter @yugi/api exec vitest run src/modules/duels/event-visibility.fuzz.spec.ts
+(200 seed bộ bài đầy đủ + 100 seed solo-vs-ai + 100 seed deck Field + 50 seed deck quái lật (mới, 4.4c) + 100 seed deck Negate + 50 seed deck Negate solo-vs-ai, × 400 bước)
+
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/apps/api
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > covered Counter Trap / Negate on the wire (task 4.4b)
+[fuzz 4.4b] {
+  chainLinksNegated: 267,
+  attacksNegated: 404,
+  summonsNegated: 372,
+  counterTrapActivations: 966,
+  faceDownSetTrapsDestroyed: 547,
+  negatedVsAi: 263,
+  attacksNegatedOnFaceDown: 54
+}
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > covered the Field Zone and the staying cards (task 4.3b)
+[fuzz 4.3b] {
+  fieldSets: 714,
+  fieldFromHand: 261,
+  fieldFromZone: 367,
+  fieldReplaced: 225,
+  faceDownFieldDestroyed: 248,
+  continuousSpellStays: 71115,
+  continuousTrapStays: 43109
+}
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (200 seeds × 400 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts
+[fuzz 3.2b/3.4b] {
+  steps: 207018,
+  duels: 1174,
+  rejected: 12982,
+  targetPrompts: 2363,
+  triggerPrompts: 960,
+  declines: 367,
+  reactionWindows: 2542,
+  multiLinkChains: 1794,
+  setActivations: 10377,
+  passes: 741,
+  ssFromHand: 344,
+  ssFromGraveyard: 472,
+  battleFlipTriggers: 244,
+  filteredTargets: 49,
+  aiSteps: 30329,
+  aiPromptAnswers: 1545,
+  events: {
+    SpellTrapSet: 15508,
+    EffectActivated: 17666,
+    EffectResolved: 17186,
+    CardSentToGraveyard: 13240,
+    LifePointsRecovered: 1869,
+    LifePointsPaid: 1175,
+    SpellTrapDestroyed: 2169,
+    ChainLinkAdded: 17666,
+    ChainResolved: 15712,
+    MonsterSpecialSummoned: 816,
+    FlipSummoned: 3248,
+    CardEquipped: 497,
+    FieldSpellSet: 730,
+    FieldSpellDestroyed: 478,
+    ChainLinkNegated: 267,
+    AttackNegated: 422,
+    SummonNegated: 372
+  }
+}
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ ❯ Object.onTimeoutError ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:53:10
+ ❯ Timeout._onTimeout ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/index.B521nVV-.js:59:62
+ ❯ listOnTimeout node:internal/timers:588:17
+ ❯ processTimers node:internal/timers:523:7
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 passed (1)
+      Tests  603 passed (603)
+     Errors  1 error
+   Start at  13:16:32
+   Duration  2285.95s (transform 691ms, setup 0ms, collect 2.31s, tests 2283.17s, environment 0ms, prepare 120ms)
+undefined
+E:\code\game\turn_battle\yugi-h5\apps\api:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/modules/duels/event-visibility.fuzz.spec.ts

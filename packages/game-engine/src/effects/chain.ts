@@ -135,9 +135,13 @@ export function passPriority(state: GameState, ctx: ActionContext): Result {
 /**
  * Task 4.4c [RULE]: the Summon a window was opened for fires its "when Summoned / flipped" triggers only now that the
  * window is done — and not at all when `events` (what happened in that window) negated the Summon. First in the list:
- * the Summon happened before anything the window let through.
+ * the Summon happened before anything the window let through. (The monster's own triggers would not activate anyway
+ * once it left its zone; skipping the event keeps ANY trigger listening to that Summon from firing.)
  */
-function owedSummonEvents(window: ChainWindow | null, events: readonly GameEvent[]): GameEvent[] {
+export function owedSummonEvents(
+  window: ChainWindow | null,
+  events: readonly GameEvent[],
+): GameEvent[] {
   const owed = window?.summonEvent;
   if (!owed) return [];
   const negated = events.some(

@@ -98,7 +98,7 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 
 - Bẫy Phản công (`subType: 'Counter'`) còn thêm luật "chỉ để đáp trả" (task 4.4): xem mục "Counter Trap + Negate".
 - `ActivateEffect` tìm lá ở **tay** hoặc **ô Phép/Bẫy của chính người gọi** (không thấy → `CARD_NOT_IN_HAND`). Lá trên sân phải **úp** (`DefenseDown`); lá đang ngửa (đang trên chain) → `NOT_ACTIVATABLE`.
-- **Trap** Normal/Counter đã Set, trigger `Quick`: hợp lệ khi (nếu `ruleset.trapSetTurnDelay`) `setTurn !== turnCount`, không thì `TRAP_SET_THIS_TURN`. **Quick-Play** đã Set: `setTurn === turnCount` → `SPELL_SET_THIS_TURN` (luôn, không phụ thuộc ruleset). Kích hoạt **lá** Continuous Trap/Spell, Field Spell, Normal Spell đã Set: từ task 4.3, xem mục "Field Spell + lá ở lại sân" (Equip đã Set vẫn `NOT_ACTIVATABLE`). Effect `Continuous` → `CONTINUOUS_NOT_ACTIVATABLE` (task 3.6).
+- **Trap** Normal/Counter đã Set, trigger `Quick`: hợp lệ khi (nếu `ruleset.trapSetTurnDelay`) `setTurn !== turnCount`, không thì `TRAP_SET_THIS_TURN`. **Quick-Play** đã Set: `setTurn === turnCount` → `SPELL_SET_THIS_TURN` (luôn, không phụ thuộc ruleset). Kích hoạt **lá** Continuous Trap/Spell, Field Spell, Normal Spell đã Set: từ task 4.3, xem mục "Field Spell + lá ở lại sân" (Equip đã Set: từ task 4.4c, xem mục "Equip Spell"). Effect `Continuous` → `CONTINUOUS_NOT_ACTIVATABLE` (task 3.6).
 - **Ai/khi nào**: ngoài cửa sổ chain chỉ người chơi của lượt (`NOT_TURN_PLAYER`), lá Set kích hoạt được ở **mọi phase**; trong cửa sổ chỉ người giữ ưu tiên (`NOT_PRIORITY_HOLDER`). Lá **trên tay** luôn cần lượt mình (`NOT_TURN_PLAYER`, kể cả khi đang giữ ưu tiên ở lượt đối thủ). Normal Spell từ tay: Main1/Main2 (`WRONG_PHASE`).
 - **Vị trí khi chờ resolve** `[RULE]`: lá Set được kích hoạt **lật ngửa tại ô** (`position: 'Attack'` = quy ước "ngửa" của Phép/Bẫy mà StateView đã hiểu), `ChainLink.source = {zone:'SpellTrapZone', zoneIndex}`; resolve xong (kể cả bị vô hiệu / duel kết thúc giữa chain) thì rời ô vào mộ, `CardSentToGraveyard {from:'SpellTrapZone'}`. Bị phá giữa chain → effect **vẫn resolve**, không phát `CardSentToGraveyard` lần hai.
 - `ruleset.allowTrapActivationFromHand` (mặc định `false`): khi `false`, Trap trên tay chỉ có `SetSpellTrap`, không có `ActivateEffect` (`TRAP_NOT_SET`); `true` hiện vẫn `NOT_ACTIVATABLE` (chưa hỗ trợ).
@@ -259,7 +259,8 @@ ChainWindow.reactionTo?:
 - **Đóng**: chain rỗng + đối thủ `PassPriority` **một lần** ⇒ đóng `[ASSUMED]`; đối thủ kích hoạt ⇒ chain bình thường (3.3),
   `reactionTo` đi theo cửa sổ qua mọi link/pass, cả chain resolve xong ⇒ đóng.
 - **Sau khi đóng**: `Attack` ⇒ `resolveAttack` (`battle/resolve-attack.ts`, đúng logic 1.6–1.8: lật → phá → damage → LP);
-  `Summon` ⇒ không gì. Duel đã kết thúc trong chain ⇒ không tiếp. Quái tấn công rời sân hoặc không còn ở Attack ⇒ đòn dừng;
+  `Summon` ⇒ từ task 4.4c: gom trigger `OnSummon` / `OnFlip` của lần triệu hồi đó nếu nó không bị vô hiệu (mục "Cửa sổ
+  Summon đứng trước trigger" ở phần Trigger effect); `SetMonster` ⇒ không gì. Duel đã kết thúc trong chain ⇒ không tiếp. Quái tấn công rời sân hoặc không còn ở Attack ⇒ đòn dừng;
   mục tiêu rời sân (hoặc tấn công trực tiếp mà đối thủ đã có quái) ⇒ đòn dừng, quái tấn công vẫn tính đã tấn công — **không
   replay** `[ASSUMED]` (G14).
 - Bất biến: `chainWindow != null` mà `chainStack` rỗng ⇔ cửa sổ phản ứng (`reactionTo` có, `passCount 0`, người giữ ưu tiên
@@ -292,7 +293,8 @@ Trigger **không** do `ActivateEffect` kích hoạt: engine tự khởi phát t�
 - **Khởi phát**: `NormalSummoned` (kể cả Tribute Summon) → effect `OnSummon` của quái đó; `MonsterDestroyed` /
   `SpellTrapDestroyed` (combat 1.6–1.8, operation `Destroy`, lá Set đang chờ trên chain) → effect `OnDestroyed` của lá đó.
   **`SetMonster` không phải triệu hồi** `[RULE]`: không bắn (và không lộ lá úp). Duel đã kết thúc ⇒ không bắn.
-- **Điểm kiểm** (không sửa `resolveAttack` / `operations/destroy.ts`, trigger suy từ event họ phát): cuối `NormalSummon`; sau damage
+- **Điểm kiểm** (không sửa `resolveAttack` / `operations/destroy.ts`, trigger suy từ event họ phát): cuối `NormalSummon` (từ
+  task 4.4c: chỉ khi cửa sổ Summon không mở; có cửa sổ thì lúc cửa sổ đó kết thúc — xem dưới); sau damage
   step của `DeclareAttack` (khi không có cửa sổ phản ứng); cuối `resolveChain` (gồm trận đấu mà chain vừa cho qua) và khi cửa
   sổ phản ứng rỗng đóng lại. Trigger sinh ra **trong lúc** chain resolve chờ tới khi cả chain xong rồi mới thành **chain mới**.
 - **Thứ tự** `[RULE]`: trigger của người chơi của lượt lên chain trước (link thấp hơn), rồi của đối thủ; trong cùng một người:
@@ -309,6 +311,8 @@ Trigger **không** do `ActivateEffect` kích hoạt: engine tự khởi phát t�
                remaining: PendingTrigger[], afterward: {kind:'SummonReaction', responder} | null } }
   ```
 
+  Từ task 4.4c engine chỉ còn ghi `afterward: null` (kiểu giữ nguyên vì shape payload đã ở wire).
+
   Trả lời bằng `ResolvePendingPrompt`: `{decline: true, cardInstanceIds: []}` (chỉ optional) hoặc đúng `count` id trong ứng viên
   (`[]` khi không có target). Sai ⇒ `INVALID_TRIGGER_ANSWER` (kể cả `decline` trên prompt kind khác). Sau đó chạy tiếp
   `remaining`, rồi settle; `version` +1.
@@ -316,8 +320,24 @@ Trigger **không** do `ActivateEffect` kích hoạt: engine tự khởi phát t�
 - **Link trigger**: `source` = `MonsterZone` / `Graveyard`, lá **không di chuyển** (không `CardSentToGraveyard` sau link;
   `link.card` chỉ là bản sao). Spell Speed theo `spellSpeedOf` (quái/Phép 1; Bẫy có OnDestroyed = 2 theo mặc định 3.4;
   `spellSpeed` tường minh thắng). Đối thủ đáp trả link trigger như link thường.
-- **Summon + cửa sổ phản ứng 3.4c**: có trigger lên chain ⇒ đối thủ đáp trả **link trigger** (cửa sổ thường, không `reactionTo`);
-  không trigger nào lên chain (từ chối / không thoả) ⇒ mở cửa sổ phản ứng `Summon` như trước (`afterward`).
+- **Cửa sổ Summon đứng trước trigger** (task 4.4c, ADR 067; thay thứ tự cũ của 3.5 "trigger trước, cửa sổ Summon chỉ khi
+  không trigger nào lên chain") `[RULE]`:
+  1. Sau `NormalSummon` (kể cả Tribute) / `FlipSummon`: đối thủ có activation hợp lệ ⇒ mở **cửa sổ Summon** ngay, chưa gom
+     trigger. Cửa sổ giữ event triệu hồi còn nợ trigger ở `ChainWindow.summonEvent` (`{type:'NormalSummoned'|'FlipSummoned',
+playerIndex, instanceId, definitionId, zoneIndex}`; optional, đi theo cửa sổ qua mọi link/pass như `summoned`; không lên
+     wire). Event của bước chỉ là `[MonsterTributed…,] NormalSummoned` / `FlipSummoned`.
+  2. Cửa sổ kết thúc (đối thủ pass trên chain rỗng, hoặc chain dựng trong cửa sổ resolve xong) mà không có `SummonNegated`
+     của quái đó ⇒ **lúc đó** gom trigger từ `summonEvent` (đứng **trước** các trigger do chính chain đó sinh ra) và chạy như
+     trên (mandatory tự lên chain, optional / chọn target ⇒ prompt). Đối thủ lại được đáp **link trigger** (cửa sổ thường,
+     không `reactionTo`) ⇒ hai cửa sổ liên tiếp cho cùng đối thủ là đúng.
+  3. Có `SummonNegated` ⇒ không gom trigger nào của lần triệu hồi đó (`owedSummonEvents` ở `effects/chain.ts`).
+  4. Đối thủ không có gì để kích hoạt ⇒ không có cửa sổ, trigger lên chain ngay trong bước triệu hồi (event y như trước 4.4c).
+  5. Trigger optional bị từ chối sau cửa sổ ⇒ cửa sổ Summon **không mở lại** `[ASSUMED]` G25.
+  - `[ASSUMED]` G25 (chủ dự án chọn 2026-10-03): cửa sổ này nhận **mọi** lá đáp trả, không chỉ lá vô hiệu triệu hồi ⇒ quái bị
+    phá ngay trong cửa sổ thì trigger của nó không kích hoạt (không còn "ở chỗ khởi phát"). Luật chuẩn: Bẫy thường đáp sau
+    khi trigger đã lên chuỗi.
+  - Test: `rules/summon-window-order.test.ts`, `effects/chain.summon-event.test.ts`; golden `summon-negated-before-trigger`,
+    `summon-window-then-trigger`; fuzz `SUMMON_TRIGGER_DECK_POOL`. Mutation: `tools/mutants-4.4c.mjs`.
 - `settle` dừng khi có `pendingPrompt`; câu trả lời prompt tự settle. Khi có prompt: `legalActions` = các câu trả lời (+ `Surrender`).
 - Mã lỗi mới: `INVALID_TRIGGER_ANSWER`. `ResolvePendingPrompt.payload.decline?: boolean` (mới, optional).
 - Test: `rules/trigger-effects.test.ts`, `effects/triggers.test.ts`; golden `on-summon-mandatory`, `on-summon-optional-declined`,
@@ -376,7 +396,8 @@ Lên wire ở task 4.2d (`PlayerActionSchema`, lá thật SMP-044; engine không
   `CARD_NOT_ON_FIELD`. Kết quả: `position: 'Attack'`, ghi `positionChangedTurn` (không đổi thế lại trong lượt); `summonedTurn` giữ nguyên
   ⇒ quái Set từ lượt trước **tấn công được** ngay trong lượt Flip Summon. **Không** tốn Normal Summon. Event `FlipSummoned {playerIndex,
 instanceId, definitionId, zoneIndex}`; `version` +1.
-- Sau đó y như Normal Summon (`summon.ts`): trigger của quái lên chain trước; không trigger nào ⇒ cửa sổ phản ứng `Summon` (3.4c).
+- Sau đó y như Normal Summon (`summon.ts`), từ task 4.4c: cửa sổ phản ứng `Summon` (3.4c) mở **trước** nếu đối thủ đáp trả
+  được; trigger `OnFlip` / `OnSummon` của quái gom sau khi cửa sổ kết thúc và lần triệu hồi không bị vô hiệu (mục Trigger effect).
 - **`OnFlip`** (`effects/triggers.ts`), optional/mandatory như 3.5:
   - `FlipSummoned` ⇒ `OnFlip` **và** `OnSummon` của quái (theo thứ tự effect trên lá) `[RULE]`: "khi được triệu hồi" gồm Normal/Special/Flip.
   - `MonsterFlipped` (bị tấn công, 1.8) ⇒ `OnFlip`, kiểm **sau** damage step: quái còn ngửa ở ô ⇒ nguồn `MonsterZone`; đã bị trận đó
@@ -392,7 +413,12 @@ lại mỗi lần đọc); cái còn thiếu chỉ là phạm vi "quái được
 
 - **Kích hoạt**: Spell `subType: 'Equip'` từ **tay**, trigger `Ignition`, Main1/Main2 của mình (như Normal Spell). Cần 1 ô Phép/Bẫy trống
   (`NO_FREE_SPELL_TRAP_ZONE`); lá vào **ô trống thấp nhất** `[ASSUMED]` G18, **ngửa ngay lúc kích hoạt**, `ChainLink.source =
-{zone:'SpellTrapZone', zoneIndex}` (đi đường lá Set của 3.4). Equip đã Set ⇒ `NOT_ACTIVATABLE` (backlog, cùng Normal Spell đã Set).
+{zone:'SpellTrapZone', zoneIndex}` (đi đường lá Set của 3.4).
+- **Equip đã Set** (task 4.4c, ADR 067) `[RULE]`: kích hoạt được như Phép Speed 1 đã Set (4.3) — lượt của chủ lá
+  (`NOT_TURN_PLAYER`, kể cả khi chủ lá giữ ưu tiên trong cửa sổ ở lượt đối thủ), Main1/Main2 (`WRONG_PHASE`), `Ignition`,
+  **được ngay lượt vừa Set**; cần quái ngửa làm mục tiêu như từ tay (`NO_VALID_TARGET`). Lá **lật ngửa tại ô đang úp** (không
+  chuyển sang ô trống thấp nhất — G18 chỉ áp cho Equip từ tay), resolve / fizzle / bị vô hiệu y như Equip từ tay. Test:
+  `rules/equip-set-activation.test.ts`; golden `equip-set-then-activate`.
 - **Target** (schema): `Card` `MonsterZone`, `count: 1`, `filter.kind: 'Monster'` — filter loại quái úp ⇒ chỉ trang bị quái **ngửa** `[RULE]`,
   bên mình hoặc đối thủ (lá Equip vẫn nằm ở sân người kích hoạt).
 - **Resolve** (`effects/operations/equip.ts`): target còn ngửa trên sân và lá Equip còn ngửa ở ô ⇒ ghi `CardInstance.equippedTo =
@@ -425,7 +451,7 @@ hoạt được ngay lượt vừa Set; lá bị phá khi link còn chờ xử l
   | Continuous Spell | như trên; lá vào **ô Phép/Bẫy trống thấp nhất** ngửa ngay (`NO_FREE_SPELL_TRAP_ZONE`) `[ASSUMED]` G20 | như Normal Spell đã Set; lật tại ô, ở lại                                                  |
   | Field Spell      | như trên; lá vào **Field Zone** ngửa ngay                                                             | như Normal Spell đã Set; lật tại Field Zone, ở lại                                         |
   | Continuous Trap  | `TRAP_NOT_SET` (C11)                                                                                  | `Quick`, mọi phase, người giữ ưu tiên; `TRAP_SET_THIS_TURN` theo `trapSetTurnDelay`; ở lại |
-  | Equip Spell      | 4.2c                                                                                                  | `NOT_ACTIVATABLE` (backlog)                                                                |
+  | Equip Spell      | 4.2c                                                                                                  | như Normal Spell đã Set (task 4.4c); lật tại ô, gắn vào mục tiêu, ở lại theo `equippedTo`  |
 
   Phép Speed 1 đã Set chỉ của **người chơi của lượt** (`NOT_TURN_PLAYER` kể cả khi đối thủ đang giữ ưu tiên trong cửa sổ), sai phase
   ⇒ `WRONG_PHASE`, nối chain ⇒ `SPELL_SPEED_TOO_LOW`; vì vậy nó không bao giờ giữ cửa sổ chain/phản ứng mở cho đối thủ.
@@ -467,8 +493,9 @@ Normal/Flip Summon. Các quy ước chưa có tư liệu gốc gom ở **G23** (
 
 - **`ChainWindow.summoned?: {playerIndex, instanceId}`**: ghi khi cửa sổ phản ứng Summon mở cho một lần **triệu hồi thật**
   (`NormalSummon` kể cả Tribute, `FlipSummon`; **không** ghi cho `SetMonster` — Set không phải triệu hồi `[RULE]`), đi theo cửa
-  sổ qua mọi link/pass như `reactionTo`. Không lên wire (`toStateView` dựng `chainWindow` tường minh). Sau một trigger optional
-  bị từ chối, cửa sổ Summon vẫn mang `summoned` (suy ra từ trigger vừa trả lời, không lưu vào payload prompt).
+  sổ qua mọi link/pass như `reactionTo`. Không lên wire (`toStateView` dựng `chainWindow` tường minh). Từ task 4.4c cửa sổ
+  Summon luôn mở **trước** trigger nên không còn đường "trigger optional bị từ chối rồi mới mở cửa sổ"; cùng cửa sổ đó mang
+  thêm `summonEvent` (mục Trigger effect).
 - **Resolve** (`effects/chain.ts`; operation chỉ phát event, chain đọc event — cùng cách với trigger). `OperationContext` thêm
   `respondsTo` (link ngay dưới link đang resolve) và `window` (cửa sổ lúc chain bắt đầu resolve).
   - `NegateActivation` ⇒ `ChainLinkNegated`; ngay sau đó lá nguồn của link bị vô hiệu **vào mộ chủ** (`CardSentToGraveyard`,
@@ -484,9 +511,9 @@ Normal/Flip Summon. Các quy ước chưa có tư liệu gốc gom ở **G23** (
 - **Thứ tự event** (Phép bị Bẫy Phản công có cost vô hiệu): `EffectActivated` → `LifePointsPaid` → `ChainLinkAdded` →
   `ChainLinkNegated` → `CardSentToGraveyard` (lá bị vô hiệu) → `EffectResolved` (Bẫy Phản công) → `CardSentToGraveyard` (Bẫy
   Phản công) → `ChainResolved`.
-- **Giới hạn đã biết** (câu hỏi mở, G23 d): trigger `OnSummon`/`OnFlip` lên chain **trước** khi cửa sổ Summon mở (3.5, 4.2b)
-  ⇒ quái có trigger đã lên chain không bị vô hiệu triệu hồi được. Special Summon bằng effect: chặn bằng `NegateActivation` lên
-  lá đó.
+- **Vô hiệu triệu hồi ↔ trigger** (task 4.4c, ADR 067; đóng câu hỏi mở G23 d): cửa sổ Summon mở **trước** trigger
+  `OnSummon`/`OnFlip` ⇒ quái có hiệu ứng "khi được triệu hồi / lật" **vô hiệu triệu hồi được**, và khi bị vô hiệu thì hiệu
+  ứng đó không xảy ra `[RULE]`. Special Summon bằng effect: vẫn chặn bằng `NegateActivation` lên lá đó.
 - Test: `rules/counter-trap.test.ts`, `effects/operations/negate-{activation,attack,summon}.test.ts`,
   `cards/sample/smp-201|209|210.test.ts`; golden `counter-negates-spell`, `counter-negates-continuous-spell`, `negate-attack`,
   `negate-summon`; fuzz `TNA`/`CNA`/`CNS` + `NEGATE_DECK_POOL`. Mutation: `tools/mutants-4.4.mjs`.

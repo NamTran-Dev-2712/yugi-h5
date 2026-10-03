@@ -16,12 +16,12 @@ Khối "Ghi chú đọc kèm" đầu mỗi ADR cho biết phần nào đã bị 
 | Engine: phase, draw, summon, tribute, đổi thế, combat, thắng/thua    | `docs/design/engine.md`, `docs/plan/rules-coverage.md`, `RULES-REVIEW-SHEET.md`    | 020–030                                |
 | Engine: mã lỗi, `ActionContext`, prompt (`PendingPrompt`)            | `docs/design/engine.md`                                                            | 022, 030                               |
 | Effect DSL: schema, operation, cost, target, condition               | `docs/design/effect-dsl.md`, `docs/plan/card-and-effect-plan.md`                   | 046, 047, 053, 059, 061, 063, 065      |
-| Chain, Spell Speed, lá Set, cửa sổ phản ứng                          | `docs/design/engine.md` (Chain stack)                                              | 018, 049, 050, 051, 054, 063, 065, 066 |
-| Trigger (OnSummon/OnDestroyed/OnFlip), Continuous, `scriptId`, Equip | `docs/design/effect-dsl.md`                                                        | 052, 053, 060, 061                     |
+| Chain, Spell Speed, lá Set, cửa sổ phản ứng                          | `docs/design/engine.md` (Chain stack)                                              | 018, 049, 050, 051, 054, 063, 065–067  |
+| Trigger (OnSummon/OnDestroyed/OnFlip), Continuous, `scriptId`, Equip | `docs/design/effect-dsl.md`, `engine.md` (Trigger effect)                          | 052, 053, 060, 061, 067                |
 | Field Spell, lá Continuous Spell/Trap ở lại sân, Field Zone          | `docs/design/engine.md` (Field Spell + lá ở lại sân)                               | 053, 061, 063, 064                     |
-| Counter Trap, Negate (kích hoạt / tấn công / triệu hồi)              | `docs/design/engine.md` (Counter Trap + Negate), `effect-dsl.md`                   | 050, 051, 052, 065, 066                |
+| Counter Trap, Negate (kích hoạt / tấn công / triệu hồi)              | `docs/design/engine.md` (Counter Trap + Negate), `effect-dsl.md`                   | 050, 051, 052, 065, 066, 067           |
 | `legalActions`                                                       | `docs/design/protocol.md`                                                          | 037                                    |
-| Golden replay, fuzz, mutation test, test chập chờn                   | `docs/plan/testing-strategy.md`                                                    | 031, 058, 062, 064, 065, 066           |
+| Golden replay, fuzz, mutation test, test chập chờn                   | `docs/plan/testing-strategy.md`                                                    | 031, 058, 062, 064, 065, 066, 067      |
 | Wire: StateView, EventView, rò thông tin, lọc theo ghế               | `docs/design/event-visibility.md`, `docs/design/protocol.md`                       | 032, 034, 048, 055, 062, 064, 065, 066 |
 | API: DuelService, HTTP, guest/JWT, quyền ghế, deck validate          | `docs/design/protocol.md`, `docs/plan/backend-plan.md`                             | 003, 033, 035, 036                     |
 | AI đối thủ (`solo-vs-ai`)                                            | `docs/design/protocol.md` (solo-vs-ai)                                             | 038, 048, 055, 057, 062, 064, 066      |
