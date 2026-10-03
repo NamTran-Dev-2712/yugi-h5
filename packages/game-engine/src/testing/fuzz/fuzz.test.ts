@@ -119,13 +119,18 @@ describe('fuzz: engine invariants hold', () => {
 
   it('an Equip follows its monster to the graveyard in real duels (task 4.2c; rare: 60 seeds × 400 steps)', async () => {
     let detached = 0;
+    let setEquipLinks = 0;
     for (let i = 1; i <= 60; i++) {
       await yieldToWorker();
       const result = runFuzz({ seed: `fuzz-${i}`, steps: 400 });
       if (!result.ok) throw new Error(formatFuzzFailure(result));
       detached += result.stats.equipsDetached;
+      setEquipLinks += result.stats.setEquipLinks;
     }
+    console.log(`fuzz 4.4c Set Equip Spells activated: ${setEquipLinks}`);
     expect(detached).toBeGreaterThan(0);
+    // Task 4.4c: Equip Spells are really activated from where they were Set.
+    expect(setEquipLinks).toBeGreaterThan(0);
   }, 120_000);
 
   it('Field Spells and Continuous Spells/Traps are really played (task 4.3; own seeds: 60 × 400 steps)', async () => {

@@ -115,16 +115,21 @@ describe('Equip — activation and attachment', () => {
     );
   });
 
-  it('is a Main Phase action from the hand; a Set Equip Spell is not activatable (backlog)', () => {
+  it('is a Main Phase action from the hand; a Set Equip Spell is activatable too (task 4.4c)', () => {
     const base = fixtureState({ hand: ['EQ_POWER'], myMonsters: [[0, 'M1']] });
     expectEngineError(
       () => applyAction({ ...base, phase: 'Battle' }, activate(), fixtureCtx),
       'WRONG_PHASE',
     );
-    expectEngineError(
-      () => run({ mySpellTraps: [[0, 'EQ_POWER']], myMonsters: [[0, 'M1']] }, activate('ms-0')),
-      'NOT_ACTIVATABLE',
+    // Until task 4.4c this was NOT_ACTIVATABLE (backlog); details in rules/equip-set-activation.test.ts.
+    const { state } = run(
+      { mySpellTraps: [[2, 'EQ_POWER']], myMonsters: [[0, 'M1']] },
+      activate('ms-2'),
     );
+    expect(state.players[0].board.spellTrapZones[2]).toMatchObject({
+      position: 'Attack',
+      equippedTo: 'm0-0',
+    });
   });
 
   it('asks which monster when several qualify; only the equipped one is modified', () => {

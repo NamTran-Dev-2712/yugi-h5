@@ -1389,4 +1389,50 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
       ...endPhase(0, 4),
     ],
   },
+  {
+    name: 'equip-set-then-activate',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-eq-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [EQUIP_DECK, EQUIP_DECK],
+      },
+    },
+    actions: [
+      // Same deal as 'equip-buff-and-detach'. T1 (P0): Set G_EQ_POWER (p0-21) in Spell/Trap Zone 3. Rejected: activating
+      // it with no face-up monster to equip. Summon M1000 (p0-31), then activate the Set Equip on the very turn it was
+      // Set (task 4.4c): it flips face-up in Zone 3 (it does not move) and M1000 is now 1500 ATK. Rejected: activating
+      // it again.
+      ...endPhase(0, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-21', zoneIndex: 3 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-21', effectId: 'e1' },
+      },
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-31', zoneIndex: 0 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-21', effectId: 'e1' },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-21', effectId: 'e1' },
+      },
+      ...endPhase(0, 4),
+      // T2 (P1): Summon M1800 (p1-2).
+      ...endPhase(1, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-2', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): the equipped M1000 (1500) attacks M1800 → destroyed, 300 to P0; its Equip follows it to the graveyard.
+      ...endPhase(0, 3),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-31', targetInstanceId: 'p1-2' },
+      },
+      ...endPhase(0, 3),
+    ],
+  },
 ];

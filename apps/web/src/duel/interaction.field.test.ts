@@ -173,6 +173,46 @@ describe('a Set Field Spell (task 4.3b, C13)', () => {
     ]);
   });
 
+  it('task 4.4c: a Set Equip Spell goes the same generic way — outlined and tapped only because the server lists it', () => {
+    // The field-set fixture with its Set Normal Spell (p0-31) turned into a Set SMP-112 (Equip) that the server lists.
+    const f = loadFixture('field-set');
+    const equip: PlayerAction = {
+      type: 'ActivateEffect',
+      payload: { playerIndex: 0, cardInstanceId: 'p0-31', effectId: 'equip' },
+    };
+    const me = f.view.players[0];
+    const view = {
+      ...f.view,
+      players: [
+        {
+          ...me,
+          board: {
+            ...me.board,
+            spellTrapZones: me.board.spellTrapZones.map((c) =>
+              c && c.instanceId === 'p0-31' && !c.hidden ? { ...c, definitionId: 'SMP-112' } : c,
+            ) as unknown as typeof me.board.spellTrapZones,
+          },
+        },
+        f.view.players[1],
+      ],
+    } as typeof f.view;
+    const others = f.legalActions.filter(
+      (a) => !(a.type === 'ActivateEffect' && a.payload.cardInstanceId === 'p0-31'),
+    );
+    const listed = makeCtx(view, [...others, equip]);
+    expect(listed.model.cards.find((c) => c.id === 'p0-31')?.activatable).toBe(true);
+    const r = click(start(), centre(cardRect(listed, 'p0-31')), listed);
+    expect(sends(r)).toEqual([equip]);
+    expect(kindOf(r)).toBe('pending-server');
+
+    // Not listed (e.g. no face-up monster to equip): no outline, a tap does nothing — the client knows no rule.
+    const unlisted = makeCtx(view, others);
+    expect(unlisted.model.cards.find((c) => c.id === 'p0-31')?.activatable).toBeFalsy();
+    const idle = click(start(), centre(cardRect(unlisted, 'p0-31')), unlisted);
+    expect(sends(idle)).toEqual([]);
+    expect(kindOf(idle)).toBe('idle');
+  });
+
   it('it never follows the pointer: dragging it away sends nothing', () => {
     const r = drag(start(), mine, centre(layout.self.spellTrapZones[2]!), ctx);
     expect(sends(r)).toEqual([]);

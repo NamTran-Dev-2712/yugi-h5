@@ -386,6 +386,8 @@ export interface FuzzStats {
   readonly summonWindowsBeforeTrigger: number;
   readonly triggerSummonsNegated: number;
   readonly triggersAfterSummonWindow: number;
+  /** Task 4.4c — Equip Spells activated from the Spell/Trap Zone they were Set in. */
+  readonly setEquipLinks: number;
 }
 
 export type FuzzResult =
@@ -1106,6 +1108,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let summonWindowsBeforeTrigger = 0;
   let triggerSummonsNegated = 0;
   let triggersAfterSummonWindow = 0;
+  let setEquipLinks = 0;
   /** Does the Summoned monster have a trigger that this kind of Summon fires (OnSummon; OnFlip for a Flip Summon)? */
   const hasSummonTrigger = (owed: { type: string; definitionId: string }): boolean =>
     (FUZZ_DEFS[owed.definitionId]?.effects ?? []).some(
@@ -1286,6 +1289,16 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
           ),
         );
         if (def.subType === 'Normal' && wasSet) setNormalSpellLinks++;
+        // Task 4.4c: an Equip Spell activated from where it was Set flips in place — afterwards it is still in that
+        // very zone (waiting / equipped) or gone from the field, never in another zone.
+        if (def.subType === 'Equip' && wasSet && state) {
+          setEquipLinks++;
+          const zones = (s: GameState) => s.players[e.playerIndex].board.spellTrapZones;
+          const from = zones(state).findIndex((c) => c?.instanceId === e.instanceId);
+          const now = zones(next).findIndex((c) => c?.instanceId === e.instanceId);
+          if (now !== -1 && now !== from)
+            return fail(step, `Set Equip ${e.instanceId} moved from zone ${from} to zone ${now}`);
+        }
       }
     }
     equips += result.events.filter((e) => e.type === 'CardEquipped').length;
@@ -1365,6 +1378,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       summonWindowsBeforeTrigger,
       triggerSummonsNegated,
       triggersAfterSummonWindow,
+      setEquipLinks,
     },
   };
 }

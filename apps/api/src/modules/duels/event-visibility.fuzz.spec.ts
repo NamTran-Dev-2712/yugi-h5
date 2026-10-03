@@ -40,6 +40,9 @@ import { findLeaks, type LeakViolation } from './testing/leak-check';
  * Task 4.4b: + Counter Trap / Negate on the wire — a third set of seeds plays `NEGATE_DEMO_DECK` (real SMP-201 / 209 /
  * 210; `negateDeckList`, own rng stream, steered to Set and activate them) in both modes and must cover the three Negate
  * events, a Counter Trap activation and a Set Trap destroyed while face-down (`FUZZ_NEGATE_SEEDS`, same default).
+ * Task 4.4c: + a fourth set of seeds plays a flip-monster deck (`flipDeckList`, own rng stream, steered to Set flip
+ * monsters and attack face-down ones) so the "flipped by an attack ⇒ flip trigger" path stays covered
+ * (`FUZZ_FLIP_SEEDS`, default max(4, FUZZ_SEEDS / 4)). No engine, deck, seed or oracle of the older sets changed.
  *
  * Default: FUZZ_SEEDS=8 × FUZZ_STEPS=120. Long run: `FUZZ_SEEDS=200 FUZZ_STEPS=400 pnpm --filter @yugi/api exec
  * vitest run src/modules/duels/event-visibility.fuzz.spec.ts`.
@@ -51,6 +54,8 @@ const STEPS = Number(process.env['FUZZ_STEPS'] ?? 120);
 const FIELD_SEEDS = Number(process.env['FUZZ_FIELD_SEEDS'] ?? Math.max(6, Math.ceil(SEEDS / 2)));
 /** Task 4.4b: seeds of the Counter Trap / Negate deck (own rng stream; the seeds above are not touched). */
 const NEGATE_SEEDS = Number(process.env['FUZZ_NEGATE_SEEDS'] ?? Math.max(6, Math.ceil(SEEDS / 2)));
+/** Task 4.4c: seeds of the flip-monster deck (own rng stream; the seeds above are not touched). */
+const FLIP_SEEDS = Number(process.env['FUZZ_FLIP_SEEDS'] ?? Math.max(4, Math.ceil(SEEDS / 4)));
 
 const text = (s: string) => ({ vi: s, en: s });
 /** Test-only Spells (not in SAMPLE_CARDS; no new card data): one per effect path of task 3.2. */
@@ -301,6 +306,21 @@ function fieldDeckList(): string[] {
     ...['SMP-113', 'FZ-FIELD-2', 'SMP-114', 'SMP-208', 'SMP-115'].flatMap(x3),
     ...['FZ-KILL-ST', 'FZ-TRAP-KILL-ST', 'SMP-105'].flatMap(x3),
   ];
+  const low = SAMPLE_CARDS.filter((c) => c.kind === 'Monster' && c.level <= 4 && !c.effects).map(
+    (c) => c.id,
+  );
+  for (let i = 0; deck.length < 40; i++) deck.push(low[i % low.length]!);
+  return deck;
+}
+
+/**
+ * Task 4.4c: a deck of flip monsters (the real SMP-044 and the test-only FZ-FLIP-KILL, ×3 each) and vanilla attackers,
+ * played by its OWN seeds: "a monster flipped by an attack fires its flip effect" stopped being reached by the default
+ * 8 seeds once a Set Equip Spell became a legal activation (the legal lists changed, so the random walks did).
+ */
+function flipDeckList(): string[] {
+  const x3 = (id: string): string[] => [id, id, id];
+  const deck = [...FLIP_CARDS].flatMap(x3);
   const low = SAMPLE_CARDS.filter((c) => c.kind === 'Monster' && c.level <= 4 && !c.effects).map(
     (c) => c.id,
   );
@@ -809,6 +829,34 @@ function steerToNegate(
 }
 
 /**
+ * Task 4.4c steering (test generator only, the engine decides what is legal): Set a flip monster rather than Summoning
+ * it, and attack the opponent's FACE-DOWN monsters — the battle flip whose trigger the gate must see on the wire.
+ */
+function steerToBattleFlip(
+  state: GameState,
+  actor: 0 | 1,
+  legal: readonly PlayerAction[],
+): PlayerAction[] {
+  const faceDown = new Set(
+    state.players[actor === 0 ? 1 : 0].board.monsterZones.flatMap((c) =>
+      c?.position === 'DefenseDown' ? [c.instanceId] : [],
+    ),
+  );
+  const blind = legal.filter(
+    (a) =>
+      a.type === 'DeclareAttack' &&
+      typeof a.payload.targetInstanceId === 'string' &&
+      faceDown.has(a.payload.targetInstanceId),
+  );
+  if (blind.length > 0) return blind;
+  return legal.filter((a) => {
+    if (a.type !== 'SetMonster') return false;
+    const card = state.players[actor].hand.find((c) => c.instanceId === a.payload.cardInstanceId);
+    return card !== undefined && FLIP_CARDS.has(card.definitionId);
+  });
+}
+
+/**
  * Task 4.3b steering (test generator only, the engine decides what is legal): Set a Field Spell rather than activating
  * it, and when a target prompt lists the opponent's FACE-DOWN Field Spell, pick it — the rare path the gate must see.
  */
@@ -1010,6 +1058,20 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
         tag: '4.3b-field',
         deck: fieldDeckList,
         steer: steerToFieldZone,
+      });
+      expect(stats.violations.slice(before).slice(0, 5)).toEqual([]);
+    },
+    120_000,
+  );
+
+  it.each(Array.from({ length: FLIP_SEEDS }, (_, i) => i))(
+    'seed %i (flip-monster deck, task 4.4c): every response to both viewers passes the leak oracle',
+    async (seed) => {
+      const before = stats.violations.length;
+      await fuzzSeed(seed, stats, {
+        tag: '4.4c-flip',
+        deck: flipDeckList,
+        steer: steerToBattleFlip,
       });
       expect(stats.violations.slice(before).slice(0, 5)).toEqual([]);
     },

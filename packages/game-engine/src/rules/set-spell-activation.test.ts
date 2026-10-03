@@ -148,8 +148,14 @@ describe('Set cards that still wait or still cannot be activated', () => {
     expectEngineError(() => apply(setNow, act('h0')), 'SPELL_SET_THIS_TURN');
   });
 
-  it('a Set Equip Spell: NOT_ACTIVATABLE (backlog)', () => {
+  it('a Set Equip Spell no longer waits (task 4.4c): it is activated like the other Set Spells', () => {
     const state = fixtureState({ mySpellTraps: [[0, 'EQ_POWER']], myMonsters: [[0, 'M1']] });
-    expectEngineError(() => apply(state, act('ms-0')), 'NOT_ACTIVATABLE');
+    const done = apply(state, act('ms-0'));
+    expect(done.events.map((e) => e.type)).toContain('CardEquipped');
+    // No monster to equip: refused for its target, not for being a Set Equip.
+    expectEngineError(
+      () => apply(fixtureState({ mySpellTraps: [[0, 'EQ_POWER']] }), act('ms-0')),
+      'NO_VALID_TARGET',
+    );
   });
 });

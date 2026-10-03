@@ -158,11 +158,13 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
       trigger = 'Quick';
     } else if (
       definition.subType === 'Normal' ||
+      definition.subType === 'Equip' ||
       definition.subType === 'Continuous' ||
       definition.subType === 'Field'
     ) {
       // Task 4.3 [RULE]: a Set Spell Speed 1 card is activated like from the hand — its controller's turn (even while
-      // the other player holds priority in a window), Main Phase. A Set Equip Spell: not yet.
+      // the other player holds priority in a window), Main Phase. Task 4.4c: a Set Equip Spell too — it flips face-up
+      // in the zone it was Set in (no `placement`) and equips when its link resolves, as from the hand (task 4.2c).
       if (playerIndex !== state.turnPlayerIndex)
         fail('NOT_TURN_PLAYER', 'a Set Spell may only be activated on your own turn.');
       if (state.phase !== 'Main1' && state.phase !== 'Main2')

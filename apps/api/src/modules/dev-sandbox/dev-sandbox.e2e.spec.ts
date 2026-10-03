@@ -178,6 +178,60 @@ describe('POST /dev/sandbox/duels (NODE_ENV=test)', () => {
     },
   );
 
+  it('task 4.4c: a Set Equip Spell is listed in legalActions and equips over HTTP, staying in its zone', async () => {
+    const auth = await guest();
+    // equip-real with SMP-112 already Set in my Spell/Trap Zone 3 instead of in my hand (no script).
+    const base = scenario('equip-real') as {
+      players: { hand: string[]; field: { monsters: unknown[]; spellTraps: unknown[] } }[];
+    };
+    const body = {
+      ...base,
+      script: undefined,
+      players: [
+        {
+          ...base.players[0],
+          hand: ['SMP-006'],
+          field: {
+            ...base.players[0]!.field,
+            spellTraps: [{ card: 'SMP-112', zone: 3, position: 'DefenseDown' }],
+          },
+        },
+        base.players[1],
+      ],
+    };
+    const res = await load(auth, body);
+    expect(res.status).toBe(201);
+    const created = res.body as CreateSoloResponse;
+    const set = created.view.players[0].board.spellTrapZones[3];
+    expect(set).toMatchObject({ hidden: false, definitionId: 'SMP-112', position: 'DefenseDown' });
+    const activate = created.legalActions.find(
+      (a) => a.type === 'ActivateEffect' && a.payload.cardInstanceId === set?.instanceId,
+    );
+    expect(activate, 'the Set Equip Spell is listed').toBeDefined();
+    expect(PlayerActionSchema.safeParse(activate).success).toBe(true);
+
+    const done = await http()
+      .post(`/duels/${created.duelId}/actions`)
+      .set(auth)
+      .send({ playerIndex: 0, action: activate });
+    expect(done.status).toBe(200);
+    const after = done.body as CreateSoloResponse & { events: { type: string }[] };
+    expect(after.events.map((e) => e.type)).toContain('CardEquipped');
+    const equipped = after.view.players[0].board.spellTrapZones[3];
+    const monster = after.view.players[0].board.monsterZones[0];
+    expect(equipped).toMatchObject({
+      hidden: false,
+      definitionId: 'SMP-112',
+      position: 'Attack',
+      equippedTo: monster?.instanceId,
+    });
+    // SMP-001 printed ATK + 500.
+    expect(monster && !monster.hidden ? monster.effectiveStats?.atk : undefined).toBe(
+      (created.view.players[0].board.monsterZones[0] as { effectiveStats: { atk: number } })
+        .effectiveStats.atk + 500,
+    );
+  });
+
   it('a refused script step is 409 with the step number', async () => {
     const auth = await guest();
     const body = {
