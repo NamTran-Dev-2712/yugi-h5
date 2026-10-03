@@ -37,3 +37,12 @@
  FAIL  src/rules/trigger-effects.test.ts > OnSummon — optional > accepted with an opponent able to respond: a plain chain window (the link is what they respond to)
  FAIL  src/rules/trigger-effects.test.ts > OnSummon — optional > with an opponent able to respond: the Summon reaction window opens BEFORE the prompt (task 4.4c); declined afterwards, it does not open again
  Test Files  6 failed | 63 passed (69)
+
+# Added while implementing (still before part B): apps/api dev-sandbox.e2e.spec.ts, engine code for B unchanged
+ FAIL  src/modules/dev-sandbox/dev-sandbox.e2e.spec.ts > POST /dev/sandbox/duels (NODE_ENV=test) > task 4.4c: a Set Equip Spell is listed in legalActions and equips over HTTP, staying in its zone
+   -> the Set Equip Spell is listed: expected undefined to be defined
+
+# After part A (engine): the 3 api tests below went red because of the new order (expectations updated, no api code changed)
+ FAIL  src/modules/duels/duel-manager.ai-redact.spec.ts > aiActions, ChainLinkAdded and chain drop the AI hand card the trigger chose
+ FAIL  src/modules/duels/duel-manager.ai-redact.spec.ts > task 4.3b: an AI prompt answer carries the kind of the prompt it answered; other AI actions carry none
+ FAIL  src/modules/duels/duel-manager.scenario-real.spec.ts > trigger-optional-real: the script Summons SMP-020, I am asked; accepting lets the AI answer with its Trap

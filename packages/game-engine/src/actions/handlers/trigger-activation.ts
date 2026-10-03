@@ -55,14 +55,8 @@ export function resolveTriggerActivation(
   }
 
   const canActivate = (s: GameState, seat: 0 | 1) => hasLegalActivation(s, seat, ctx);
-  // Task 4.4: `afterward` is only ever set by a Summon (summon.ts / flip-summon.ts), whose trigger queue holds nothing but
-  // the Summoned monster's own triggers — so the answered trigger names the monster the Summon window is about. Derived
-  // here rather than stored in the prompt payload, whose shape is already on the wire.
-  const summoned =
-    saved.afterward === null
-      ? undefined
-      : { playerIndex: saved.trigger.playerIndex, instanceId: saved.trigger.instanceId };
-  const rest = runTriggers(current, saved.remaining, saved.afterward, ctx, canActivate, summoned);
+  // Task 4.4c: no Summon reaction window opens here any more (it came before the triggers); `saved.afterward` is null.
+  const rest = runTriggers(current, saved.remaining, ctx);
   events.push(...rest.events);
   const settled = settle(rest.state, ctx, canActivate);
   events.push(...settled.events);

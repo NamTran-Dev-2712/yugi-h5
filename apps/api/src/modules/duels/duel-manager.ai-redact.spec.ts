@@ -81,22 +81,44 @@ describe('AI hand targets never reach the human (task 4.2d)', () => {
       ownerId: 'owner',
       aiSeat: 1,
     });
+    // Task 4.4c: the human (Set Trap) first gets the Summon reaction window — the AI's trigger is not on the chain yet.
+    expect(r.views[0].chainWindow).toMatchObject({
+      priorityPlayer: 0,
+      reactionTo: { kind: 'Summon' },
+    });
+    expect(r.views[0].chain).toEqual([]);
+    expect((r.aiActions ?? []).some((a) => a.action.type === 'ResolvePendingPrompt')).toBe(false);
+    const passed = await manager.submitAction('duel-1', 0, {
+      type: 'PassPriority',
+      payload: { playerIndex: 0 },
+    });
+
     const state = (await manager.getDuel('duel-1')).state;
     // The situation really happened: the AI answered the trigger prompt, the chain waits for the human.
-    const answers = (r.aiActions ?? []).filter((a) => a.action.type === 'ResolvePendingPrompt');
+    const answers = (passed.aiActions ?? []).filter(
+      (a) => a.action.type === 'ResolvePendingPrompt',
+    );
     expect(answers).toHaveLength(1);
     expect(state.chainWindow?.priorityPlayer).toBe(0);
     expect(state.chainStack[0]?.targetInstanceIds).toHaveLength(1);
     const chosen = state.chainStack[0]!.targetInstanceIds[0]!;
     expect(state.players[1].hand.some((c) => c.instanceId === chosen)).toBe(true);
 
-    const human = { view: r.views[0], events: r.eventsByViewer[0], aiActions: r.aiActions };
+    const human = { view: passed.view, events: passed.events, aiActions: passed.aiActions };
     for (const a of answers) {
       if (a.action.type === 'ResolvePendingPrompt')
         expect(a.action.payload.cardInstanceIds).toEqual([]);
     }
-    expect(r.views[0].chain[0]?.targetInstanceIds).toEqual([]);
+    expect(passed.view.chain[0]?.targetInstanceIds).toEqual([]);
     expect(findLeaks(state, 0, human)).toEqual([]);
+    // What the human got when the duel was created (the Summon, the window) leaks nothing either.
+    expect(
+      findLeaks(state, 0, {
+        view: r.views[0],
+        events: r.eventsByViewer[0],
+        aiActions: r.aiActions,
+      }),
+    ).toEqual([]);
   });
 
   it('task 4.3b: an AI prompt answer carries the kind of the prompt it answered; other AI actions carry none', async () => {
@@ -116,8 +138,14 @@ describe('AI hand targets never reach the human (task 4.2d)', () => {
       ownerId: 'owner',
       aiSeat: 1,
     });
-    const steps = r.aiActions ?? [];
+    // Task 4.4c: the AI's Summon first waits on the human's Summon window; its trigger prompt comes after the pass.
+    const passed = await manager.submitAction('duel-1', 0, {
+      type: 'PassPriority',
+      payload: { playerIndex: 0 },
+    });
+    const steps = [...(r.aiActions ?? []), ...(passed.aiActions ?? [])];
     expect(steps.length).toBeGreaterThan(1);
+    expect(steps.some((s) => s.action.type === 'ResolvePendingPrompt')).toBe(true);
     for (const step of steps) {
       if (step.action.type === 'ResolvePendingPrompt') {
         expect(step.promptKind).toBe('TriggerActivation');

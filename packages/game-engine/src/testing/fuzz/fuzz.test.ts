@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../../apply-action.js';
-import { formatFuzzFailure, NEGATE_DECK_POOL, runFuzz } from './fuzz.js';
+import { formatFuzzFailure, NEGATE_DECK_POOL, runFuzz, SUMMON_TRIGGER_DECK_POOL } from './fuzz.js';
 import type { ApplyFn, FuzzResult } from './fuzz.js';
 
 /*
@@ -16,6 +16,11 @@ const NEGATE_SEEDS = Array.from(
   { length: Number(process.env['FUZZ_NEGATE_SEEDS'] ?? 5) },
   (_, i) => `negate-long-${i + 1}`,
 );
+/** Task 4.4c: seeds of the Summon-trigger deck pool. Long run: FUZZ_SUMWIN_SEEDS. */
+const SUMMON_TRIGGER_SEEDS = Array.from(
+  { length: Number(process.env['FUZZ_SUMWIN_SEEDS'] ?? 5) },
+  (_, i) => `sumwin-long-${i + 1}`,
+);
 
 /** Task 4.2d: let the vitest worker answer its RPC between seeds (a long synchronous test starves it under load). */
 const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -23,6 +28,11 @@ const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(r
 describe('fuzz: engine invariants hold', () => {
   it.each(SEEDS)('seed %s', (seed) => {
     const result = runFuzz({ seed, steps: STEPS });
+    expect(result.ok, formatFuzzFailure(result)).toBe(true);
+  });
+
+  it.each(SUMMON_TRIGGER_SEEDS)('seed %s (Summon-trigger deck pool, task 4.4c)', (seed) => {
+    const result = runFuzz({ seed, steps: STEPS, deckPool: SUMMON_TRIGGER_DECK_POOL });
     expect(result.ok, formatFuzzFailure(result)).toBe(true);
   });
 
@@ -157,6 +167,33 @@ describe('fuzz: engine invariants hold', () => {
         total[key] += result.stats[key];
     }
     console.log(`fuzz 4.4 coverage: ${JSON.stringify(total)}`);
+    for (const [key, n] of Object.entries(total))
+      expect(n, `${key} never happened`).toBeGreaterThan(0);
+  }, 120_000);
+
+  it('the Summon window really comes before OnSummon / OnFlip triggers (task 4.4c; own seeds and deck pool: 60 × 400 steps)', async () => {
+    const total = {
+      summonWindowsBeforeTrigger: 0,
+      triggerSummonsNegated: 0,
+      triggersAfterSummonWindow: 0,
+      summonsNegated: 0,
+      flipLinks: 0,
+      triggerPrompts: 0,
+    };
+    // A variant of its own (ADR 064 lesson): trigger monsters against Summon negation, drawn from
+    // SUMMON_TRIGGER_DECK_POOL. Same generator, same invariants; every older seed keeps its pool.
+    for (let i = 1; i <= 60; i++) {
+      await yieldToWorker();
+      const result = runFuzz({
+        seed: `sumwin-${i}`,
+        steps: 400,
+        deckPool: SUMMON_TRIGGER_DECK_POOL,
+      });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const key of Object.keys(total) as (keyof typeof total)[])
+        total[key] += result.stats[key];
+    }
+    console.log(`fuzz 4.4c coverage: ${JSON.stringify(total)}`);
     for (const [key, n] of Object.entries(total))
       expect(n, `${key} never happened`).toBeGreaterThan(0);
   }, 120_000);
@@ -356,6 +393,68 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
       last = runFuzz({ seed: `negate-${i}`, steps: 400, deckPool: NEGATE_DECK_POOL, apply });
     expect(last?.ok).toBe(false);
     if (last && !last.ok) expect(last.violation).toMatch(/not in its owner's graveyard/);
+  });
+
+  it('flags a trigger that happens although its Summon was negated (task 4.4c)', () => {
+    // After a Summon was negated, pretend the monster's trigger was activated anyway (events only: the state stays
+    // legal, so only the 4.4c invariant can report it). Own deck pool and seeds, as for the coverage run.
+    const apply = broken('ActivateEffect', ({ state, events }) => {
+      const negated = events.find((e) => e.type === 'SummonNegated');
+      if (!negated || negated.type !== 'SummonNegated') return { state, events };
+      return {
+        state,
+        events: [
+          ...events,
+          {
+            type: 'EffectActivated',
+            playerIndex: negated.playerIndex,
+            instanceId: negated.instanceId,
+            definitionId: negated.definitionId,
+            effectId: 'e1',
+          },
+        ],
+      };
+    });
+    let last: FuzzResult | null = null;
+    for (let i = 1; i <= 60 && (last === null || last.ok); i++)
+      last = runFuzz({
+        seed: `sumwin-${i}`,
+        steps: 400,
+        deckPool: SUMMON_TRIGGER_DECK_POOL,
+        apply,
+      });
+    expect(last?.ok).toBe(false);
+    if (last && !last.ok) expect(last.violation).toMatch(/after its Summon was negated/);
+  });
+
+  it('flags a Summon trigger put on the chain while its Summon window is still open (task 4.4c)', () => {
+    // The pre-4.4c order, simulated on the state: the window that owes the triggers also shows a trigger prompt.
+    const apply = broken('NormalSummon', ({ state, events }) =>
+      state.chainWindow?.summonEvent
+        ? {
+            events,
+            state: {
+              ...state,
+              pendingPrompt: {
+                promptId: 'fake',
+                playerIndex: state.turnPlayerIndex,
+                kind: 'TriggerActivation',
+                payload: {},
+              },
+            },
+          }
+        : { state, events },
+    );
+    let last: FuzzResult | null = null;
+    for (let i = 1; i <= 60 && (last === null || last.ok); i++)
+      last = runFuzz({
+        seed: `sumwin-${i}`,
+        steps: 400,
+        deckPool: SUMMON_TRIGGER_DECK_POOL,
+        apply,
+      });
+    expect(last?.ok).toBe(false);
+    if (last && !last.ok) expect(last.violation).toMatch(/while the Summon window of/);
   });
 
   it('flags an uncontrolled exception', () => {

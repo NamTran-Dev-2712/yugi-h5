@@ -205,6 +205,15 @@ export const NEGATE_DECK_POOL: readonly string[] = [
   ...['M2', 'M4', 'M4', 'SP', 'SP', 'CSA', 'FLD', 'EQP', 'TRB'],
   ...['TNA', 'TNA', 'CNA', 'CNA', 'CNA', 'CNS', 'CNS'],
 ];
+/**
+ * Task 4.4c — a pool of monsters with "when Summoned / flipped" triggers against cards that answer a Summon (a Summon
+ * negation, a plain Trap), for the coverage run of the "Summon window before the triggers" order. Own seeds
+ * (`sumwin-<i>`); the default pool and the Negate pool are not affected.
+ */
+export const SUMMON_TRIGGER_DECK_POOL: readonly string[] = [
+  ...['MS', 'MS', 'MS', 'MSO', 'MF', 'MF', 'MFO', 'M2', 'M4'],
+  ...['CNS', 'CNS', 'CNS', 'TRB', 'TRB', 'CNA'],
+];
 const PHASES: readonly Phase[] = ['Draw', 'Standby', 'Main1', 'Battle', 'Main2', 'End'];
 
 function spell(id: string, effect: Omit<EffectDefinition, 'id'>): CardDefinition {
@@ -369,6 +378,14 @@ export interface FuzzStats {
   readonly attacksNegated: number;
   readonly summonsNegated: number;
   readonly counterTrapLinks: number;
+  /**
+   * Task 4.4c — Summon windows (states between actions) opened for a monster that has an OnSummon / OnFlip trigger
+   * still owed; such Summons that were then negated (the trigger never happened); and trigger links / prompts of such
+   * a monster that came once its Summon window was done.
+   */
+  readonly summonWindowsBeforeTrigger: number;
+  readonly triggerSummonsNegated: number;
+  readonly triggersAfterSummonWindow: number;
 }
 
 export type FuzzResult =
@@ -932,7 +949,8 @@ function checkContinuous(state: GameState, ctx: ActionContext): [string | null, 
  *   field (a monster's negated trigger leaves the monster where it was);
  * - a negated attack flips nothing, and the attacker (if still on the field) counts as having attacked;
  * - a monster whose Summon was negated is in its owner's graveyard, in no Monster Zone, and the Normal Summon of the
- *   turn is not given back.
+ *   turn is not given back;
+ * - task 4.4c: none of that monster's effects is activated (or offered to its owner) after its Summon was negated.
  */
 function checkNegations(
   prev: GameState,
@@ -1024,6 +1042,19 @@ function checkNegations(
         !next.players[e.playerIndex].hasNormalSummonedThisTurn
       )
         return bad(`SummonNegated gave the Normal Summon back to player ${e.playerIndex}`);
+      // Task 4.4c [RULE]: a negated Summon never fires the monster's "when Summoned / flipped" triggers.
+      if (
+        events
+          .slice(i + 1)
+          .some((x) => x.type === 'EffectActivated' && x.instanceId === e.instanceId)
+      )
+        return bad(`an effect of ${e.instanceId} was activated after its Summon was negated`);
+      const prompt = next.pendingPrompt;
+      if (
+        prompt?.kind === 'TriggerActivation' &&
+        (prompt.payload as { trigger: { instanceId: string } }).trigger.instanceId === e.instanceId
+      )
+        return bad(`a trigger of ${e.instanceId} is offered after its Summon was negated`);
     }
   }
   return out;
@@ -1072,6 +1103,16 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let attacksNegated = 0;
   let summonsNegated = 0;
   let counterTrapLinks = 0;
+  let summonWindowsBeforeTrigger = 0;
+  let triggerSummonsNegated = 0;
+  let triggersAfterSummonWindow = 0;
+  /** Does the Summoned monster have a trigger that this kind of Summon fires (OnSummon; OnFlip for a Flip Summon)? */
+  const hasSummonTrigger = (owed: { type: string; definitionId: string }): boolean =>
+    (FUZZ_DEFS[owed.definitionId]?.effects ?? []).some(
+      (e) =>
+        e.trigger.kind === 'OnSummon' ||
+        (owed.type === 'FlipSummoned' && e.trigger.kind === 'OnFlip'),
+    );
   let state: GameState | null = null;
   let initialIds: string[] = [];
 
@@ -1135,6 +1176,50 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
           step,
           `chain window open for player ${window.priorityPlayer} who cannot respond`,
         );
+    }
+    // Task 4.4c: a Summon whose triggers are still owed only ever rides on the Summon window opened for that monster,
+    // and while it does none of the monster's triggers is on the chain or offered yet (the window comes first [RULE]).
+    const owed = window?.summonEvent;
+    if (window && owed) {
+      if (window.reactionTo?.kind !== 'Summon' || window.summoned?.instanceId !== owed.instanceId)
+        return fail(step, `summonEvent of ${owed.instanceId} outside its Summon reaction window`);
+      if (next.pendingPrompt?.kind === 'TriggerActivation')
+        return fail(
+          step,
+          `a trigger is offered while the Summon window of ${owed.instanceId} is open`,
+        );
+      if (
+        next.chainStack.some(
+          (l) => l.linkId.startsWith('trigger-') && l.card.instanceId === owed.instanceId,
+        )
+      )
+        return fail(
+          step,
+          `a trigger of ${owed.instanceId} is on the chain while its Summon window is open`,
+        );
+      if (hasSummonTrigger(owed) && window !== state?.chainWindow && next.chainStack.length === 0)
+        summonWindowsBeforeTrigger++;
+    }
+    const wasOwed = state?.chainWindow?.summonEvent;
+    if (wasOwed && hasSummonTrigger(wasOwed)) {
+      if (
+        result.events.some((e) => e.type === 'SummonNegated' && e.instanceId === wasOwed.instanceId)
+      )
+        triggerSummonsNegated++;
+      const offered = next.pendingPrompt;
+      if (
+        result.events.some(
+          (e) =>
+            e.type === 'ChainLinkAdded' &&
+            e.linkId.startsWith('trigger-') &&
+            e.instanceId === wasOwed.instanceId,
+        ) ||
+        (offered?.kind === 'TriggerActivation' &&
+          offered !== state?.pendingPrompt &&
+          (offered.payload as { trigger: { instanceId: string } }).trigger.instanceId ===
+            wasOwed.instanceId)
+      )
+        triggersAfterSummonWindow++;
     }
     maxChainLength = Math.max(maxChainLength, next.chainStack.length);
     if (next.chainWindow?.reactionTo && next.chainStack.length === 0) reactionWindows++;
@@ -1277,6 +1362,9 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       attacksNegated,
       summonsNegated,
       counterTrapLinks,
+      summonWindowsBeforeTrigger,
+      triggerSummonsNegated,
+      triggersAfterSummonWindow,
     },
   };
 }

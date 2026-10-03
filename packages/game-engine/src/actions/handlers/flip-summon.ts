@@ -1,7 +1,7 @@
 import { openReactionWindow, settle } from '../../effects/chain.js';
-import { collectTriggers, runTriggers } from '../../effects/triggers.js';
+import { fireTriggers } from '../../effects/triggers.js';
 import { EngineError, type EngineErrorCode } from '../../errors.js';
-import type { GameEvent } from '../../events/types.js';
+import type { FlipSummonedEvent, GameEvent } from '../../events/types.js';
 import type { CardInstance, GameState, PlayerState } from '../../state/types.js';
 import type { ActionContext, FlipSummonAction } from '../types.js';
 import { hasLegalActivation } from './activate-effect.js';
@@ -12,8 +12,9 @@ type Result = { state: GameState; events: GameEvent[] };
  * Task 4.2b [RULE]: Flip Summon — the turn player turns one of their face-down monsters face-up in Attack Position, in a
  * Main Phase. Not a monster Set this turn (`summonedTurn`), not one whose position already changed this turn. Does not
  * use the Normal Summon. Stamps `positionChangedTurn` (no further position change this turn); `summonedTurn` is left as
- * it was, so a monster Set on an earlier turn may attack. The monster's OnFlip and OnSummon triggers go on the chain
- * first; with none, the opponent gets the Summon reaction window (task 3.4c), exactly like a Normal Summon.
+ * it was, so a monster Set on an earlier turn may attack. Exactly like a Normal Summon (task 4.4c): the opponent first
+ * gets the Summon reaction window (task 3.4c) if they can respond; the monster's OnFlip and OnSummon triggers go on the
+ * chain once that window is done (never, if the Flip Summon was negated).
  */
 export function applyFlipSummon(
   state: GameState,
@@ -60,7 +61,7 @@ export function applyFlipSummon(
     ...state,
     players: playerIndex === 0 ? [nextPlayer, state.players[1]] : [state.players[0], nextPlayer],
   };
-  const event: GameEvent = {
+  const event: FlipSummonedEvent = {
     type: 'FlipSummoned',
     playerIndex,
     instanceId: monster.instanceId,
@@ -73,30 +74,23 @@ export function applyFlipSummon(
   // Task 4.4: a Flip Summon is a Summon — its window names the monster a NegateSummon would answer.
   const summoned = { playerIndex, instanceId: monster.instanceId };
 
-  // Same order as a Normal Summon (summon.ts): triggers first, the Summon reaction window only if none went on the chain.
-  const triggers = collectTriggers(placedState, [event], ctx);
-  if (triggers.length > 0) {
-    const fired = runTriggers(
-      placedState,
-      triggers,
-      { kind: 'SummonReaction', responder: opponentIndex },
-      ctx,
-      canActivate,
-      summoned,
-    );
-    const settled = settle(fired.state, ctx, canActivate);
-    return {
-      state: { ...settled.state, version: state.version + 1 },
-      events: [event, ...fired.events, ...settled.events],
-    };
-  }
-
+  // Same order as a Normal Summon (summon.ts, task 4.4c): the Summon reaction window first — it keeps the event, and the
+  // OnFlip / OnSummon triggers are collected once it is done; with nobody able to respond they go on the chain at once.
   const withWindow = openReactionWindow(
     placedState,
     opponentIndex,
     { kind: 'Summon' },
     canActivate,
     summoned,
+    event,
   );
-  return { state: { ...(withWindow ?? placedState), version: state.version + 1 }, events: [event] };
+  if (withWindow !== null)
+    return { state: { ...withWindow, version: state.version + 1 }, events: [event] };
+
+  const fired = fireTriggers(placedState, [event], ctx);
+  const settled = settle(fired.state, ctx, canActivate);
+  return {
+    state: { ...settled.state, version: state.version + 1 },
+    events: [event, ...fired.events, ...settled.events],
+  };
 }

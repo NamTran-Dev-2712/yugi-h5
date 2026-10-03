@@ -139,18 +139,34 @@ export interface SummonedMonster {
 }
 
 /**
+ * Task 4.4c: the Summon whose "when Summoned / flipped" triggers are still owed — the fields of the `NormalSummoned` /
+ * `FlipSummoned` event already emitted (plain data, so the state stays JSON). Triggers are collected from it only once
+ * the Summon reaction window closed without the Summon being negated.
+ */
+export interface PendingSummonEvent {
+  readonly type: 'NormalSummoned' | 'FlipSummoned';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+}
+
+/**
  * Open response window: `priorityPlayer` may activate a chainable effect or `PassPriority`. `passCount` counts
  * consecutive passes since the last link was added; the second one resolves the whole chain. Non-null ⇔ chainStack
  * is non-empty, OR it is an empty reaction window (task 3.4c): `reactionTo` set, `passCount` 0, held by the opponent of
  * the turn player, closed by their single pass. `reactionTo` stays on the window until it closes.
  * Task 4.4: `summoned` rides along with a `Summon` reaction window opened by a real Summon, so a `NegateSummon` knows
  * which monster it answers (kept beside `reactionTo`, whose shape is already public on the wire).
+ * Task 4.4c: `summonEvent` rides along the same way: the Summon window opens BEFORE the monster's triggers [RULE], so
+ * the event is kept here until the window (and any chain built in it) is done.
  */
 export interface ChainWindow {
   readonly priorityPlayer: 0 | 1;
   readonly passCount: 0 | 1;
   readonly reactionTo?: ReactionTo;
   readonly summoned?: SummonedMonster;
+  readonly summonEvent?: PendingSummonEvent;
 }
 
 export interface GameState {

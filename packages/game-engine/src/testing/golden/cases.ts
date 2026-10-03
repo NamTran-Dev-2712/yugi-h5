@@ -399,6 +399,40 @@ const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5']
 const endPhase = (playerIndex: 0 | 1, times = 1): Action[] =>
   Array.from({ length: times }, () => ({ type: 'EndPhase', payload: { playerIndex } }));
 
+/**
+ * Summon window before the OnSummon / OnFlip triggers (task 4.4c): P0 runs the trigger monsters, P1 the Traps.
+ * Both cases share one deal (seed `g-sumwin-3`). T1 (P0) hand: p0-17 G_FLIP_BURN, p0-14 M1000, p0-32 G_SUM_BURN,
+ * p0-27 M1800, p0-28 G_SUM_BURN. T2 (P1) hand: p1-7 M1800, p1-5 G_TRAP_BURN, p1-21 G_TRAP_BURN, p1-16 G_NEG_SUM,
+ * p1-36 G_NEG_SUM.
+ */
+const SUMMON_WINDOW_DECK_P0 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_SUM_BURN', 'G_FLIP_BURN', 'M1000', 'M1800'][i % 4]!,
+);
+const SUMMON_WINDOW_DECK_P1 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_NEG_SUM', 'G_TRAP_BURN', 'M1000', 'M1800'][i % 4]!,
+);
+const summonWindowStart: GoldenCase['start'] = {
+  type: 'StartDuel',
+  payload: {
+    matchId: 'golden',
+    seed: 'g-sumwin-3',
+    playerIds: ['alice', 'bob'],
+    deckLists: [SUMMON_WINDOW_DECK_P0, SUMMON_WINDOW_DECK_P1],
+  },
+};
+/** T1: P0 Sets G_FLIP_BURN (p0-17). T2: P1 Sets G_NEG_SUM (p1-16) and G_TRAP_BURN (p1-5). */
+const summonWindowSetup: Action[] = [
+  ...endPhase(0, 2),
+  { type: 'SetMonster', payload: { playerIndex: 0, cardInstanceId: 'p0-17', zoneIndex: 0 } },
+  ...endPhase(0, 4),
+  ...endPhase(1, 2),
+  { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-16', zoneIndex: 0 } },
+  { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-5', zoneIndex: 1 } },
+  ...endPhase(1, 4),
+];
+
 /*
  * Turn shape reminder (6 EndPhase per full turn): Draw→Standby (draws unless turn 1), Standby→Main1,
  * [Main1 actions], Main1→Battle, [Battle actions], Battle→Main2, Main2→End, End→next turn.
@@ -1305,6 +1339,54 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
         payload: { playerIndex: 0, attackerInstanceId: 'p0-31', targetInstanceId: null },
       },
       ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'summon-negated-before-trigger',
+    definitions: GOLDEN_DEFS,
+    start: summonWindowStart,
+    actions: [
+      ...summonWindowSetup,
+      // T3 (P0): Normal Summon G_SUM_BURN (p0-32) → the Summon window opens BEFORE its mandatory OnSummon trigger
+      // (task 4.4c). P1 negates the Summon: the monster goes to the graveyard and the 300 damage never happens.
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-32', zoneIndex: 1 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-16', effectId: 'e1' },
+      },
+      // Flip Summon G_FLIP_BURN (p0-17): P1 still holds a Set G_TRAP_BURN → window; P1 passes → the OnFlip trigger goes
+      // on the chain; P1 may answer that link and passes again → 400 damage to P1.
+      { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-17' } },
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      ...endPhase(0, 4),
+    ],
+  },
+  {
+    name: 'summon-window-then-trigger',
+    definitions: GOLDEN_DEFS,
+    start: summonWindowStart,
+    actions: [
+      ...summonWindowSetup,
+      // T3 (P0): Normal Summon G_SUM_BURN (p0-32) → Summon window; P0 cannot go on while it is open (rejected).
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-32', zoneIndex: 1 } },
+      { type: 'EndPhase', payload: { playerIndex: 0 } },
+      // P1 lets the Summon through: only now the OnSummon trigger goes on the chain, and P1 gets a second window — on
+      // that link — where the Set G_TRAP_BURN answers it (LIFO: 300 to P0, then 300 to P1).
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-5', effectId: 'e1' },
+      },
+      // Flip Summon G_FLIP_BURN (p0-17) → Summon window again → negated by G_NEG_SUM: no OnFlip damage.
+      { type: 'FlipSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-17' } },
+      {
+        type: 'ActivateEffect',
+        payload: { playerIndex: 1, cardInstanceId: 'p1-16', effectId: 'e1' },
+      },
+      ...endPhase(0, 4),
     ],
   },
 ];

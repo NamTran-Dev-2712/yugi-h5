@@ -8,9 +8,8 @@ import type {
   ChainLinkSource,
   GameState,
   PendingPrompt,
-  SummonedMonster,
 } from '../state/types.js';
-import { openReactionWindow, pushLink, type CanActivate } from './chain.js';
+import { pushLink } from './chain.js';
 import { conditionsHold } from './conditions.js';
 import { payCosts, planCosts, type CostStep } from './costs.js';
 import { scriptFor } from './effect-scripts/registry.js';
@@ -42,7 +41,11 @@ export interface PendingTrigger {
   readonly source: Extract<ChainLinkSource, { zone: 'MonsterZone' } | { zone: 'Graveyard' }>;
 }
 
-/** What to do once every trigger was handled and none went on the chain (task 3.4c Summon reaction window). */
+/**
+ * Until task 4.4c: what to do once every trigger was handled and none went on the chain (open the Summon reaction
+ * window). That window now opens before the triggers, so the engine only ever writes null; the type stays because the
+ * prompt payload's shape is on the wire.
+ */
 export type TriggerAfterward = {
   readonly kind: 'SummonReaction';
   readonly responder: 0 | 1;
@@ -271,17 +274,14 @@ export function pushTriggerLink(
 
 /**
  * Handles `queue` in order: a trigger that needs nobody's input goes on the chain; the first one that needs its owner
- * (optional, or a target to choose) becomes a `TriggerActivation` prompt carrying the rest. Once the queue is done and
- * nothing went on the chain, `afterward` runs (the Summon reaction window). The caller settles priority afterwards.
- * Task 4.4: `summoned` = the monster whose Summon that window answers (see `openReactionWindow`).
+ * (optional, or a target to choose) becomes a `TriggerActivation` prompt carrying the rest. The caller settles priority
+ * afterwards. Task 4.4c: nothing runs "afterward" any more — the Summon reaction window now comes BEFORE the triggers
+ * (`summon.ts`, `flip-summon.ts`), so the prompt's `afterward` is always null.
  */
 export function runTriggers(
   state: GameState,
   queue: readonly PendingTrigger[],
-  afterward: TriggerAfterward,
   ctx: ActionContext,
-  canActivate?: CanActivate,
-  summoned?: SummonedMonster,
 ): Result {
   let current = state;
   const events: GameEvent[] = [];
@@ -302,7 +302,7 @@ export function runTriggers(
       candidateInstanceIds: candidates,
       count: ready.count,
       remaining: queue.slice(i + 1),
-      afterward,
+      afterward: null,
     };
     const prompt: PendingPrompt = {
       promptId: `trigger-${current.turnCount}-${current.version}`,
@@ -311,18 +311,6 @@ export function runTriggers(
       payload,
     };
     return { state: { ...current, pendingPrompt: prompt }, events };
-  }
-
-  if (afterward !== null && current.chainStack.length === 0) {
-    if (!canActivate) throw new Error('runTriggers: a Summon reaction window needs canActivate.');
-    const opened = openReactionWindow(
-      current,
-      afterward.responder,
-      { kind: 'Summon' },
-      canActivate,
-      summoned,
-    );
-    if (opened !== null) current = opened;
   }
   return { state: current, events };
 }
@@ -335,5 +323,5 @@ export function fireTriggers(
 ): Result {
   const queue = collectTriggers(state, events, ctx);
   if (queue.length === 0) return { state, events: [] };
-  return runTriggers(state, queue, null, ctx);
+  return runTriggers(state, queue, ctx);
 }

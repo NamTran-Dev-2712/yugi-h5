@@ -84,9 +84,14 @@ describe('Sandbox scenarios on real cards (task 3.8)', () => {
     );
   });
 
-  it('trigger-optional-real: the script Summons SMP-020, I am asked; accepting lets the AI answer with its Trap', async () => {
+  it('trigger-optional-real: the script Summons SMP-020; the AI answers the SUMMON with its Trap first (task 4.4c), then I am asked', async () => {
     const { manager, r } = await load('trigger-optional-real');
     const view = r.views[0];
+    // Task 4.4c: the Summon reaction window comes before my optional trigger, and the AI (Set Counterspark) used it:
+    // 800 to me before I am asked. Until 4.4c the AI answered my trigger link instead.
+    expect(r.aiActions?.some((s) => s.action.type === 'ActivateEffect')).toBe(true);
+    expect(lp(view)[0]).toBe(7200);
+    expect(view.players[1].board.spellTrapZones[3]).toBeNull();
     expect(view.pendingPrompt).toMatchObject({ kind: 'TriggerActivation', playerIndex: 0 });
     const answers = r.legalActionsByViewer[0].filter((a) => a.type === 'ResolvePendingPrompt');
     expect(answers.some((a) => a.type === 'ResolvePendingPrompt' && a.payload.decline)).toBe(true);
@@ -95,8 +100,8 @@ describe('Sandbox scenarios on real cards (task 3.8)', () => {
       (a) => a.type === 'ResolvePendingPrompt' && a.payload.cardInstanceIds[0] === target,
     )!;
     const after = await manager.submitAction('duel-1', 0, act(accept));
-    // The AI held priority on my trigger link and answered with Counterspark (800 to me).
-    expect(after.aiActions?.some((s) => s.action.type === 'ActivateEffect')).toBe(true);
+    // The AI has nothing left to answer my trigger link with: it resolves and destroys the chosen Set card.
+    expect(after.aiActions?.some((s) => s.action.type === 'ActivateEffect')).toBe(false);
     expect(lp(after.view)[0]).toBe(7200);
     expect(after.view.players[1].board.spellTrapZones[1]).toBeNull();
     expect(after.view.chainWindow).toBeNull();

@@ -8,6 +8,7 @@ import type {
   ChainLink,
   ChainWindow,
   GameState,
+  PendingSummonEvent,
   PlayerState,
   ReactionTo,
   SummonedMonster,
@@ -33,8 +34,8 @@ export type CanActivate = (state: GameState, seat: 0 | 1) => boolean;
 const other = (seat: 0 | 1): 0 | 1 => (seat === 0 ? 1 : 0);
 
 /**
- * A window with `reactionTo` (and task 4.4 `summoned`) carried over from the current one: a reaction window keeps them
- * until it closes.
+ * A window with `reactionTo` (and task 4.4 `summoned`, task 4.4c `summonEvent`) carried over from the current one: a
+ * reaction window keeps them until it closes.
  */
 function windowFor(
   state: GameState,
@@ -43,11 +44,13 @@ function windowFor(
 ): NonNullable<GameState['chainWindow']> {
   const reactionTo = state.chainWindow?.reactionTo;
   const summoned = state.chainWindow?.summoned;
+  const summonEvent = state.chainWindow?.summonEvent;
   return {
     priorityPlayer,
     passCount,
     ...(reactionTo ? { reactionTo } : {}),
     ...(summoned ? { summoned } : {}),
+    ...(summonEvent ? { summonEvent } : {}),
   };
 }
 
@@ -55,6 +58,7 @@ function windowFor(
  * Task 3.4c: after an attack declaration or a Summon/Set, gives `responder` (the opponent of the turn player) an empty
  * window — only if they can activate something [ASSUMED]. Returns the state with the window, or null (nothing to open).
  * Task 4.4: `summoned` = the monster a real Summon (Normal / Tribute / Flip — not a Set) just put on the field.
+ * Task 4.4c: `summonEvent` = that Summon's event, whose triggers are collected only when this window is done.
  */
 export function openReactionWindow(
   state: GameState,
@@ -62,6 +66,7 @@ export function openReactionWindow(
   reactionTo: ReactionTo,
   canActivate: CanActivate,
   summoned?: SummonedMonster,
+  summonEvent?: PendingSummonEvent,
 ): GameState | null {
   // Asked with the window already open: outside a window only the turn player may activate.
   const opened: GameState = {
@@ -71,6 +76,7 @@ export function openReactionWindow(
       passCount: 0,
       reactionTo,
       ...(summoned ? { summoned } : {}),
+      ...(summonEvent ? { summonEvent } : {}),
     },
   };
   return canActivate(opened, responder) ? opened : null;
@@ -110,8 +116,13 @@ export function passPriority(state: GameState, ctx: ActionContext): Result {
   if (window === null) return { state, events: [] };
   if (state.chainStack.length === 0) {
     const after = continueAfterWindow({ ...state, chainWindow: null }, window.reactionTo, ctx);
-    // Task 3.5: what the window let through (the battle) may fire triggers — a new chain.
-    const fired = fireTriggers(after.state, after.events, ctx);
+    // Task 3.5: what the window let through (the battle) may fire triggers — a new chain. Task 4.4c: so does the Summon
+    // the window was opened for, now that it was let through.
+    const fired = fireTriggers(
+      after.state,
+      [...owedSummonEvents(window, after.events), ...after.events],
+      ctx,
+    );
     return { state: fired.state, events: [...after.events, ...fired.events] };
   }
   if (window.passCount === 1) return resolveChain(state, ctx);
@@ -119,6 +130,20 @@ export function passPriority(state: GameState, ctx: ActionContext): Result {
     state: { ...state, chainWindow: windowFor(state, other(window.priorityPlayer), 1) },
     events: [],
   };
+}
+
+/**
+ * Task 4.4c [RULE]: the Summon a window was opened for fires its "when Summoned / flipped" triggers only now that the
+ * window is done — and not at all when `events` (what happened in that window) negated the Summon. First in the list:
+ * the Summon happened before anything the window let through.
+ */
+function owedSummonEvents(window: ChainWindow | null, events: readonly GameEvent[]): GameEvent[] {
+  const owed = window?.summonEvent;
+  if (!owed) return [];
+  const negated = events.some(
+    (e) => e.type === 'SummonNegated' && e.instanceId === owed.instanceId,
+  );
+  return negated ? [] : [owed];
 }
 
 /** What the closed window interrupted goes on (task 3.4c): an attack proceeds to damage; a Summon needs nothing. */
@@ -359,8 +384,13 @@ export function resolveChain(state: GameState, ctx: ActionContext): Result {
   current = after.state;
   events.push(...after.events);
 
-  // Task 3.5: triggers fired while the chain resolved (and by the battle it let through) start a new chain.
-  const fired = fireTriggers(current, events, ctx);
+  // Task 3.5: triggers fired while the chain resolved (and by the battle it let through) start a new chain. Task 4.4c:
+  // a chain built in a Summon window is done — the Summon's own triggers come first, unless it was negated.
+  const fired = fireTriggers(
+    current,
+    [...owedSummonEvents(state.chainWindow, events), ...events],
+    ctx,
+  );
   current = fired.state;
   events.push(...fired.events);
 

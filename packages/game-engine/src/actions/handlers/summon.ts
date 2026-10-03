@@ -1,6 +1,6 @@
 import { resolveMonster } from '../../cards/resolve-monster.js';
 import { openReactionWindow, settle } from '../../effects/chain.js';
-import { collectTriggers, runTriggers } from '../../effects/triggers.js';
+import { fireTriggers } from '../../effects/triggers.js';
 import { EngineError, type EngineErrorCode } from '../../errors.js';
 import type { GameEvent } from '../../events/types.js';
 import type {
@@ -141,37 +141,31 @@ function placeMonsterFromHand(
   const summoned: SummonedMonster | undefined =
     position === 'Attack' ? { playerIndex, instanceId: card.instanceId } : undefined;
 
-  // Task 3.5: an OnSummon trigger of the Summoned monster goes on the chain first (the opponent then responds to that
-  // link); the Summon reaction window only opens if no trigger ends up on the chain.
-  const triggers = collectTriggers(placedState, [event], ctx);
-  if (triggers.length > 0) {
-    const fired = runTriggers(
-      placedState,
-      triggers,
-      { kind: 'SummonReaction', responder: opponentIndex },
-      ctx,
-      canActivate,
-      summoned,
-    );
-    const settled = settle(fired.state, ctx, canActivate);
-    return {
-      state: { ...settled.state, version: state.version + 1 },
-      events: [...tributeEvents, event, ...fired.events, ...settled.events],
-    };
-  }
-
   // Task 3.4c: the opponent may respond to the Summon / Set, only if they can activate something [ASSUMED]; SetMonster
-  // opens it too [DECISION].
+  // opens it too [DECISION]. Task 4.4c [RULE]: this window comes BEFORE the monster's OnSummon triggers (a negated
+  // Summon never fires them) — the window keeps the Summon event and `effects/chain.ts` collects the triggers when it
+  // is done.
   const withWindow = openReactionWindow(
     placedState,
     opponentIndex,
     { kind: 'Summon' },
     canActivate,
     summoned,
+    event.type === 'NormalSummoned' ? event : undefined,
   );
+  if (withWindow !== null) {
+    return {
+      state: { ...withWindow, version: state.version + 1 },
+      events: [...tributeEvents, event],
+    };
+  }
+
+  // Nobody can respond: no window, the triggers (task 3.5) go on the chain in this same step.
+  const fired = fireTriggers(placedState, [event], ctx);
+  const settled = settle(fired.state, ctx, canActivate);
   return {
-    state: { ...(withWindow ?? placedState), version: state.version + 1 },
-    events: [...tributeEvents, event],
+    state: { ...settled.state, version: state.version + 1 },
+    events: [...tributeEvents, event, ...fired.events, ...settled.events],
   };
 }
 
