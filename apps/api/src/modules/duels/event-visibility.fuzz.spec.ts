@@ -277,9 +277,19 @@ const MONSTERS = SAMPLE_CARDS.filter((c) => c.kind === 'Monster').map((c) => c.i
  */
 const NEGATE_CARDS = new Set(['SMP-201', 'SMP-209', 'SMP-210']);
 
+/**
+ * Task 4.5 card (the fusion Spell). Kept out of the fixed seeds' deck for the same reason: one more card reshuffles
+ * every deck, so the old seeds would walk elsewhere. (Without an Extra Deck it could never be activated anyway.)
+ */
+const FUSION_CARDS = new Set(['SMP-116']);
+
 /** Task 3.8: the real effect cards of the sample pool (triggers, Continuous, Quick-Play, Traps, a cost). */
 const REAL_EFFECT_CARDS = SAMPLE_CARDS.filter(
-  (c) => (c.effects?.length ?? 0) > 0 && c.id !== 'SMP-101' && !NEGATE_CARDS.has(c.id),
+  (c) =>
+    (c.effects?.length ?? 0) > 0 &&
+    c.id !== 'SMP-101' &&
+    !NEGATE_CARDS.has(c.id) &&
+    !FUSION_CARDS.has(c.id),
 ).map((c) => c.id);
 
 /**

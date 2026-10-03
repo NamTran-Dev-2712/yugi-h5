@@ -35,8 +35,12 @@ describe('task 4.4 cards', () => {
     }
   });
 
-  it('the new cards are appended at the END of the list (ids of older cards keep their place)', () => {
-    expect(SAMPLE_CARDS.slice(-2).map((c) => c.id)).toEqual(['SMP-209', 'SMP-210']);
+  it('the new cards were appended at the END of the list (ids of older cards keep their place)', () => {
+    // Task 4.5 appended its own cards after these two (cards/fusion.test.ts).
+    const ids = SAMPLE_CARDS.map((c) => c.id);
+    const at = ids.indexOf('SMP-209');
+    expect(ids.slice(at, at + 2)).toEqual(['SMP-209', 'SMP-210']);
+    expect(ids.slice(0, at)).not.toContain('SMP-116');
   });
 
   it('SMP-201 keeps its id and name: a Normal Trap (Spell Speed 2) that negates an attack', () => {

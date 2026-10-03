@@ -298,6 +298,7 @@ describe('registry (metadata only: no functions)', () => {
       'Destroy',
       'Draw',
       'Equip',
+      'FusionSummon',
       'Heal',
       'ModifyStat',
       'NegateActivation',

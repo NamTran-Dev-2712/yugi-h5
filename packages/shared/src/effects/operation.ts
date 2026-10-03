@@ -79,5 +79,23 @@ export const OperationSchema = z.discriminatedUnion('kind', [
    * goes to the graveyard.
    */
   z.object({ kind: z.literal('NegateSummon') }).strict(),
+  /**
+   * Task 4.5: Fusion Summons one Fusion Monster from your Extra Deck. On resolution the player picks the monster, then
+   * its `fusionMaterials` among their own cards in `sources` (`Field` = their Monster Zones, face-down included); the
+   * materials go to the graveyard and the monster to their lowest empty Monster Zone. Face-up only; omitted = Attack
+   * Position [ASSUMED]. No `target`: nothing is chosen at activation (refine in EffectDefinitionSchema).
+   */
+  z
+    .object({
+      kind: z.literal('FusionSummon'),
+      sources: z
+        .array(z.enum(['Hand', 'Field', 'Deck']))
+        .min(1)
+        .refine((list) => new Set(list).size === list.length, {
+          message: 'sources must not repeat',
+        }),
+      position: z.enum(['Attack', 'DefenseUp']).optional(),
+    })
+    .strict(),
 ]);
 export type Operation = z.infer<typeof OperationSchema>;

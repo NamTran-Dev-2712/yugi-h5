@@ -5,6 +5,7 @@ import {
   DECK_MAX_COPIES,
   DECK_MAX_SIZE,
   DECK_MIN_SIZE,
+  EXTRA_DECK_MAX_SIZE,
   validateDeck,
   type DeckError,
 } from './validate-deck.js';
@@ -97,5 +98,79 @@ describe('validateDeck', () => {
   it('does not mutate the input', () => {
     const deck = Object.freeze(legalDeck(40));
     expect(() => validateDeck(deck, lookup)).not.toThrow();
+  });
+});
+
+describe('validateDeck — Extra Deck (task 4.5)', () => {
+  /** A legal 40-card Main Deck without any Fusion Monster. */
+  const main = (): string[] => {
+    const ids = SAMPLE_CARDS.filter((c) => !(c.kind === 'Monster' && c.category === 'Fusion')).map(
+      (c) => c.id,
+    );
+    const deck: string[] = [];
+    for (let i = 0; deck.length < 40; i++) deck.push(ids[Math.floor(i / 3) % ids.length]!);
+    return deck;
+  };
+
+  it('exposes the Extra Deck limit (C3 [REF, low]: 20)', () => {
+    expect(EXTRA_DECK_MAX_SIZE).toBe(20);
+  });
+
+  it('accepts no Extra Deck, an empty one, and Fusion Monsters up to 3 copies each', () => {
+    expect(validateDeck(main(), lookup)).toEqual({ ok: true });
+    expect(validateDeck(main(), lookup, [])).toEqual({ ok: true });
+    const extra = ['SMP-045', 'SMP-045', 'SMP-045', 'SMP-046'];
+    expect(validateDeck(main(), lookup, extra)).toEqual({ ok: true });
+  });
+
+  it('rejects a Fusion Monster in the Main Deck (once per id)', () => {
+    const r = validateDeck([...main(), 'SMP-045', 'SMP-045'], lookup);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors).toEqual([{ code: 'FUSION_IN_MAIN_DECK', definitionId: 'SMP-045' }]);
+  });
+
+  it('rejects a non-Fusion card in the Extra Deck (once per id)', () => {
+    const r = validateDeck(main(), lookup, ['SMP-045', 'SMP-001', 'SMP-001', 'SMP-116']);
+    expect(r.ok).toBe(false);
+    if (!r.ok)
+      expect(r.errors).toEqual([
+        { code: 'EXTRA_NOT_FUSION', definitionId: 'SMP-001' },
+        { code: 'EXTRA_NOT_FUSION', definitionId: 'SMP-116' },
+      ]);
+  });
+
+  it('rejects more than 3 copies and unknown ids in the Extra Deck', () => {
+    const r = validateDeck(main(), lookup, ['SMP-045', 'SMP-045', 'SMP-045', 'SMP-045', 'NOPE']);
+    expect(r.ok).toBe(false);
+    if (!r.ok)
+      expect(r.errors).toEqual([
+        { code: 'UNKNOWN_CARD', definitionId: 'NOPE' },
+        { code: 'TOO_MANY_COPIES', definitionId: 'SMP-045', count: 4, max: 3 },
+      ]);
+  });
+
+  it('rejects an Extra Deck over the limit; the limit follows the ruleset when given', () => {
+    const fusions = new Map<string, CardDefinition>(defs);
+    const ids: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const id = `T-FUS-${i}`;
+      fusions.set(id, { ...(defs.get('SMP-045') as CardDefinition), id });
+      ids.push(id, id, id);
+    }
+    const wide = (id: string): CardDefinition | undefined => fusions.get(id);
+    expect(validateDeck(main(), wide, ids.slice(0, 20))).toEqual({ ok: true });
+    const over = validateDeck(main(), wide, ids);
+    expect(over.ok).toBe(false);
+    if (!over.ok) expect(over.errors).toEqual([{ code: 'EXTRA_TOO_MANY', size: 21, max: 20 }]);
+    const none = validateDeck(main(), wide, ['T-FUS-0'], 0);
+    expect(none.ok).toBe(false);
+    if (!none.ok) expect(none.errors).toEqual([{ code: 'EXTRA_TOO_MANY', size: 1, max: 0 }]);
+  });
+
+  it('reports Main Deck problems first, then Extra Deck problems', () => {
+    const r = validateDeck(['SMP-045'], lookup, ['SMP-001']);
+    expect(r.ok).toBe(false);
+    if (!r.ok)
+      expect(codes(r.errors)).toEqual(['TOO_FEW', 'FUSION_IN_MAIN_DECK', 'EXTRA_NOT_FUSION']);
   });
 });

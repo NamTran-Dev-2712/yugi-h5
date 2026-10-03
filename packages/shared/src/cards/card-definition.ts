@@ -3,6 +3,7 @@ import {
   EffectDefinitionSchema,
   isActivationOnlyEffect,
   isEquipEffect,
+  isFusionEffect,
 } from '../effects/effect-definition.js';
 
 /**
@@ -63,6 +64,11 @@ export const MonsterCardDefinitionSchema = CardDefinitionBaseSchema.extend({
   level: z.number().int().min(1).max(12),
   atk: z.number().int().min(0),
   def: z.number().int().min(0),
+  /**
+   * Task 4.5 [DECISION]: the materials of a Fusion Monster, each named by its card id (a repeated id = that many
+   * copies). Exactly the Fusion Monsters have it (refine in CardDefinitionSchema). No generic materials yet.
+   */
+  fusionMaterials: z.array(z.string().min(1)).min(2).optional(),
 });
 export type MonsterCardDefinition = z.infer<typeof MonsterCardDefinitionSchema>;
 
@@ -124,6 +130,20 @@ export const CardDefinitionSchema = z
       message:
         'a Spell/Trap with a Continuous effect needs an effect that activates the card (Spell: Ignition, Trap: Quick)',
     },
+  )
+  .refine(
+    (card) =>
+      card.kind !== 'Monster' ||
+      (card.category === 'Fusion') === (card.fusionMaterials !== undefined),
+    // Task 4.5: a Fusion Monster is Summoned from its materials only; nothing else has materials.
+    { message: 'fusionMaterials belongs to Fusion Monsters, and every Fusion Monster needs it' },
+  )
+  .refine(
+    (card) =>
+      (card.kind === 'Spell' && card.subType === 'Normal') ||
+      !(card.effects ?? []).some(isFusionEffect),
+    // Task 4.5 [DECISION]: the fusion card is a Normal Spell (Spell Speed 1, your own Main Phase).
+    { message: 'FusionSummon belongs to Normal Spells only' },
   );
 
 /**

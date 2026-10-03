@@ -762,4 +762,55 @@ export const SAMPLE_CARDS: CardDefinition[] = [
       },
     ],
   },
+  // Task 4.5 — Fusion: two Fusion Monsters (Extra Deck only; named materials) and the Spell that Fusion Summons them.
+  // Appended at the end so every older card keeps its index. Placeholder names, no Konami IP.
+  {
+    id: 'SMP-045',
+    kind: 'Monster',
+    name: { vi: 'Kỵ Sĩ Lửa Hoang', en: 'Cinderback Outrider' },
+    category: 'Fusion',
+    attribute: 'FIRE',
+    race: 'Warrior',
+    level: 6,
+    atk: 2300,
+    def: 1500,
+    fusionMaterials: ['SMP-001', 'SMP-007'],
+    effectText: {
+      vi: '"Thị Vệ Lang Thang" + "Chó Săn Tàn Lửa"',
+      en: '"Wandering Squire" + "Cinder Hound"',
+    },
+  },
+  {
+    id: 'SMP-046',
+    kind: 'Monster',
+    name: { vi: 'Đại Tư Tế Tam Quang', en: 'Tri-Light Hierophant' },
+    category: 'Fusion',
+    attribute: 'LIGHT',
+    race: 'Spellcaster',
+    level: 8,
+    atk: 2900,
+    def: 2400,
+    fusionMaterials: ['SMP-004', 'SMP-010', 'SMP-013'],
+    effectText: {
+      vi: '"Tinh Linh Đèn Lồng" + "Giáo Sĩ Rạng Đông" + "Tu Sĩ Than Hồng"',
+      en: '"Lantern Sprite" + "Dawnbreak Cleric" + "Ember Acolyte"',
+    },
+  },
+  {
+    id: 'SMP-116',
+    kind: 'Spell',
+    name: { vi: 'Lò Hợp Thể', en: 'Merging Crucible' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Triệu hồi Dung hợp 1 quái thú Dung hợp từ Extra Deck của bạn, dùng các quái thú trên tay hoặc trên sân của bạn làm nguyên liệu (gửi chúng vào mộ).',
+      en: 'Fusion Summon 1 Fusion Monster from your Extra Deck, using monsters from your hand or your field as materials (send them to the Graveyard).',
+    },
+    effects: [
+      {
+        id: 'merging-crucible',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'FusionSummon', sources: ['Hand', 'Field'] }],
+      },
+    ],
+  },
 ];

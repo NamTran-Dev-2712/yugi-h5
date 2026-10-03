@@ -1,0 +1,671 @@
+
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/packages/game-engine
+
+ ❯ src/actions/handlers/start-duel.extra-deck.test.ts (4 tests | 2 failed) 54ms
+   ✓ StartDuel — Extra Deck (task 4.5) > without extraDeckLists both Extra Decks are empty (as before) 11ms
+   × StartDuel — Extra Deck (task 4.5) > builds the Extra Deck in list order with ids p<seat>-x<i>, owned by its player, off the field 26ms
+     → expected [] to deeply equal [ { instanceId: 'p0-x0', …(3) }, …(2) ]
+   ✓ StartDuel — Extra Deck (task 4.5) > changes nothing else: same rng, hands, decks and events as a duel without Extra Decks 5ms
+   × StartDuel — Extra Deck (task 4.5) > an Extra Deck over ruleset.extraDeckSize → INVALID_EXTRA_DECK 8ms
+     → expected EngineError INVALID_EXTRA_DECK, but nothing was thrown: expected undefined to be an instance of EngineError
+ ❯ src/effects/operations/registry-sync.test.ts (3 tests | 1 failed) 19ms
+   × operation handlers ↔ shared registry > the engine has a resolve handler for exactly the resolve kinds the registry marks implemented 12ms
+     → expected [ 'Damage', 'Destroy', 'Draw', …(6) ] to deeply equal [ 'Damage', 'Destroy', 'Draw', …(7) ]
+   ✓ operation handlers ↔ shared registry > the engine has a continuous handler for exactly the continuous kinds implemented (task 3.6) 0ms
+   ✓ sample card SMP-101 (Sudden Reinforcement) runs through the real card data > draws exactly 1 card and goes to the graveyard 4ms
+ ❯ src/rules/fusion.test.ts (51 tests | 48 failed) 68ms
+   × Fusion — activation > nothing is chosen at activation: the link resolves at once and the chain pauses on SelectFusionMonster 10ms
+     → handler is not a function
+   × Fusion — activation > no Extra Deck → NOT_ACTIVATABLE 6ms
+     → expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — activation > a material is missing → NOT_ACTIVATABLE 5ms
+     → expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — activation > the material is only in the graveyard → NOT_ACTIVATABLE 1ms
+     → expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — activation > the material is on the OPPONENT's field → NOT_ACTIVATABLE 1ms
+     → expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — activation > two copies are needed, one is there → NOT_ACTIVATABLE 1ms
+     → expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — activation > the Fusion Monster is in the OPPONENT's Extra Deck → NOT_ACTIVATABLE 1ms
+     → expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — activation > the Extra Deck holds no Fusion Monster → NOT_ACTIVATABLE 1ms
+     → expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — activation > materials in the hand but five monsters on the field → NO_FREE_MONSTER_ZONE 1ms
+     → expected EngineError NO_FREE_MONSTER_ZONE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — activation > a full field is fine when a material on the field frees a zone; the monster lands there 1ms
+     → handler is not a function
+   × Fusion — activation > a malformed Quick-Play Spell with FusionSummon is never activatable (Spell Speed 1 only) 1ms
+     → expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — activation > getLegalActions lists the activation only when a Fusion Summon is possible 4ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMonster → SelectFusionMaterials (no event, version +1) 1ms
+     → handler is not a function
+   × Fusion — resolution > materials go to the graveyard, the Fusion Monster to the lowest empty zone in Attack Position 1ms
+     → handler is not a function
+   × Fusion — resolution > a material on the field leaves its zone (face-up or face-down) and says where it came from 1ms
+     → handler is not a function
+   × Fusion — resolution > the operation decides the position (DefenseUp) and the sources (hand only: a field copy is no candidate) 1ms
+     → handler is not a function
+   × Fusion — resolution > with several copies the player chooses which one is used 1ms
+     → handler is not a function
+   × Fusion — resolution > a Fusion Monster that names a material twice needs two different copies 1ms
+     → handler is not a function
+   × Fusion — resolution > several Fusion Monsters: only the ones whose materials are there are candidates 1ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMonster answered with nothing → INVALID_EFFECT_TARGET 1ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMonster answered with two monsters → INVALID_EFFECT_TARGET 1ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMonster answered with a Fusion Monster without its materials → INVALID_EFFECT_TARGET 1ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMonster answered with a card that is not in the Extra Deck → INVALID_EFFECT_TARGET 1ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMaterials answered with too few → INVALID_EFFECT_TARGET 2ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMaterials answered with too many → INVALID_EFFECT_TARGET 1ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMaterials answered with the same card twice → INVALID_EFFECT_TARGET 1ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMaterials answered with two copies of one material → INVALID_EFFECT_TARGET 0ms
+     → handler is not a function
+   × Fusion — resolution > SelectFusionMaterials answered with a card that is no candidate → INVALID_EFFECT_TARGET 0ms
+     → handler is not a function
+   × Fusion — resolution > on a full field the chosen materials must free a zone 1ms
+     → handler is not a function
+   × Fusion — resolution > while the prompt is open nothing else is accepted 0ms
+     → handler is not a function
+   × Fusion — resolution > getLegalActions offers exactly the valid answers of both prompts 0ms
+     → handler is not a function
+   × Fusion — resolution > the state stays plain JSON through both prompts 0ms
+     → handler is not a function
+   × Fusion — resolution > a Set fusion Spell works the same: it stays face-up in its zone until its link is done 1ms
+     → handler is not a function
+   × Fusion — materials from the Deck > only Deck cards are candidates; they go to the graveyard and the Deck is shuffled with the state rng 0ms
+     → handler is not a function
+   × Fusion — materials from the Deck > materials from the hand or the field do NOT touch the rng 1ms
+     → handler is not a function
+   × Fusion — materials from the Deck > a card in the hand does not count for a Deck-only fusion 1ms
+     → expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+   × Fusion — it is a Special Summon > fires the OnSummon trigger of the Fusion Monster as a new chain after the fusion chain 1ms
+     → handler is not a function
+   × Fusion — it is a Special Summon > opens NO Summon reaction window: a Set NegateSummon is never offered 1ms
+     → handler is not a function
+   × Fusion — it is a Special Summon > does not use the Normal Summon of the turn 1ms
+     → handler is not a function
+   × Fusion — it is a Special Summon > cannot attack or change position on the turn it was Fusion Summoned (G22) 1ms
+     → handler is not a function
+   ✓ Fusion — on a chain > a negated activation uses no material: everything stays where it was, the Spell goes to the graveyard 2ms
+   × Fusion — on a chain > the opponent passes instead: the prompt comes only then 1ms
+     → handler is not a function
+   × Fusion — on a chain > a material destroyed in response: the link resolves without effect (no prompt, nothing else is used) 1ms
+     → handler is not a function
+   × Fusion — on a chain > triggers fired higher on the chain wait for the fusion: they are owed in the prompt and run after it 1ms
+     → handler is not a function
+   × Fusion — on a chain > owed triggers and the OnSummon of the Fusion Monster go on ONE chain, older events first 1ms
+     → handler is not a function
+   × Fusion Monsters — no other way onto the field > NormalSummon of a Fusion Monster → FUSION_NOT_SUMMONABLE 3ms
+     → expected 'TRIBUTE_COUNT_MISMATCH' to be 'FUSION_NOT_SUMMONABLE' // Object.is equality
+   × Fusion Monsters — no other way onto the field > SetMonster of a Fusion Monster → FUSION_NOT_SUMMONABLE 1ms
+     → expected 'TRIBUTE_COUNT_MISMATCH' to be 'FUSION_NOT_SUMMONABLE' // Object.is equality
+   × Fusion Monsters — no other way onto the field > the SpecialSummon operation never takes a Fusion Monster from the hand or the graveyard 1ms
+     → expected EngineError NO_VALID_TARGET, but nothing was thrown: expected undefined to be an instance of EngineError
+   ✓ Fusion Monsters — no other way onto the field > a destroyed Fusion Monster goes to its owner’s graveyard, not back to the Extra Deck 1ms
+   × fusionOptions (pure) > lists each Fusion Monster that can be made, with the cards that may serve as its materials 2ms
+     → expected [] to deeply equal [ 'x0', 'x2' ]
+   ✓ fusionOptions (pure) > nothing for the other player, and nothing from sources the operation does not name 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 51 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > nothing is chosen at activation: the link resolves at once and the chain pauses on SelectFusionMonster
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:52:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > no Extra Deck → NOT_ACTIVATABLE
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > a material is missing → NOT_ACTIVATABLE
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > the material is only in the graveyard → NOT_ACTIVATABLE
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > the material is on the OPPONENT's field → NOT_ACTIVATABLE
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > two copies are needed, one is there → NOT_ACTIVATABLE
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > the Fusion Monster is in the OPPONENT's Extra Deck → NOT_ACTIVATABLE
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > the Extra Deck holds no Fusion Monster → NOT_ACTIVATABLE
+AssertionError: expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+ ❯ expectEngineError src/testing/expect-engine-error.ts:12:74
+     10|     thrown = e;
+     11|   }
+     12|   expect(thrown, `expected EngineError ${code}, but nothing was thrown…
+       |                                                                          ^
+     13|     EngineError,
+     14|   );
+ ❯ src/rules/fusion.test.ts:88:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > materials in the hand but five monsters on the field → NO_FREE_MONSTER_ZONE
+AssertionError: expected EngineError NO_FREE_MONSTER_ZONE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+ ❯ expectEngineError src/testing/expect-engine-error.ts:12:74
+     10|     thrown = e;
+     11|   }
+     12|   expect(thrown, `expected EngineError ${code}, but nothing was thrown…
+       |                                                                          ^
+     13|     EngineError,
+     14|   );
+ ❯ src/rules/fusion.test.ts:102:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > a full field is fine when a material on the field frees a zone; the monster lands there
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMonster → SelectFusionMaterials (no event, version +1)
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > materials go to the graveyard, the Fusion Monster to the lowest empty zone in Attack Position
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > a material on the field leaves its zone (face-up or face-down) and says where it came from
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > the operation decides the position (DefenseUp) and the sources (hand only: a field copy is no candidate)
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > with several copies the player chooses which one is used
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > a Fusion Monster that names a material twice needs two different copies
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > the state stays plain JSON through both prompts
+ FAIL  src/rules/fusion.test.ts > Fusion — materials from the Deck > materials from the hand or the field do NOT touch the rng
+ FAIL  src/rules/fusion.test.ts > Fusion — it is a Special Summon > fires the OnSummon trigger of the Fusion Monster as a new chain after the fusion chain
+ FAIL  src/rules/fusion.test.ts > Fusion — it is a Special Summon > opens NO Summon reaction window: a Set NegateSummon is never offered
+ FAIL  src/rules/fusion.test.ts > Fusion — it is a Special Summon > does not use the Normal Summon of the turn
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ fuse src/rules/fusion.test.ts:43:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > a malformed Quick-Play Spell with FusionSummon is never activatable (Spell Speed 1 only)
+AssertionError: expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+ ❯ expectEngineError src/testing/expect-engine-error.ts:12:74
+     10|     thrown = e;
+     11|   }
+     12|   expect(thrown, `expected EngineError ${code}, but nothing was thrown…
+       |                                                                          ^
+     13|     EngineError,
+     14|   );
+ ❯ src/rules/fusion.test.ts:126:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — activation > getLegalActions lists the activation only when a Fusion Summon is possible
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ getLegalActions src/legal-actions.ts:176:7
+ ❯ src/rules/fusion.test.ts:130:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > several Fusion Monsters: only the ones whose materials are there are candidates
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:268:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMonster answered with nothing → INVALID_EFFECT_TARGET
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMonster answered with two monsters → INVALID_EFFECT_TARGET
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMonster answered with a Fusion Monster without its materials → INVALID_EFFECT_TARGET
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMonster answered with a card that is not in the Extra Deck → INVALID_EFFECT_TARGET
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:283:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMaterials answered with too few → INVALID_EFFECT_TARGET
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMaterials answered with too many → INVALID_EFFECT_TARGET
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMaterials answered with the same card twice → INVALID_EFFECT_TARGET
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMaterials answered with two copies of one material → INVALID_EFFECT_TARGET
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > SelectFusionMaterials answered with a card that is no candidate → INVALID_EFFECT_TARGET
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:298:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > on a full field the chosen materials must free a zone
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:317:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > while the prompt is open nothing else is accepted
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:328:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > getLegalActions offers exactly the valid answers of both prompts
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:353:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — resolution > a Set fusion Spell works the same: it stays face-up in its zone until its link is done
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:386:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — materials from the Deck > only Deck cards are candidates; they go to the graveyard and the Deck is shuffled with the state rng
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:411:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — materials from the Deck > a card in the hand does not count for a Deck-only fusion
+AssertionError: expected EngineError NOT_ACTIVATABLE, but nothing was thrown: expected TypeError: handler is not a function to be an instance of EngineError
+ ❯ expectEngineError src/testing/expect-engine-error.ts:12:74
+     10|     thrown = e;
+     11|   }
+     12|   expect(thrown, `expected EngineError ${code}, but nothing was thrown…
+       |                                                                          ^
+     13|     EngineError,
+     14|   );
+ ❯ src/rules/fusion.test.ts:441:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — it is a Special Summon > cannot attack or change position on the turn it was Fusion Summoned (G22)
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:428:35
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:491:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — on a chain > the opponent passes instead: the prompt comes only then
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ applyPassPriority src/actions/handlers/pass-priority.ts:32:19
+ ❯ dispatch src/apply-action.ts:124:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:538:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — on a chain > a material destroyed in response: the link resolves without effect (no prompt, nothing else is used)
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:429:49
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:551:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — on a chain > triggers fired higher on the chain wait for the fusion: they are owed in the prompt and run after it
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:429:49
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:579:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion — on a chain > owed triggers and the OnSummon of the Fusion Monster go on ONE chain, older events first
+TypeError: handler is not a function
+ ❯ resolveLink src/effects/chain.ts:318:17
+    316|       c: OperationContext,
+    317|     ) => { state: GameState; events: GameEvent[] };
+    318|     const out = handler(current, op, opCtx);
+       |                 ^
+    319|     current = out.state;
+    320|     events.push(...out.events);
+ ❯ resolveChain src/effects/chain.ts:362:19
+ ❯ passPriority src/effects/chain.ts:128:38
+ ❯ settle src/effects/chain.ts:182:17
+ ❯ activate src/actions/handlers/activate-effect.ts:409:19
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:429:49
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ step src/rules/fusion.test.ts:31:15
+ ❯ src/rules/fusion.test.ts:635:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion Monsters — no other way onto the field > NormalSummon of a Fusion Monster → FUSION_NOT_SUMMONABLE
+ FAIL  src/rules/fusion.test.ts > Fusion Monsters — no other way onto the field > SetMonster of a Fusion Monster → FUSION_NOT_SUMMONABLE
+AssertionError: expected 'TRIBUTE_COUNT_MISMATCH' to be 'FUSION_NOT_SUMMONABLE' // Object.is equality
+
+Expected: "FUSION_NOT_SUMMONABLE"
+Received: "TRIBUTE_COUNT_MISMATCH"
+
+ ❯ expectEngineError src/testing/expect-engine-error.ts:15:40
+     13|     EngineError,
+     14|   );
+     15|   expect((thrown as EngineError).code).toBe(code);
+       |                                        ^
+     16| }
+     17| 
+ ❯ src/rules/fusion.test.ts:659:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > Fusion Monsters — no other way onto the field > the SpecialSummon operation never takes a Fusion Monster from the hand or the graveyard
+AssertionError: expected EngineError NO_VALID_TARGET, but nothing was thrown: expected undefined to be an instance of EngineError
+ ❯ expectEngineError src/testing/expect-engine-error.ts:12:74
+     10|     thrown = e;
+     11|   }
+     12|   expect(thrown, `expected EngineError ${code}, but nothing was thrown…
+       |                                                                          ^
+     13|     EngineError,
+     14|   );
+ ❯ src/rules/fusion.test.ts:671:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/51]⎯
+
+ FAIL  src/rules/fusion.test.ts > fusionOptions (pure) > lists each Fusion Monster that can be made, with the cards that may serve as its materials
+AssertionError: expected [] to deeply equal [ 'x0', 'x2' ]
+
+- Expected
++ Received
+
+- [
+-   "x0",
+-   "x2",
+- ]
++ []
+
+ ❯ src/rules/fusion.test.ts:707:53
+    705|     });
+    706|     const options = fusionOptions(state, 0, op, fixtureCtx);
+    707|     expect(options.map((o) => o.fusion.instanceId)).toEqual(['x0', 'x2…
+       |                                                     ^
+    708|     expect(options[0]?.candidates.map((c) => [c.card.instanceId, c.fro…
+    709|       ['h0', 'Hand'],
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/51]⎯
+
+ FAIL  src/actions/handlers/start-duel.extra-deck.test.ts > StartDuel — Extra Deck (task 4.5) > builds the Extra Deck in list order with ids p<seat>-x<i>, owned by its player, off the field
+AssertionError: expected [] to deeply equal [ { instanceId: 'p0-x0', …(3) }, …(2) ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "definitionId": "F1",
+-     "instanceId": "p0-x0",
+-     "ownerIndex": 0,
+-     "position": null,
+-   },
+-   {
+-     "definitionId": "F2",
+-     "instanceId": "p0-x1",
+-     "ownerIndex": 0,
+-     "position": null,
+-   },
+-   {
+-     "definitionId": "F1",
+-     "instanceId": "p0-x2",
+-     "ownerIndex": 0,
+-     "position": null,
+-   },
+- ]
++ []
+
+ ❯ src/actions/handlers/start-duel.extra-deck.test.ts:30:40
+     28|   it('builds the Extra Deck in list order with ids p<seat>-x<i>, owned…
+     29|     const { state } = applyAction(null, start({ extraDeckLists: [['F1'…
+     30|     expect(state.players[0].extraDeck).toEqual([
+       |                                        ^
+     31|       { instanceId: 'p0-x0', definitionId: 'F1', position: null, owner…
+     32|       { instanceId: 'p0-x1', definitionId: 'F2', position: null, owner…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/51]⎯
+
+ FAIL  src/actions/handlers/start-duel.extra-deck.test.ts > StartDuel — Extra Deck (task 4.5) > an Extra Deck over ruleset.extraDeckSize → INVALID_EXTRA_DECK
+AssertionError: expected EngineError INVALID_EXTRA_DECK, but nothing was thrown: expected undefined to be an instance of EngineError
+ ❯ expectEngineError src/testing/expect-engine-error.ts:12:74
+     10|     thrown = e;
+     11|   }
+     12|   expect(thrown, `expected EngineError ${code}, but nothing was thrown…
+       |                                                                          ^
+     13|     EngineError,
+     14|   );
+ ❯ src/actions/handlers/start-duel.extra-deck.test.ts:58:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/51]⎯
+
+ FAIL  src/effects/operations/registry-sync.test.ts > operation handlers ↔ shared registry > the engine has a resolve handler for exactly the resolve kinds the registry marks implemented
+AssertionError: expected [ 'Damage', 'Destroy', 'Draw', …(6) ] to deeply equal [ 'Damage', 'Destroy', 'Draw', …(7) ]
+
+- Expected
++ Received
+
+@@ -1,11 +1,10 @@
+  [
+    "Damage",
+    "Destroy",
+    "Draw",
+    "Equip",
+-   "FusionSummon",
+    "Heal",
+    "NegateActivation",
+    "NegateAttack",
+    "NegateSummon",
+    "SpecialSummon",
+
+ ❯ src/effects/operations/registry-sync.test.ts:16:52
+     14| 
+     15|   it('the engine has a resolve handler for exactly the resolve kinds t…
+     16|     expect(Object.keys(OPERATION_HANDLERS).sort()).toEqual(implemented…
+       |                                                    ^
+     17|     for (const handler of Object.values(OPERATION_HANDLERS)) {
+     18|       expect(typeof handler).toBe('function');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/51]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  51 failed | 7 passed (58)
+   Start at  22:29:19
+   Duration  2.14s (transform 565ms, setup 0ms, collect 4.59s, tests 140ms, environment 0ms, prepare 507ms)
+
+undefined
+E:\code\game\turn_battle\yugi-h5\packages\game-engine:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/rules/fusion.test.ts src/actions/handlers/start-duel.extra-deck.test.ts src/effects/operations/registry-sync.test.ts

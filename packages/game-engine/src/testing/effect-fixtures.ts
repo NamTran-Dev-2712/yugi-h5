@@ -129,6 +129,22 @@ export function effectMonster(
   } as CardDefinition;
 }
 
+/** Test-only Fusion Monster (task 4.5): Level 6, ATK 2400 / DEF 2000, optionally with one trigger effect `e1`. */
+export function fusionMonster(
+  id: string,
+  fusionMaterials: string[],
+  effect?: Omit<EffectDefinition, 'id'>,
+): CardDefinition {
+  return {
+    ...monster(id, 6),
+    category: 'Fusion',
+    atk: 2400,
+    def: 2000,
+    fusionMaterials,
+    ...(effect ? { effects: [{ id: 'e1', ...effect } as EffectDefinition] } : {}),
+  } as CardDefinition;
+}
+
 /** Test-only monster with one Continuous effect `e1` made of the given operations (task 3.6). */
 export function continuousMonster(
   id: string,
@@ -678,6 +694,33 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
   NEG_ATK: trap('NEG_ATK', { operations: [{ kind: 'NegateAttack' }] }),
   /** Counter Trap: negate the opponent's Normal / Flip Summon; the monster goes to the graveyard. */
   NEG_SUM: trap('NEG_SUM', { operations: [{ kind: 'NegateSummon' }] }, 'Counter'),
+  /** Task 4.5 — Normal Spell: Fusion Summon with materials from your hand or your field. */
+  FUS: spell('FUS', {
+    trigger: { kind: 'Ignition' },
+    operations: [{ kind: 'FusionSummon', sources: ['Hand', 'Field'] }],
+  }),
+  /** Fusion Summon with materials from your Deck only (the Deck is shuffled afterwards). */
+  FUS_DECK: spell('FUS_DECK', {
+    trigger: { kind: 'Ignition' },
+    operations: [{ kind: 'FusionSummon', sources: ['Deck'] }],
+  }),
+  /** Fusion Summon in face-up Defense Position, materials from your hand only. */
+  FUS_HAND_DEF: spell('FUS_HAND_DEF', {
+    trigger: { kind: 'Ignition' },
+    operations: [{ kind: 'FusionSummon', sources: ['Hand'], position: 'DefenseUp' }],
+  }),
+  /** Malformed (the schema refuses it): a Quick-Play Spell that Fusion Summons. Never activatable. */
+  QP_FUS: quickPlay('QP_FUS', {
+    operations: [{ kind: 'FusionSummon', sources: ['Hand', 'Field'] }],
+  }),
+  /** Fusion Monsters: M1 + M2; M1 + M1 + M2; M1 + BIG; and M1 + M2 with an OnSummon mandatory trigger (300 damage). */
+  FM_AB: fusionMonster('FM_AB', ['M1', 'M2']),
+  FM_AAB: fusionMonster('FM_AAB', ['M1', 'M1', 'M2']),
+  FM_BIG: fusionMonster('FM_BIG', ['M1', 'BIG']),
+  FM_SUM: fusionMonster('FM_SUM', ['M1', 'M2'], {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+  }),
 };
 
 export const fixtureCtx: ActionContext = { cardDefinitions: (id) => FIXTURE_DEFS[id] };
@@ -710,6 +753,9 @@ export interface FixtureSetup {
   oppField?: [string, ('Attack' | 'DefenseDown')?, number?];
   /** Player 0 graveyard (definition ids, bottom → top); instance ids g0, g1, ... (task 4.2a). */
   myGraveyard?: string[];
+  /** Task 4.5 — player 0's / player 1's Extra Deck (definition ids); instance ids x0, x1, ... / ox0, ox1, ... */
+  myExtraDeck?: string[];
+  oppExtraDeck?: string[];
   /** Player 0 deck (definition ids) — defaults to 40 × D. */
   deck?: string[];
   myLp?: number;
@@ -784,6 +830,7 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
         ...p0,
         hand,
         graveyard: (s.myGraveyard ?? []).map((d, i) => inst(`g${i}`, d)),
+        extraDeck: (s.myExtraDeck ?? []).map((d, i) => inst(`x${i}`, d)),
         lifePoints: s.myLp ?? p0.lifePoints,
         board: {
           monsterZones: monsterZones0,
@@ -793,6 +840,7 @@ export function fixtureState(s: FixtureSetup = {}): GameState {
       },
       {
         ...p1,
+        extraDeck: (s.oppExtraDeck ?? []).map((d, i) => inst(`ox${i}`, d, 1)),
         lifePoints: s.oppLp ?? p1.lifePoints,
         board: {
           monsterZones: monsterZones1,

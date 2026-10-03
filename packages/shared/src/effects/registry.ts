@@ -34,6 +34,7 @@ export const OPERATION_KINDS = [
   'NegateActivation',
   'NegateAttack',
   'NegateSummon',
+  'FusionSummon',
 ] as const satisfies readonly OperationKind[];
 
 /** Task 4.4: operations that negate what their effect answers; such an effect must be `Quick`. */
@@ -92,4 +93,5 @@ export const OPERATION_REGISTRY: Record<OperationKind, OperationEntry> = {
   NegateActivation: { implemented: true, timing: 'resolve' },
   NegateAttack: { implemented: true, timing: 'resolve' },
   NegateSummon: { implemented: true, timing: 'resolve' },
+  FusionSummon: { implemented: true, timing: 'resolve' },
 };

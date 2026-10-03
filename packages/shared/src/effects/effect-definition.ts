@@ -116,7 +116,27 @@ export const EffectDefinitionSchema = z
       message:
         'NegateActivation / NegateAttack / NegateSummon only answer something: the effect must be Quick',
     },
+  )
+  .refine(
+    (e) =>
+      !e.operations.some((o) => o.kind === 'FusionSummon') ||
+      (e.trigger.kind === 'Ignition' &&
+        e.operations.length === 1 &&
+        e.target === undefined &&
+        e.scriptId === undefined &&
+        (e.spellSpeed === undefined || e.spellSpeed === 1)),
+    // Task 4.5: the player chooses while the effect RESOLVES, so the engine pauses the chain there. Spell Speed 1 makes
+    // the effect chain link 1 — the last one to resolve — which is the only place the engine pauses [ASSUMED].
+    {
+      message:
+        'FusionSummon must be the only operation of an Ignition effect (Spell Speed 1) without target or scriptId',
+    },
   );
+
+/** True when the effect Fusion Summons (task 4.5): only a Normal Spell may carry it (see CardDefinitionSchema). */
+export function isFusionEffect(effect: { operations: readonly { kind: string }[] }): boolean {
+  return effect.operations.some((o) => o.kind === 'FusionSummon');
+}
 
 /** True when the effect only makes sense on an Equip Spell (task 4.2c): it equips, or modifies the equipped monster. */
 export function isEquipEffect(effect: {
