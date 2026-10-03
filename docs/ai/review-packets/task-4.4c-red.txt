@@ -1,0 +1,39 @@
+# Task 4.4c — red run (tests written before the engine change), 2026-10-03
+# pnpm --filter @yugi/game-engine test  (engine code unchanged: commit 5499ffb)
+
+      Tests  34 failed | 969 passed (1003)
+ FAIL  src/actions/handlers/flip-summon.test.ts > FlipSummon — the action > opens the Summon reaction window for an opponent holding a Set Trap (task 3.4c)
+ FAIL  src/effects/operations/negate-summon.test.ts > NegateSummon — Normal Summon > the window names the Summoned monster; negated: the monster goes to the graveyard
+ FAIL  src/effects/operations/negate-summon.test.ts > NegateSummon — what counts as a Summon > a monster with an optional OnSummon trigger: the window comes before the prompt (task 4.4c) and names the monster
+ FAIL  src/effects/operations/negate-summon.test.ts > NegateSummon — what counts as a Summon > task 4.4c: a monster with a mandatory OnSummon trigger is negated too — the trigger never happens
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > Set on an earlier turn: activated in Main2 as well; several candidates ask for the target
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > Set, then activated on the same turn: it flips face-up in ITS zone and equips (+500 ATK)
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > already face-up (equipped): it cannot be activated again
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > its target is gone when it resolves: the link fizzles and the card goes to the graveyard
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > may equip to an opponent’s monster when the card says so (the card stays on its owner’s side)
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > negated by a Counter Trap: sent to the graveyard, no boost (G23)
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > no face-up monster to equip: NO_VALID_TARGET, and it is not listed as legal
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > on the opponent’s turn: NOT_TURN_PLAYER — even while its controller holds priority in a window
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > outside a Main Phase: WRONG_PHASE
+ FAIL  src/rules/equip-set-activation.test.ts > a Set Equip Spell > the opponent just passes: it equips
+ FAIL  src/rules/reaction-window.test.ts > reaction window after a Summon / Set > NormalSummon opens it for the opponent; a pass closes it
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the OnSummon trigger — Normal Summon > [ASSUMED] G25: the monster destroyed inside the Summon window never gets its trigger
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the OnSummon trigger — Normal Summon > a card that does not negate, activated in the Summon window: the trigger follows once that chain resolved
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the OnSummon trigger — Normal Summon > negated: the monster goes to the graveyard, its trigger never happens, the Normal Summon stays used
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the OnSummon trigger — Normal Summon > the negation is itself negated: the monster stays and its trigger then happens
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the OnSummon trigger — Normal Summon > the opponent passes: the trigger goes on the chain and resolves, same outcome as with no card to respond
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the OnSummon trigger — Normal Summon > the waiting state is plain JSON: a round trip through JSON.stringify plays on identically
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the OnSummon trigger — Normal Summon > the window opens first: no trigger on the chain, the window carries the Summon event
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the OnSummon trigger — Normal Summon > two windows in a row for the same opponent: pass the Summon, then answer the trigger link
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the trigger — Flip Summon and Tribute Summon > Flip Summon, the opponent passes: the OnFlip effect happens
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the trigger — Flip Summon and Tribute Summon > Flip Summon: the window carries the FlipSummoned event; negated ⇒ no OnFlip effect
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the trigger — Flip Summon and Tribute Summon > Tribute Summon negated: Tribute and monster both in the graveyard, no trigger, nothing drawn
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the trigger — Flip Summon and Tribute Summon > Tribute Summon, the opponent passes: the trigger draws
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the trigger — optional / targeting triggers keep their prompt > mandatory with a target to choose: the target prompt comes after the window
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the trigger — optional / targeting triggers keep their prompt > optional, declined after the window: nothing happens and the Summon window does not open a second time
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the trigger — optional / targeting triggers keep their prompt > optional, negated: the owner is never asked
+ FAIL  src/rules/summon-window-order.test.ts > Summon window before the trigger — optional / targeting triggers keep their prompt > optional: no prompt while the window is open; after the pass the owner is asked as before
+ FAIL  src/rules/trigger-effects.test.ts > OnSummon — mandatory > the opponent may respond to the trigger link (a Set Trap), then the chain resolves LIFO
+ FAIL  src/rules/trigger-effects.test.ts > OnSummon — optional > accepted with an opponent able to respond: a plain chain window (the link is what they respond to)
+ FAIL  src/rules/trigger-effects.test.ts > OnSummon — optional > with an opponent able to respond: the Summon reaction window opens BEFORE the prompt (task 4.4c); declined afterwards, it does not open again
+ Test Files  6 failed | 63 passed (69)

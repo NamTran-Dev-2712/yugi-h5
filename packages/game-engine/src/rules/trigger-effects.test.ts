@@ -105,8 +105,13 @@ describe('OnSummon — mandatory', () => {
 
   it('the opponent may respond to the trigger link (a Set Trap), then the chain resolves LIFO', () => {
     const before = main({ hand: ['SUM_DRAW'], oppSpellTraps: [[0, 'TRAP_BURN']] });
-    const opened = apply(before, summon('h0'));
-    expect(types(opened.events)).toEqual(['NormalSummoned', 'EffectActivated', 'ChainLinkAdded']);
+    // Task 4.4c: the Summon reaction window comes first; the trigger goes on the chain once the opponent let it close.
+    const summoned = apply(before, summon('h0'));
+    expect(types(summoned.events)).toEqual(['NormalSummoned']);
+    expect(summoned.state.chainStack).toEqual([]);
+    expect(summoned.state.chainWindow).toMatchObject({ reactionTo: { kind: 'Summon' } });
+    const opened = apply(summoned.state, pass(1));
+    expect(types(opened.events)).toEqual(['EffectActivated', 'ChainLinkAdded']);
     expect(opened.state.chainStack).toHaveLength(1);
     expect(opened.state.chainStack[0]!.source).toEqual({ zone: 'MonsterZone', zoneIndex: 0 });
     // A chain window (not an empty reaction window): the opponent holds priority.
@@ -275,23 +280,36 @@ describe('OnSummon — optional', () => {
     expect(state.version).toBe(asked.version + 1);
   });
 
-  it('declined with an opponent able to respond: the 3.4c Summon reaction window opens as before', () => {
+  it('with an opponent able to respond: the Summon reaction window opens BEFORE the prompt (task 4.4c); declined afterwards, it does not open again', () => {
     const before = main({ hand: ['SUM_HEAL'], oppSpellTraps: [[0, 'TRAP_BURN']] });
-    const asked = apply(before, summon('h0')).state;
-    expect(asked.chainWindow).toBeNull();
-    const { state } = apply(asked, answer(asked, [], { decline: true }));
-    // Task 4.4: the window names the Summoned monster (what a NegateSummon would negate).
-    expect(state.chainWindow).toEqual({
+    const opened = apply(before, summon('h0')).state;
+    expect(opened.pendingPrompt).toBeNull();
+    // Task 4.4: the window names the Summoned monster (what a NegateSummon would negate); task 4.4c: and carries the
+    // Summon event whose triggers are still to be collected.
+    expect(opened.chainWindow).toEqual({
       priorityPlayer: 1,
       passCount: 0,
       reactionTo: { kind: 'Summon' },
       summoned: { playerIndex: 0, instanceId: 'h0' },
+      summonEvent: {
+        type: 'NormalSummoned',
+        playerIndex: 0,
+        instanceId: 'h0',
+        definitionId: 'SUM_HEAL',
+        zoneIndex: 0,
+      },
     });
+    const asked = apply(opened, pass(1)).state;
+    expect(asked.pendingPrompt?.kind).toBe('TriggerActivation');
+    expect(asked.chainWindow).toBeNull();
+    const { state } = apply(asked, answer(asked, [], { decline: true }));
+    expect(state.chainWindow).toBeNull();
+    expect(state.pendingPrompt).toBeNull();
   });
 
   it('accepted with an opponent able to respond: a plain chain window (the link is what they respond to)', () => {
     const before = main({ hand: ['SUM_HEAL'], oppSpellTraps: [[0, 'TRAP_BURN']] });
-    const asked = apply(before, summon('h0')).state;
+    const asked = apply(apply(before, summon('h0')).state, pass(1)).state;
     const { state } = apply(asked, answer(asked));
     expect(state.chainStack).toHaveLength(1);
     expect(state.chainWindow).toEqual({ priorityPlayer: 1, passCount: 0 });

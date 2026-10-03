@@ -179,6 +179,14 @@ describe('FlipSummon — the action', () => {
       passCount: 0,
       reactionTo: { kind: 'Summon' },
       summoned: { playerIndex: 0, instanceId: 'm0-0' },
+      // Task 4.4c: the Summon event still owed its triggers.
+      summonEvent: {
+        type: 'FlipSummoned',
+        playerIndex: 0,
+        instanceId: 'm0-0',
+        definitionId: 'M1',
+        zoneIndex: 0,
+      },
     });
   });
 

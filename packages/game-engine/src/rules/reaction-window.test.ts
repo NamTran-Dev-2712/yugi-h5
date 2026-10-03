@@ -232,7 +232,19 @@ describe('reaction window after a Summon / Set', () => {
         priorityPlayer: 1,
         passCount: 0,
         reactionTo: { kind: 'Summon' },
-        ...(type === 'NormalSummon' ? { summoned: { playerIndex: 0, instanceId: 'h0' } } : {}),
+        // Task 4.4c: and the Summon event still owed its triggers.
+        ...(type === 'NormalSummon'
+          ? {
+              summoned: { playerIndex: 0, instanceId: 'h0' },
+              summonEvent: {
+                type: 'NormalSummoned',
+                playerIndex: 0,
+                instanceId: 'h0',
+                definitionId: 'M1',
+                zoneIndex: 3,
+              },
+            }
+          : {}),
       });
       const closed = apply(opened.state, pass(1));
       expect(closed.events).toEqual([]);

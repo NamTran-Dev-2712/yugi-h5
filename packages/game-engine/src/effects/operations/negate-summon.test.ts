@@ -44,6 +44,14 @@ describe('NegateSummon — Normal Summon', () => {
       passCount: 0,
       reactionTo: { kind: 'Summon' },
       summoned: { playerIndex: 0, instanceId: 'h0' },
+      // Task 4.4c: the Summon event still owed its triggers (collected once the window closes un-negated).
+      summonEvent: {
+        type: 'NormalSummoned',
+        playerIndex: 0,
+        instanceId: 'h0',
+        definitionId: 'M1',
+        zoneIndex: 3,
+      },
     });
 
     const { state, events } = apply(opened.state, act('os-0'));
@@ -161,30 +169,25 @@ describe('NegateSummon — what counts as a Summon', () => {
     expect(graveIds(state)).toEqual(['m0-2']);
   });
 
-  it('an optional OnSummon trigger that was declined: the window opens and still names the monster', () => {
+  it('a monster with an optional OnSummon trigger: the window comes before the prompt (task 4.4c) and names the monster', () => {
     const before = main({ hand: ['SUM_HEAL'], oppSpellTraps: [[0, 'NEG_SUM']] });
-    const asked = apply(before, summon()).state;
-    expect(asked.pendingPrompt?.kind).toBe('TriggerActivation');
-    const opened = apply(asked, {
-      type: 'ResolvePendingPrompt',
-      payload: {
-        playerIndex: 0,
-        promptId: asked.pendingPrompt!.promptId,
-        cardInstanceIds: [],
-        decline: true,
-      },
-    }).state;
+    const opened = apply(before, summon()).state;
+    expect(opened.pendingPrompt).toBeNull();
     expect(opened.chainWindow?.summoned).toEqual({ playerIndex: 0, instanceId: 'h0' });
     const { state } = apply(opened, act('os-0'));
     expect(graveIds(state)).toEqual(['h0']);
+    expect(state.pendingPrompt).toBeNull();
   });
 
-  it('known limit: an OnSummon trigger on the chain replaces the Summon window, so the Summon is not negated', () => {
+  it('task 4.4c: a monster with a mandatory OnSummon trigger is negated too — the trigger never happens', () => {
     const before = main({ hand: ['SUM_BURN'], oppSpellTraps: [[0, 'NEG_SUM']] });
-    const { state, events } = apply(before, summon());
-    expect(types(events)).toContain('DamageDealt');
+    const opened = apply(before, summon());
+    expect(types(opened.events)).toEqual(['NormalSummoned']);
+    const { state, events } = apply(opened.state, act('os-0'));
+    expect(types(events)).toContain('SummonNegated');
+    expect(types(events)).not.toContain('DamageDealt');
     expect(state.chainWindow).toBeNull();
-    expect(state.players[0].board.monsterZones[3]?.instanceId).toBe('h0');
+    expect(graveIds(state)).toEqual(['h0']);
   });
 
   it('it must answer the Summon directly (first link): after another card it is refused', () => {
