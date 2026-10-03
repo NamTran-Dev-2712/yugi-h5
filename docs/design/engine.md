@@ -105,6 +105,12 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 - Test: `packages/game-engine/src/rules/trap-activation.test.ts`, `actions/handlers/quick-play-and-speed.test.ts`; golden `set-trap-quickplay-counter-chain`.
 - **Cửa sổ phản ứng** (task 3.4c): sau `DeclareAttack` và sau `NormalSummon`/`SetMonster`, đối thủ được một cửa sổ để kích hoạt lá Set — xem mục "Cửa sổ phản ứng" dưới "Chain stack".
 
+### Mã lỗi thêm ở task 4.5
+
+`INVALID_EXTRA_DECK` (`StartDuel`: một Extra Deck dài hơn `ruleset.extraDeckSize`) và `FUSION_NOT_SUMMONABLE` (Normal Summon /
+Set một quái `category: Fusion`). Lá dung hợp không kích hoạt được dùng mã có sẵn: `NOT_ACTIVATABLE` (không quái Fusion nào đủ
+nguyên liệu) / `NO_FREE_MONSTER_ZONE`; câu trả lời prompt Fusion sai: `INVALID_EFFECT_TARGET`. Xem mục "Fusion".
+
 ### Mã lỗi thêm ở task 4.4
 
 `NOTHING_TO_RESPOND_TO` (Bẫy Phản công được kích hoạt khi không có cửa sổ nào đang mở: nó không tự mở chuỗi) và
@@ -150,6 +156,8 @@ Task 3.2 thêm: `SpellTrapSet {playerIndex,instanceId,zoneIndex}` (không `defin
 
 Task 3.3 thêm: `ChainLinkAdded {linkId,chainIndex,playerIndex,instanceId,definitionId,effectId,spellSpeed,targetInstanceIds}` (phát ngay sau event cost), `ChainLinkFizzled {linkId,playerIndex,instanceId,definitionId,effectId,reason:'TARGET_GONE'}` (link không còn target nào lúc resolve; thay cho `EffectResolved` của link đó), `ChainResolved {linkCount}` (cả chain xong, cửa sổ đóng; không phát khi duel kết thúc giữa chain). **Chưa được API forward** (xem `event-visibility.md`).
 
+Task 4.5 thêm (**engine-only**: `toEventView` trả `null` cho cả hai ghế tới task 4.5b): `FusionMaterialSent {ownerIndex,instanceId,definitionId,from:'Hand'|'MonsterZone'|'Deck',zoneIndex?}` (một nguyên liệu được gửi vào mộ — không phải `MonsterDestroyed`, không bắn `OnDestroyed`; `zoneIndex` chỉ khi `from` là `MonsterZone`) và `MonsterFusionSummoned {playerIndex,instanceId,definitionId,zoneIndex,position,materialInstanceIds}` (quái Fusion rời Extra Deck lên sân, luôn ngửa; `collectTriggers` coi là Summon ⇒ `OnSummon`). Thứ tự trong bước trả lời prompt nguyên liệu: `FusionMaterialSent`… → `MonsterFusionSummoned` → `EffectResolved` → `CardSentToGraveyard` (lá Phép) → `ChainResolved` → (chain mới của trigger).
+
 Task 4.4 thêm (lên wire từ 4.4b; mức hiển thị ở `event-visibility.md`: cả ba PUBLIC): `ChainLinkNegated {linkId,playerIndex,instanceId,definitionId,effectId,byInstanceId}` (việc kích hoạt của một mắt xích bị vô hiệu; `playerIndex` = người bị vô hiệu, `byInstanceId` = lá vô hiệu; **thay** cho `EffectResolved` của mắt xích đó và được theo ngay bởi `CardSentToGraveyard` của lá bị vô hiệu nếu đó là Phép/Bẫy), `AttackNegated {playerIndex,attackerInstanceId,targetInstanceId}` (đòn tấn công bị vô hiệu: không có lật / phá / sát thương theo sau), `SummonNegated {playerIndex,instanceId,definitionId,zoneIndex}` (Normal/Flip Summon bị vô hiệu, quái rời ô vào mộ chủ; không có `MonsterDestroyed`).
 
 Task 4.3 thêm: `FieldSpellSet {playerIndex,instanceId}` (Set lá Field vào Field Zone; không `definitionId`), `FieldSpellDestroyed {ownerIndex,instanceId,definitionId}` (lá ở Field Zone bị effect phá), và `CardSentToGraveyard.from` thêm `'FieldZone'` (lá Field bị lá mới của chính chủ thay). **Lên wire ở task 4.3b** (cả ba PUBLIC ở `toEventView`, shape giữ nguyên; engine không đổi dòng nào).
@@ -181,6 +189,8 @@ interface PendingPrompt {
 **Prompt đầu tiên thật sự được dùng (task 1.11): `DiscardToHandLimit`.** `EndPhase` từ `Main2` khi `hand.length > ruleset.handLimit` **không** tiến phase: nó đặt `pendingPrompt = { promptId: 'discard-<turnCount>', playerIndex: turn player, kind: 'DiscardToHandLimit', payload: { count: hand - handLimit } }` (`promptId` tất định, không RNG). `ResolvePendingPrompt { playerIndex, promptId, cardInstanceIds }` trả lời: đúng `count` lá khác nhau từ tay của người được hỏi → vào mộ (`position: null`), phát `CardDiscarded {playerIndex, instanceId, definitionId}` từng lá theo thứ tự chọn, xoá prompt rồi tiến `Main2 → End` (`PhaseChanged`). Guard theo thứ tự: `DUEL_ENDED` → `NO_PENDING_PROMPT` → `PROMPT_MISMATCH` (sai `promptId` hoặc sai người) → `UNKNOWN_PROMPT_KIND` / `INVALID_DISCARD` (sai số lượng, trùng id, lá không ở tay). `ResolvePendingPrompt` là vỏ chung, dispatch theo `prompt.kind`; prompt mới (target, chain) thêm 1 case.
 
 **Prompt thứ hai (task 3.2): `SelectEffectTarget`.** `ActivateEffect` mà effect có target `Card` với **nhiều hơn `count` ứng viên** không đổi gì ngoài `pendingPrompt = { promptId: 'effect-<turnCount>-<version>', playerIndex: người kích hoạt, kind: 'SelectEffectTarget', payload: { cardInstanceId, effectId, costInstanceIds, candidateInstanceIds, count } }` (`version` +1). `ResolvePendingPrompt.cardInstanceIds` = đúng `count` id khác nhau nằm trong ứng viên (sai → `INVALID_EFFECT_TARGET`); engine **kiểm lại toàn bộ** activation trên state chưa đổi rồi mới trả cost + resolve (một bước, `version` +1). Đúng `count` ứng viên → tự chọn, không prompt; ít hơn → `NO_VALID_TARGET`. `ResolvePendingPrompt` giờ cần `ctx` cho kind này.
+
+**Prompt Fusion (task 4.5): `SelectFusionMonster` rồi `SelectFusionMaterials`.** Hai prompt duy nhất mở **giữa lúc chain resolve**: chain tạm dừng ở mắt xích của lá dung hợp (mắt xích đó vẫn nằm một mình trên `chainStack`, `chainWindow` do người kích hoạt giữ). Payload: `{ linkId, candidateInstanceIds, count: 1, owedTriggers, linkCount }` rồi `{ linkId, fusionInstanceId, candidateInstanceIds, count, owedTriggers, linkCount }`; `promptId = 'fusion-<turnCount>-<version>'`. Trả lời = đúng `count` id trong `candidateInstanceIds` (`cardInstanceIds`); bộ nguyên liệu còn phải đúng tập `fusionMaterials` và để lại một ô quái trống — sai ⇒ `INVALID_EFFECT_TARGET`, prompt vẫn mở. `decline` ⇒ `INVALID_TRIGGER_ANSWER`. Chi tiết: mục "Fusion".
 
 Khi `pendingPrompt != null`, `EndPhase`, `Draw`, `NormalSummon`/`SetMonster`, `SetSpellTrap`, `ActivateEffect`, `ChangePosition`, `DeclareAttack`, `PassPriority` đều bị **engine** reject `PENDING_PROMPT` (hoặc `CHAIN_WINDOW_OPEN` nếu cửa sổ chain cũng đang mở — kiểm ở `applyAction` trước handler). `Surrender` cố ý bỏ qua prompt (task 1.9). Chỉ `ResolvePendingPrompt` đi tiếp được. Prompt `SelectEffectTarget` có thể mở **trong lúc** cửa sổ chain đang mở (kích hoạt đáp trả có target): trả lời xong mới thêm link.
 
@@ -517,6 +527,45 @@ Normal/Flip Summon. Các quy ước chưa có tư liệu gốc gom ở **G23** (
 - Test: `rules/counter-trap.test.ts`, `effects/operations/negate-{activation,attack,summon}.test.ts`,
   `cards/sample/smp-201|209|210.test.ts`; golden `counter-negates-spell`, `counter-negates-continuous-spell`, `negate-attack`,
   `negate-summon`; fuzz `TNA`/`CNA`/`CNS` + `NEGATE_DECK_POOL`. Mutation: `tools/mutants-4.4.mjs`.
+
+## Fusion (task 4.5)
+
+Engine + shared; **chưa lên wire** (task 4.5b). Quyết định: ADR 068; `[ASSUMED]` G26.
+
+- **Extra Deck**: `StartDuel.payload.extraDeckLists?: [string[], string[]]` (bỏ trống = cả hai rỗng). Lá có id `p<seat>-x<i>`,
+  đúng thứ tự danh sách, `position: null`; **không xáo, không dùng rng, không event** ⇒ duel không có Extra Deck y hệt trước.
+  Dài hơn `ruleset.extraDeckSize` ⇒ `INVALID_EXTRA_DECK`. Engine không kiểm loại lá ở đây (`StartDuel` không có `ctx`):
+  `validateDeck(deck, lookup, extraDeck, extraDeckMax)` của `@yugi/shared` làm việc đó (Extra Deck chỉ quái Fusion, ≤ 3 bản;
+  Main Deck không có quái Fusion).
+- **Dữ liệu lá**: quái `category: 'Fusion'` có `fusionMaterials: string[]` (id đích danh `[DECISION]`, id lặp = cần ngần ấy lá
+  khác nhau). Operation `FusionSummon { sources: ('Hand'|'Field'|'Deck')[], position? }` — operation duy nhất của một effect
+  `Ignition` trên Phép `Normal` (Speed 1), không `target`.
+- **Kích hoạt** (`prepare`, `effects/operations/fusion-summon.ts` `fusionBlocked`): cần ít nhất một quái Fusion trong Extra Deck
+  của mình mà mọi nguyên liệu có trong `sources` (`Hand` = tay mình; `Field` = ô quái của mình, kể cả úp; `Deck` = Deck mình) ⇒
+  không có: `NOT_ACTIVATABLE`; có nhưng sân đầy và không nguyên liệu nào lấy được từ sân: `NO_FREE_MONSTER_ZONE`. **Không chọn
+  gì lúc kích hoạt** (`ChainLinkAdded.targetInstanceIds` rỗng), không cost.
+- **Resolve = chain tạm dừng** (`effects/chain.ts` `pauseForFusion`): lá Speed 1 luôn là mắt xích 1 nên resolve cuối và không
+  bao giờ ở trong cửa sổ phản ứng. Tới lượt nó mà còn quái Fusion làm được: `chainStack = [link]`, `chainWindow = {
+priorityPlayer: người kích hoạt, passCount: 0 }`, `pendingPrompt` `SelectFusionMonster`; trigger do các mắt xích phía trên
+  bắn ra nằm trong `payload.owedTriggers` (không field `GameState` mới). Không còn quái Fusion nào làm được ⇒ không prompt, mắt
+  xích resolve **không hiệu ứng** (`EffectResolved`, lá vào mộ).
+- **Trả lời** (`actions/handlers/fusion-prompt.ts`): chọn quái ⇒ prompt `SelectFusionMaterials` (chưa có gì di chuyển, không
+  event); chọn nguyên liệu ⇒ `applyFusion`: nguyên liệu vào mộ theo thứ tự chọn (`FusionMaterialSent`), nguyên liệu từ Deck ⇒
+  Deck xáo bằng `state.rng`, quái Fusion vào **ô quái trống thấp nhất** `[ASSUMED]` ngửa (`position` của operation, mặc định
+  Attack), `summonedTurn = turnCount`, **không** đụng `hasNormalSummonedThisTurn` `[RULE]`. Rồi `finishFusionLink`: lá Phép vào
+  mộ, `ChainResolved { linkCount }`, trigger nợ + `OnSummon` của quái Fusion lên **một** chain mới (nợ trước; người của lượt
+  trước), `settle`. `version` +1 mỗi câu trả lời.
+- **Không cửa sổ phản ứng triệu hồi** `[ASSUMED]` (như Special Summon, G17): chỉ `NegateActivation` lên lá Phép chặn được; mắt
+  xích bị vô hiệu bị bỏ qua như mọi mắt xích ⇒ không prompt, không nguyên liệu nào bị dùng.
+- **Quái Fusion**: Normal Summon / Set ⇒ `FUSION_NOT_SUMMONABLE`; operation `SpecialSummon` không lấy nó từ tay / mộ
+  (`effectTargetCandidates`); bị phá ⇒ mộ (không về Extra Deck).
+- `getLegalActions`: hai prompt dùng chung bộ sinh với `SelectEffectTarget` (tổ hợp `count` id, tối đa 200, lọc bằng dry-run).
+- Test: `rules/fusion.test.ts`, `actions/handlers/start-duel.extra-deck.test.ts`; golden `fusion-hand-and-field`,
+  `fusion-then-onsummon-trigger`, `fusion-negated-keeps-materials`, `fusion-material-destroyed-in-response`,
+  `fusion-owed-trigger-after-pause`; fuzz `FUS`/`FUD`/`FX1`/`FX2`/`FXS` (ngoài pool mặc định) + `FUSION_DECK_POOL` /
+  `FUSION_EXTRA_DECK_POOL`, `checkFusion`. Mutation: `tools/mutants-4.5.mjs`.
+- **Chưa có**: nguyên liệu "chung"; lá dung hợp Quick-Play / Bẫy (cần tạm dừng giữa chain); cửa sổ triệu hồi cho Fusion; người
+  chơi chọn ô / tư thế; trả quái Fusion về Extra Deck.
 
 ## Replay
 

@@ -1,0 +1,14 @@
+   effect stats: {"chainLinks":0,"humanWindows":0,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":33,"flipSummons":2,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":0,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+
+human actions 36, AI actions 45 over 5 responses, winner 1, turns 10
+47/47 checks passed
+== DECK=effect
+   effect stats: {"chainLinks":7,"humanWindows":1,"humanTriggerPrompts":0,"aiChainActs":1,"effAtk":45,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":4,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":1}
+
+human actions 49, AI actions 29 over 5 responses, winner 0, turns 9
+63/63 checks passed
+== DECK=negate
+   effect stats: {"chainLinks":5,"humanWindows":3,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":91,"flipSummons":3,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":7,"setSpellActivated":5,"aiPromptKinds":2,"linksNegated":0,"attacksNegated":2,"summonsNegated":1,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+
+human actions 94, AI actions 89 over 14 responses, winner 1, turns 22
+108/108 checks passed

@@ -1,0 +1,8 @@
+fuzz 4.4c Set Equip Spells activated: 4
+fuzz 4.3 coverage: {"fieldSpellSets":34,"fieldSpellLinks":59,"fieldSpellsReplaced":6,"fieldSpellsDestroyed":5,"continuousCardsStayed":35,"setNormalSpellLinks":30}
+fuzz 4.4 coverage: {"counterTrapLinks":10,"activationsNegated":5,"stayingCardsNegated":2,"attacksNegated":6,"summonsNegated":5}
+fuzz 4.4c coverage: {"summonWindowsBeforeTrigger":57,"triggerSummonsNegated":13,"triggersAfterSummonWindow":44,"summonsNegated":30,"flipLinks":37,"triggerPrompts":50}
+fuzz 4.5 coverage: {"fusionSummons":70,"fusionFieldMaterials":22,"fusionDeckMaterials":71,"fusionsNegated":2,"fusionsWithoutEffect":0,"fusionTriggerLinks":17,"fusionPausesWithOwedTriggers":1} (rejected: 10598)
+ Test Files  1 passed (1)
+      Tests  826 passed (826)
+   Duration  62.68s (transform 630ms, setup 0ms, collect 2.15s, tests 60.01s, environment 0ms, prepare 166ms)

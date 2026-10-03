@@ -41,6 +41,12 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   engine; chữa bằng variant riêng (deck + rng + `steer`), không đổi seed cũ, không nới oracle (ADR 067).
 - Nhánh bảo vệ không quan sát được qua `applyAction` (vì một kiểm tra khác cũng chặn cùng tình huống) vẫn phải có test: xuất
   hàm thuần đó và test trực tiếp, đừng để mutant "sống" hoặc bỏ nhánh (`owedSummonEvents`, ADR 067).
+- Thêm lá vào `FUZZ_DEFS` mà không muốn đổi đường đi của seed cũ: để lá **ngoài** `DECK_POOL` mặc định (`FUSION_ONLY`) và
+  chỉ rút số ngẫu nhiên mới trong nhánh có điều kiện (`extraDeckPool`); chứng minh bằng cách so dấu vân tay `log` của các
+  seed cũ trước / sau bằng một test tạm (không commit). Nhánh mà fuzz ngẫu nhiên không tới (0 lần) thì nói thẳng, phủ bằng test
+  luật + golden, đừng hạ ngưỡng cho có (ADR 068).
+- Thêm `SAMPLE_CARDS` có effect ⇒ deck của 8 seed cố định ở fuzz chống rò api đổi ngay (nó tự gom mọi lá có effect): thêm id
+  vào bộ lọc cạnh `NEGATE_CARDS` (`FUSION_CARDS`) trong **cùng** lần sửa dữ liệu lá (ADR 068).
 - Sửa nhiều dòng bảng dài trong docs: viết script `.mjs` vào thư mục scratchpad bằng Write rồi `node <file>` (hook chặn
   heredoc có nháy; `node -e` nuốt backtick), xong chạy `prettier --write` lên các file đó (ADR 067).
 - Hook sau mỗi Edit chạy `eslint --fix`: biến `let` chưa có chỗ gán lại bị đổi thành `const` ⇒ thêm khai báo và chỗ gán
@@ -67,6 +73,9 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - Operation cần đổi **luồng** resolve (vô hiệu link khác, chặn đòn tấn công) thì chỉ phát event; `effects/chain.ts` đọc
   event đó (như trigger đọc event), không thêm kênh trả về riêng. Operation cần biết "đang đáp cái gì" đọc
   `OperationContext.respondsTo` / `window`. Luật kích hoạt đọc từ subType / operation của lá, không từ id lá (ADR 065).
+- Operation cần **input của người chơi lúc resolve** (Fusion): không thêm kênh input cho `OperationHandler`; `chain.ts` tạm
+  dừng chain ở mắt xích đó (giữ nó trên `chainStack`), hỏi bằng `PendingPrompt`, trạng thái dở dang (trigger nợ, số mắt xích)
+  nằm trong payload prompt. Hiện chỉ mắt xích 1 (Speed 1) tạm dừng được (ADR 068).
 - Thêm dữ liệu cho cửa sổ phản ứng: đặt field optional cạnh `reactionTo` trên `ChainWindow`, **không** vào `ReactionTo`
   hay payload prompt (hai thứ đó api gửi nguyên ra wire) (ADR 065).
 - Event công khai mà **chỉ được mang id** (mục tiêu có thể là lá úp): thêm vào `ID_ONLY_EVENT_TYPES` của oracle — luật
@@ -89,6 +98,9 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - Cửa sổ phản ứng triệu hồi đứng **trước** trigger `OnSummon` / `OnFlip` và nhận **mọi** lá đáp trả (không chỉ lá vô hiệu
   triệu hồi) — chủ dự án chọn qua hộp thoại 2026-10-03, G25; triệu hồi bị vô hiệu ⇒ trigger không xảy ra `[RULE]`. Equip đã
   Set kích hoạt được, lật tại ô đang úp (ADR 067).
+- Fusion (brief task 4.5, ADR 068): nguyên liệu **đích danh**; là Special Summon, **không** cửa sổ triệu hồi (chỉ
+  `NegateActivation` lên lá Phép chặn được); nguồn nguyên liệu là tham số `sources` của lá (demo: tay + sân), chọn lúc
+  resolve; quái Fusion rời sân vào **mộ**, không Normal Summon / Set / Special Summon bằng operation cũ. G26 `[ASSUMED]`.
 - Card data viết bằng TS, **không** pipeline CSV (ADR 058). Không Duration, không action `SpecialSummon` (ADR 059, 061).
 - C11: Trap phải Set mới kích hoạt (ADR 018). C13: phản ứng = chạm lá, **không** dialog "Kích hoạt?" (ADR 054).
 - AI server không tự Set/kích hoạt Phép/Bẫy ngoài cửa sổ ưu tiên (ADR 048, 055).

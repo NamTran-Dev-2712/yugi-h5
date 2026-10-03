@@ -1,0 +1,8 @@
+[fuzz 4.4b] {
+[fuzz 4.3b] {
+[fuzz 3.2b/3.4b] {
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ Test Files  1 passed (1)
+      Tests  363 passed (363)
+   Duration  1911.66s (transform 475ms, setup 0ms, collect 1.73s, tests 1909.23s, environment 0ms, prepare 283ms)
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/modules/duels/event-visibility.fuzz.spec.ts

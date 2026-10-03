@@ -7,15 +7,15 @@ Card mặc định là **placeholder tự đặt tên**, không tên/art Konami.
 
 Hiện có: `id, name, effectText, scriptId, kind, category, attribute, race, level, atk, def, subType`.
 
-| Trường thêm                                          | Mục đích                                     | Phase |
-| ---------------------------------------------------- | -------------------------------------------- | ----- |
-| `name`, `effectText` → `{ vi, en }` (hoặc `i18nKey`) | i18n text card ở data                        | P2/P3 |
-| `effects: EffectDefinition[]`                        | Effect DSL (xem `docs/design/effect-dsl.md`) | P3    |
-| `artId?`                                             | Tách art khỏi id (mặc định = `id`)           | P5    |
-| `tags?: string[]`                                    | Lọc/batch/test (vd `batch1`, `vanilla`)      | P4    |
-| `fusionMaterials?`                                   | Fusion                                       | P4    |
-| `ritualRequirement?`                                 | Ritual                                       | P4    |
-| `tier: 'A'\|'B'\|'C'`                                | Dẫn xuất được từ effects/scriptId, validate  | P3    |
+| Trường thêm                                          | Mục đích                                                                                                 | Phase |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----- |
+| `name`, `effectText` → `{ vi, en }` (hoặc `i18nKey`) | i18n text card ở data                                                                                    | P2/P3 |
+| `effects: EffectDefinition[]`                        | Effect DSL (xem `docs/design/effect-dsl.md`)                                                             | P3    |
+| `artId?`                                             | Tách art khỏi id (mặc định = `id`)                                                                       | P5    |
+| `tags?: string[]`                                    | Lọc/batch/test (vd `batch1`, `vanilla`)                                                                  | P4    |
+| `fusionMaterials?`                                   | Fusion — **có từ task 4.5** (`string[]` id nguyên liệu đích danh, ≥ 2; chỉ trên quái `category: Fusion`) | P4    |
+| `ritualRequirement?`                                 | Ritual                                                                                                   | P4    |
+| `tier: 'A'\|'B'\|'C'`                                | Dẫn xuất được từ effects/scriptId, validate                                                              | P3    |
 
 Thay đổi contract → cập nhật `docs/design/effect-dsl.md` và ADR.
 
