@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../../apply-action.js';
-import { formatFuzzFailure, NEGATE_DECK_POOL, runFuzz, SUMMON_TRIGGER_DECK_POOL } from './fuzz.js';
-import type { ApplyFn, FuzzResult } from './fuzz.js';
+import {
+  formatFuzzFailure,
+  FUSION_DECK_POOL,
+  FUSION_EXTRA_DECK_POOL,
+  FUZZ_DEFS,
+  NEGATE_DECK_POOL,
+  runFuzz,
+  SUMMON_TRIGGER_DECK_POOL,
+} from './fuzz.js';
+import type { ApplyFn, FuzzOptions, FuzzResult } from './fuzz.js';
 
 /*
  * Fixed seeds keep the normal suite fast and reproducible. For a longer hunt:
@@ -21,6 +29,16 @@ const SUMMON_TRIGGER_SEEDS = Array.from(
   { length: Number(process.env['FUZZ_SUMWIN_SEEDS'] ?? 5) },
   (_, i) => `sumwin-long-${i + 1}`,
 );
+/** Task 4.5: seeds of the Fusion deck pool + Extra Deck pool. Long run: FUZZ_FUSION_SEEDS. */
+const FUSION_SEEDS = Array.from(
+  { length: Number(process.env['FUZZ_FUSION_SEEDS'] ?? 5) },
+  (_, i) => `fusion-long-${i + 1}`,
+);
+/** Task 4.5: the Fusion variant — decks from FUSION_DECK_POOL, Extra Decks from FUSION_EXTRA_DECK_POOL. */
+const FUSION: Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'> = {
+  deckPool: FUSION_DECK_POOL,
+  extraDeckPool: FUSION_EXTRA_DECK_POOL,
+};
 
 /** Task 4.2d: let the vitest worker answer its RPC between seeds (a long synchronous test starves it under load). */
 const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -38,6 +56,11 @@ describe('fuzz: engine invariants hold', () => {
 
   it.each(NEGATE_SEEDS)('seed %s (Negate deck pool, task 4.4)', (seed) => {
     const result = runFuzz({ seed, steps: STEPS, deckPool: NEGATE_DECK_POOL });
+    expect(result.ok, formatFuzzFailure(result)).toBe(true);
+  });
+
+  it.each(FUSION_SEEDS)('seed %s (Fusion deck pool + Extra Decks, task 4.5)', (seed) => {
+    const result = runFuzz({ seed, steps: STEPS, ...FUSION });
     expect(result.ok, formatFuzzFailure(result)).toBe(true);
   });
 
@@ -202,6 +225,57 @@ describe('fuzz: engine invariants hold', () => {
     for (const [key, n] of Object.entries(total))
       expect(n, `${key} never happened`).toBeGreaterThan(0);
   }, 120_000);
+
+  it('Fusion Summons are really played (task 4.5; own seeds, deck pool and Extra Decks: 60 × 400 steps)', async () => {
+    const total = {
+      fusionSummons: 0,
+      fusionFieldMaterials: 0,
+      fusionDeckMaterials: 0,
+      fusionsNegated: 0,
+      fusionsWithoutEffect: 0,
+      fusionTriggerLinks: 0,
+      fusionPausesWithOwedTriggers: 0,
+    };
+    let rejectedAnswers = 0;
+    // A variant of its own (ADR 064 lesson): the default pool has no fusion card, and without an Extra Deck nothing
+    // could be fused anyway. Same generator, same invariants; every older seed keeps its pool and its random stream.
+    for (let i = 1; i <= 60; i++) {
+      await yieldToWorker();
+      const result = runFuzz({ seed: `fusion-${i}`, steps: 400, ...FUSION });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const key of Object.keys(total) as (keyof typeof total)[])
+        total[key] += result.stats[key];
+      rejectedAnswers += result.stats.rejected;
+    }
+    console.log(`fuzz 4.5 coverage: ${JSON.stringify(total)} (rejected: ${rejectedAnswers})`);
+    // `fusionsWithoutEffect` is only printed: random play does not reach "the last material is destroyed in response"
+    // (0 in 60 × 400 steps, and 0 with a field-only pool too). That branch is covered by rules/fusion.test.ts and the
+    // golden `fusion-material-destroyed-in-response`, not by the fuzz.
+    for (const [key, n] of Object.entries(total)) {
+      if (key === 'fusionsWithoutEffect') continue;
+      expect(n, `${key} never happened`).toBeGreaterThan(0);
+    }
+  }, 120_000);
+
+  it('older runs never see a fusion card: the default pool has none and no run without extraDeckPool has an Extra Deck (task 4.5)', () => {
+    for (const seed of ['fuzz-1', 'fuzz-2', 'fuzz-3']) {
+      const result = runFuzz({ seed, steps: 300 });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const action of result.log) {
+        if (action.type !== 'StartDuel') continue;
+        expect(action.payload.extraDeckLists).toBeUndefined();
+        for (const id of action.payload.deckLists.flat()) {
+          const def = FUZZ_DEFS[id];
+          expect(def?.kind === 'Monster' && def.category === 'Fusion', id).toBe(false);
+          expect(
+            (def?.effects ?? []).some((e) => e.operations.some((o) => o.kind === 'FusionSummon')),
+            id,
+          ).toBe(false);
+        }
+      }
+      expect(result.stats.fusionSummons).toBe(0);
+    }
+  });
 
   it('is deterministic: same seed → identical action log and stats', () => {
     const a = runFuzz({ seed: 'determinism', steps: 200 });
@@ -460,6 +534,127 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
       });
     expect(last?.ok).toBe(false);
     if (last && !last.ok) expect(last.violation).toMatch(/while the Summon window of/);
+  });
+
+  /** First failing Fusion run (own seeds, as for the coverage run). */
+  const detectFusion = (apply: ApplyFn): FuzzResult => {
+    let last: FuzzResult | null = null;
+    for (let i = 1; i <= 60 && (last === null || last.ok); i++)
+      last = runFuzz({ seed: `fusion-${i}`, steps: 400, ...FUSION, apply });
+    return last!;
+  };
+
+  it('flags a Fusion material that goes back to the hand instead of the graveyard (task 4.5)', () => {
+    // After a Fusion Summon, move its first material from the graveyard back to the hand (the card set stays intact, so
+    // only the 4.5 invariant can report it).
+    const r = detectFusion(
+      broken('ResolvePendingPrompt', ({ state, events }) => {
+        const fused = events.find((e) => e.type === 'MonsterFusionSummoned');
+        if (!fused || fused.type !== 'MonsterFusionSummoned') return { state, events };
+        const owner = state.players[fused.playerIndex];
+        const card = owner.graveyard.find((c) => c.instanceId === fused.materialInstanceIds[0]);
+        if (!card) return { state, events };
+        const next = {
+          ...owner,
+          graveyard: owner.graveyard.filter((c) => c !== card),
+          hand: [...owner.hand, card],
+        };
+        return {
+          events,
+          state: {
+            ...state,
+            players: fused.playerIndex === 0 ? [next, state.players[1]] : [state.players[0], next],
+          },
+        };
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/Fusion material .* is back in a hand or a Deck/);
+  });
+
+  it('flags a Fusion Monster that stays in the Extra Deck after its Summon (task 4.5)', () => {
+    // The monster is on the field AND still listed in the Extra Deck under another instance id would change the card
+    // set; instead keep it in the Extra Deck and take it off the field: the card set is intact.
+    const r = detectFusion(
+      broken('ResolvePendingPrompt', ({ state, events }) => {
+        const fused = events.find((e) => e.type === 'MonsterFusionSummoned');
+        if (!fused || fused.type !== 'MonsterFusionSummoned') return { state, events };
+        const owner = state.players[fused.playerIndex];
+        const card = owner.board.monsterZones[fused.zoneIndex];
+        if (card?.instanceId !== fused.instanceId) return { state, events };
+        const monsterZones = owner.board.monsterZones.map((c, i) =>
+          i === fused.zoneIndex ? null : c,
+        ) as unknown as typeof owner.board.monsterZones;
+        const next = {
+          ...owner,
+          board: { ...owner.board, monsterZones },
+          extraDeck: [...owner.extraDeck, { ...card, position: null }],
+        };
+        return {
+          events,
+          state: {
+            ...state,
+            players: fused.playerIndex === 0 ? [next, state.players[1]] : [state.players[0], next],
+          },
+        };
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/still in an Extra Deck after its Summon/);
+  });
+
+  it('flags a Fusion Monster that leaves the graveyard for the hand (task 4.5)', () => {
+    // After any accepted EndPhase, a Fusion Monster in a graveyard is moved to its owner's hand.
+    const r = detectFusion(
+      broken('EndPhase', ({ state, events }) => {
+        for (const seat of [0, 1] as const) {
+          const owner = state.players[seat];
+          const card = owner.graveyard.find(
+            (c) =>
+              FUZZ_DEFS[c.definitionId]?.kind === 'Monster' &&
+              (FUZZ_DEFS[c.definitionId] as { category?: string }).category === 'Fusion',
+          );
+          if (!card) continue;
+          const next = {
+            ...owner,
+            graveyard: owner.graveyard.filter((c) => c !== card),
+            hand: [...owner.hand, card],
+          };
+          return {
+            events,
+            state: {
+              ...state,
+              players: seat === 0 ? [next, state.players[1]] : [state.players[0], next],
+            },
+          };
+        }
+        return { state, events };
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/Fusion Monster .* is in player \d's hand/);
+  });
+
+  it('flags a card in the Extra Deck that is not a Fusion Monster (task 4.5)', () => {
+    // After any accepted EndPhase, the turn player's first hand card is put into their Extra Deck.
+    const r = detectFusion(
+      broken('EndPhase', ({ state, events }) => {
+        const seat = state.turnPlayerIndex;
+        const owner = state.players[seat];
+        const card = owner.hand[0];
+        if (!card) return { state, events };
+        const next = { ...owner, hand: owner.hand.slice(1), extraDeck: [...owner.extraDeck, card] };
+        return {
+          events,
+          state: {
+            ...state,
+            players: seat === 0 ? [next, state.players[1]] : [state.players[0], next],
+          },
+        };
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/Extra Deck is not a Fusion Monster/);
   });
 
   it('flags an uncontrolled exception', () => {

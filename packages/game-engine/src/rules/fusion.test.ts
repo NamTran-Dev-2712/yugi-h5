@@ -84,6 +84,14 @@ describe('Fusion — activation', () => {
       { hand: ['FUS', 'M1', 'M2'], oppExtraDeck: ['FM_AB'] },
     ],
     ['the Extra Deck holds no Fusion Monster', { hand: ['FUS', 'M1', 'M2'], myExtraDeck: ['M1'] }],
+    [
+      'the Extra Deck card lists materials but is not a Fusion Monster (malformed data)',
+      { hand: ['FUS', 'M1', 'M2'], myExtraDeck: ['M_FAKE_FUSION'] },
+    ],
+    [
+      'the Fusion Monster lists no material (malformed data: never Summoned for free)',
+      { hand: ['FUS', 'M1', 'M2'], myExtraDeck: ['FM_NONE'] },
+    ],
   ])('%s → NOT_ACTIVATABLE', (_label, setup) => {
     expectEngineError(() => step(start(setup), activate()), 'NOT_ACTIVATABLE');
   });
@@ -258,6 +266,16 @@ describe('Fusion — resolution', () => {
     const { picked, done } = fuse(setup, 'x0', ['h1', 'h2', 'h3']);
     expect(picked.state.pendingPrompt?.payload).toMatchObject({ count: 3 });
     expect(done.events.at(3)).toMatchObject({ materialInstanceIds: ['h1', 'h2', 'h3'] });
+  });
+
+  it('one card cannot stand for both copies of a repeated material', () => {
+    const setup: FixtureSetup = { hand: ['FUS', 'M1', 'M1', 'M2'], myExtraDeck: ['FM_AAB'] };
+    const activated = step(start(setup), activate());
+    const picked = step(activated.state, answer(activated.state, ['x0']));
+    expectEngineError(
+      () => step(picked.state, answer(picked.state, ['h1', 'h1', 'h3'])),
+      'INVALID_EFFECT_TARGET',
+    );
   });
 
   it('several Fusion Monsters: only the ones whose materials are there are candidates', () => {

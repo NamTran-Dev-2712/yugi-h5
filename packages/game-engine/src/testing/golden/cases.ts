@@ -313,7 +313,74 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
     subType: 'Counter',
     effects: [{ id: 'e1', trigger: { kind: 'Quick' }, operations: [{ kind: 'NegateSummon' }] }],
   },
+  /** Task 4.5 — Normal Spell: Fusion Summon with materials from your hand or your field. */
+  G_FUS: {
+    id: 'G_FUS',
+    kind: 'Spell',
+    name: { vi: 'Golden G_FUS', en: 'Golden G_FUS' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'FusionSummon', sources: ['Hand', 'Field'] }],
+      },
+    ],
+  },
+  /** Fusion Monster (2400 ATK): M1000 + M1800. */
+  G_FM_AB: {
+    ...monster('G_FM_AB', 6, 2400, 2000),
+    category: 'Fusion',
+    fusionMaterials: ['M1000', 'M1800'],
+  } as CardDefinition,
+  /** Fusion Monster with an OnSummon mandatory trigger (300 damage): M1000 + M1800. */
+  G_FM_SUM: {
+    ...monster('G_FM_SUM', 6, 2200, 1800),
+    category: 'Fusion',
+    fusionMaterials: ['M1000', 'M1800'],
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'OnSummon', mandatory: true },
+        operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+      },
+    ],
+  } as CardDefinition,
 };
+
+/** Fusion (task 4.5): P0 holds the fusion Spell and the materials, P1 the cards that interfere. */
+const FUSION_DECK_P0 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_FUS', 'M1000', 'M1800', 'G_DES_BURN'][i % 4]!,
+);
+const FUSION_DECK_P1 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_NEG_ACT', 'G_TRAP_KILL', 'M1000', 'M1800'][i % 4]!,
+);
+/**
+ * The five task 4.5 cases share one deal (seed `g-fus-75`). T1 (P0) hand: p0-32 G_FUS, p0-31 G_DES_BURN, p0-20 G_FUS,
+ * p0-2 M1800, p0-25 M1000 (T3 draws p0-0 G_FUS). T2 (P1) hand: p1-6 M1000, p1-19 M1800, p1-39 M1800,
+ * p1-29 G_TRAP_KILL, p1-12 G_NEG_ACT (+ draws p1-27 M1800). P0's Extra Deck: p0-x0 G_FM_AB, p0-x1 G_FM_SUM.
+ * A Fusion prompt's id is `fusion-<turn>-<version of the state the prompt was opened from>`.
+ */
+const fusionStart: GoldenCase['start'] = {
+  type: 'StartDuel',
+  payload: {
+    matchId: 'golden',
+    seed: 'g-fus-75',
+    playerIds: ['alice', 'bob'],
+    deckLists: [FUSION_DECK_P0, FUSION_DECK_P1],
+    extraDeckLists: [['G_FM_AB', 'G_FM_SUM'], []],
+  },
+};
+const fusionAnswer = (promptId: string, cardInstanceIds: string[]): Action => ({
+  type: 'ResolvePendingPrompt',
+  payload: { playerIndex: 0, promptId, cardInstanceIds },
+});
+const activateBy = (playerIndex: 0 | 1, cardInstanceId: string): Action => ({
+  type: 'ActivateEffect',
+  payload: { playerIndex, cardInstanceId, effectId: 'e1' },
+});
 
 /** Counter Trap / Negate (task 4.4): P0 plays the Spells and monsters, P1 holds the three negating Traps. */
 const NEGATE_DECK_P0 = Array.from(
@@ -1433,6 +1500,122 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
         payload: { playerIndex: 0, attackerInstanceId: 'p0-31', targetInstanceId: 'p1-2' },
       },
       ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'fusion-hand-and-field',
+    definitions: GOLDEN_DEFS,
+    start: fusionStart,
+    actions: [
+      // T1 (P0): Summon M1000 (p0-25) in zone 2, then activate G_FUS (p0-32): nobody can respond, so its link resolves
+      // at once and the chain pauses on SelectFusionMonster. Rejected while it is open: EndPhase, a monster that is not
+      // in the Extra Deck. Pick G_FM_AB (p0-x0) → SelectFusionMaterials. Rejected: a card that is no material. Then
+      // M1000 from the field + M1800 (p0-2) from the hand: both to the graveyard, G_FM_AB lands in zone 0.
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-25', zoneIndex: 2 } },
+      activateBy(0, 'p0-32'),
+      ...endPhase(0),
+      fusionAnswer('fusion-1-4', ['p0-x9']),
+      fusionAnswer('fusion-1-4', ['p0-x0']),
+      fusionAnswer('fusion-1-5', ['p0-25', 'p0-31']),
+      fusionAnswer('fusion-1-5', ['p0-25', 'p0-2']),
+      // Rejected: the Normal Summon of the turn went to M1000 (the Fusion Summon did not use one, nor give one back);
+      // the Fusion Monster cannot change position on the turn it was Summoned.
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-31', zoneIndex: 1 } },
+      {
+        type: 'ChangePosition',
+        payload: { playerIndex: 0, cardInstanceId: 'p0-x0', toPosition: 'DefenseUp' },
+      },
+      ...endPhase(0, 4),
+      // T2 (P1): nothing.
+      ...endPhase(1, 6),
+      // T3 (P0): G_FM_AB (2400) attacks directly.
+      ...endPhase(0, 3),
+      { type: 'DeclareAttack', payload: { playerIndex: 0, attackerInstanceId: 'p0-x0' } },
+      ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'fusion-then-onsummon-trigger',
+    definitions: GOLDEN_DEFS,
+    start: fusionStart,
+    actions: [
+      // T1 (P0): G_FUS (p0-32) → G_FM_SUM (p0-x1) with M1000 (p0-25) + M1800 (p0-2), both from the hand. Its OnSummon
+      // mandatory trigger starts a NEW chain after the fusion chain: 300 damage to P1.
+      ...endPhase(0, 2),
+      activateBy(0, 'p0-32'),
+      fusionAnswer('fusion-1-3', ['p0-x1']),
+      fusionAnswer('fusion-1-4', ['p0-25', 'p0-2']),
+      // Rejected: the second G_FUS (p0-20) has no materials left.
+      activateBy(0, 'p0-20'),
+      ...endPhase(0, 4),
+    ],
+  },
+  {
+    name: 'fusion-negated-keeps-materials',
+    definitions: GOLDEN_DEFS,
+    start: fusionStart,
+    actions: [
+      // T1 (P0): nothing. T2 (P1): Set G_NEG_ACT (p1-12).
+      ...endPhase(0, 6),
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-12', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): G_FUS (p0-32) → P1 answers with G_NEG_ACT (1000 LP): the activation is negated, no prompt, no
+      // material used, G_FUS goes to the graveyard. The second G_FUS (p0-20) then fuses with the very same materials.
+      ...endPhase(0, 2),
+      activateBy(0, 'p0-32'),
+      activateBy(1, 'p1-12'),
+      activateBy(0, 'p0-20'),
+      fusionAnswer('fusion-3-18', ['p0-x0']),
+      fusionAnswer('fusion-3-19', ['p0-25', 'p0-2']),
+      ...endPhase(0, 4),
+    ],
+  },
+  {
+    name: 'fusion-material-destroyed-in-response',
+    definitions: GOLDEN_DEFS,
+    start: fusionStart,
+    actions: [
+      // T1 (P0): nothing. T2 (P1): Set G_TRAP_KILL (p1-29).
+      ...endPhase(0, 6),
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-29', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): Summon M1000 (p0-25) → P1 passes in the Summon window. G_FUS (p0-32) → P1 chains G_TRAP_KILL on
+      // M1000, the only copy of that material: when G_FUS resolves no Fusion Monster can be made, so it resolves
+      // without effect (no prompt; M1800 stays in the hand, the Extra Deck is untouched). Rejected: the second G_FUS.
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-25', zoneIndex: 0 } },
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      activateBy(0, 'p0-32'),
+      activateBy(1, 'p1-29'),
+      activateBy(0, 'p0-20'),
+      ...endPhase(0, 4),
+    ],
+  },
+  {
+    name: 'fusion-owed-trigger-after-pause',
+    definitions: GOLDEN_DEFS,
+    start: fusionStart,
+    actions: [
+      // T1 (P0): nothing. T2 (P1): Set G_TRAP_KILL (p1-29).
+      ...endPhase(0, 6),
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-29', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): Summon G_DES_BURN (p0-31) → P1 passes. G_FUS (p0-32) → P1 chains G_TRAP_KILL on G_DES_BURN. Link 2
+      // destroys it (its OnDestroyed trigger is now owed), then the chain pauses on G_FUS: the prompt carries the owed
+      // trigger. After the Fusion Summon (G_FM_AB, materials from the hand) the owed trigger goes on a new chain:
+      // 400 damage to P1.
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-31', zoneIndex: 0 } },
+      { type: 'PassPriority', payload: { playerIndex: 1 } },
+      activateBy(0, 'p0-32'),
+      activateBy(1, 'p1-29'),
+      fusionAnswer('fusion-3-19', ['p0-x0']),
+      fusionAnswer('fusion-3-20', ['p0-25', 'p0-2']),
+      ...endPhase(0, 4),
     ],
   },
 ];

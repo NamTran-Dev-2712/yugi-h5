@@ -717,6 +717,9 @@ export const FIXTURE_DEFS: Record<string, CardDefinition> = {
   FM_AB: fusionMonster('FM_AB', ['M1', 'M2']),
   FM_AAB: fusionMonster('FM_AAB', ['M1', 'M1', 'M2']),
   FM_BIG: fusionMonster('FM_BIG', ['M1', 'BIG']),
+  /** Malformed (the schema refuses both): a Fusion Monster without materials; a Normal Monster that lists materials. */
+  FM_NONE: { ...fusionMonster('FM_NONE', []), fusionMaterials: undefined } as CardDefinition,
+  M_FAKE_FUSION: { ...monster('M_FAKE_FUSION'), fusionMaterials: ['M1', 'M2'] } as CardDefinition,
   FM_SUM: fusionMonster('FM_SUM', ['M1', 'M2'], {
     trigger: { kind: 'OnSummon', mandatory: true },
     operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],

@@ -1,0 +1,44 @@
+KILLED   [rule/golden tests] the hand is always a material source (the operation says Deck only)
+KILLED   [rule/golden tests] the field is always a material source (the operation says hand only)
+KILLED   [rule/golden tests] the Deck is never a material source
+KILLED   [rule/golden tests] any monster in the Extra Deck that lists materials can be Fusion Summoned
+KILLED   [rule/golden tests] a Fusion Monster without materials is Summoned for free
+KILLED   [rule/golden tests] one copy is enough for a material named twice
+KILLED   [rule/golden tests] a full field never blocks the activation
+KILLED   [rule/golden tests] a material on a full field does not count as freeing a zone
+KILLED   [rule/golden tests] no Fusion Monster to make is reported as "no free Monster Zone"
+KILLED   [rule/golden tests] the same card may be chosen twice for a repeated material
+KILLED   [rule/golden tests] any candidates are accepted as materials (wrong set)
+KILLED   [rule/golden tests] materials that leave no empty Monster Zone are accepted
+KILLED   [rule/golden tests] the operation position is ignored (always Attack)
+KILLED   [rule/golden tests] the Fusion Monster is not stamped as Summoned this turn (it could attack / change position)
+KILLED   [rule/golden tests] the Deck is shuffled (rng used) for materials from the hand too
+KILLED   [rule/golden tests] a material from the Deck stays in the Deck (the card is in two places)
+KILLED   [rule/golden tests] a material from the hand stays in the hand (the card is in two places)
+KILLED   [rule/golden tests] the Fusion Monster stays in the Extra Deck after its Summon
+KILLED   [rule/golden tests] the chain never pauses: the fusion link resolves without asking (no Fusion Summon)
+KILLED   [rule/golden tests] triggers fired by the links above the fusion link are forgotten
+KILLED   [rule/golden tests] the paused link is dropped from the chain (the Spell vanishes while the prompt is open)
+KILLED   [rule/golden tests] the paused window is held by the opponent
+KILLED   [rule/golden tests] the OnSummon trigger of the Fusion Monster never fires
+KILLED   [rule/golden tests] the owed triggers are dropped when the Fusion Summon is done
+KILLED   [rule/golden tests] the Fusion Summon trigger goes on the chain before the older owed triggers
+KILLED   [rule/golden tests] ChainResolved after a paused chain always says 1 link
+KILLED   [rule/golden tests] a Fusion Summon is not a Summon for OnSummon triggers
+KILLED   [rule/golden tests] the SpecialSummon operation takes a Fusion Monster from the hand / graveyard
+KILLED   [rule/golden tests] a Fusion Monster can be Normal Summoned / Set
+KILLED   [rule/golden tests] a Quick-Play (Spell Speed 2) fusion effect can be activated
+KILLED   [rule/golden tests] the fusion Spell can be activated with no Fusion Monster to make
+KILLED   [rule/golden tests] the fusion Spell can be activated with no room for the Fusion Monster
+KILLED   [rule/golden tests] SelectFusionMonster accepts several ids (takes the first)
+KILLED   [rule/golden tests] SelectFusionMonster does not take the chosen monster
+KILLED   [rule/golden tests] the owed triggers are lost between the two prompts
+KILLED   [rule/golden tests] the owed triggers are not handed to the end of the chain
+KILLED   [rule/golden tests] an Extra Deck of exactly extraDeckSize cards is rejected
+KILLED   [rule/golden tests] an Extra Deck over the limit is accepted
+KILLED   [rule/golden tests] Extra Deck cards reuse the instance ids of the Main Deck
+KILLED   [rule/golden tests] both players get player 0's Extra Deck list
+KILLED   [rule/golden tests] getLegalActions lists no answer for SelectFusionMaterials
+KILLED   [rule/golden tests] getLegalActions lists no answer for SelectFusionMonster
+
+42/42 mutants killed (0 by tsc only)

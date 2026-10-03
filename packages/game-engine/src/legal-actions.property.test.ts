@@ -6,7 +6,13 @@ import { getLegalActions } from './legal-actions.js';
 import { createRng, nextInt } from './rng/seeded-rng.js';
 import type { RngState } from './rng/seeded-rng.js';
 import type { GameState } from './state/types.js';
-import { formatFuzzFailure, runFuzz } from './testing/fuzz/fuzz.js';
+import {
+  formatFuzzFailure,
+  FUSION_DECK_POOL,
+  FUSION_EXTRA_DECK_POOL,
+  runFuzz,
+  type FuzzOptions,
+} from './testing/fuzz/fuzz.js';
 
 /*
  * Property test: replays fuzz duels (fixed seeds; the seed is printed on failure) and at EVERY state checks that
@@ -40,7 +46,8 @@ function makeInt(seed: string): (max: number) => number {
 function allIds(state: GameState): string[] {
   const ids: string[] = ['bogus', ''];
   for (const p of state.players) {
-    for (const c of [...p.hand, ...p.deck, ...p.graveyard]) ids.push(c.instanceId);
+    // Task 4.5: Extra Deck ids too (answers to a Fusion prompt).
+    for (const c of [...p.hand, ...p.deck, ...p.graveyard, ...p.extraDeck]) ids.push(c.instanceId);
     for (const c of p.board.monsterZones) if (c) ids.push(c.instanceId);
   }
   return ids;
@@ -182,6 +189,11 @@ function junk(seat: 0 | 1, ids: string[], int: (n: number) => number): Action[] 
       type: 'ResolvePendingPrompt',
       payload: { playerIndex: seat, promptId: 'trigger-3-1', cardInstanceIds: [], decline: true },
     },
+    // Task 4.5: an answer to a Fusion prompt that is not the open one.
+    {
+      type: 'ResolvePendingPrompt',
+      payload: { playerIndex: seat, promptId: 'fusion-1-1', cardInstanceIds: [pick(), pick()] },
+    },
   ];
 }
 
@@ -189,83 +201,111 @@ function junk(seat: 0 | 1, ids: string[], int: (n: number) => number): Action[] 
 const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('getLegalActions — property (fuzzed duels)', () => {
-  it(`agrees with applyAction on ${SEEDS} seeds × ${STEPS} steps`, async () => {
-    let statesChecked = 0;
-    let listedTotal = 0;
-    let negativesTotal = 0;
+  // Task 4.5: the same property over Fusion duels (own seeds, deck pool and Extra Decks), where it also demands that
+  // an open Fusion prompt always lists an answer for the prompted player.
+  it.each<[string, string, Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'>]>([
+    ['default pool', 'legal-prop', {}],
+    [
+      'Fusion pool + Extra Decks',
+      'legal-fusion',
+      { deckPool: FUSION_DECK_POOL, extraDeckPool: FUSION_EXTRA_DECK_POOL },
+    ],
+  ])(
+    `agrees with applyAction on ${SEEDS} seeds × ${STEPS} steps (%s)`,
+    async (_label, prefix, variant) => {
+      let statesChecked = 0;
+      let listedTotal = 0;
+      let negativesTotal = 0;
+      let fusionPrompts = 0;
 
-    for (let s = 0; s < SEEDS; s++) {
-      await yieldToWorker();
-      const seed = `legal-prop-${s}`;
-      const int = makeInt(`neg-${seed}`);
-      const result = runFuzz({
-        seed,
-        steps: STEPS,
-        onState: (state, ctx) => {
-          statesChecked++;
-          const lists = [getLegalActions(state, 0, ctx), getLegalActions(state, 1, ctx)] as const;
-          // Perturbing playerIndex can land on the other seat's legal action, so "listed" = listed for either seat.
-          const anyListed = new Set([...lists[0], ...lists[1]].map((a) => JSON.stringify(a)));
-          for (const seat of [0, 1] as const) {
-            const list = lists[seat];
-            const keys = list.map((a) => JSON.stringify(a));
-            const keySet = new Set(keys);
-            if (keySet.size !== keys.length) return `seat ${seat}: duplicate legal actions`;
-            listedTotal += list.length;
+      for (let s = 0; s < SEEDS; s++) {
+        await yieldToWorker();
+        const seed = `${prefix}-${s}`;
+        const int = makeInt(`neg-${seed}`);
+        const result = runFuzz({
+          seed,
+          steps: STEPS,
+          ...variant,
+          onState: (state, ctx) => {
+            statesChecked++;
+            const lists = [getLegalActions(state, 0, ctx), getLegalActions(state, 1, ctx)] as const;
+            // Perturbing playerIndex can land on the other seat's legal action, so "listed" = listed for either seat.
+            const anyListed = new Set([...lists[0], ...lists[1]].map((a) => JSON.stringify(a)));
+            for (const seat of [0, 1] as const) {
+              const list = lists[seat];
+              const keys = list.map((a) => JSON.stringify(a));
+              const keySet = new Set(keys);
+              if (keySet.size !== keys.length) return `seat ${seat}: duplicate legal actions`;
+              listedTotal += list.length;
 
-            for (const a of list) {
-              if (!accepts(state, a, ctx))
-                return `seat ${seat}: listed but rejected: ${JSON.stringify(a)}`;
+              for (const a of list) {
+                if (!accepts(state, a, ctx))
+                  return `seat ${seat}: listed but rejected: ${JSON.stringify(a)}`;
+              }
+
+              if (state.winnerIndex !== null) {
+                if (list.length !== 0) return `seat ${seat}: actions listed after the duel ended`;
+                continue;
+              }
+
+              const ids = allIds(state);
+              // Bounded sample per state (all variants of every listed action is too slow for the default suite).
+              const sampled = Array.from(
+                { length: Math.min(list.length, 8) },
+                () => list[int(list.length)]!,
+              );
+              const negatives = [
+                ...sampled.flatMap((a) => perturb(a, ids, int)),
+                ...junk(seat, ids, int),
+              ];
+              for (const n of negatives) {
+                if (anyListed.has(JSON.stringify(n))) continue;
+                negativesTotal++;
+                if (accepts(state, n, ctx))
+                  return `seat ${seat}: NOT listed but accepted: ${JSON.stringify(n)}`;
+              }
             }
 
-            if (state.winnerIndex !== null) {
-              if (list.length !== 0) return `seat ${seat}: actions listed after the duel ended`;
-              continue;
+            const asked = state.pendingPrompt;
+            if (
+              state.winnerIndex === null &&
+              asked &&
+              (asked.kind === 'SelectFusionMonster' || asked.kind === 'SelectFusionMaterials')
+            ) {
+              fusionPrompts++;
+              if (!lists[asked.playerIndex].some((a) => a.type === 'ResolvePendingPrompt'))
+                return `seat ${asked.playerIndex}: no answer listed for the ${asked.kind} prompt`;
             }
 
-            const ids = allIds(state);
-            // Bounded sample per state (all variants of every listed action is too slow for the default suite).
-            const sampled = Array.from(
-              { length: Math.min(list.length, 8) },
-              () => list[int(list.length)]!,
-            );
-            const negatives = [
-              ...sampled.flatMap((a) => perturb(a, ids, int)),
-              ...junk(seat, ids, int),
-            ];
-            for (const n of negatives) {
-              if (anyListed.has(JSON.stringify(n))) continue;
-              negativesTotal++;
-              if (accepts(state, n, ctx))
-                return `seat ${seat}: NOT listed but accepted: ${JSON.stringify(n)}`;
+            if (state.winnerIndex === null) {
+              const actor = state.pendingPrompt
+                ? state.pendingPrompt.playerIndex
+                : (state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex);
+              const list = getLegalActions(state, actor, ctx);
+              const canMove = list.some(
+                (a) =>
+                  a.type === 'EndPhase' ||
+                  a.type === 'Surrender' ||
+                  a.type === 'ResolvePendingPrompt' ||
+                  a.type === 'PassPriority',
+              );
+              if (!canMove)
+                return `seat ${actor} is stuck: no EndPhase/Surrender/prompt answer/PassPriority`;
             }
-          }
+            return null;
+          },
+        });
+        if (!result.ok) throw new Error(`${formatFuzzFailure(result)}\n(seed ${seed})`);
+      }
 
-          if (state.winnerIndex === null) {
-            const actor = state.pendingPrompt
-              ? state.pendingPrompt.playerIndex
-              : (state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex);
-            const list = getLegalActions(state, actor, ctx);
-            const canMove = list.some(
-              (a) =>
-                a.type === 'EndPhase' ||
-                a.type === 'Surrender' ||
-                a.type === 'ResolvePendingPrompt' ||
-                a.type === 'PassPriority',
-            );
-            if (!canMove)
-              return `seat ${actor} is stuck: no EndPhase/Surrender/prompt answer/PassPriority`;
-          }
-          return null;
-        },
-      });
-      if (!result.ok) throw new Error(`${formatFuzzFailure(result)}\n(seed ${seed})`);
-    }
-
-    console.info(
-      `legal-actions property: ${statesChecked} states, ${listedTotal} listed, ${negativesTotal} negatives checked`,
-    );
-    expect(statesChecked).toBeGreaterThan(SEEDS * STEPS * 0.3);
-    expect(negativesTotal).toBeGreaterThan(1000);
-  }, 120_000);
+      console.info(
+        `legal-actions property (${prefix}): ${statesChecked} states, ${listedTotal} listed, ${negativesTotal} negatives checked, ${fusionPrompts} Fusion prompt states`,
+      );
+      expect(statesChecked).toBeGreaterThan(SEEDS * STEPS * 0.3);
+      expect(negativesTotal).toBeGreaterThan(1000);
+      if (variant.extraDeckPool) expect(fusionPrompts).toBeGreaterThan(0);
+      else expect(fusionPrompts).toBe(0);
+    },
+    120_000,
+  );
 });

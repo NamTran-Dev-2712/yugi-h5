@@ -194,8 +194,37 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
     operations: [{ kind: 'NegateActivation', cardKinds: ['Spell', 'Trap'] }],
   }),
   CNS: trap('CNS', 'Counter', { operations: [{ kind: 'NegateSummon' }] }),
+  // Task 4.5 — Fusion: a fusion Spell (hand + field), one that also takes materials from the Deck, and three Fusion
+  // Monsters (2 materials; 3 with a repeated one; 2 with an OnSummon trigger). NOT in the default deck pool (below).
+  FUS: spell('FUS', {
+    trigger: { kind: 'Ignition' },
+    operations: [{ kind: 'FusionSummon', sources: ['Hand', 'Field'] }],
+  }),
+  FUD: spell('FUD', {
+    trigger: { kind: 'Ignition' },
+    operations: [{ kind: 'FusionSummon', sources: ['Hand', 'Field', 'Deck'] }],
+  }),
+  FX1: fusionMonster('FX1', ['M2', 'M4']),
+  FX2: fusionMonster('FX2', ['M2', 'M2', 'M4']),
+  FXS: fusionMonster('FXS', ['M4', 'M5'], {
+    trigger: { kind: 'OnSummon', mandatory: true },
+    operations: [{ kind: 'Damage', amount: 200, target: 'opponent' }],
+  }),
 };
-const DECK_POOL = Object.keys(FUZZ_DEFS);
+/** Task 4.5 cards: played only by the Fusion runs, so the default pool — and every older seed's game — is unchanged. */
+const FUSION_ONLY: readonly string[] = ['FUS', 'FUD', 'FX1', 'FX2', 'FXS'];
+const DECK_POOL = Object.keys(FUZZ_DEFS).filter((id) => !FUSION_ONLY.includes(id));
+/**
+ * Task 4.5 — Main Deck pool of the Fusion runs (own seeds `fusion-<i>`): the materials, the two fusion Spells, and
+ * cards that interfere (a negation of the Spell, a Quick-Play that destroys a material — or the Fusion Monster — in
+ * response, a monster with an OnDestroyed trigger so triggers are owed across the pause).
+ */
+export const FUSION_DECK_POOL: readonly string[] = [
+  ...['M2', 'M2', 'M4', 'M4', 'M5', 'MDM'],
+  ...['FUS', 'FUS', 'FUS', 'FUD', 'CNA', 'CNA', 'CNA', 'QPK', 'QPK', 'QPK'],
+];
+/** Task 4.5 — Extra Deck pool of the Fusion runs (`FuzzOptions.extraDeckPool`). */
+export const FUSION_EXTRA_DECK_POOL: readonly string[] = ['FX1', 'FX1', 'FX2', 'FXS'];
 /**
  * Task 4.4 — a pool heavy on the Negate cards and on what they answer (Spells that stay on the field, attackers,
  * Summons), for the coverage run of its own (`FuzzOptions.deckPool`): with the full pool a negation is too rare to be
@@ -308,6 +337,24 @@ function effectMonster(
   } as CardDefinition;
 }
 
+function fusionMonster(
+  id: string,
+  fusionMaterials: string[],
+  effect?: Omit<EffectDefinition, 'id'>,
+): CardDefinition {
+  return {
+    ...monster(id, 6, 2400, 2000),
+    category: 'Fusion',
+    fusionMaterials,
+    ...(effect ? { effects: [{ id: 'e1', ...effect } as EffectDefinition] } : {}),
+  } as CardDefinition;
+}
+
+const isFusionMonster = (definitionId: string): boolean => {
+  const def = FUZZ_DEFS[definitionId];
+  return def?.kind === 'Monster' && def.category === 'Fusion';
+};
+
 function monster(id: string, level: number, atk: number, def: number): CardDefinition {
   return {
     id,
@@ -332,6 +379,11 @@ export interface FuzzOptions {
   readonly onState?: (state: GameState, ctx: ActionContext, step: number) => string | null;
   /** Definition ids the random decks are drawn from. Default: every card of `FUZZ_DEFS`. */
   readonly deckPool?: readonly string[];
+  /**
+   * Task 4.5: definition ids the random Extra Decks (0–5 cards each) are drawn from. Omitted = no Extra Deck, and the
+   * random stream is exactly the one older seeds always had.
+   */
+  readonly extraDeckPool?: readonly string[];
 }
 
 export interface FuzzStats {
@@ -388,6 +440,18 @@ export interface FuzzStats {
   readonly triggersAfterSummonWindow: number;
   /** Task 4.4c — Equip Spells activated from the Spell/Trap Zone they were Set in. */
   readonly setEquipLinks: number;
+  /**
+   * Task 4.5 — Fusion Summons done; materials taken from a Monster Zone / from the Deck; fusion Spells whose activation
+   * was negated; fusion links that resolved without effect (no Fusion Monster could be made any more); OnSummon links
+   * of a Fusion Monster; chains paused for a Fusion Summon with triggers owed by the links above.
+   */
+  readonly fusionSummons: number;
+  readonly fusionFieldMaterials: number;
+  readonly fusionDeckMaterials: number;
+  readonly fusionsNegated: number;
+  readonly fusionsWithoutEffect: number;
+  readonly fusionTriggerLinks: number;
+  readonly fusionPausesWithOwedTriggers: number;
 }
 
 export type FuzzResult =
@@ -469,18 +533,25 @@ function randomStartDuel(
   seed: string | number,
   duelNo: number,
   pool: readonly string[],
+  extraPool: readonly string[] | undefined,
 ): StartDuelAction {
   const deckSize = 8 + rand.int(33);
   const deck = () => Array.from({ length: deckSize }, () => rand.pick(pool));
   const lp = () => 1000 + rand.int(4) * 1000;
+  const deckLists: [string[], string[]] = [deck(), deck()];
+  const startingLP: [number, number] = [lp(), lp()];
+  // Task 4.5: drawn last and only when asked for, so a run without an Extra Deck pool consumes the same numbers as ever.
+  const extra = (from: readonly string[]) =>
+    Array.from({ length: rand.int(6) }, () => rand.pick(from));
   return {
     type: 'StartDuel',
     payload: {
       matchId: `fuzz-${seed}-${duelNo}`,
       seed: `${seed}#${duelNo}`,
       playerIds: ['alice', 'bob'],
-      deckLists: [deck(), deck()],
-      startingLP: [lp(), lp()],
+      deckLists,
+      startingLP,
+      ...(extraPool ? { extraDeckLists: [extra(extraPool), extra(extraPool)] } : {}),
     },
   };
 }
@@ -672,7 +743,11 @@ function nextAction(state: GameState, rand: Rand): Action {
     const payload = prompt.payload as { count?: unknown; candidateInstanceIds?: string[] };
     const count = typeof payload.count === 'number' ? payload.count : 1;
     const pool =
-      (prompt.kind === 'SelectEffectTarget' || prompt.kind === 'TriggerActivation') &&
+      (prompt.kind === 'SelectEffectTarget' ||
+        prompt.kind === 'TriggerActivation' ||
+        // Task 4.5: a random pick of the material candidates is often not the right set — it must then be rejected.
+        prompt.kind === 'SelectFusionMonster' ||
+        prompt.kind === 'SelectFusionMaterials') &&
       Array.isArray(payload.candidateInstanceIds)
         ? payload.candidateInstanceIds
         : state.players[prompt.playerIndex].hand.map((c) => c.instanceId);
@@ -909,9 +984,53 @@ export function checkStateInvariants(
       if (c.position !== null)
         return `card ${c.instanceId} outside the field has position ${c.position}`;
     }
+    // Task 4.5: the Extra Deck holds Fusion Monsters only (off the field), and a Fusion Monster is never in a hand or a
+    // Main Deck — it goes Extra Deck → Monster Zone → graveyard.
+    for (const c of p.extraDeck) {
+      if (!isFusionMonster(c.definitionId))
+        return `${c.definitionId} (${c.instanceId}) in player ${i}'s Extra Deck is not a Fusion Monster`;
+      if (c.position !== null) return `Extra Deck card ${c.instanceId} has position ${c.position}`;
+    }
+    for (const c of p.hand) {
+      if (isFusionMonster(c.definitionId))
+        return `Fusion Monster ${c.instanceId} is in player ${i}'s hand`;
+    }
+    for (const c of p.deck) {
+      if (isFusionMonster(c.definitionId))
+        return `Fusion Monster ${c.instanceId} is in player ${i}'s Deck`;
+    }
+  }
+
+  // Task 4.5: a Fusion prompt only exists while its link — alone — is paused on the chain, held by the prompted player,
+  // and only offers that player's own cards (Extra Deck for the monster; hand / Monster Zones / Deck for materials).
+  const prompt = state.pendingPrompt;
+  if (
+    prompt &&
+    (prompt.kind === 'SelectFusionMonster' || prompt.kind === 'SelectFusionMaterials')
+  ) {
+    const payload = prompt.payload as { linkId: string; candidateInstanceIds: readonly string[] };
+    if (state.chainStack.length !== 1 || state.chainStack[0]?.linkId !== payload.linkId)
+      return `${prompt.kind} prompt without its paused link alone on the chain`;
+    if (state.chainStack[0].playerIndex !== prompt.playerIndex)
+      return `${prompt.kind} prompt asks player ${prompt.playerIndex}, not the link's controller`;
+    if (state.chainWindow?.priorityPlayer !== prompt.playerIndex)
+      return `${prompt.kind} prompt while the other player holds the window`;
+    const me = state.players[prompt.playerIndex];
+    const own =
+      prompt.kind === 'SelectFusionMonster'
+        ? me.extraDeck
+        : [...me.hand, ...monstersOf(state, prompt.playerIndex), ...me.deck];
+    const ownIds = new Set(own.map((c) => c.instanceId));
+    for (const id of payload.candidateInstanceIds) {
+      if (!ownIds.has(id)) return `${prompt.kind} candidate ${id} is not the player's own card`;
+    }
   }
 
   const ids = cardIds(state);
+  // Task 4.5: no card is in two places at once (a material sent to the graveyard left where it was).
+  for (let i = 1; i < ids.length; i++) {
+    if (ids[i] === ids[i - 1]) return `card ${ids[i]} is in two places at once`;
+  }
   if (ids.length !== initialIds.length)
     return `card count changed: ${initialIds.length} → ${ids.length}`;
   for (let i = 0; i < ids.length; i++) {
@@ -1073,6 +1192,89 @@ function checkTransition(prev: GameState, next: GameState): string | null {
   return null;
 }
 
+const hasFusionSummon = (definitionId: string): boolean =>
+  (FUZZ_DEFS[definitionId]?.effects ?? []).some((e) =>
+    e.operations.some((o) => o.kind === 'FusionSummon'),
+  );
+
+/**
+ * Task 4.5 — what must hold after an accepted action whose events Fusion Summon (ADR 068):
+ * - it only happens as the answer to the `SelectFusionMaterials` prompt of that player;
+ * - the monster is a Fusion Monster that was in that player's Extra Deck and is in no Extra Deck any more; while it
+ *   stands where it was Summoned it is face-up as announced and stamped with this turn;
+ * - the materials are exactly the monster's `fusionMaterials`, each was the player's own card where its event says
+ *   (hand / Monster Zone / Deck), and none is back in a hand or a Deck;
+ * - the Normal Summon of the turn is not used;
+ * - no material is sent without a Fusion Summon (a negated or effect-less fusion uses nothing).
+ */
+function checkFusion(
+  prev: GameState,
+  action: Action,
+  next: GameState,
+  events: ApplyActionResult['events'],
+): { violation: string | null; summons: number; fieldMaterials: number; deckMaterials: number } {
+  const out = { violation: null as string | null, summons: 0, fieldMaterials: 0, deckMaterials: 0 };
+  const bad = (violation: string) => ({ ...out, violation });
+  const sent = events.flatMap((e) => (e.type === 'FusionMaterialSent' ? [e] : []));
+  const summoned = events.flatMap((e) => (e.type === 'MonsterFusionSummoned' ? [e] : []));
+  if (sent.length > 0 && summoned.length === 0)
+    return bad(`Fusion material ${sent[0]!.instanceId} was sent without a Fusion Summon`);
+  if (summoned.length > 1) return bad('two Fusion Summons in one action');
+  const e = summoned[0];
+  if (!e) return out;
+
+  const prompt = prev.pendingPrompt;
+  if (
+    action.type !== 'ResolvePendingPrompt' ||
+    prompt?.kind !== 'SelectFusionMaterials' ||
+    prompt.playerIndex !== e.playerIndex
+  )
+    return bad(`Fusion Summon of ${e.instanceId} outside its SelectFusionMaterials prompt`);
+  const def = FUZZ_DEFS[e.definitionId];
+  if (!def || def.kind !== 'Monster' || def.category !== 'Fusion')
+    return bad(`${e.definitionId} (${e.instanceId}) was Fusion Summoned but is no Fusion Monster`);
+  const before = prev.players[e.playerIndex];
+  const after = next.players[e.playerIndex];
+  if (!before.extraDeck.some((c) => c.instanceId === e.instanceId))
+    return bad(`Fusion Monster ${e.instanceId} did not come from its controller's Extra Deck`);
+  if (next.players.some((p) => p.extraDeck.some((c) => c.instanceId === e.instanceId)))
+    return bad(`Fusion Monster ${e.instanceId} is still in an Extra Deck after its Summon`);
+  const placed = after.board.monsterZones[e.zoneIndex];
+  if (placed?.instanceId === e.instanceId) {
+    if (placed.position !== e.position || placed.summonedTurn !== next.turnCount)
+      return bad(`Fusion Monster ${e.instanceId} is not placed as its Summon event says`);
+  }
+
+  if (JSON.stringify(sent.map((m) => m.instanceId)) !== JSON.stringify(e.materialInstanceIds))
+    return bad(`Fusion material events of ${e.instanceId} do not match its materials`);
+  const provided = sent.map((m) => m.definitionId).sort();
+  const required = [...(def.fusionMaterials ?? [])].sort();
+  if (JSON.stringify(provided) !== JSON.stringify(required))
+    return bad(`Fusion materials ${provided.join('+')} are not ${required.join('+')}`);
+  for (const m of sent) {
+    const wasThere =
+      m.from === 'Hand'
+        ? before.hand.some((c) => c.instanceId === m.instanceId)
+        : m.from === 'Deck'
+          ? before.deck.some((c) => c.instanceId === m.instanceId)
+          : before.board.monsterZones[m.zoneIndex ?? -1]?.instanceId === m.instanceId;
+    if (!wasThere)
+      return bad(`Fusion material ${m.instanceId} was not in its controller's ${m.from}`);
+    if ([...after.hand, ...after.deck].some((c) => c.instanceId === m.instanceId))
+      return bad(`Fusion material ${m.instanceId} is back in a hand or a Deck`);
+    if (m.from === 'MonsterZone') out.fieldMaterials++;
+    if (m.from === 'Deck') out.deckMaterials++;
+  }
+  if (
+    prev.turnCount === next.turnCount &&
+    !before.hasNormalSummonedThisTurn &&
+    after.hasNormalSummonedThisTurn
+  )
+    return bad(`Fusion Summon of ${e.instanceId} used the Normal Summon`);
+  out.summons = 1;
+  return out;
+}
+
 export function runFuzz(options: FuzzOptions): FuzzResult {
   const { seed, steps = 300, apply = applyAction, deckPool = DECK_POOL } = options;
   const rand = makeRand(seed);
@@ -1109,6 +1311,13 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let triggerSummonsNegated = 0;
   let triggersAfterSummonWindow = 0;
   let setEquipLinks = 0;
+  let fusionSummons = 0;
+  let fusionFieldMaterials = 0;
+  let fusionDeckMaterials = 0;
+  let fusionsNegated = 0;
+  let fusionsWithoutEffect = 0;
+  let fusionTriggerLinks = 0;
+  let fusionPausesWithOwedTriggers = 0;
   /** Does the Summoned monster have a trigger that this kind of Summon fires (OnSummon; OnFlip for a Flip Summon)? */
   const hasSummonTrigger = (owed: { type: string; definitionId: string }): boolean =>
     (FUZZ_DEFS[owed.definitionId]?.effects ?? []).some(
@@ -1131,7 +1340,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
     const needsNewDuel = state === null || (state.winnerIndex !== null && rand.chance(0.6));
     const action: Action =
       needsNewDuel || state === null
-        ? randomStartDuel(rand, seed, duelsStarted, deckPool)
+        ? randomStartDuel(rand, seed, duelsStarted, deckPool, options.extraDeckPool)
         : nextAction(state, rand);
     log.push(action);
 
@@ -1338,6 +1547,33 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       )
         fieldLinks++;
     }
+    // Task 4.5 — Fusion.
+    if (state !== null) {
+      const fusion = checkFusion(state, action, next, result.events);
+      if (fusion.violation) return fail(step, fusion.violation);
+      fusionSummons += fusion.summons;
+      fusionFieldMaterials += fusion.fieldMaterials;
+      fusionDeckMaterials += fusion.deckMaterials;
+    }
+    const fused = result.events.some((e) => e.type === 'MonsterFusionSummoned');
+    for (const e of result.events) {
+      if (e.type === 'ChainLinkNegated' && hasFusionSummon(e.definitionId)) fusionsNegated++;
+      if (e.type === 'EffectResolved' && hasFusionSummon(e.definitionId) && !fused)
+        fusionsWithoutEffect++;
+      if (
+        e.type === 'ChainLinkAdded' &&
+        e.linkId.startsWith('trigger-') &&
+        isFusionMonster(e.definitionId)
+      )
+        fusionTriggerLinks++;
+    }
+    const asked = next.pendingPrompt;
+    if (
+      asked?.kind === 'SelectFusionMonster' &&
+      asked !== state?.pendingPrompt &&
+      (asked.payload as { owedTriggers: readonly unknown[] }).owedTriggers.length > 0
+    )
+      fusionPausesWithOwedTriggers++;
     const custom = options.onState?.(next, ctx, step);
     if (custom) return fail(step, custom);
     state = next;
@@ -1379,6 +1615,13 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       triggerSummonsNegated,
       triggersAfterSummonWindow,
       setEquipLinks,
+      fusionSummons,
+      fusionFieldMaterials,
+      fusionDeckMaterials,
+      fusionsNegated,
+      fusionsWithoutEffect,
+      fusionTriggerLinks,
+      fusionPausesWithOwedTriggers,
     },
   };
 }
