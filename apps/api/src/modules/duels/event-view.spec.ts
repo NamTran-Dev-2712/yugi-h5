@@ -39,10 +39,14 @@ const NEGATE_TYPES = [
   'AttackNegated',
   'SummonNegated',
 ] as const satisfies readonly GameEvent['type'][];
-/** No event is engine-only today; the mechanism stays (a type listed here must be dropped for both viewers). */
-const ENGINE_ONLY_TYPES: readonly GameEvent['type'][] = [];
-/** Every event but CardDrawn is forwarded with the engine shape. */
-type PublicEvent = Exclude<GameEvent, CardDrawnEvent>;
+/** Task 4.5 events (Fusion): engine-only until task 4.5b — a type listed here must be dropped for both viewers. */
+const ENGINE_ONLY_TYPES = [
+  'FusionMaterialSent',
+  'MonsterFusionSummoned',
+] as const satisfies readonly GameEvent['type'][];
+type EngineOnlyEvent = Extract<GameEvent, { type: (typeof ENGINE_ONLY_TYPES)[number] }>;
+/** Every event but CardDrawn (and the engine-only ones) is forwarded with the engine shape. */
+type PublicEvent = Exclude<GameEvent, CardDrawnEvent | EngineOnlyEvent>;
 /** No id is hidden from the viewer (most tests); the ChainLinkAdded target filter has its own tests. */
 const NONE: ReadonlySet<string> = new Set();
 
@@ -207,6 +211,22 @@ const FIXTURES: { [T in GameEvent['type']]: Extract<GameEvent, { type: T }> } = 
     definitionId: SECRET,
     zoneIndex: 2,
   },
+  FusionMaterialSent: {
+    type: 'FusionMaterialSent',
+    ownerIndex: 0,
+    instanceId: 'p0-5',
+    definitionId: SECRET,
+    from: 'Hand',
+  },
+  MonsterFusionSummoned: {
+    type: 'MonsterFusionSummoned',
+    playerIndex: 0,
+    instanceId: 'p0-x0',
+    definitionId: SECRET,
+    zoneIndex: 0,
+    position: 'Attack',
+    materialInstanceIds: ['p0-5', 'p0-6'],
+  },
   ChainResolved: { type: 'ChainResolved', linkCount: 2 },
   DuelEnded: { type: 'DuelEnded', winnerIndex: 0, reason: 'LP_ZERO' },
 };
@@ -221,11 +241,11 @@ const PUBLIC_TYPES = (Object.keys(FIXTURES) as GameEvent['type'][]).filter(
 
 describe('toEventView', () => {
   it('covers every engine event type', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(33);
+    expect(Object.keys(FIXTURES)).toHaveLength(35);
   });
 
-  it('no event type is engine-only any more: every type but CardDrawn is public (task 4.4b)', () => {
-    expect(ENGINE_ONLY_TYPES).toEqual([]);
+  it('the Fusion events are engine-only (task 4.5): dropped for both viewers; every other type but CardDrawn is public', () => {
+    expect(ENGINE_ONLY_TYPES).toEqual(['FusionMaterialSent', 'MonsterFusionSummoned']);
     expect(PUBLIC_TYPES).toHaveLength(32);
     for (const type of ENGINE_ONLY_TYPES) {
       for (const viewer of [0, 1] as const) {

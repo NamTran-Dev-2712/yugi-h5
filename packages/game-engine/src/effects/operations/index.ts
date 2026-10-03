@@ -3,6 +3,7 @@ import { applyDamage } from './damage.js';
 import { applyDestroy } from './destroy.js';
 import { applyDrawOperation } from './draw.js';
 import { applyEquip } from './equip.js';
+import { applyFusionSummon } from './fusion-summon.js';
 import { applyHeal } from './heal.js';
 import { applyNegateActivation } from './negate-activation.js';
 import { applyNegateAttack } from './negate-attack.js';
@@ -25,4 +26,5 @@ export const OPERATION_HANDLERS: { readonly [K in ResolveOperationKind]: Operati
   NegateActivation: applyNegateActivation,
   NegateAttack: applyNegateAttack,
   NegateSummon: applyNegateSummon,
+  FusionSummon: applyFusionSummon,
 };

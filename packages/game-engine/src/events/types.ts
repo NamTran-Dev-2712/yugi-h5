@@ -117,6 +117,35 @@ export interface MonsterSpecialSummonedEvent {
   readonly position: Extract<CardPosition, 'Attack' | 'DefenseUp'>;
 }
 
+/**
+ * Task 4.5: a card used as a Fusion material went to its owner's graveyard (sent, not destroyed). The graveyard is
+ * public, so `definitionId` is shown — also for a material from the hand, the Deck or a face-down monster.
+ */
+export interface FusionMaterialSentEvent {
+  readonly type: 'FusionMaterialSent';
+  readonly ownerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly from: 'Hand' | 'MonsterZone' | 'Deck';
+  /** Monster Zone the material left (only when `from` is `MonsterZone`). */
+  readonly zoneIndex?: number;
+}
+
+/**
+ * Task 4.5: a Fusion Monster was Fusion Summoned from its controller's Extra Deck, always face-up (so `definitionId`
+ * leaks nothing). A Special Summon: it does not use the Normal Summon of the turn and fires "when Summoned" triggers.
+ */
+export interface MonsterFusionSummonedEvent {
+  readonly type: 'MonsterFusionSummoned';
+  readonly playerIndex: 0 | 1;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+  readonly position: Extract<CardPosition, 'Attack' | 'DefenseUp'>;
+  /** The materials, in the order they were sent to the graveyard (each has its own `FusionMaterialSent`). */
+  readonly materialInstanceIds: readonly string[];
+}
+
 /** A monster destroyed by battle, sent to its owner's graveyard. Public zone, so `definitionId` is included even if it was face-down. */
 export interface MonsterDestroyedEvent {
   readonly type: 'MonsterDestroyed';
@@ -312,6 +341,8 @@ export type GameEvent =
   | TurnChangedEvent
   | NormalSummonedEvent
   | MonsterSpecialSummonedEvent
+  | FusionMaterialSentEvent
+  | MonsterFusionSummonedEvent
   | FlipSummonedEvent
   | CardEquippedEvent
   | MonsterSetEvent

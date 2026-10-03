@@ -215,6 +215,8 @@
   "error.engine.FIELD_ZONE_OCCUPIED": "Ô Môi trường của bạn đã có lá bài.",
   "error.engine.NOTHING_TO_RESPOND_TO": "Bẫy Phản công chỉ kích hoạt được để đáp trả (một lá vừa kích hoạt, một đòn tấn công hoặc một lần triệu hồi).",
   "error.engine.NOTHING_TO_NEGATE": "Lúc này không có gì để lá này vô hiệu.",
+  "error.engine.INVALID_EXTRA_DECK": "Extra Deck có quá nhiều lá.",
+  "error.engine.FUSION_NOT_SUMMONABLE": "Quái thú Dung hợp chỉ có thể được Triệu hồi Dung hợp từ Extra Deck.",
 
   "error.api.NOT_OWNER": "Bạn không có quyền điều khiển trận này.",
   "error.api.PLAYER_MISMATCH": "Hành động không thuộc về người chơi này.",

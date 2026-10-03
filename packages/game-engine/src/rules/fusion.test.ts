@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../apply-action.js';
 import type { Action, ActivateEffectAction } from '../actions/types.js';
-import { fusionOptions } from '../effects/operations/fusion-summon.js';
+import { fusionOptions, type FusionSummonOperation } from '../effects/operations/fusion-summon.js';
 import type { GameEvent } from '../events/types.js';
 import { getLegalActions } from '../legal-actions.js';
 import type { GameState } from '../state/types.js';
@@ -257,7 +257,7 @@ describe('Fusion — resolution', () => {
     const setup: FixtureSetup = { hand: ['FUS', 'M1', 'M1', 'M2'], myExtraDeck: ['FM_AAB'] };
     const { picked, done } = fuse(setup, 'x0', ['h1', 'h2', 'h3']);
     expect(picked.state.pendingPrompt?.payload).toMatchObject({ count: 3 });
-    expect(done.events.at(2)).toMatchObject({ materialInstanceIds: ['h1', 'h2', 'h3'] });
+    expect(done.events.at(3)).toMatchObject({ materialInstanceIds: ['h1', 'h2', 'h3'] });
   });
 
   it('several Fusion Monsters: only the ones whose materials are there are candidates', () => {
@@ -695,7 +695,7 @@ describe('Fusion Monsters — no other way onto the field', () => {
 });
 
 describe('fusionOptions (pure)', () => {
-  const op = { kind: 'FusionSummon', sources: ['Hand', 'Field'] } as const;
+  const op: FusionSummonOperation = { kind: 'FusionSummon', sources: ['Hand', 'Field'] };
 
   it('lists each Fusion Monster that can be made, with the cards that may serve as its materials', () => {
     const state = start({
@@ -717,7 +717,7 @@ describe('fusionOptions (pure)', () => {
   it('nothing for the other player, and nothing from sources the operation does not name', () => {
     const state = start({ hand: ['M1', 'M2'], myExtraDeck: ['FM_AB'] });
     expect(fusionOptions(state, 1, op, fixtureCtx)).toEqual([]);
-    const fieldOnly = { kind: 'FusionSummon', sources: ['Field'] } as const;
+    const fieldOnly: FusionSummonOperation = { kind: 'FusionSummon', sources: ['Field'] };
     expect(fusionOptions(state, 0, fieldOnly, fixtureCtx)).toEqual([]);
   });
 });

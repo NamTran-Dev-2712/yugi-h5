@@ -71,6 +71,9 @@ function placeMonsterFromHand(
   if (!card) return reject('CARD_NOT_IN_HAND', `card ${cardInstanceId} is not in your hand.`);
 
   const definition = resolveMonster(card, ctx, reject);
+  // Task 4.5 [RULE]: a Fusion Monster is only ever Fusion Summoned from the Extra Deck.
+  if (definition.category === 'Fusion')
+    reject('FUSION_NOT_SUMMONABLE', 'a Fusion Monster cannot be Normal Summoned or Set.');
   const required = requiredTributes(definition.level);
   if (tributeInstanceIds.length !== required) {
     reject(

@@ -3,6 +3,7 @@ import type { GameEvent } from '../../events/types.js';
 import type { CardInstance, GameState, PendingPrompt, PlayerState } from '../../state/types.js';
 import type { ActionContext, ResolvePendingPromptAction } from '../types.js';
 import { resolveSelectEffectTarget } from './activate-effect.js';
+import { resolveSelectFusionMaterials, resolveSelectFusionMonster } from './fusion-prompt.js';
 import { resolveTriggerActivation } from './trigger-activation.js';
 
 /** `PendingPrompt.payload` of kind `DiscardToHandLimit`. */
@@ -56,6 +57,10 @@ export function applyResolvePendingPrompt(
       return resolveSelectEffectTarget(state, prompt, action, ctx);
     case 'TriggerActivation':
       return resolveTriggerActivation(state, prompt, action, ctx);
+    case 'SelectFusionMonster':
+      return resolveSelectFusionMonster(state, prompt, action, ctx);
+    case 'SelectFusionMaterials':
+      return resolveSelectFusionMaterials(state, prompt, action, ctx);
     default:
       throw new EngineError(
         'UNKNOWN_PROMPT_KIND',

@@ -35,6 +35,17 @@ export function applyStartDuel(action: StartDuelAction): { state: GameState; eve
     }
   }
 
+  // Task 4.5: the Extra Deck is built as listed — no shuffle, no rng, no event — so a duel without one is unchanged.
+  const extraDeckLists = action.payload.extraDeckLists ?? [[], []];
+  for (const list of extraDeckLists) {
+    if (list.length > ruleset.extraDeckSize) {
+      throw new EngineError(
+        'INVALID_EXTRA_DECK',
+        `Extra Deck of ${list.length} cards exceeds the limit of ${ruleset.extraDeckSize}.`,
+      );
+    }
+  }
+
   let rng = createRng(seed);
   const players: PlayerState[] = [];
   const events: GameEvent[] = [];
@@ -64,7 +75,12 @@ export function applyStartDuel(action: StartDuelAction): { state: GameState; eve
       deck,
       graveyard: [],
       banished: [],
-      extraDeck: [],
+      extraDeck: extraDeckLists[playerIndex].map((definitionId, i) => ({
+        instanceId: `p${playerIndex}-x${i}`,
+        definitionId,
+        position: null,
+        ownerIndex: playerIndex,
+      })),
       hasNormalSummonedThisTurn: false,
     });
   }

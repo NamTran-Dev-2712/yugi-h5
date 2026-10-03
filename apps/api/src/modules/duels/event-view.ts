@@ -101,6 +101,12 @@ export function toEventView(
     case 'SummonNegated':
       return event;
 
+    // Task 4.5 (Fusion, engine-only until task 4.5b puts it on the wire): not in `EventView` yet, so dropped for both
+    // viewers. No duel made over HTTP has an Extra Deck, so these are never emitted here today.
+    case 'FusionMaterialSent':
+    case 'MonsterFusionSummoned':
+      return null;
+
     default: {
       const unclassified: never = event;
       void unclassified;

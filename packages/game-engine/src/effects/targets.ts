@@ -45,6 +45,27 @@ export function findInHandOrGraveyard(
 }
 
 /**
+ * The candidates of `effect`'s `Card` target (`targetCandidates`) — minus, task 4.5 [DECISION], every Fusion Monster
+ * when the effect Special Summons its target: a Fusion Monster only reaches the field by a Fusion Summon. Used wherever
+ * an effect's targets are listed or re-checked (activation, trigger, resolution).
+ */
+export function effectTargetCandidates(
+  state: GameState,
+  controller: 0 | 1,
+  effect: EffectDefinition,
+  target: CardTarget,
+  ctx: ActionContext,
+): string[] {
+  const candidates = targetCandidates(state, controller, target, ctx);
+  if (!effect.operations.some((o) => o.kind === 'SpecialSummon')) return candidates;
+  return candidates.filter((id) => {
+    const found = findInHandOrGraveyard(state, controller, id);
+    const definition = found ? ctx.cardDefinitions(found.card.definitionId) : undefined;
+    return !(definition?.kind === 'Monster' && definition.category === 'Fusion');
+  });
+}
+
+/**
  * Instance ids that can be chosen for a `Card` target, in zone order: field zones (task 3.2; `SpellTrapZone` also
  * covers the Field Zone, task 4.3), your own hand and either graveyard (task 4.2a; a graveyard is public). A face-down card on the field is a legal target only when the effect has
  * no `filter` (a filter would read its hidden identity). The opponent's hand and any deck stay unsupported (hidden).

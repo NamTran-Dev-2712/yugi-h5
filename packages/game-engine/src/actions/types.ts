@@ -9,6 +9,11 @@ export interface StartDuelAction {
     readonly playerIds: readonly [string, string];
     /** Card definition ids in deck order (pre-shuffle), one list per player. */
     readonly deckLists: readonly [readonly string[], readonly string[]];
+    /**
+     * Task 4.5: card definition ids of each player's Extra Deck (Fusion Monsters), in list order. Omitted = both empty.
+     * Never shuffled and never drawn from. At most `ruleset.extraDeckSize` cards each.
+     */
+    readonly extraDeckLists?: readonly [readonly string[], readonly string[]];
     /** Overrides applied on top of the default (early Master Rule) ruleset. */
     readonly ruleset?: Partial<RulesetConfig>;
     /** C2 [DECISION]: per-side starting LP; wins over `ruleset.startingLP`. Each value is an integer >= 1. */

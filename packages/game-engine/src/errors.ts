@@ -55,7 +55,9 @@ export type EngineErrorCode =
   | 'NO_FREE_SPELL_TRAP_ZONE'
   | 'FIELD_ZONE_OCCUPIED'
   | 'NOTHING_TO_RESPOND_TO'
-  | 'NOTHING_TO_NEGATE';
+  | 'NOTHING_TO_NEGATE'
+  | 'INVALID_EXTRA_DECK'
+  | 'FUSION_NOT_SUMMONABLE';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */
 export class EngineError extends Error {

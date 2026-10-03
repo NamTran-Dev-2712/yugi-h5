@@ -15,7 +15,7 @@ import { payCosts, planCosts, type CostStep } from './costs.js';
 import { scriptFor } from './effect-scripts/registry.js';
 import { lacksSummonZones } from './operations/special-summon.js';
 import { spellSpeedOf } from './spell-speed.js';
-import { targetCandidates } from './targets.js';
+import { effectTargetCandidates } from './targets.js';
 
 /*
  * Trigger effects (task 3.5), pure helpers. A trigger is not activated by an action: it fires from what just happened
@@ -115,8 +115,12 @@ export function collectTriggers(
   if (state.winnerIndex !== null) return [];
   const fired: PendingTrigger[] = [];
   for (const event of events) {
-    // Task 4.2a: a Special Summon is a Summon too [RULE].
-    if (event.type === 'NormalSummoned' || event.type === 'MonsterSpecialSummoned') {
+    // Task 4.2a: a Special Summon is a Summon too [RULE] — and so is a Fusion Summon (task 4.5).
+    if (
+      event.type === 'NormalSummoned' ||
+      event.type === 'MonsterSpecialSummoned' ||
+      event.type === 'MonsterFusionSummoned'
+    ) {
       for (const effect of effectsOf(event.definitionId, ['OnSummon'], ctx)) {
         fired.push({
           playerIndex: event.playerIndex,
@@ -214,7 +218,7 @@ export function readyTrigger(
   let count = 0;
   if (effect.target?.kind === 'Card') {
     count = effect.target.count;
-    candidates = targetCandidates(state, trigger.playerIndex, effect.target, ctx);
+    candidates = effectTargetCandidates(state, trigger.playerIndex, effect, effect.target, ctx);
     if (candidates.length < count) return null; // [RULE] no legal target: it does not activate
   } else if (effect.operations.some((o) => o.kind === 'Destroy')) {
     return null; // malformed effect (Destroy without a Card target), as in ActivateEffect

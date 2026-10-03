@@ -15,9 +15,10 @@ import { conditionsHold } from '../../effects/conditions.js';
 import { payCosts, planCosts, type CostStep } from '../../effects/costs.js';
 import { scriptFor } from '../../effects/effect-scripts/registry.js';
 import { negateRequirementUnmet } from '../../effects/negate.js';
+import { fusionBlocked, fusionOperationOf } from '../../effects/operations/fusion-summon.js';
 import { lacksSummonZones } from '../../effects/operations/special-summon.js';
 import { spellSpeedOf } from '../../effects/spell-speed.js';
-import { targetCandidates } from '../../effects/targets.js';
+import { effectTargetCandidates } from '../../effects/targets.js';
 import { clearFieldZone } from '../../state/field-zone.js';
 import type { ActionContext, ActivateEffectAction, ResolvePendingPromptAction } from '../types.js';
 
@@ -244,6 +245,16 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
     return fail('NOT_ACTIVATABLE', 'the effect destroys cards but declares no Card target.');
   if (lacksSummonZones(state, playerIndex, effect))
     fail('NO_FREE_MONSTER_ZONE', 'not enough empty Monster Zones for the Special Summon.');
+  // Task 4.5: a Fusion Summon needs a Fusion Monster in the Extra Deck with all its materials in the operation's
+  // sources, and room for it. The choices themselves are made when the link resolves, which only chain link 1 can wait
+  // for — so the effect must be Spell Speed 1 (the schema says so too; this guards hand-made data).
+  if (fusionOperationOf(effect) && spellSpeed !== 1)
+    fail('NOT_ACTIVATABLE', 'a Fusion Summon effect must be Spell Speed 1.');
+  const blocked = fusionBlocked(state, playerIndex, effect, ctx);
+  if (blocked === 'NOT_ACTIVATABLE')
+    fail('NOT_ACTIVATABLE', 'no Fusion Monster in your Extra Deck has all its materials.');
+  if (blocked === 'NO_FREE_MONSTER_ZONE')
+    fail('NO_FREE_MONSTER_ZONE', 'no empty Monster Zone for the Fusion Summon.');
 
   if (!conditionsHold(state, playerIndex, effect.condition))
     return fail('CONDITION_NOT_MET', "the effect's conditions are not met.");
@@ -254,7 +265,7 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
   let targetCount = 0;
   if (effect.target?.kind === 'Card') {
     targetCount = effect.target.count;
-    candidates = targetCandidates(state, playerIndex, effect.target, ctx);
+    candidates = effectTargetCandidates(state, playerIndex, effect, effect.target, ctx);
     if (candidates.length < targetCount)
       fail(
         'NO_VALID_TARGET',

@@ -215,6 +215,8 @@
   "error.engine.FIELD_ZONE_OCCUPIED": "Your Field Zone already holds a card.",
   "error.engine.NOTHING_TO_RESPOND_TO": "A Counter Trap can only be activated in response (to an activation, an attack or a Summon).",
   "error.engine.NOTHING_TO_NEGATE": "There is nothing for this card to negate right now.",
+  "error.engine.INVALID_EXTRA_DECK": "The Extra Deck has too many cards.",
+  "error.engine.FUSION_NOT_SUMMONABLE": "A Fusion Monster can only be Fusion Summoned from the Extra Deck.",
 
   "error.api.NOT_OWNER": "You do not control this duel.",
   "error.api.PLAYER_MISMATCH": "That action does not belong to this player.",

@@ -16,8 +16,13 @@ import type {
 import { OPERATION_HANDLERS } from './operations/index.js';
 import { scriptFor } from './effect-scripts/registry.js';
 import type { OperationContext } from './operations/types.js';
-import { targetCandidates } from './targets.js';
-import { fireTriggers } from './triggers.js';
+import {
+  fusionOperationOf,
+  fusionOptions,
+  type SelectFusionMonsterPayload,
+} from './operations/fusion-summon.js';
+import { effectTargetCandidates } from './targets.js';
+import { collectTriggers, fireTriggers, runTriggers, type PendingTrigger } from './triggers.js';
 
 /*
  * Chain stack (task 3.3), pure helpers. [RULE] a new link gives priority to the activator's opponent; two consecutive
@@ -290,7 +295,9 @@ function resolveLink(
   let targetInstanceIds: readonly string[] = [];
   if (effect.target?.kind === 'Card') {
     // [ASSUMED] targets that left their zone (or no longer qualify) are dropped; with none left the link has no effect.
-    const stillValid = new Set(targetCandidates(state, link.playerIndex, effect.target, ctx));
+    const stillValid = new Set(
+      effectTargetCandidates(state, link.playerIndex, effect, effect.target, ctx),
+    );
     targetInstanceIds = link.targetInstanceIds.filter((id) => stillValid.has(id));
     if (targetInstanceIds.length === 0) {
       return { state, events: [{ type: 'ChainLinkFizzled', ...base, reason: 'TARGET_GONE' }] };
@@ -340,6 +347,86 @@ function resolveLink(
 }
 
 /**
+ * Task 4.5: when `link` (chain link 1, about to resolve) Fusion Summons and its controller can still make a Fusion
+ * Monster, the chain PAUSES: the link stays alone on `chainStack` (so the window invariant and the card count hold),
+ * its controller holds the window, and a `SelectFusionMonster` prompt asks them. The triggers fired by the links that
+ * already resolved (`events`) are kept in the prompt — no new `GameState` field. null = nothing to pause for (not a
+ * Fusion Summon, or no Fusion Monster can be made any more: the link then resolves without effect).
+ */
+function pauseForFusion(
+  state: GameState,
+  link: ChainLink,
+  linkCount: number,
+  events: readonly GameEvent[],
+  ctx: ActionContext,
+): GameState | null {
+  const effect = ctx
+    .cardDefinitions(link.card.definitionId)
+    ?.effects?.find((e) => e.id === link.effectId);
+  const op = effect ? fusionOperationOf(effect) : undefined;
+  if (!op) return null;
+  const options = fusionOptions(state, link.playerIndex, op, ctx);
+  if (options.length === 0) return null;
+  const payload: SelectFusionMonsterPayload = {
+    linkId: link.linkId,
+    candidateInstanceIds: options.map((o) => o.fusion.instanceId),
+    count: 1,
+    owedTriggers: collectTriggers(state, events, ctx),
+    linkCount,
+  };
+  return {
+    ...state,
+    chainStack: [link],
+    chainWindow: { priorityPlayer: link.playerIndex, passCount: 0 },
+    pendingPrompt: {
+      promptId: `fusion-${state.turnCount}-${state.version}`,
+      playerIndex: link.playerIndex,
+      kind: 'SelectFusionMonster',
+      payload,
+    },
+  };
+}
+
+/**
+ * Task 4.5: ends a chain paused by `pauseForFusion`, once the Fusion Summon happened (`fusionEvents`, already applied
+ * to `state`; the paused link is still `chainStack[0]`): the link resolved, its card goes to the graveyard, the chain
+ * is done, and the triggers go on a new chain — the ones owed from the earlier links first, then the Fusion Summon's
+ * own, the turn player's before the opponent's [RULE]. No Summon reaction window [ASSUMED] (as a Special Summon, G17).
+ */
+export function finishFusionLink(
+  state: GameState,
+  fusionEvents: readonly GameEvent[],
+  owedTriggers: readonly PendingTrigger[],
+  linkCount: number,
+  ctx: ActionContext,
+): Result {
+  const link = state.chainStack[0]!;
+  let current: GameState = { ...state, chainStack: [], chainWindow: null };
+  const events: GameEvent[] = [
+    ...fusionEvents,
+    {
+      type: 'EffectResolved',
+      playerIndex: link.playerIndex,
+      instanceId: link.card.instanceId,
+      definitionId: link.card.definitionId,
+      effectId: link.effectId,
+    },
+  ];
+  const spent = sendToGraveyard(current, link, ctx);
+  current = spent.state;
+  events.push(...spent.events, { type: 'ChainResolved', linkCount });
+
+  const fired = [...owedTriggers, ...collectTriggers(current, fusionEvents, ctx)];
+  const turn = current.turnPlayerIndex;
+  const queue = [
+    ...fired.filter((t) => t.playerIndex === turn),
+    ...fired.filter((t) => t.playerIndex !== turn),
+  ];
+  const ran = runTriggers(current, queue, ctx);
+  return { state: ran.state, events: [...events, ...ran.events] };
+}
+
+/**
  * Resolves every link, top (last activated) first. Each card goes to its owner's graveyard after its link (unless it
  * stays on the field: Equip 4.2c, Continuous/Field 4.3). If the duel
  * ends mid-chain the remaining links do not resolve (their cards still go to the graveyard) and `DuelEnded` is last.
@@ -359,6 +446,10 @@ export function resolveChain(state: GameState, ctx: ActionContext): Result {
     const link = links[i]!;
     if (negatedLinkIds.has(link.linkId)) continue;
     if (current.winnerIndex === null) {
+      // Task 4.5: a Fusion Summon needs its controller's choices now. Only chain link 1 can wait for them (nothing is
+      // left to resolve after it); the answer finishes the chain (`finishFusionLink`).
+      const paused = i === 0 ? pauseForFusion(current, link, links.length, events, ctx) : null;
+      if (paused !== null) return { state: paused, events };
       const out = resolveLink(current, link, ctx, links[i - 1], window);
       current = out.state;
       events.push(...out.events);

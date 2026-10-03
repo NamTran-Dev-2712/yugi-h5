@@ -51,7 +51,13 @@ function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] 
     }
   }
 
-  if (prompt && prompt.kind === 'SelectEffectTarget') {
+  // SelectEffectTarget, and (task 4.5) the two Fusion prompts: the same shape — `count` ids among the candidates.
+  if (
+    prompt &&
+    (prompt.kind === 'SelectEffectTarget' ||
+      prompt.kind === 'SelectFusionMonster' ||
+      prompt.kind === 'SelectFusionMaterials')
+  ) {
     const payload = prompt.payload as { count?: unknown; candidateInstanceIds?: unknown };
     if (
       typeof payload.count === 'number' &&
