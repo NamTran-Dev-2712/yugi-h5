@@ -44,6 +44,11 @@ const ScenarioPlayer = z
       })
       .strict(),
     gy: z.array(CardId).max(60),
+    /**
+     * Task 4.5b: the Extra Deck, in order (Fusion Monsters only — checked by apps/api). Absent = empty, so every older
+     * scenario means what it meant.
+     */
+    extraDeck: z.array(CardId).max(20).optional(),
   })
   .strict();
 

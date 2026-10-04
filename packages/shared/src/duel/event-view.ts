@@ -297,6 +297,35 @@ export interface CardEquippedEventView {
   readonly targetInstanceId: string;
 }
 
+/**
+ * Task 4.5 (on the wire since 4.5b): a fusion material left its owner's hand or Monster Zone for the (public) graveyard —
+ * sent, not destroyed. The graveyard is public, so `definitionId` is shown even for a material that was face-down or in
+ * the hand. `from` never says `Deck` on the wire: no real card takes materials from the Deck (ADR 069).
+ */
+export interface FusionMaterialSentEventView {
+  readonly type: 'FusionMaterialSent';
+  readonly ownerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly from: 'Hand' | 'MonsterZone' | 'Deck';
+  /** Only when `from` is `MonsterZone`. */
+  readonly zoneIndex?: number;
+}
+
+/**
+ * Task 4.5 (on the wire since 4.5b): a Fusion Monster left its controller's Extra Deck and is now face-up in
+ * `zoneIndex`. `materialInstanceIds` are the cards just sent to the graveyard (public).
+ */
+export interface MonsterFusionSummonedEventView {
+  readonly type: 'MonsterFusionSummoned';
+  readonly playerIndex: PlayerIndex;
+  readonly instanceId: string;
+  readonly definitionId: string;
+  readonly zoneIndex: number;
+  readonly position: Extract<ViewCardPosition, 'Attack' | 'DefenseUp'>;
+  readonly materialInstanceIds: readonly string[];
+}
+
 export type EventView =
   | DuelStartedEventView
   | CardDrawnEventView
@@ -330,4 +359,6 @@ export type EventView =
   | MonsterSpecialSummonedEventView
   | FlipSummonedEventView
   | CardEquippedEventView
+  | FusionMaterialSentEventView
+  | MonsterFusionSummonedEventView
   | DuelEndedEventView;

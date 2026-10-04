@@ -56,9 +56,14 @@ export interface PlayerView {
   /** Own hand: visible cards. Opponent hand: all hidden (same length as handCount). */
   readonly hand: readonly CardView[];
   readonly handCount: number;
-  /** Deck / Extra Deck contents are never sent to anyone, only the count. */
+  /** Deck contents are never sent to anyone, only the count. */
   readonly deckCount: number;
   readonly extraDeckCount: number;
+  /**
+   * Task 4.5b: the cards of the Extra Deck, in order — present ONLY in the view of the player who owns it (a player may
+   * look at their own Extra Deck). The opponent's view has no such key at all, only `extraDeckCount`.
+   */
+  readonly extraDeck?: readonly VisibleCardView[];
   readonly graveyard: readonly VisibleCardView[];
   readonly banished: readonly VisibleCardView[];
   readonly board: BoardView;
@@ -102,6 +107,27 @@ export interface TriggerActivationPromptPayload {
   /** Triggers still to handle after this one, in chain order. */
   readonly remaining: readonly PendingTriggerView[];
   readonly afterward: { readonly kind: 'SummonReaction'; readonly responder: PlayerIndex } | null;
+}
+
+/**
+ * `payload` of a `SelectFusionMonster` prompt (task 4.5b; only the prompted player receives it): which Fusion Monsters
+ * of THEIR Extra Deck can be made right now. The engine's bookkeeping (link id, owed triggers, link count) stays
+ * server-side.
+ */
+export interface SelectFusionMonsterPromptPayload {
+  /** Ids in the prompted player's own Extra Deck; the answer is `ResolvePendingPrompt` with exactly `count` of them. */
+  readonly candidateInstanceIds: readonly string[];
+  readonly count: number;
+}
+
+/** `payload` of a `SelectFusionMaterials` prompt (task 4.5b; only the prompted player receives it). */
+export interface SelectFusionMaterialsPromptPayload {
+  /** The Fusion Monster chosen in the previous step (still in the prompted player's Extra Deck). */
+  readonly fusionInstanceId: string;
+  /** The prompted player's own cards (hand / Monster Zones) that may serve as a material. */
+  readonly candidateInstanceIds: readonly string[];
+  /** Exactly this many must be chosen (the number of materials the Fusion Monster names). */
+  readonly count: number;
 }
 
 /** A trigger that fired: its card is face-up in a Monster Zone or in the (public) graveyard. */

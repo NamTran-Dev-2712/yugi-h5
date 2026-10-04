@@ -105,4 +105,22 @@ describe('ScenarioSchema', () => {
     );
     expect(parsed.players[0].field.spellTraps[0]?.position).toBe('DefenseDown');
   });
+
+  it('task 4.5b: an optional Extra Deck per seat; an older scenario parses to the very same value', () => {
+    const old = ScenarioSchema.parse(base());
+    expect(old).toEqual(base());
+    expect('extraDeck' in old.players[0]).toBe(false);
+    const parsed = ScenarioSchema.parse(
+      base({ players: [player({ extraDeck: ['SMP-045', 'SMP-046'] }), player()] }),
+    );
+    expect(parsed.players[0].extraDeck).toEqual(['SMP-045', 'SMP-046']);
+    expect(parsed.players[1].extraDeck).toBeUndefined();
+  });
+
+  it('task 4.5b: rejects a malformed Extra Deck (over 20 cards, empty id, not a list)', () => {
+    const many = Array.from({ length: 21 }, () => 'SMP-045');
+    expect(ok(base({ players: [player({ extraDeck: many }), player()] }))).toBe(false);
+    expect(ok(base({ players: [player({ extraDeck: [''] }), player()] }))).toBe(false);
+    expect(ok(base({ players: [player({ extraDeck: 'SMP-045' }), player()] }))).toBe(false);
+  });
 });

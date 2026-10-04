@@ -1,0 +1,387 @@
+
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/apps/api
+
+ ✓ src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > the real cards fuse: SMP-116 Fusion Summons SMP-045 from SMP-001 + SMP-007 22ms
+ × src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > the OWNER sees their own Extra Deck (face-up to them, in order); it shrinks when the monster leaves it 27ms
+   → step 0 seat 0: expected undefined to deeply equal [ { hidden: false, …(4) }, …(2) ]
+ ✓ src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > the OPPONENT gets no Extra Deck list at all — only its size — for either seat 4ms
+ × src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > BOTH seats pass the leak oracle at every step of a Fusion Summon 27ms
+   → step 3 viewer 0: expected [ { viewer: +0, …(4) }, …(3) ] to deeply equal []
+ ✓ src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > nothing the opponent receives names or points at a card still in the owner’s Extra Deck 15ms
+ ✓ src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > the opponent gets the two Fusion prompts WITHOUT their payload 3ms
+ × src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > the owner gets a wire payload: candidates + count only, none of the engine’s bookkeeping 9ms
+   → expected { linkId: 'link-1-3', …(4) } to deeply equal { Object (candidateInstanceIds, count) }
+ × src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > the two Fusion events reach BOTH seats, identical, with exactly the public fields 8ms
+   → expected [ 'EffectResolved', …(2) ] to deeply equal [ 'FusionMaterialSent', …(5) ]
+ × src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > a material from the field keeps its zoneIndex; a field an engine event may grow later is NOT forwarded 3ms
+   → expected null to deeply equal { type: 'FusionMaterialSent', …(5) }
+ × src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > hiddenIdsFor is per seat: the opponent’s Extra Deck is hidden, the viewer’s own is not; both Main Decks stay hidden 4ms
+   → expected true to be false // Object.is equality
+ × src/modules/duels/fusion-wire.spec.ts > the leak oracle is per seat for the Extra Deck only (task 4.5b) > naming an Extra Deck card: fine for its owner, a leak for the opponent 2ms
+   → expected [ Array(1) ] to deeply equal []
+ × src/modules/duels/fusion-wire.spec.ts > the leak oracle is per seat for the Extra Deck only (task 4.5b) > pointing at an Extra Deck card: fine for its owner, a leak for the opponent 2ms
+   → expected [ { viewer: +0, …(4) }, …(1) ] to deeply equal []
+ ✓ src/modules/duels/fusion-wire.spec.ts > the leak oracle is per seat for the Extra Deck only (task 4.5b) > a wrong definitionId for an own Extra Deck card is still caught 2ms
+ ✓ src/modules/duels/fusion-wire.spec.ts > the leak oracle is per seat for the Extra Deck only (task 4.5b) > NOT relaxed: a Main Deck card is never named nor pointed at — not even for its owner 1ms
+ ✓ src/modules/duels/fusion-wire.spec.ts > the leak oracle is per seat for the Extra Deck only (task 4.5b) > NOT relaxed: the opponent’s hand is still hidden from the viewer 1ms
+ × src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > createDuel passes extraDeckLists to the engine; each seat’s view lists its own Extra Deck only 12ms
+   → expected [] to deeply equal [ 'SMP-045', 'SMP-046', 'SMP-045' ]
+ × src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > a duel created without extraDeckLists is the same duel as before (empty Extra Decks) 13ms
+   → expected undefined to deeply equal []
+ × src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > solo-vs-ai: the AI seat ALWAYS starts with an empty Extra Deck, whatever the config says 13ms
+   → expected [] to have a length of 3 but got +0
+ × src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > refuses an unknown card (UNKNOWN_CARD) and an Extra Deck over the ruleset size (INVALID_CONFIG) 11ms
+   → expected 'no error' to be 'UNKNOWN_CARD' // Object.is equality
+ × src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > a whole Fusion Summon through submitAction: answers built from candidateInstanceIds, both seats’ events filtered 24ms
+   → ActivateEffect rejected: no Fusion Monster in your Extra Deck has all its materials.
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > the OWNER sees their own Extra Deck (face-up to them, in order); it shrinks when the monster leaves it
+AssertionError: step 0 seat 0: expected undefined to deeply equal [ { hidden: false, …(4) }, …(2) ]
+
+- Expected: 
+[
+  {
+    "definitionId": "SMP-045",
+    "hidden": false,
+    "instanceId": "p0-x0",
+    "ownerIndex": 0,
+    "position": null,
+  },
+  {
+    "definitionId": "SMP-046",
+    "hidden": false,
+    "instanceId": "p0-x1",
+    "ownerIndex": 0,
+    "position": null,
+  },
+  {
+    "definitionId": "SMP-045",
+    "hidden": false,
+    "instanceId": "p0-x2",
+    "ownerIndex": 0,
+    "position": null,
+  },
+]
+
++ Received: 
+undefined
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:124:57
+    122|       for (const seat of [0, 1] as const) {
+    123|         const own = toStateView(step.state, seat, defs).players[seat];
+    124|         expect(own.extraDeck, `step ${i} seat ${seat}`).toEqual(
+       |                                                         ^
+    125|           step.state.players[seat].extraDeck.map((c) => ({
+    126|             hidden: false,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > BOTH seats pass the leak oracle at every step of a Fusion Summon
+AssertionError: step 3 viewer 0: expected [ { viewer: +0, …(4) }, …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "definitionId": "(pointer)",
++     "instanceId": "p0-x0",
++     "path": "$.view.pendingPrompt.payload.candidateInstanceIds[0]",
++     "reason": "an id list points at a card hidden from the viewer",
++     "viewer": 0,
++   },
++   {
++     "definitionId": "(pointer)",
++     "instanceId": "p0-x2",
++     "path": "$.view.pendingPrompt.payload.candidateInstanceIds[1]",
++     "reason": "an id list points at a card hidden from the viewer",
++     "viewer": 0,
++   },
++   {
++     "definitionId": "(pointer)",
++     "instanceId": "p0-x0",
++     "path": "$.legalActions[0].payload.cardInstanceIds[0]",
++     "reason": "an id list points at a card hidden from the viewer",
++     "viewer": 0,
++   },
++   {
++     "definitionId": "(pointer)",
++     "instanceId": "p0-x2",
++     "path": "$.legalActions[1].payload.cardInstanceIds[0]",
++     "reason": "an id list points at a card hidden from the viewer",
++     "viewer": 0,
++   },
++ ]
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:157:11
+    155|           findLeaks(step.state, viewer, payloadFor(step, viewer)),
+    156|           `step ${i} viewer ${viewer}`,
+    157|         ).toEqual([]);
+       |           ^
+    158|       }
+    159|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > the owner gets a wire payload: candidates + count only, none of the engine’s bookkeeping
+AssertionError: expected { linkId: 'link-1-3', …(4) } to deeply equal { Object (candidateInstanceIds, count) }
+
+- Expected
++ Received
+
+@@ -2,6 +2,9 @@
+    "candidateInstanceIds": [
+      "p0-x0",
+      "p0-x2",
+    ],
+    "count": 1,
++   "linkCount": 1,
++   "linkId": "link-1-3",
++   "owedTriggers": [],
+  }
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:194:24
+    192|     expect(p1.playerIndex).toBe(0);
+    193|     // Both copies of SMP-045 can be made; SMP-046 (p0-x1) cannot.
+    194|     expect(p1.payload).toEqual({ candidateInstanceIds: ['p0-x0', 'p0-x…
+       |                        ^
+    195| 
+    196|     const p2 = toStateView(materials.state, 0, defs).pendingPrompt!;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > the two Fusion events reach BOTH seats, identical, with exactly the public fields
+AssertionError: expected [ 'EffectResolved', …(2) ] to deeply equal [ 'FusionMaterialSent', …(5) ]
+
+- Expected
++ Received
+
+  [
+-   "FusionMaterialSent",
+-   "FusionMaterialSent",
+-   "MonsterFusionSummoned",
+    "EffectResolved",
+    "CardSentToGraveyard",
+    "ChainResolved",
+  ]
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:230:41
+    228|     });
+    229|     expect(seen[0]).toEqual(seen[1]);
+    230|     expect(seen[0]!.map((e) => e.type)).toEqual(last.events.map((e) =>…
+       |                                         ^
+    231|     const [m1, m2, summoned] = seen[0]!;
+    232|     for (const m of [m1!, m2!]) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > a material from the field keeps its zoneIndex; a field an engine event may grow later is NOT forwarded
+AssertionError: expected null to deeply equal { type: 'FusionMaterialSent', …(5) }
+
+- Expected: 
+{
+  "definitionId": "SMP-001",
+  "from": "MonsterZone",
+  "instanceId": "p1-4",
+  "ownerIndex": 1,
+  "type": "FusionMaterialSent",
+  "zoneIndex": 3,
+}
+
++ Received: 
+null
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:272:45
+    270|       internalNote: 'server-side only',
+    271|     } as unknown as GameEvent;
+    272|     expect(toEventView(fromField, 0, none)).toEqual({
+       |                                             ^
+    273|       type: 'FusionMaterialSent',
+    274|       ownerIndex: 1,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > Fusion on the wire (task 4.5b) — what each seat receives > hiddenIdsFor is per seat: the opponent’s Extra Deck is hidden, the viewer’s own is not; both Main Decks stay hidden
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:307:89
+    305|       const other = viewer === 0 ? 1 : 0;
+    306|       const hidden = hiddenIdsFor(state, viewer);
+    307|       for (const c of state.players[viewer].extraDeck) expect(hidden.h…
+       |                                                                                         ^
+    308|       for (const c of state.players[other].extraDeck) expect(hidden.ha…
+    309|       for (const p of state.players) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > the leak oracle is per seat for the Extra Deck only (task 4.5b) > naming an Extra Deck card: fine for its owner, a leak for the opponent
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "definitionId": "SMP-045",
++     "instanceId": "p0-x0",
++     "path": "$.card",
++     "reason": "card is in a extraDeck",
++     "viewer": 0,
++   },
++ ]
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:324:42
+    322|   it('naming an Extra Deck card: fine for its owner, a leak for the op…
+    323|     const payload = { card: { instanceId: 'p0-x0', definitionId: 'SMP-…
+    324|     expect(findLeaks(state, 0, payload)).toEqual([]);
+       |                                          ^
+    325|     const leaks = findLeaks(state, 1, payload);
+    326|     expect(leaks).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > the leak oracle is per seat for the Extra Deck only (task 4.5b) > pointing at an Extra Deck card: fine for its owner, a leak for the opponent
+AssertionError: expected [ { viewer: +0, …(4) }, …(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "definitionId": "(pointer)",
++     "instanceId": "p0-x0",
++     "path": "$.candidateInstanceIds[0]",
++     "reason": "an id list points at a card hidden from the viewer",
++     "viewer": 0,
++   },
++   {
++     "definitionId": "(pointer)",
++     "instanceId": "p0-x2",
++     "path": "$.fusionInstanceId",
++     "reason": "an id list points at a card hidden from the viewer",
++     "viewer": 0,
++   },
++ ]
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:332:42
+    330|   it('pointing at an Extra Deck card: fine for its owner, a leak for t…
+    331|     const payload = { candidateInstanceIds: ['p0-x0'], fusionInstanceI…
+    332|     expect(findLeaks(state, 0, payload)).toEqual([]);
+       |                                          ^
+    333|     const leaks = findLeaks(state, 1, payload);
+    334|     expect(leaks.map((l) => l.instanceId).sort()).toEqual(['p0-x0', 'p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > createDuel passes extraDeckLists to the engine; each seat’s view lists its own Extra Deck only
+AssertionError: expected [] to deeply equal [ 'SMP-045', 'SMP-046', 'SMP-045' ]
+
+- Expected
++ Received
+
+- [
+-   "SMP-045",
+-   "SMP-046",
+-   "SMP-045",
+- ]
++ []
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:396:65
+    394|     });
+    395|     const raw = (await m.getDuel(created.duelId)).state;
+    396|     expect(raw.players[0].extraDeck.map((c) => c.definitionId)).toEqua…
+       |                                                                 ^
+    397|     expect(raw.players[1].extraDeck.map((c) => c.definitionId)).toEqua…
+    398|     expect(created.views[0].players[0].extraDeck?.map((c) => c.definit…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > a duel created without extraDeckLists is the same duel as before (empty Extra Decks)
+AssertionError: expected undefined to deeply equal []
+
+- Expected: 
+[]
+
++ Received: 
+undefined
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:419:49
+    417|     const b = (await m.getDuel(empty.duelId)).state;
+    418|     expect({ ...b, matchId: a.matchId }).toEqual(a);
+    419|     expect(plain.views[0].players[0].extraDeck).toEqual([]);
+       |                                                 ^
+    420|   });
+    421| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > solo-vs-ai: the AI seat ALWAYS starts with an empty Extra Deck, whatever the config says
+AssertionError: expected [] to have a length of 3 but got +0
+
+- Expected
++ Received
+
+- 3
++ 0
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:435:38
+    433|     const raw = (await m.getDuel(created.duelId)).state;
+    434|     expect(raw.players[1].extraDeck).toEqual([]);
+    435|     expect(raw.players[0].extraDeck).toHaveLength(3);
+       |                                      ^
+    436|     expect(created.views[0].players[1].extraDeckCount).toBe(0);
+    437|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > refuses an unknown card (UNKNOWN_CARD) and an Extra Deck over the ruleset size (INVALID_CONFIG)
+AssertionError: expected 'no error' to be 'UNKNOWN_CARD' // Object.is equality
+
+Expected: "UNKNOWN_CARD"
+Received: "no error"
+
+ ❯ src/modules/duels/fusion-wire.spec.ts:447:89
+    445|       ownerId: 'a',
+    446|     };
+    447|     expect(await code(() => m.createDuel({ ...base, extraDeckLists: [[…
+       |                                                                                         ^
+    448|       'UNKNOWN_CARD',
+    449|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+ FAIL  src/modules/duels/fusion-wire.spec.ts > DuelManager loads Extra Decks (task 4.5b) > a whole Fusion Summon through submitAction: answers built from candidateInstanceIds, both seats’ events filtered
+DuelServiceError: ActivateEffect rejected: no Fusion Monster in your Extra Deck has all its materials.
+ ❯ DuelManager.applyAndSave src/modules/duels/duel-manager.ts:340:15
+    338|     } catch (e) {
+    339|       if (e instanceof EngineError) {
+    340|         throw new DuelServiceError('ACTION_REJECTED', e.message, e.cod…
+       |               ^
+    341|       }
+    342|       throw new DuelServiceError('INTERNAL_ERROR', 'Unexpected error w…
+ ❯ src/modules/duels/duel-manager.ts:306:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'ACTION_REJECTED', engineCode: 'NOT_ACTIVATABLE' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/13]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  13 failed | 7 passed (20)
+   Start at  12:35:37
+   Duration  6.24s (transform 2.87s, setup 0ms, collect 5.54s, tests 211ms, environment 0ms, prepare 154ms)
+
+undefined
+E:\code\game\turn_battle\yugi-h5\apps\api:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/modules/duels/fusion-wire.spec.ts "--reporter=verbose"

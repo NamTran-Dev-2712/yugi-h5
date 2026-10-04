@@ -813,4 +813,29 @@ export const SAMPLE_CARDS: CardDefinition[] = [
       },
     ],
   },
+  // Task 4.5b — a Fusion Monster with an "when Summoned" effect, so the trigger after a Fusion Summon can be played and
+  // shown over the real API. Appended at the end; placeholder name, no Konami IP.
+  {
+    id: 'SMP-047',
+    kind: 'Monster',
+    name: { vi: 'Pháp Sư Màn Tro', en: 'Ashveil Warlock' },
+    category: 'Fusion',
+    attribute: 'DARK',
+    race: 'Spellcaster',
+    level: 7,
+    atk: 2500,
+    def: 1800,
+    fusionMaterials: ['SMP-006', 'SMP-009'],
+    effectText: {
+      vi: '"Pháp Sư Triều Dâng" + "Kẻ Cướp Rỗng". Khi lá này được Triệu hồi Dung hợp: gây 500 sát thương cho đối thủ (bắt buộc).',
+      en: '"Tidecaller Adept" + "Hollow Marauder". When this card is Fusion Summoned: inflict 500 damage to your opponent (mandatory).',
+    },
+    effects: [
+      {
+        id: 'ashveil-burn',
+        trigger: { kind: 'OnSummon', mandatory: true },
+        operations: [{ kind: 'Damage', amount: 500, target: 'opponent' }],
+      },
+    ],
+  },
 ];

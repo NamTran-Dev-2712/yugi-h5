@@ -280,8 +280,10 @@ const NEGATE_CARDS = new Set(['SMP-201', 'SMP-209', 'SMP-210']);
 /**
  * Task 4.5 card (the fusion Spell). Kept out of the fixed seeds' deck for the same reason: one more card reshuffles
  * every deck, so the old seeds would walk elsewhere. (Without an Extra Deck it could never be activated anyway.)
+ * Task 4.5b: + SMP-047, a Fusion Monster with an effect — it belongs to an Extra Deck, never to a Main Deck. Fusion is
+ * in this gate through seeds of its own (`fusionDeckList`).
  */
-const FUSION_CARDS = new Set(['SMP-116']);
+const FUSION_CARDS = new Set(['SMP-116', 'SMP-047']);
 
 /** Task 3.8: the real effect cards of the sample pool (triggers, Continuous, Quick-Play, Traps, a cost). */
 const REAL_EFFECT_CARDS = SAMPLE_CARDS.filter(

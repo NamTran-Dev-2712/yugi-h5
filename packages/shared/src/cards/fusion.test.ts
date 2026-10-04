@@ -144,8 +144,8 @@ describe('task 4.5 cards', () => {
     }
   });
 
-  it('are appended at the END of the list (older cards keep their place)', () => {
-    expect(SAMPLE_CARDS.slice(-3).map((c) => c.id)).toEqual(IDS);
+  it('are appended at the END of the list (older cards keep their place; task 4.5b added SMP-047 after them)', () => {
+    expect(SAMPLE_CARDS.slice(-4).map((c) => c.id)).toEqual([...IDS, 'SMP-047']);
   });
 
   it('SMP-045 / SMP-046: Fusion Monsters whose materials are existing non-Fusion monsters (2 and 3 of them)', () => {
@@ -184,5 +184,37 @@ describe('task 4.5 cards', () => {
     expect(effect?.cost).toBeUndefined();
     expect(effect?.target).toBeUndefined();
     expect(effect?.operations).toEqual([{ kind: 'FusionSummon', sources: ['Hand', 'Field'] }]);
+  });
+});
+
+describe('task 4.5b cards', () => {
+  it('SMP-047: a Fusion Monster (2 existing non-Fusion materials) with a mandatory "when Summoned" burn', () => {
+    const card = get('SMP-047') as MonsterCardDefinition;
+    expect(CardDefinitionSchema.safeParse(card).success).toBe(true);
+    expect(card.category).toBe('Fusion');
+    expect(card.fusionMaterials).toEqual(['SMP-006', 'SMP-009']);
+    for (const m of card.fusionMaterials ?? []) {
+      const def = get(m);
+      expect(def.kind === 'Monster' && def.category !== 'Fusion', m).toBe(true);
+    }
+    expect(card.name.vi && card.name.en && card.effectText?.vi && card.effectText?.en).toBeTruthy();
+    expect(card.scriptId).toBeUndefined();
+    expect(card.effects).toEqual([
+      {
+        id: 'ashveil-burn',
+        trigger: { kind: 'OnSummon', mandatory: true },
+        operations: [{ kind: 'Damage', amount: 500, target: 'opponent' }],
+      },
+    ]);
+    expect(STARTER_DECK).not.toContain('SMP-047');
+  });
+
+  it('[DECISION] brief 4.5b (b): no real card takes fusion materials from the Deck (that source is not on the wire)', () => {
+    const fromDeck = SAMPLE_CARDS.filter((c) =>
+      (c.effects ?? []).some((e) =>
+        e.operations.some((o) => o.kind === 'FusionSummon' && o.sources.includes('Deck')),
+      ),
+    );
+    expect(fromDeck.map((c) => c.id)).toEqual([]);
   });
 });
