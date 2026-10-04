@@ -261,6 +261,8 @@ async function main(): Promise<void> {
   record('5b. Không token', 'GET', `/duels/${id}?viewer=0`, undefined, anon, false);
   check('không token → 401', anon.status === 401);
 
+  await fusionPath(token);
+
   md.push('', '## Tổng kết', '');
   const failed = results.filter((r) => !r.ok);
   md.push(
@@ -273,6 +275,264 @@ async function main(): Promise<void> {
     console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name}${r.detail ? ` (${r.detail})` : ''}`);
   console.log(`\n${results.length - failed.length}/${results.length} đạt → ${OUT}`);
   process.exit(failed.length === 0 ? 0 : 1);
+}
+
+interface WireAction {
+  type: string;
+  payload: { playerIndex: 0 | 1; [k: string]: unknown };
+}
+interface Step {
+  view: ViewV;
+  events: EventV[];
+  legalActions: WireAction[];
+}
+interface CardData {
+  id: string;
+  kind: string;
+  category?: string;
+  fusionMaterials?: string[];
+  effects?: { operations: { kind: string }[] }[];
+}
+
+/**
+ * Task 4.5b — a whole Fusion Summon over real HTTP: a `solo-debug` duel (the caller drives both seats) with
+ * `FUSION_DEMO_DECK` + `FUSION_DEMO_EXTRA_DECK`; turns are passed until the server lists the fusion Spell, then:
+ * activate → SelectFusionMonster → SelectFusionMaterials → the monster is on the field. Both prompt answers are built
+ * from the prompt payload (`candidateInstanceIds`) and the card data, not picked from `legalActions`.
+ */
+async function fusionPath(token: string): Promise<void> {
+  const shared = (await import('../packages/shared/dist/index.js')) as {
+    FUSION_DEMO_DECK: readonly string[];
+    FUSION_DEMO_EXTRA_DECK: readonly string[];
+    SAMPLE_CARDS: readonly CardData[];
+  };
+  const defs = new Map(shared.SAMPLE_CARDS.map((c) => [c.id, c]));
+  const fuses = (definitionId: string | undefined): boolean =>
+    (defs.get(definitionId ?? '')?.effects ?? []).some((e) =>
+      e.operations.some((o) => o.kind === 'FusionSummon'),
+    );
+  const body = { deck: shared.FUSION_DEMO_DECK, extraDeck: shared.FUSION_DEMO_EXTRA_DECK };
+  const created = await call('POST', '/duels/solo', { token, body });
+  record('6. Fusion — tạo duel có Extra Deck', 'POST', '/duels/solo', body, created, true);
+  const duel = created.json as Step & { duelId: string };
+  check('Fusion: POST /duels/solo có extraDeck → 201', created.status === 201, `${created.status}`);
+  if (created.status !== 201) return;
+  const id = duel.duelId;
+  const extraSize = shared.FUSION_DEMO_EXTRA_DECK.length;
+  check(
+    'Fusion: người tạo thấy Extra Deck của mình (đủ lá, có definitionId); ghế kia chỉ có số lượng',
+    JSON.stringify(duel.view.players[0].extraDeck?.map((c) => c.definitionId)) ===
+      JSON.stringify(shared.FUSION_DEMO_EXTRA_DECK) &&
+      !('extraDeck' in duel.view.players[1]) &&
+      duel.view.players[1].extraDeckCount === extraSize,
+  );
+  check(
+    'Fusion: response viewer 0 không nhắc tới lá Extra Deck nào của P1',
+    !created.text.includes('"p1-x'),
+  );
+  const other = await call('GET', `/duels/${id}?viewer=1`, { token });
+  const otherView = (other.json as { view: ViewV }).view;
+  check(
+    'Fusion: viewer 1 thấy Extra Deck của chính mình, không thấy của P0',
+    otherView.players[1].extraDeck?.length === extraSize &&
+      !('extraDeck' in otherView.players[0]) &&
+      !other.text.includes('"p0-x'),
+  );
+
+  const invalid = await call('POST', '/duels/solo', { token, body: { extraDeck: ['SMP-001'] } });
+  record(
+    '6b. Extra Deck chứa lá không phải quái Dung hợp',
+    'POST',
+    '/duels/solo',
+    { extraDeck: ['SMP-001'] },
+    invalid,
+    true,
+  );
+  check(
+    'Fusion: Extra Deck sai → 400 INVALID_DECK (EXTRA_NOT_FUSION)',
+    invalid.status === 400 &&
+      (invalid.json as { code?: string }).code === 'INVALID_DECK' &&
+      invalid.text.includes('EXTRA_NOT_FUSION'),
+    `${invalid.status}`,
+  );
+  const vsAi = await call('POST', '/duels/solo', { token, body: { ...body, mode: 'solo-vs-ai' } });
+  const vsAiView = (vsAi.json as Step).view;
+  check(
+    'Fusion: solo-vs-ai — ghế AI không có Extra Deck (extraDeckCount 0), ghế người có đủ',
+    vsAi.status === 201 &&
+      vsAiView.players[1].extraDeckCount === 0 &&
+      vsAiView.players[0].extraDeck?.length === extraSize,
+    `${vsAi.status}`,
+  );
+
+  const post = async (seat: 0 | 1, action: WireAction): Promise<Reply> =>
+    call('POST', `/duels/${id}/actions`, { token, body: { playerIndex: seat, action } });
+  let state: Step = duel;
+  let activation: WireAction | undefined;
+  // Pass phases / turns (both seats are mine) until the server lists the fusion Spell for seat 0.
+  for (let i = 0; i < 400 && state.view.winnerIndex === null; i++) {
+    const seat: 0 | 1 = state.view.pendingPrompt?.playerIndex ?? state.view.turnPlayerIndex;
+    if (seat !== state.view.viewerIndex) {
+      const g = await call('GET', `/duels/${id}?viewer=${seat}`, { token });
+      state = { ...(g.json as Step), events: [] };
+    }
+    const hand = state.view.players[0].hand;
+    activation =
+      seat === 0
+        ? state.legalActions.find(
+            (a) =>
+              a.type === 'ActivateEffect' &&
+              fuses(hand.find((c) => c.instanceId === a.payload.cardInstanceId)?.definitionId),
+          )
+        : undefined;
+    if (activation) break;
+    // A hand-limit discard: keep the fusion cards (drop a listed answer that has none of them, else the first).
+    const answers = state.legalActions.filter((a) => a.type === 'ResolvePendingPrompt');
+    const keep = (a: WireAction): boolean =>
+      (a.payload.cardInstanceIds as string[]).every((cid) => {
+        const d = state.view.players[seat].hand.find((c) => c.instanceId === cid)?.definitionId;
+        return !fuses(d) && !['SMP-001', 'SMP-007', 'SMP-006', 'SMP-009'].includes(d ?? '');
+      });
+    const next: WireAction = answers.find(keep) ??
+      answers[0] ?? { type: 'EndPhase', payload: { playerIndex: seat } };
+    const r = await post(seat, next);
+    if (r.status !== 200) {
+      check(
+        'Fusion: đi tới lúc kích hoạt được lá dung hợp',
+        false,
+        `${r.status} ${r.text.slice(0, 160)}`,
+      );
+      return;
+    }
+    state = r.json as Step;
+  }
+  check(
+    'Fusion: server liệt kê ActivateEffect cho lá Phép dung hợp (SMP-116) trong legalActions',
+    activation !== undefined,
+    `lượt ${state.view.turnCount}`,
+  );
+  if (!activation) return;
+
+  const act = await post(0, activation);
+  record('7a. Kích hoạt lá Phép dung hợp', 'POST', `/duels/${id}/actions`, activation, act, true);
+  state = act.json as Step;
+  const p1 = state.view.pendingPrompt;
+  check(
+    'Fusion: sau khi kích hoạt → prompt SelectFusionMonster cho P0, payload chỉ có candidateInstanceIds + count',
+    act.status === 200 &&
+      p1?.kind === 'SelectFusionMonster' &&
+      p1.playerIndex === 0 &&
+      JSON.stringify(Object.keys(p1.payload ?? {}).sort()) === '["candidateInstanceIds","count"]' &&
+      p1.payload?.count === 1,
+    JSON.stringify(p1?.payload ?? null),
+  );
+  if (!p1?.payload?.candidateInstanceIds) return;
+  const seen1 = await call('GET', `/duels/${id}?viewer=1`, { token });
+  const prompt1 = (seen1.json as { view: ViewV }).view.pendingPrompt;
+  check(
+    'Fusion: đối thủ (viewer 1) thấy có prompt nhưng payload = null, không thấy id Extra Deck của P0',
+    prompt1?.kind === 'SelectFusionMonster' &&
+      prompt1.payload === null &&
+      !seen1.text.includes('"p0-x'),
+  );
+
+  const fusionId = p1.payload.candidateInstanceIds[0]!;
+  const fusionDef = state.view.players[0].extraDeck?.find(
+    (c) => c.instanceId === fusionId,
+  )?.definitionId;
+  const chooseMonster: WireAction = {
+    type: 'ResolvePendingPrompt',
+    payload: { playerIndex: 0, promptId: p1.promptId, cardInstanceIds: [fusionId] },
+  };
+  const m = await post(0, chooseMonster);
+  record(
+    '7b. Trả lời "Chọn mục tiêu dung hợp"',
+    'POST',
+    `/duels/${id}/actions`,
+    chooseMonster,
+    m,
+    true,
+  );
+  state = m.json as Step;
+  const p2 = state.view.pendingPrompt;
+  const needed = defs.get(fusionDef ?? '')?.fusionMaterials ?? [];
+  check(
+    'Fusion: → prompt SelectFusionMaterials (fusionInstanceId = quái đã chọn, count = số nguyên liệu của lá)',
+    m.status === 200 &&
+      p2?.kind === 'SelectFusionMaterials' &&
+      p2.payload?.fusionInstanceId === fusionId &&
+      p2.payload.count === needed.length &&
+      JSON.stringify(Object.keys(p2.payload).sort()) ===
+        '["candidateInstanceIds","count","fusionInstanceId"]',
+    JSON.stringify(p2?.payload ?? null),
+  );
+  if (!p2?.payload?.candidateInstanceIds) return;
+
+  // One candidate per named material, looked up in MY view (hand + field) — built from the payload, not from legalActions.
+  const mine = [
+    ...state.view.players[0].hand,
+    ...state.view.players[0].board.monsterZones.filter(
+      (c): c is NonNullable<typeof c> => c !== null,
+    ),
+  ];
+  const pool = [...p2.payload.candidateInstanceIds];
+  const chosen: string[] = [];
+  for (const material of needed) {
+    const at = pool.findIndex(
+      (cid) => mine.find((c) => c.instanceId === cid)?.definitionId === material,
+    );
+    if (at >= 0) chosen.push(...pool.splice(at, 1));
+  }
+  const chooseMaterials: WireAction = {
+    type: 'ResolvePendingPrompt',
+    payload: { playerIndex: 0, promptId: p2.promptId, cardInstanceIds: chosen },
+  };
+  const done = await post(0, chooseMaterials);
+  record(
+    '7c. Trả lời "Chọn N nguyên liệu dung hợp"',
+    'POST',
+    `/duels/${id}/actions`,
+    chooseMaterials,
+    done,
+    true,
+  );
+  state = done.json as Step;
+  const types = (state.events ?? []).map((e) => e.type);
+  const summoned = (state.events ?? []).find((e) => e.type === 'MonsterFusionSummoned');
+  check(
+    'Fusion: → 200, đủ FusionMaterialSent rồi MonsterFusionSummoned (đúng quái đã chọn)',
+    done.status === 200 &&
+      types.filter((t) => t === 'FusionMaterialSent').length === needed.length &&
+      summoned?.instanceId === fusionId &&
+      summoned.definitionId === fusionDef,
+    types.join(','),
+  );
+  const zone = typeof summoned?.zoneIndex === 'number' ? summoned.zoneIndex : -1;
+  const onField = state.view.players[0].board.monsterZones[zone];
+  check(
+    'Fusion: quái Dung hợp nằm ngửa Tư thế Công trên sân; Extra Deck còn ít hơn 1; nguyên liệu trong mộ',
+    onField?.instanceId === fusionId &&
+      onField.position === 'Attack' &&
+      state.view.players[0].extraDeckCount === extraSize - 1 &&
+      chosen.every((cid) => state.view.players[0].graveyard.some((c) => c.instanceId === cid)),
+  );
+  check('Fusion: không còn prompt nào treo', state.view.pendingPrompt === null);
+  const after = await call('GET', `/duels/${id}?viewer=1`, { token });
+  const afterView = (after.json as { view: ViewV }).view;
+  const theirs = afterView.players[0].board.monsterZones[zone];
+  check(
+    'Fusion: đối thủ thấy quái Dung hợp ngửa trên sân, vẫn không thấy danh sách Extra Deck của P0',
+    theirs?.definitionId === fusionDef &&
+      !('extraDeck' in afterView.players[0]) &&
+      afterView.players[0].extraDeckCount === extraSize - 1,
+  );
+  check(
+    'Fusion: response viewer 1 không lộ tay P0 và không nhắc lá nào còn trong Extra Deck của P0',
+    findLeaks(after.json, hiddenFrom(state.view, 0)).length === 0 &&
+      (state.view.players[0].extraDeck ?? []).every(
+        (c) => !after.text.includes(`"${c.instanceId}"`),
+      ),
+  );
 }
 
 main().catch((e: unknown) => {

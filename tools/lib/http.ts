@@ -25,6 +25,9 @@ export interface PlayerV {
   hand: CardV[];
   handCount: number;
   deckCount: number;
+  /** Task 4.5b: the size of the Extra Deck (both seats) and its cards (only in the view of the seat that owns it). */
+  extraDeckCount?: number;
+  extraDeck?: CardV[];
   graveyard: CardV[];
   board: {
     monsterZones: (CardV | null)[];
@@ -45,7 +48,12 @@ export interface ViewV {
     promptId: string;
     playerIndex: Seat;
     kind: string;
-    payload: { count?: number };
+    /** null for the seat that is not asked (except a public kind). Task 4.5b: the Fusion prompts list candidates. */
+    payload: {
+      count?: number;
+      candidateInstanceIds?: string[];
+      fusionInstanceId?: string;
+    } | null;
   } | null;
   players: [PlayerV, PlayerV];
   /** Task 3.4b: open chain / reaction window (who holds priority). */

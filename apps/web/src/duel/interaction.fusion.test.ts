@@ -156,6 +156,20 @@ describe('SelectFusionMaterials — "Chọn N nguyên liệu dung hợp"', () =>
     }
   });
 
+  it('a tap on the REAL card (my hand, my field) chooses nothing, even for a candidate: the choice is made in the row', () => {
+    // Added after the mutation run: the same test on the monster prompt only tapped cards that were no candidates.
+    let run = opened(ctx);
+    for (const id of ['p0-1', 'p0-2', 'p0-11']) {
+      expect(selecting(run.state).candidates).toContain(id);
+      const card = ctx.model.cards.find((c) => c.id === id)!;
+      run = click(run, centre(card.rect), ctx);
+    }
+    expect(selecting(run.state).selected).toEqual([]);
+    // The very same cards are chosen through their slot in the row.
+    run = click(run, slot(run, ctx, 'p0-1'), ctx);
+    expect(selecting(run.state).selected).toEqual(['p0-1']);
+  });
+
   it('"Đồng ý" lights up only with exactly `count` cards chosen', () => {
     let run = opened(ctx);
     expect(overlayFor(run.state, ctx).confirm?.enabled).toBe(false);

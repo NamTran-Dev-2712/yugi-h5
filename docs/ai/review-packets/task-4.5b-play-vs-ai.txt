@@ -1,0 +1,44 @@
+===== DECK=default =====
+play-vs-ai against http://localhost:3000
+   effect stats: {"chainLinks":0,"humanWindows":0,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":40,"flipSummons":1,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":0,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+
+human actions 43, AI actions 53 over 6 responses, winner 1, turns 12
+54/54 checks passed
+exit code: 0
+===== DECK=effect =====
+play-vs-ai against http://localhost:3000
+   deck: EFFECT_DEMO_DECK (40 cards)
+   effect stats: {"chainLinks":8,"humanWindows":1,"humanTriggerPrompts":0,"aiChainActs":1,"effAtk":78,"flipSummons":1,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":3,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":1}
+
+human actions 81, AI actions 68 over 10 responses, winner 1, turns 18
+95/95 checks passed
+exit code: 0
+===== DECK=negate =====
+play-vs-ai against http://localhost:3000
+   deck: NEGATE_DEMO_DECK (40 cards)
+   effect stats: {"chainLinks":2,"humanWindows":0,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":52,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":2,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+   FAIL  the human held a reaction window with a Set negating card — {"chainLinks":2,"humanWindows":0,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":52,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":2,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+   FAIL  an attack or a Summon of the AI was negated over HTTP (AttackNegated / SummonNegated) — {"chainLinks":2,"humanWindows":0,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":52,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":2,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+
+human actions 55, AI actions 35 over 5 responses, winner 0, turns 11
+67/69 checks passed
+  FAIL the human held a reaction window with a Set negating card {"chainLinks":2,"humanWindows":0,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":52,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":2,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+  FAIL an attack or a Summon of the AI was negated over HTTP (AttackNegated / SummonNegated) {"chainLinks":2,"humanWindows":0,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":52,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":2,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+exit code: 0
+===== DECK=fusion =====
+play-vs-ai against http://localhost:3000
+   deck: FUSION_DEMO_DECK (40 cards) + Extra Deck (5 cards)
+   effect stats: {"chainLinks":3,"humanWindows":2,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":42,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":0,"setSpellActivated":1,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+
+human actions 45, AI actions 28 over 4 responses, winner 0, turns 9
+57/57 checks passed
+   fusion totals: {"duels":1,"summons":1,"materials":2,"monsterPrompts":1,"materialPrompts":1}
+59/59 checks passed (all duels)
+exit code: 0
+
+===== DECK=negate, three more runs (2026-10-04) — the two COVERAGE checks depend on the random deal =====
+run 1: 69/71 checks passed (human won on turn 11; humanWindows 0: no reaction window with a Set negating card, nothing negated)
+run 2: 86/86 checks passed (turns 15)
+run 3: 66/68 checks passed (turns 11; same two coverage checks)
+In all four negate runs every functional / leak check passed; only "the human held a reaction window with a Set negating card" and
+"an attack or a Summon of the AI was negated" failed, in the short duels. The negate deck path was not changed by task 4.5b.

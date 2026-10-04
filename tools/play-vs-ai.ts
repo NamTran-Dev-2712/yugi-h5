@@ -68,6 +68,14 @@ const BATCH1_DECK = process.env.DECK === 'batch1';
 const MECH_DECK = process.env.DECK === 'mech';
 const FIELD_DECK = process.env.DECK === 'field';
 const NEGATE_DECK = process.env.DECK === 'negate';
+/**
+ * Task 4.5b: `DECK=fusion` plays `FUSION_DEMO_DECK`; the human seat also gets `FUSION_DEMO_EXTRA_DECK` (the AI seat
+ * never has an Extra Deck). The human activates the fusion Spell whenever the server lists it and answers both prompts;
+ * up to `FUSION_DUELS` duels are played until a Fusion Summon happened (the opening hands are random).
+ */
+const FUSION_DECK = process.env.DECK === 'fusion';
+const FUSION_DUELS = Number(process.env.FUSION_DUELS ?? 6);
+const FUSION_PROMPTS = new Set(['SelectFusionMonster', 'SelectFusionMaterials']);
 
 /**
  * Cards of the AI seat still hidden from the human in this very view (hand + face-down monsters, Spells/Traps and the
@@ -106,6 +114,9 @@ function chooseHuman(view: ViewV, legal: Action[]): Action {
     if (a.type === 'NormalSummon') return 3;
     // DECK=mech: the Special Summon / Equip Spells are worth activating, not Setting (a Set Normal Spell is dead).
     if (a.type === 'ActivateEffect' && MECH_DECK) return 3.9;
+    // DECK=fusion: Summon first (a material may then come from the field), then activate (the fusion Spell) before
+    // Setting anything.
+    if (a.type === 'ActivateEffect' && FUSION_DECK) return 3.5;
     if (a.type === 'SetSpellTrap') return 4;
     if (a.type === 'ActivateEffect') return 5;
     if (a.type === 'EndPhase') return 9;
@@ -117,7 +128,35 @@ function chooseHuman(view: ViewV, legal: Action[]): Action {
   return pick;
 }
 
+/** Totals over the duels of one run (DECK=fusion may play several). */
+const fusionTotals = { duels: 0, summons: 0, materials: 0, monsterPrompts: 0, materialPrompts: 0 };
+
 async function main(): Promise<void> {
+  if (!FUSION_DECK) return playOne();
+  for (let i = 0; i < FUSION_DUELS && fusionTotals.summons === 0; i++) {
+    if (i > 0) say(`\n--- no Fusion Summon yet: duel ${i + 1} of at most ${FUSION_DUELS} ---`);
+    await playOne();
+  }
+  say(`   fusion totals: ${JSON.stringify(fusionTotals)}`);
+  check(
+    `a Fusion Summon happened over HTTP within ${FUSION_DUELS} duels (MonsterFusionSummoned)`,
+    fusionTotals.summons > 0,
+    JSON.stringify(fusionTotals),
+  );
+  check(
+    'both Fusion prompts were asked and every material was announced (FusionMaterialSent)',
+    fusionTotals.monsterPrompts > 0 &&
+      fusionTotals.materialPrompts > 0 &&
+      fusionTotals.materials >= 2 * fusionTotals.summons,
+    JSON.stringify(fusionTotals),
+  );
+  const failed = results.filter((r) => !r.ok);
+  say(`${results.length - failed.length}/${results.length} checks passed (all duels)`);
+  for (const f of failed) say(`  FAIL ${f.name} ${f.detail}`);
+  if (failed.length > 0) process.exit(1);
+}
+
+async function playOne(): Promise<void> {
   say(`play-vs-ai against ${BASE}`);
   const guest = await call('POST', '/auth/guest');
   const token = (guest.json as { accessToken: string }).accessToken;
@@ -153,15 +192,37 @@ async function main(): Promise<void> {
     deck = shared.NEGATE_DEMO_DECK;
     say(`   deck: NEGATE_DEMO_DECK (${deck.length} cards)`);
   }
+  let extraDeck: readonly string[] | undefined;
+  if (FUSION_DECK) {
+    const shared = (await import('../packages/shared/dist/index.js')) as {
+      FUSION_DEMO_DECK: readonly string[];
+      FUSION_DEMO_EXTRA_DECK: readonly string[];
+    };
+    deck = shared.FUSION_DEMO_DECK;
+    extraDeck = shared.FUSION_DEMO_EXTRA_DECK;
+    say(
+      `   deck: FUSION_DEMO_DECK (${deck.length} cards) + Extra Deck (${extraDeck.length} cards)`,
+    );
+    fusionTotals.duels++;
+  }
   const created = await call('POST', '/duels/solo', {
     token,
-    body: { mode: 'solo-vs-ai', ...(deck ? { deck } : {}) },
+    body: { mode: 'solo-vs-ai', ...(deck ? { deck } : {}), ...(extraDeck ? { extraDeck } : {}) },
   });
   check('POST /duels/solo mode solo-vs-ai → 201', created.status === 201, `${created.status}`);
   let res = created.json as Response;
   const duelId = res.duelId ?? '';
   check('mode/aiSeat/viewer', res.mode === 'solo-vs-ai' && res.aiSeat === 1 && res.viewer === 0);
   check('opening response has no leak', findLeaks(res, aiHidden(res.view)).length === 0);
+  if (FUSION_DECK) {
+    check(
+      'my Extra Deck is listed to me; the AI seat has none (count 0, no list)',
+      res.view.players[0].extraDeck?.length === extraDeck?.length &&
+        res.view.players[1].extraDeckCount === 0 &&
+        !('extraDeck' in res.view.players[1]),
+      JSON.stringify([res.view.players[0].extraDeckCount, res.view.players[1].extraDeckCount]),
+    );
+  }
 
   const look = await call('GET', `/duels/${duelId}?viewer=1`, { token });
   check('GET ?viewer=AI seat → 403', look.status === 403, `${look.status}`);
@@ -219,6 +280,25 @@ async function main(): Promise<void> {
       : chooseHuman(res.view, res.legalActions);
     const listed = res.legalActions.some((a) => JSON.stringify(a) === JSON.stringify(action));
     check(`human action ${action.type} is in legalActions`, listed || surrendered);
+    // Task 4.5b: a Fusion prompt — its wire payload has no engine bookkeeping, and the listed answer the human takes is
+    // made of the payload's candidates (the screen builds its answer from them).
+    const asked = res.view.pendingPrompt;
+    if (asked && FUSION_PROMPTS.has(asked.kind) && !surrendered) {
+      if (asked.kind === 'SelectFusionMonster') fusionTotals.monsterPrompts++;
+      else fusionTotals.materialPrompts++;
+      const candidates = asked.payload?.candidateInstanceIds ?? [];
+      const ids = (action.payload.cardInstanceIds as string[] | undefined) ?? [];
+      const keys = Object.keys(asked.payload ?? {})
+        .sort()
+        .join(',');
+      const fine =
+        asked.playerIndex === 0 &&
+        ids.length === asked.payload?.count &&
+        ids.every((x) => candidates.includes(x)) &&
+        !/linkId|owedTriggers|linkCount/.test(keys);
+      if (!fine)
+        check(`${asked.kind}: payload = candidates + count, answer made of them`, false, keys);
+    }
     // Task 4.3b: an activation of one of my Set (face-down) Spell/Trap Zone cards, e.g. a Normal Spell Set this turn.
     if (action.type === 'ActivateEffect') {
       const mine = res.view.players[0].board;
@@ -259,6 +339,9 @@ async function main(): Promise<void> {
       }
       if (e.type === 'CardSentToGraveyard' && e.from === 'FieldZone') seen.fieldReplaced++;
       if (e.type === 'FieldSpellDestroyed') seen.fieldDestroyed++;
+      // Task 4.5b: the Fusion events.
+      if (e.type === 'MonsterFusionSummoned') fusionTotals.summons++;
+      if (e.type === 'FusionMaterialSent') fusionTotals.materials++;
       // Task 4.4b: the Negate events.
       if (e.type === 'ChainLinkNegated') seen.linksNegated++;
       if (e.type === 'SummonNegated') seen.summonsNegated++;
@@ -299,6 +382,13 @@ async function main(): Promise<void> {
         false,
         JSON.stringify(steps.map((s) => [s.eventsFrom, s.eventsTo])),
       );
+    }
+    if (FUSION_DECK) {
+      // The AI seat never has an Extra Deck, and nothing I receive lists one for it.
+      if (res.view.players[1].extraDeckCount !== 0 || 'extraDeck' in res.view.players[1])
+        check('the AI seat has no Extra Deck', false);
+      if (steps.some((s) => s.promptKind !== undefined && FUSION_PROMPTS.has(s.promptKind)))
+        check('the AI is never asked a Fusion prompt', false);
     }
     if (res.view.version <= lastVersion)
       check('version grows', false, `${lastVersion} → ${res.view.version}`);

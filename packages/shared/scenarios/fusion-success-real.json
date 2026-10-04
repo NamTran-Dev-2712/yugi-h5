@@ -1,0 +1,29 @@
+{
+  "name": "fusion-success-real",
+  "seed": "sandbox-fusion-success-real",
+  "players": [
+    {
+      "lp": 8000,
+      "hand": ["SMP-116", "SMP-006", "SMP-001", "SMP-007"],
+      "deck": ["SMP-008", "SMP-012", "SMP-017", "SMP-004", "SMP-010", "SMP-013"],
+      "field": {
+        "monsters": [{ "card": "SMP-009", "zone": 2, "position": "Attack" }],
+        "spellTraps": []
+      },
+      "gy": [],
+      "extraDeck": ["SMP-045", "SMP-046", "SMP-047"]
+    },
+    {
+      "lp": 8000,
+      "hand": ["SMP-005", "SMP-011"],
+      "deck": ["SMP-004", "SMP-005", "SMP-009", "SMP-010", "SMP-012", "SMP-014"],
+      "field": {
+        "monsters": [{ "card": "SMP-012", "zone": 1, "position": "Attack" }],
+        "spellTraps": []
+      },
+      "gy": []
+    }
+  ],
+  "turn": { "count": 5, "player": 0 },
+  "phase": "Main1"
+}

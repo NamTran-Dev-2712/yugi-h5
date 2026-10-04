@@ -391,6 +391,10 @@ describe('sample scenarios', () => {
     'field-real',
     'field-set-real',
     'flip-real',
+    // Task 4.5b: Fusion on real cards (Extra Deck in the scenario).
+    'fusion-material-destroyed-real',
+    'fusion-negated-real',
+    'fusion-success-real',
     'negate-attack-real',
     'normal-set-real',
     'special-summon-real',

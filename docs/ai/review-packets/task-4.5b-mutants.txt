@@ -1,0 +1,61 @@
+KILLED   [wire] SECURITY: the Extra Deck list is sent to the opponent too (StateView leak)
+KILLED   [oracle] SECURITY (fuzz gate alone): the Extra Deck list is sent to the opponent too
+KILLED   [wire] SECURITY: the Fusion prompt payload is sent to the player who is not asked
+KILLED   [oracle] SECURITY (fuzz gate alone): the Fusion prompt payload is sent to the player who is not asked
+KILLED   [wire] SECURITY: SelectFusionMonster classified as a public prompt kind
+KILLED   [wire] SECURITY: the oracle is no longer per seat — an Extra Deck card may be named to anyone
+KILLED   [wire] SECURITY: the oracle is no longer per seat — anyone may be pointed at any Extra Deck card
+KILLED   [wire] SECURITY: the oracle is relaxed further than decided — the own Main Deck may be pointed at
+KILLED   [wire] SECURITY: the oracle is relaxed further than decided — the own Main Deck may be named
+KILLED   [wire] SECURITY: FusionMaterialSent forwarded with whatever the engine event carries (internal field on the wire)
+KILLED   [wire] SECURITY: MonsterFusionSummoned forwarded with whatever the engine event carries (internal field on the wire)
+KILLED   [wire] SECURITY: the Fusion prompt payload is sent raw (linkId / owedTriggers / linkCount on the wire)
+KILLED   [wire] SECURITY: the AI seat keeps the Extra Deck it was sent (solo-vs-ai)
+KILLED   [wire] hiddenIdsFor forgets the opponent's Extra Deck
+KILLED   [wire] hiddenIdsFor hides the viewer's own Extra Deck again (the old rule)
+KILLED   [wire] MonsterFusionSummoned hidden from the opponent
+KILLED   [wire] FusionMaterialSent dropped (still engine-only)
+KILLED   [wire] FusionMaterialSent loses the zone a field material left
+KILLED   [wire] createDuel does not pass the Extra Decks to StartDuel
+KILLED   [wire] createDuel does not check the card ids of an Extra Deck
+KILLED   [wire] the materials prompt does not say which Fusion Monster was chosen
+KILLED   [wire] scenarioToState numbers the Extra Deck differently from StartDuel
+KILLED   [wire] scenarioToState accepts any card in the Extra Deck
+KILLED   [e2e] POST /duels/solo does not validate the Extra Deck
+KILLED   [e2e] POST /duels/solo drops the Extra Deck it validated
+KILLED   [web] isFusionAnswer accepts any number of cards
+KILLED   [web] isFusionAnswer accepts cards that are not candidates of the prompt
+KILLED   [web] isFusionAnswer accepts an answer to another prompt id
+KILLED   [web] isFusionAnswer accepts an answer with extra keys (decline…)
+KILLED   [web] fusionPromptOf reads a prompt addressed to the other seat
+KILLED   [web] a material in my hand is labelled "Trên sân"
+KILLED   [web] "Đồng ý" lights up before enough materials are chosen
+KILLED   [web] the Fusion answer must be listed in legalActions again (breaks past 200 combinations)
+KILLED   [web] choosing another Fusion Monster adds to the choice instead of replacing it
+KILLED   [web] the picker has no source label under the materials
+SURVIVED [web] a tap on the board under the Fusion picker chooses a card too
+KILLED   [web] controller.submit sends anything, listed or not
+KILLED   [web] controller.submit refuses the Fusion answer that is not listed
+KILLED   [web] the Fusion picker is drawn from the opponent's zones
+KILLED   [web] a face-down material of mine is drawn face-down in the picker
+KILLED   [web] the labels of a Fusion picker run over the turn / phase line
+KILLED   [web] a Fusion Summon lasts as long as a Normal Summon (not the measured 1.25–1.5 s)
+KILLED   [web] a material from the hand is animated on Monster Zone 0
+KILLED   [web] the Fusion events are logged in the "Đánh" group
+KILLED   [web] a material from the hand is described as coming from the Deck
+KILLED   [web] the AI's Fusion Monster choice names the ids it was sent
+KILLED   [web] vi: the materials button is not the original "Đồng ý"
+KILLED   [web] en: the Fusion Summon line drops its {zone} param
+KILLED   [shared] FUSION_DEMO_DECK has one fusion Spell (38 cards)
+KILLED   [shared] FUSION_DEMO_EXTRA_DECK holds a card that is not a Fusion Monster
+KILLED   [shared] SMP-047 names another material
+KILLED   [shared] SMP-116 takes materials from the Deck (a source that is not on the wire)
+KILLED   [shared] ScenarioSchema accepts an Extra Deck of more than 20 cards
+
+52/53 mutants killed
+exit=1
+
+--- After the full run above: one test was added (interaction.fusion.test.ts: "a tap on the REAL card ... chooses nothing, even for a candidate") and the surviving mutant was run again alone ---
+KILLED   [web] a tap on the board under the Fusion picker chooses a card too
+
+1/1 mutants killed  =>  53/53 with the added test (first full run: 52/53)
