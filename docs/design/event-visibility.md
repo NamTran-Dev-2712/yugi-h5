@@ -14,8 +14,8 @@ raw events never leave the class.
 - **HIDDEN** — the opponent gets nothing (`toEventView` returns `null`). No event is HIDDEN today;
   this is also the **default for any unclassified event** (deny by default).
 - **engine-only** (a state, not a class) — the event is classified, but not on the wire yet: `toEventView` returns
-  `null` for BOTH viewers until the task that wires it (today: the two task 4.5 Fusion events, `FusionMaterialSent` and `MonsterFusionSummoned`, until task 4.5b; the three task
-  4.4 events were wired by 4.4b).
+  `null` for BOTH viewers until the task that wires it (today: none — the two task 4.5 Fusion events were wired by 4.5b,
+  the three task 4.4 events by 4.4b).
 
 ## Table (35 engine events)
 
@@ -54,10 +54,22 @@ raw events never leave the class.
 | ChainLinkNegated       | definitionId                      | PUBLIC                   | Task 4.4, forwarded since 4.4b. The negated card was revealed when it was activated (`EffectActivated`) and is in the public graveyard; `byInstanceId` is the face-up negating card. |
 | AttackNegated          | instance ids only                 | PUBLIC                   | Task 4.4, forwarded since 4.4b. Same ids as the `AttackDeclared` it answers (the target may be face-down: only its id). Never a `definitionId` (oracle rule).                        |
 | SummonNegated          | definitionId                      | PUBLIC                   | Task 4.4, forwarded since 4.4b. The monster was face-up (Normal / Flip Summon) and goes to the public graveyard.                                                                     |
-| FusionMaterialSent     | definitionId                      | engine-only (→ 4.5b)     | Task 4.5. A Fusion material sent to the graveyard (public zone) from the hand, a Monster Zone or the Deck. Dropped for both viewers until wired.                                     |
-| MonsterFusionSummoned  | definitionId, materialInstanceIds | engine-only (→ 4.5b)     | Task 4.5. The Fusion Monster is face-up on the field; the materials are in the graveyard by then. Dropped for both viewers until wired.                                              |
+| FusionMaterialSent     | definitionId                      | PUBLIC (rebuilt)         | Task 4.5, forwarded since 4.5b. A Fusion material sent to the public graveyard from the hand, a Monster Zone or the Deck (no real card uses the Deck). Rebuilt field by field.       |
+| MonsterFusionSummoned  | definitionId, materialInstanceIds | PUBLIC (rebuilt)         | Task 4.5, forwarded since 4.5b. The Fusion Monster is face-up on the field; the materials are in the graveyard by then. Rebuilt field by field.                                      |
 
-> Task 4.5 (Fusion, engine + shared only): `FusionMaterialSent` and `MonsterFusionSummoned` are **engine-only** —
+> Task 4.5b (wire for 4.5, ADR 069): the two Fusion events are PUBLIC for both seats, but **rebuilt field by field** in
+> `toEventView` instead of forwarded as an object (a field the engine adds later stays server-side until classified); no
+> event is engine-only any more. **The Extra Deck is per seat** (owner decision): a player may see and be pointed at THEIR
+> OWN Extra Deck — `StateView.players[i].extraDeck` exists only in seat `i`'s view, `hiddenIdsFor` hides only the
+> opponent's Extra Deck, and the oracle's two rules (`reasonToHide`, `pointsAtHidden`) let the owner through. Nothing else
+> was relaxed: a Main Deck card is never named nor pointed at, for either seat. The two Fusion prompts are private (the
+> player who is not asked gets `payload: null`), and the asked player's payload is a wire form without the engine's
+> bookkeeping (`linkId`, `owedTriggers`, `linkCount`). The fuzz gate has a fifth variant (Extra Deck on both seats, rng
+> `fusion-leak-<i>`, `FUZZ_FUSION_SEEDS`) and, on EVERY step of every variant, three shape-agnostic checks: no id of a card
+> still in the other player's Extra Deck anywhere in what a viewer receives, no `extraDeck` key on the other player's view,
+> the viewer's own list equal to their Extra Deck. `fusion-wire.spec.ts` replaces `fusion-containment.spec.ts`.
+>
+> Task 4.5 (Fusion, engine + shared only — superseded by the paragraph above): `FusionMaterialSent` and `MonsterFusionSummoned` were **engine-only** —
 > `toEventView` returns `null` for both seats (spec: `ENGINE_ONLY_TYPES`). No duel made over HTTP has an Extra Deck yet, so
 > they are never emitted there. `fusion-containment.spec.ts` drives the engine with the real cards and runs the oracle on
 > what the OPPONENT would receive at every step of a Fusion Summon: no violation, only `extraDeckCount`, the Fusion prompts

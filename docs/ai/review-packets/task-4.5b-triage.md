@@ -50,4 +50,24 @@ src/actions/handlers/start-duel.extra-deck.test.ts` → 58 / 58 đạt; `vitest 
 
 `docs/reference/notes/RULES-REVIEW-SHEET.md` (9 ô duyệt; nhãn dòng G22 và vế G22 của dòng "Triệu hồi Dung hợp…"),
 `docs/ai/OPEN-ISSUES.md` (xoá P5, thêm P6), `docs/plan/fidelity-spec.md` (G22 → `[DECISION]`; ghi chú G25, G26), file này.
-Các dòng **mới** do phần code 4.5b thêm vào sheet đi qua cùng quy trình A / B / C ở cuối task (xem `task-4.5b.md`).
+
+## E. Dòng mới do phần code 4.5b thêm vào sheet (cùng quy trình, làm ở cuối task)
+
+7 dòng mới ⇒ **A 1 · B 5 · C 1** (hỏi thêm 1 câu qua hộp thoại, 2026-10-04). Sau bước này sheet có 106 dòng luật, **còn
+đúng 1 ô trống** (G26 f).
+
+| Dòng mới                                    | Nhóm | Quyết định                  | Bằng chứng                                                                                                                             |
+| ------------------------------------------- | ---- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Extra Deck: ai thấy gì                      | B    | ☑ brief 4.5b                | Quyết định (a) của brief 4.5b. `fusion-wire.spec.ts` (20 test) + fuzz `fusion-leak-<i>` xanh                                           |
+| Đấu với máy: Extra Deck của máy             | B    | ☑ brief 4.5b                | Brief 4.5b mục tiêu 2 ("ghế AI luôn Extra Deck rỗng"). Test `solo-vs-ai: the AI seat ALWAYS starts with an empty Extra Deck…` xanh     |
+| Kiểm tra Extra Deck khi tạo ván             | A    | ☑ AI duyệt thay             | Thuần `[RULE]`; 7 test e2e tên có "task 4.5b" xanh; đã đọc thân test (tôi viết ở task này), khớp cột mong đợi; không mâu thuẫn ADR 068 |
+| Màn chọn Dung hợp                           | B    | ☑ brief 4.5b                | `[REF]` video #2 + brief 4.5b mục tiêu 4 (hai bước, nhãn nguồn, "Đồng ý" chỉ sáng khi đủ) và quyết định (c). 6 test web xanh           |
+| Chi tiết thao tác ở màn chọn Dung hợp (G27) | C    | **Chấp nhận** ⇒ ☑ hộp thoại | Câu 7 (dưới). 3 test web xanh                                                                                                          |
+| Animation và nhật ký Dung hợp               | B    | ☑ brief 4.5b                | Brief 4.5b mục tiêu 4 (~1,25–1,5 s, placeholder "lá Phép hiện → xoáy → quái phát sáng"). 3 test web xanh                               |
+| Nguồn "Bộ bài" chưa có trên màn hình        | B    | ☑ brief 4.5b                | Quyết định (b) của brief 4.5b. Test `[DECISION] brief 4.5b (b): no real card takes fusion materials from the Deck…` xanh               |
+
+| #   | Câu hỏi (rút gọn)                                                                                                                      | Đáp án                      | Hệ quả               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | -------------------- |
+| 7   | Màn chọn Dung hợp: không có nút Hủy; chỉ chạm được lá trong dải giữa bàn; chọn 1 quái thì chạm lá khác = đổi lựa chọn — bạn duyệt chứ? | **Chấp nhận** (khuyến nghị) | G27 giữ như đang làm |
+
+**Tổng cả task (17 dòng đã xét):** A 2 · B 10 · C 5 (4 duyệt qua hộp thoại, 1 giữ tạm). **Còn mở: 1** (G26 f).

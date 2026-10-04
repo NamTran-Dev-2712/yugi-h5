@@ -56,6 +56,10 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - Sửa nhiều chỗ bằng `node -e` trong Bash mà nội dung có dấu backtick sẽ bị shell nuốt (comment mất tên biến) ⇒ dùng
   Edit/Write; nếu buộc dùng script thì đọc lại diff ngay (ADR 066).
 - `ScenarioSchema` không có ô Field ⇒ scenario cần lá ở ô Môi trường phải bắt đầu từ tay + `script` (ADR 064).
+- Chụp khung animation ngắn theo màu: dò màu trong **một vùng nhỏ** của canvas rồi mới chụp cả canvas, nới dải màu tới
+  khoảng nửa độ đậm (hiệu ứng mờ dần từ khung đầu). Sau `Page.navigate` lần hai cần `Emulation.setFocusEmulationEnabled`
+  (không thì Phaser bỏ qua chuột). Trang Sandbox không đọc `?lang` ⇒ ảnh tiếng Anh chụp bằng fixture (ADR 069).
+- Field mới của một schema Zod đang được dùng làm kiểu (`Scenario`) ⇒ `.optional()`, không `.default()` (ADR 069).
 - Đổi shape một field (vd `name` → `{vi,en}`): template literal nhận object không làm `tsc` đỏ (`[object Object]`) ⇒ grep
   mọi nơi dùng (ADR 046, 055).
 
@@ -87,6 +91,12 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   thời điểm theo luật; chỉ ảnh chạy thật mới lộ chỗ lệch ⇒ luôn mở ảnh đã chụp ra xem (ADR 064).
 - Client cần biết "loại gì" của một việc server làm (vd AI trả lời prompt nào) ⇒ server gửi kèm field công khai
   (`AiActionView.promptKind`), client không đoán từ id/chuỗi (ADR 064).
+- Event mới lên wire mà engine còn có thể thêm field: **dựng lại từng field** ở `toEventView` (không `return event`) + test
+  "field lạ không được forward" (ADR 069; khác 3 event Negate của ADR 066).
+- Vùng ẩn chỉ chủ được thấy (Extra Deck): field optional **vắng hẳn** ở view đối thủ + kiểm tra không phụ thuộc shape ở mọi
+  bước fuzz ("id lá đó không xuất hiện ở đâu trong những gì người kia nhận"); oracle chỉ nới đúng vùng đó (ADR 069).
+- Prompt mà engine không liệt kê hết câu trả lời (Fusion, trần 200 tổ hợp): client dựng câu trả lời từ payload prompt qua
+  **một** ngoại lệ hẹp có tên (`isFusionAnswer`); không nới chung luật "chỉ gửi phần tử `legalActions`" (ADR 069).
 
 ## Quyết định của chủ dự án dễ bị làm ngược
 
@@ -101,6 +111,10 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - Fusion (brief task 4.5, ADR 068): nguyên liệu **đích danh**; là Special Summon, **không** cửa sổ triệu hồi (chỉ
   `NegateActivation` lên lá Phép chặn được); nguồn nguyên liệu là tham số `sources` của lá (demo: tay + sân), chọn lúc
   resolve; quái Fusion rời sân vào **mộ**, không Normal Summon / Set / Special Summon bằng operation cũ. G26 `[ASSUMED]`.
+- Fusion trên wire (brief 4.5b, ADR 069): Extra Deck **theo ghế** — chủ thấy / được trỏ tới của mình, đối thủ chỉ thấy số
+  lượng, Deck chính kín với cả hai (đừng nới thêm); ghế AI **không có** Extra Deck ở ván thật; nguồn nguyên liệu `Deck`
+  **không lên wire** (G26 f giữ tạm, chờ tư liệu "Bộ bài"); luôn hỏi bước chọn quái; không chọn ô / tư thế.
+- **G22 là `[DECISION]`** (chủ dự án chốt 2026-10-04): quái vừa triệu hồi / Set không tấn công trong lượt đó — không hỏi lại.
 - Card data viết bằng TS, **không** pipeline CSV (ADR 058). Không Duration, không action `SpecialSummon` (ADR 059, 061).
 - C11: Trap phải Set mới kích hoạt (ADR 018). C13: phản ứng = chạm lá, **không** dialog "Kích hoạt?" (ADR 054).
 - AI server không tự Set/kích hoạt Phép/Bẫy ngoài cửa sổ ưu tiên (ADR 048, 055).

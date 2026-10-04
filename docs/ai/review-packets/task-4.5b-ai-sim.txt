@@ -1,0 +1,69 @@
+===== AI_SIM_GAMES=34 AI_SIM_OFFSET=0 =====
+[AI vs AI fusion deck] games=34 finished=34 meanTurns=37.5 {
+  decisions: 9236,
+  fusionSpellListed: 0,
+  fusionSpellActivated: 0,
+  fusionPromptsAnswered: 0,
+  spellTrapOnItsOwn: 0
+}
+[fuser vs AI, fusion deck] games=34 finished=34 meanTurns=30.8 {
+  activations: 31,
+  monsterAnswers: 31,
+  materialAnswers: 31,
+  aiDecisions: 3685,
+  aiSpellTrapOnItsOwn: 0
+}
+[AI with Extra Deck, fusion pushed] games=34 finished=34 meanTurns=23.5 { activations: 46, fusionPromptsAnswered: 92 }
+ ✓ src/modules/duels/ai/simulate.fusion-deck.spec.ts (3 tests) 215382ms
+   ✓ simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards) > the server AI on both seats, no Extra Deck: the fusion Spell is never listed, every game ends  98294ms
+   ✓ simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards) > a seat that really fuses (Extra Deck) against the server AI without one: fusions happen, the AI never gets stuck  74227ms
+   ✓ simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards) > Sandbox case — the AI seat has an Extra Deck and its fusion Spell is activated for it: it answers both prompts, every game ends  42859ms
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Duration  217.83s (transform 513ms, setup 0ms, collect 2.01s, tests 215.38s, environment 0ms, prepare 184ms)
+===== AI_SIM_GAMES=34 AI_SIM_OFFSET=34 =====
+[AI vs AI fusion deck] games=34 finished=34 meanTurns=38.6 {
+  decisions: 9461,
+  fusionSpellListed: 0,
+  fusionSpellActivated: 0,
+  fusionPromptsAnswered: 0,
+  spellTrapOnItsOwn: 0
+}
+[fuser vs AI, fusion deck] games=34 finished=34 meanTurns=26.6 {
+  activations: 28,
+  monsterAnswers: 28,
+  materialAnswers: 28,
+  aiDecisions: 3172,
+  aiSpellTrapOnItsOwn: 0
+}
+[AI with Extra Deck, fusion pushed] games=34 finished=34 meanTurns=24.5 { activations: 43, fusionPromptsAnswered: 86 }
+ ✓ src/modules/duels/ai/simulate.fusion-deck.spec.ts (3 tests) 204371ms
+   ✓ simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards) > the server AI on both seats, no Extra Deck: the fusion Spell is never listed, every game ends  99148ms
+   ✓ simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards) > a seat that really fuses (Extra Deck) against the server AI without one: fusions happen, the AI never gets stuck  55843ms
+   ✓ simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards) > Sandbox case — the AI seat has an Extra Deck and its fusion Spell is activated for it: it answers both prompts, every game ends  49378ms
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Duration  206.29s (transform 357ms, setup 0ms, collect 1.45s, tests 204.37s, environment 0ms, prepare 150ms)
+===== AI_SIM_GAMES=32 AI_SIM_OFFSET=68 =====
+[AI vs AI fusion deck] games=32 finished=32 meanTurns=39.5 {
+  decisions: 9127,
+  fusionSpellListed: 0,
+  fusionSpellActivated: 0,
+  fusionPromptsAnswered: 0,
+  spellTrapOnItsOwn: 0
+}
+[fuser vs AI, fusion deck] games=32 finished=32 meanTurns=28.4 {
+  activations: 28,
+  monsterAnswers: 28,
+  materialAnswers: 28,
+  aiDecisions: 3131,
+  aiSpellTrapOnItsOwn: 0
+}
+[AI with Extra Deck, fusion pushed] games=32 finished=32 meanTurns=23.4 { activations: 38, fusionPromptsAnswered: 76 }
+ ✓ src/modules/duels/ai/simulate.fusion-deck.spec.ts (3 tests) 191126ms
+   ✓ simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards) > the server AI on both seats, no Extra Deck: the fusion Spell is never listed, every game ends  93787ms
+   ✓ simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards) > a seat that really fuses (Extra Deck) against the server AI without one: fusions happen, the AI never gets stuck  58087ms
+   ✓ simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards) > Sandbox case — the AI seat has an Extra Deck and its fusion Spell is activated for it: it answers both prompts, every game ends  39250ms
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Duration  192.99s (transform 413ms, setup 0ms, collect 1.47s, tests 191.13s, environment 0ms, prepare 158ms)

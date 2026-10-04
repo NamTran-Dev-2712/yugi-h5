@@ -1,0 +1,88 @@
+ RUN  v3.2.7 E:/code/game/turn_battle/yugi-h5/apps/api
+[fuzz 4.5b] {
+  fusionSummons: 265,
+  fusionMaterialsFromHand: 238,
+  fusionMaterialsFromField: 306,
+  fusionMonsterPrompts: 270,
+  fusionMaterialPrompts: 268,
+  fusionPromptsSeenByOpponent: 538,
+  fusionTriggers: 130,
+  fusionVsAi: 57,
+  extraDeckSteps: 25856,
+  fusionsNegated: 54
+}
+[fuzz 4.4b] {
+  chainLinksNegated: 225,
+  attacksNegated: 181,
+  summonsNegated: 185,
+  counterTrapActivations: 576,
+  faceDownSetTrapsDestroyed: 227,
+  negatedVsAi: 125,
+  attacksNegatedOnFaceDown: 32
+}
+[fuzz 4.3b] {
+  fieldSets: 336,
+  fieldFromHand: 119,
+  fieldFromZone: 165,
+  fieldReplaced: 91,
+  faceDownFieldDestroyed: 126,
+  continuousSpellStays: 29723,
+  continuousTrapStays: 17548
+}
+[fuzz 3.2b/3.4b] {
+  steps: 118953,
+  duels: 768,
+  rejected: 7047,
+  targetPrompts: 1164,
+  triggerPrompts: 449,
+  declines: 174,
+  reactionWindows: 1503,
+  multiLinkChains: 949,
+  setActivations: 5257,
+  passes: 349,
+  ssFromHand: 151,
+  ssFromGraveyard: 230,
+  battleFlipTriggers: 103,
+  filteredTargets: 20,
+  aiSteps: 20574,
+  aiPromptAnswers: 693,
+  events: {
+    SpellTrapSet: 8320,
+    EffectActivated: 9069,
+    EffectResolved: 8736,
+    CardSentToGraveyard: 6809,
+    LifePointsRecovered: 852,
+    LifePointsPaid: 655,
+    SpellTrapDestroyed: 975,
+    ChainLinkAdded: 9069,
+    ChainResolved: 8037,
+    MonsterSpecialSummoned: 381,
+    FlipSummoned: 1748,
+    CardEquipped: 221,
+    FieldSpellSet: 344,
+    FieldSpellDestroyed: 228,
+    ChainLinkNegated: 225,
+    AttackNegated: 188,
+    SummonNegated: 185,
+    FusionMaterialSent: 544,
+    MonsterFusionSummoned: 265
+  }
+}
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ ❯ Object.onTimeoutError ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:53:10
+ ❯ Timeout._onTimeout ../../node_modules/.pnpm/vitest@3.2.7_@types+node@22_d7301ea03ba7f0fbdb9cbbb9336d2b20/node_modules/vitest/dist/chunks/index.B521nVV-.js:59:62
+ ❯ listOnTimeout node:internal/timers:588:17
+ ❯ processTimers node:internal/timers:523:7
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 passed (1)
+      Tests  454 passed (454)
+     Errors  1 error
+   Start at  14:28:13
+   Duration  1227.34s (transform 728ms, setup 0ms, collect 2.40s, tests 1224.46s, environment 0ms, prepare 187ms)
+undefined
+E:\code\game\turn_battle\yugi-h5\apps\api:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/modules/duels/event-visibility.fuzz.spec.ts
