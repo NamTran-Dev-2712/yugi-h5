@@ -101,11 +101,28 @@ export function toEventView(
     case 'SummonNegated':
       return event;
 
-    // Task 4.5 (Fusion, engine-only until task 4.5b puts it on the wire): not in `EventView` yet, so dropped for both
-    // viewers. No duel made over HTTP has an Extra Deck, so these are never emitted here today.
+    // Task 4.5, forwarded since 4.5b: a fusion material is in the public graveyard by the time the event is emitted (even
+    // one that was face-down or in the hand), and the Fusion Monster is face-up on the field. Rebuilt field by field, not
+    // forwarded as an object: whatever the engine adds to these events later stays server-side until it is classified.
     case 'FusionMaterialSent':
+      return {
+        type: 'FusionMaterialSent',
+        ownerIndex: event.ownerIndex,
+        instanceId: event.instanceId,
+        definitionId: event.definitionId,
+        from: event.from,
+        ...(event.zoneIndex !== undefined ? { zoneIndex: event.zoneIndex } : {}),
+      };
     case 'MonsterFusionSummoned':
-      return null;
+      return {
+        type: 'MonsterFusionSummoned',
+        playerIndex: event.playerIndex,
+        instanceId: event.instanceId,
+        definitionId: event.definitionId,
+        zoneIndex: event.zoneIndex,
+        position: event.position,
+        materialInstanceIds: [...event.materialInstanceIds],
+      };
 
     default: {
       const unclassified: never = event;

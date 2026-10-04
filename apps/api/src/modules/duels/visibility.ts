@@ -3,17 +3,20 @@ import type { PlayerAction } from '@yugi/shared';
 
 /**
  * Task 4.2d — the instance ids `viewer` must never be POINTED AT in a list sent to them: the cards of the opponent's hand
- * and of both decks / Extra Decks. Opponent hand ids themselves are public (the view lists them as hidden cards); what
- * must not leak is "that hand card is the one the effect chose" (e.g. a Special Summon from the hand: it tells the card
- * is a monster before it is revealed). Computed on the state the response is built from (the final state of the
+ * and Extra Deck, and of both Main Decks. Opponent hand ids themselves are public (the view lists them as hidden cards);
+ * what must not leak is "that hand card is the one the effect chose" (e.g. a Special Summon from the hand: it tells the
+ * card is a monster before it is revealed). Computed on the state the response is built from (the final state of the
  * request), the same rule as the test oracle (`testing/leak-check.ts`).
+ * Task 4.5b (owner decision, ADR 069): the viewer's OWN Extra Deck is not hidden from them (they may look at it and a
+ * Fusion prompt points at it); the opponent's still is, and a Main Deck stays hidden from both players.
  */
 export function hiddenIdsFor(state: GameState, viewer: 0 | 1): ReadonlySet<string> {
   const ids = new Set<string>();
-  for (const c of state.players[viewer === 0 ? 1 : 0].hand) ids.add(c.instanceId);
+  const opponent = state.players[viewer === 0 ? 1 : 0];
+  for (const c of opponent.hand) ids.add(c.instanceId);
+  for (const c of opponent.extraDeck) ids.add(c.instanceId);
   for (const p of state.players) {
     for (const c of p.deck) ids.add(c.instanceId);
-    for (const c of p.extraDeck) ids.add(c.instanceId);
   }
   return ids;
 }

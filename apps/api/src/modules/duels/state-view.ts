@@ -109,6 +109,8 @@ function toPlayerView(
     handCount: p.hand.length,
     deckCount: p.deck.length,
     extraDeckCount: p.extraDeck.length,
+    // Task 4.5b: a player may look at their own Extra Deck; the opponent's view has no such key (deny by default).
+    ...(isOwner ? { extraDeck: p.extraDeck.map(visible) } : {}),
     graveyard: p.graveyard.map(visible),
     banished: p.banished.map(visible),
     board,
@@ -126,8 +128,34 @@ const PUBLIC_PROMPT_KINDS: ReadonlySet<string> = new Set(['DiscardToHandLimit'])
  */
 function promptView(prompt: PendingPrompt | null, viewerIndex: 0 | 1): PendingPromptView | null {
   if (prompt === null) return null;
-  if (prompt.playerIndex === viewerIndex || PUBLIC_PROMPT_KINDS.has(prompt.kind)) return prompt;
-  return { ...prompt, payload: null };
+  if (prompt.playerIndex !== viewerIndex && !PUBLIC_PROMPT_KINDS.has(prompt.kind)) {
+    return { ...prompt, payload: null };
+  }
+  const wire = fusionPayload(prompt);
+  return wire === null ? prompt : { ...prompt, payload: wire };
+}
+
+const idList = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+
+/**
+ * Task 4.5b: the wire payload of the two Fusion prompts (`SelectFusionMonsterPromptPayload` /
+ * `SelectFusionMaterialsPromptPayload` of `@yugi/shared`), built field by field — what the player chooses from and how
+ * many. The engine's own payload also carries its bookkeeping for the paused chain (`linkId`, `owedTriggers`,
+ * `linkCount`); the client has no use for it, so it never leaves the server. `null` for every other prompt kind.
+ */
+function fusionPayload(prompt: PendingPrompt): Record<string, unknown> | null {
+  if (prompt.kind !== 'SelectFusionMonster' && prompt.kind !== 'SelectFusionMaterials') return null;
+  const raw = (prompt.payload ?? {}) as Record<string, unknown>;
+  const base = {
+    candidateInstanceIds: idList(raw['candidateInstanceIds']),
+    count: typeof raw['count'] === 'number' ? raw['count'] : 0,
+  };
+  if (prompt.kind === 'SelectFusionMonster') return base;
+  return {
+    fusionInstanceId: typeof raw['fusionInstanceId'] === 'string' ? raw['fusionInstanceId'] : '',
+    ...base,
+  };
 }
 
 /**

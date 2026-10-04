@@ -39,11 +39,13 @@ const NEGATE_TYPES = [
   'AttackNegated',
   'SummonNegated',
 ] as const satisfies readonly GameEvent['type'][];
-/** Task 4.5 events (Fusion): engine-only until task 4.5b — a type listed here must be dropped for both viewers. */
-const ENGINE_ONLY_TYPES = [
+/** Task 4.5 events (Fusion): PUBLIC, forwarded since task 4.5b (rebuilt field by field). */
+const FUSION_TYPES = [
   'FusionMaterialSent',
   'MonsterFusionSummoned',
 ] as const satisfies readonly GameEvent['type'][];
+/** Engine-only events: a type listed here must be dropped for both viewers. Empty again since task 4.5b. */
+const ENGINE_ONLY_TYPES = [] as const satisfies readonly GameEvent['type'][];
 type EngineOnlyEvent = Extract<GameEvent, { type: (typeof ENGINE_ONLY_TYPES)[number] }>;
 /** Every event but CardDrawn (and the engine-only ones) is forwarded with the engine shape. */
 type PublicEvent = Exclude<GameEvent, CardDrawnEvent | EngineOnlyEvent>;
@@ -244,12 +246,42 @@ describe('toEventView', () => {
     expect(Object.keys(FIXTURES)).toHaveLength(35);
   });
 
-  it('the Fusion events are engine-only (task 4.5): dropped for both viewers; every other type but CardDrawn is public', () => {
-    expect(ENGINE_ONLY_TYPES).toEqual(['FusionMaterialSent', 'MonsterFusionSummoned']);
-    expect(PUBLIC_TYPES).toHaveLength(32);
-    for (const type of ENGINE_ONLY_TYPES) {
+  it('no event is engine-only any more (task 4.5b): every type but CardDrawn is public', () => {
+    expect(ENGINE_ONLY_TYPES).toEqual([]);
+    expect(PUBLIC_TYPES).toHaveLength(34);
+  });
+
+  it.each(FUSION_TYPES)(
+    'forwards the Fusion event %s to both viewers with the engine fields, as a NEW object (task 4.5b)',
+    (type) => {
+      expect(PUBLIC_TYPES).toContain(type);
       for (const viewer of [0, 1] as const) {
-        expect(toEventView(FIXTURES[type], viewer, NONE)).toBeNull();
+        const view = toEventView(FIXTURES[type], viewer, NONE);
+        expect(view).toEqual(FIXTURES[type]);
+        // Rebuilt, not forwarded: a field the engine adds later is not sent until it is classified here.
+        expect(view).not.toBe(FIXTURES[type]);
+        const grown = { ...FIXTURES[type], serverOnly: 'x' } as unknown as GameEvent;
+        expect(JSON.stringify(toEventView(grown, viewer, NONE)).includes('serverOnly')).toBe(false);
+      }
+    },
+  );
+
+  it('FusionMaterialSent: zoneIndex only for a material that left a Monster Zone (task 4.5b)', () => {
+    const fromHand = toEventView(FIXTURES.FusionMaterialSent, 1, NONE);
+    expect(fromHand !== null && 'zoneIndex' in fromHand).toBe(false);
+    const fromField = toEventView(
+      { ...FIXTURES.FusionMaterialSent, from: 'MonsterZone', zoneIndex: 4 },
+      1,
+      NONE,
+    );
+    expect(fromField).toMatchObject({ from: 'MonsterZone', zoneIndex: 4 });
+  });
+
+  it('the hidden set never drops or rewrites a Fusion event (its cards are public by then) (task 4.5b)', () => {
+    const hidden = new Set(['p0-5', 'p0-6', 'p0-x0']);
+    for (const type of FUSION_TYPES) {
+      for (const viewer of [0, 1] as const) {
+        expect(toEventView(FIXTURES[type], viewer, hidden)).toEqual(FIXTURES[type]);
       }
     }
   });

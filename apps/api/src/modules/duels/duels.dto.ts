@@ -32,6 +32,8 @@ const Seat = z.union([z.literal(0), z.literal(1)]);
 const orEmpty = (v: unknown): unknown => v ?? {};
 
 const DeckIds = z.array(z.string().min(1).max(64)).max(200);
+/** Shape only (a hard cap against huge bodies); the real limit is `validateDeck` (20, Fusion Monsters only). */
+const ExtraDeckIds = z.array(z.string().min(1).max(64)).max(60);
 
 export const CreateSoloBody = z.preprocess(
   orEmpty,
@@ -41,13 +43,23 @@ export const CreateSoloBody = z.preprocess(
       deck: DeckIds.optional(),
       /** A deck per seat. Mutually exclusive with `deck`. */
       decks: z.tuple([DeckIds, DeckIds]).optional(),
+      /**
+       * Task 4.5b: one Extra Deck (Fusion Monster ids, in order) used by both seats. Absent (and no `extraDecks`) =
+       * none. In `solo-vs-ai` the AI seat never gets one, whatever is sent.
+       */
+      extraDeck: ExtraDeckIds.optional(),
+      /** An Extra Deck per seat. Mutually exclusive with `extraDeck`. */
+      extraDecks: z.tuple([ExtraDeckIds, ExtraDeckIds]).optional(),
       /** `solo-debug` (default): the caller drives both seats. `solo-vs-ai`: the caller plays seat 0, the server plays seat 1. */
       mode: z.enum(['solo-debug', 'solo-vs-ai']).default('solo-debug'),
       /** Which seat's view/events to return (solo-debug: either; solo-vs-ai: only the caller's own seat). */
       viewer: Seat.optional(),
     })
     .strict()
-    .refine((b) => !(b.deck && b.decks), { message: 'Send either "deck" or "decks", not both.' }),
+    .refine((b) => !(b.deck && b.decks), { message: 'Send either "deck" or "decks", not both.' })
+    .refine((b) => !(b.extraDeck && b.extraDecks), {
+      message: 'Send either "extraDeck" or "extraDecks", not both.',
+    }),
 );
 
 export const ViewerQuery = z.preprocess(

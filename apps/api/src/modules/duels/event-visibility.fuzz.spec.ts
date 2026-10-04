@@ -10,8 +10,11 @@ import {
   type SetSpellTrapAction,
 } from '@yugi/game-engine';
 import {
+  FUSION_DEMO_DECK,
+  FUSION_DEMO_EXTRA_DECK,
   NEGATE_DEMO_DECK,
   SAMPLE_CARDS,
+  isFusionEffect,
   isNegateOperationKind,
   type CardDefinition,
   type EffectDefinition,
@@ -43,6 +46,12 @@ import { findLeaks, type LeakViolation } from './testing/leak-check';
  * Task 4.4c: + a fourth set of seeds plays a flip-monster deck (`flipDeckList`, own rng stream, steered to Set flip
  * monsters and attack face-down ones) so the "flipped by an attack ⇒ flip trigger" path stays covered
  * (`FUZZ_FLIP_SEEDS`, default max(4, FUZZ_SEEDS / 4)). No engine, deck, seed or oracle of the older sets changed.
+ * Task 4.5b: + Fusion on the wire — a fifth set of seeds plays `FUSION_DEMO_DECK` with `FUSION_DEMO_EXTRA_DECK` for
+ * BOTH seats (rng stream `fusion-leak-<i>`, steered to activate the fusion Spell and answer its two prompts), in both
+ * modes (`FUZZ_FUSION_SEEDS`, default max(6, FUZZ_SEEDS / 2)). The oracle became per seat for the Extra Deck only (owner
+ * decision, ADR 069); on top of it every step checks that nothing a viewer receives mentions a card still in the OTHER
+ * player's Extra Deck, and that the two Fusion prompts never carry a payload for the player who is not asked. The older
+ * sets keep their decks, seeds and rng streams (no Extra Deck there, so the new checks cost them no random number).
  *
  * Default: FUZZ_SEEDS=8 × FUZZ_STEPS=120. Long run: `FUZZ_SEEDS=200 FUZZ_STEPS=400 pnpm --filter @yugi/api exec
  * vitest run src/modules/duels/event-visibility.fuzz.spec.ts`.
@@ -56,6 +65,8 @@ const FIELD_SEEDS = Number(process.env['FUZZ_FIELD_SEEDS'] ?? Math.max(6, Math.c
 const NEGATE_SEEDS = Number(process.env['FUZZ_NEGATE_SEEDS'] ?? Math.max(6, Math.ceil(SEEDS / 2)));
 /** Task 4.4c: seeds of the flip-monster deck (own rng stream; the seeds above are not touched). */
 const FLIP_SEEDS = Number(process.env['FUZZ_FLIP_SEEDS'] ?? Math.max(4, Math.ceil(SEEDS / 4)));
+/** Task 4.5b: seeds of the Fusion deck, Extra Deck on both seats (own rng stream; the seeds above are not touched). */
+const FUSION_SEEDS = Number(process.env['FUZZ_FUSION_SEEDS'] ?? Math.max(6, Math.ceil(SEEDS / 2)));
 
 const text = (s: string) => ({ vi: s, en: s });
 /** Test-only Spells (not in SAMPLE_CARDS; no new card data): one per effect path of task 3.2. */
@@ -349,6 +360,43 @@ function negateDeckList(): string[] {
   return [...NEGATE_DEMO_DECK, ...['FZ-KILL-ST', 'FZ-TRAP-KILL-ST'].flatMap(x3)];
 }
 
+/**
+ * Task 4.5b: the real Extra Deck (SMP-045 / 046 / 047) on BOTH seats, played by its OWN seeds. Two Main Decks:
+ *  - `fusionDeckList` (two-seat mode): the cards of `FUSION_DEMO_DECK`, but heavy on the fusion Spell and on the
+ *    materials of the two-material Fusion Monsters — with the real 3 copies a seed fuses once or twice in 120 steps,
+ *    too thin for a gate (the engine does not check copies; nothing but the mix differs);
+ *  - `FUSION_DEMO_DECK` itself (solo-vs-ai), the deck a person really plays.
+ */
+function fusionDeckList(): string[] {
+  const times = (id: string, n: number): string[] => Array.from({ length: n }, () => id);
+  const deck = [
+    ...times('SMP-116', 8),
+    ...['SMP-001', 'SMP-007', 'SMP-006', 'SMP-009'].flatMap((id) => times(id, 5)),
+    ...['SMP-004', 'SMP-010', 'SMP-013'].flatMap((id) => times(id, 2)),
+    ...times('SMP-209', 3),
+    ...times('SMP-202', 3),
+  ];
+  if (deck.some((id) => !FUSION_DEMO_DECK.includes(id))) throw new Error('not a demo-deck card');
+  return deck;
+}
+function fusionDemoDeckList(): string[] {
+  return [...FUSION_DEMO_DECK];
+}
+function fusionExtraDeckList(): string[] {
+  return [...FUSION_DEMO_EXTRA_DECK];
+}
+/** A card that Fusion Summons: read from its operations, not from its id. */
+const fuses = (definitionId: string): boolean =>
+  (DEFS.get(definitionId)?.effects ?? []).some(isFusionEffect);
+const FUSION_PROMPT_KINDS: ReadonlySet<string> = new Set([
+  'SelectFusionMonster',
+  'SelectFusionMaterials',
+]);
+const FUSION_EVENT_TYPES: ReadonlySet<string> = new Set([
+  'FusionMaterialSent',
+  'MonsterFusionSummoned',
+]);
+
 /** A card that negates something: read from its operations (the three kinds of task 4.4), not from its id. */
 const negates = (definitionId: string): boolean =>
   (DEFS.get(definitionId)?.effects ?? []).some((e) =>
@@ -385,6 +433,9 @@ const WATCHED = [
   'ChainLinkNegated',
   'AttackNegated',
   'SummonNegated',
+  // Task 4.5b.
+  'FusionMaterialSent',
+  'MonsterFusionSummoned',
 ] as const satisfies readonly EventView['type'][];
 
 interface Stats {
@@ -427,6 +478,22 @@ interface Stats {
   faceDownSetTrapsDestroyed: number;
   /** Negate events inside a `solo-vs-ai` response (the human negated something of the AI). */
   negatedVsAi: number;
+  /** Task 4.5b coverage (counted on what seat 0 received, or on the raw state). */
+  fusionSummons: number;
+  fusionMaterialsFromHand: number;
+  fusionMaterialsFromField: number;
+  fusionMonsterPrompts: number;
+  fusionMaterialPrompts: number;
+  /** Views of the player who is NOT asked while a Fusion prompt is open (their payload must be null). */
+  fusionPromptsSeenByOpponent: number;
+  /** A fusion Spell negated by a Counter Trap. */
+  fusionsNegated: number;
+  /** The "when Summoned" effect of a Fusion Monster went on the chain. */
+  fusionTriggers: number;
+  /** Fusion Summons inside a `solo-vs-ai` duel (by the human; the AI seat has no Extra Deck). */
+  fusionVsAi: number;
+  /** Steps checked while at least one Extra Deck held a card. */
+  extraDeckSteps: number;
   events: Map<string, number>;
   violations: LeakViolation[];
 }
@@ -474,6 +541,56 @@ async function checkBothViewers(
         : {}),
     };
     stats.violations.push(...findLeaks(state, viewer, payload));
+    // Task 4.5b: a player's Extra Deck is theirs alone. Shape-agnostic on purpose (on top of the oracle): the id of a
+    // card still in the OTHER player's Extra Deck must not appear anywhere in what this viewer receives, the other
+    // player's view has no `extraDeck` key, and the viewer's own list is exactly their Extra Deck.
+    const other = (1 - viewer) as 0 | 1;
+    const json = JSON.stringify(payload);
+    for (const c of state.players[other].extraDeck) {
+      if (json.includes(`"${c.instanceId}"`)) {
+        stats.violations.push({
+          viewer,
+          path: '$',
+          instanceId: c.instanceId,
+          definitionId: '(extra deck)',
+          reason: "a card of the opponent's Extra Deck is mentioned",
+        });
+      }
+    }
+    if ('extraDeck' in view.players[other]) {
+      stats.violations.push({
+        viewer,
+        path: `$.view.players[${other}].extraDeck`,
+        instanceId: null,
+        definitionId: '(extra deck)',
+        reason: "the opponent's Extra Deck list was sent",
+      });
+    }
+    const ownList = JSON.stringify((view.players[viewer].extraDeck ?? []).map((c) => c.instanceId));
+    if (ownList !== JSON.stringify(state.players[viewer].extraDeck.map((c) => c.instanceId))) {
+      stats.violations.push({
+        viewer,
+        path: `$.view.players[${viewer}].extraDeck`,
+        instanceId: null,
+        definitionId: '(extra deck)',
+        reason: 'the own Extra Deck list is not the Extra Deck',
+      });
+    }
+    if (viewer === 0 && state.players.some((p) => p.extraDeck.length > 0)) stats.extraDeckSteps++;
+    // The Fusion events are public — both seats receive the very same ones, in the same order.
+    if (result && viewer === 1) {
+      const fusionEvents = (evs: readonly EventView[]) =>
+        JSON.stringify(evs.filter((e) => FUSION_EVENT_TYPES.has(e.type)));
+      if (fusionEvents(result.eventsByViewer[0]) !== fusionEvents(result.eventsByViewer[1])) {
+        stats.violations.push({
+          viewer,
+          path: '$.events',
+          instanceId: null,
+          definitionId: '(fusion events)',
+          reason: 'the two seats received different Fusion events',
+        });
+      }
+    }
     // Task 4.4b: the Negate events are public — both seats receive the very same ones, in the same order.
     if (result && viewer === 1) {
       const negateEvents = (evs: readonly EventView[]) =>
@@ -488,11 +605,26 @@ async function checkBothViewers(
         });
       }
     }
-    // SelectEffectTarget / TriggerActivation payloads are for the prompted player only.
+    // SelectEffectTarget / TriggerActivation payloads are for the prompted player only; so are the two Fusion prompts
+    // (task 4.5b), whose payload for the asked player is the wire form (no engine bookkeeping).
     const prompt = view.pendingPrompt;
+    if (prompt && FUSION_PROMPT_KINDS.has(prompt.kind)) {
+      if (prompt.playerIndex !== viewer) stats.fusionPromptsSeenByOpponent++;
+      else if (/linkId|owedTriggers|linkCount/.test(JSON.stringify(prompt.payload))) {
+        stats.violations.push({
+          viewer,
+          path: '$.view.pendingPrompt.payload',
+          instanceId: null,
+          definitionId: '(prompt payload)',
+          reason: `${prompt.kind} payload carries the engine's bookkeeping`,
+        });
+      }
+    }
     if (
       prompt &&
-      (prompt.kind === 'SelectEffectTarget' || prompt.kind === 'TriggerActivation') &&
+      (prompt.kind === 'SelectEffectTarget' ||
+        prompt.kind === 'TriggerActivation' ||
+        FUSION_PROMPT_KINDS.has(prompt.kind)) &&
       prompt.playerIndex !== viewer &&
       prompt.payload !== null
     ) {
@@ -701,9 +833,45 @@ function countNegateMechanics(
   return negated;
 }
 
+/** Task 4.5b coverage counters for one step (`before` = the raw state the action was applied to). */
+function countFusionMechanics(
+  before: GameState,
+  result: SubmitActionResult,
+  after: GameState,
+  stats: Stats,
+): number {
+  let summons = 0;
+  const isFusionMonster = (definitionId: string): boolean => {
+    const def = DEFS.get(definitionId);
+    return def?.kind === 'Monster' && def.category === 'Fusion';
+  };
+  for (const e of result.eventsByViewer[0]) {
+    if (e.type === 'MonsterFusionSummoned') {
+      stats.fusionSummons++;
+      summons++;
+    }
+    if (e.type === 'FusionMaterialSent') {
+      if (e.from === 'Hand') stats.fusionMaterialsFromHand++;
+      if (e.from === 'MonsterZone') stats.fusionMaterialsFromField++;
+    }
+    if (e.type === 'ChainLinkNegated' && fuses(e.definitionId)) stats.fusionsNegated++;
+    if (e.type === 'ChainLinkAdded' && isFusionMonster(e.definitionId)) stats.fusionTriggers++;
+  }
+  const opened = (kind: string): boolean =>
+    after.pendingPrompt?.kind === kind &&
+    before.pendingPrompt?.promptId !== after.pendingPrompt.promptId;
+  if (opened('SelectFusionMonster')) stats.fusionMonsterPrompts++;
+  if (opened('SelectFusionMaterials')) stats.fusionMaterialPrompts++;
+  return summons;
+}
+
 interface FuzzVariant {
   readonly tag: string;
   readonly deck: () => string[];
+  /** Task 4.5b: an Extra Deck for BOTH seats (absent = none, the duel is created exactly as before). */
+  readonly extraDeck?: () => string[];
+  /** Task 4.5b: the name of the rng stream of a seed (default `fuzz-<tag>-<seed>`). */
+  readonly rngName?: (seed: number) => string;
   /** Legal actions this variant wants played more often (picked 60% of the time when any is listed). */
   readonly steer?: (
     state: GameState,
@@ -729,11 +897,12 @@ async function fuzzSeedVsAi(
     cardDefinitions: (id) => DEFS.get(id),
     newDuelId: () => `fuzz-ai-${seed}-${++duelN}`,
   });
-  let rng = createRng(`fuzz-${variant.tag}-${seed}`);
+  let rng = createRng(variant.rngName?.(seed) ?? `fuzz-${variant.tag}-${seed}`);
   const newDuel = async () => {
     const created = await manager.createDuel({
       playerIds: ['p0', 'p0:ai'],
       deckLists: [variant.deck(), variant.deck()],
+      ...(variant.extraDeck ? { extraDeckLists: [variant.extraDeck(), variant.extraDeck()] } : {}),
       seed: `duel-ai-${seed}-${duelN}`,
       mode: 'solo-vs-ai',
       ownerId: 'p0',
@@ -751,6 +920,7 @@ async function fuzzSeedVsAi(
       state = await rawState(manager, duelId);
     }
     expect(actorOf(state)).toBe(0); // the AI always finishes its part inside the request
+    expect(state.players[1].extraDeck).toEqual([]); // task 4.5b: the AI seat never has an Extra Deck
     const legal = await manager.getLegalActions(duelId, 0);
     let action: PlayerAction;
     if (variant.steer) {
@@ -764,7 +934,11 @@ async function fuzzSeedVsAi(
       [action, rng] = choose(legal, rng);
     }
     const result = await manager.submitAction(duelId, 0, action as unknown as Action);
-    if (variant.steer) stats.negatedVsAi += countNegateMechanics(action, 0, state, result, stats);
+    // Only the Negate variant feeds the Negate coverage (another steering variant must not stand in for it).
+    if (variant.steer === steerToNegate) {
+      stats.negatedVsAi += countNegateMechanics(action, 0, state, result, stats);
+    }
+    stats.fusionVsAi += countFusionMechanics(state, result, await rawState(manager, duelId), stats);
     stats.steps++;
     stats.aiSteps += result.aiActions.length;
     stats.aiPromptAnswers += result.aiActions.filter(
@@ -838,6 +1012,43 @@ function steerToNegate(
     const card = me.hand.find((c) => c.instanceId === a.payload.cardInstanceId);
     return card !== undefined && DEFS.get(card.definitionId)?.kind === 'Spell';
   });
+}
+
+/**
+ * Task 4.5b steering (test generator only, the engine decides what is legal): answer a Fusion prompt, activate the
+ * fusion Spell when the engine lists it, answer a chain with a Set card (the Counter Trap / the monster-destroying Trap
+ * of the deck), Set those Traps, and Summon monsters so that materials are taken from the field too.
+ */
+function steerToFusion(
+  state: GameState,
+  actor: 0 | 1,
+  legal: readonly PlayerAction[],
+): PlayerAction[] {
+  const me = state.players[actor];
+  if (state.pendingPrompt && FUSION_PROMPT_KINDS.has(state.pendingPrompt.kind)) {
+    return legal.filter((a) => a.type === 'ResolvePendingPrompt');
+  }
+  if (state.pendingPrompt !== null) return [];
+  const definitionOf = (instanceId: string): string | undefined =>
+    [...me.hand, ...me.board.spellTrapZones].find((c) => c?.instanceId === instanceId)
+      ?.definitionId;
+  const activations = legal.filter((a) => a.type === 'ActivateEffect');
+  // In a window: answer with whatever the engine lists (a negation of the fusion Spell, a Trap on a material).
+  if (legal.some((a) => a.type === 'PassPriority')) return activations;
+  // A Normal Summon first: the monster put on the field may then be taken from there as a material.
+  const summons = legal.filter((a) => a.type === 'NormalSummon');
+  if (summons.length > 0) return summons;
+  const fusion = activations.filter((a) => {
+    const id = a.type === 'ActivateEffect' ? definitionOf(a.payload.cardInstanceId) : undefined;
+    return id !== undefined && fuses(id);
+  });
+  if (fusion.length > 0) return fusion;
+  const traps = legal.filter((a) => {
+    if (a.type !== 'SetSpellTrap') return false;
+    const id = definitionOf(a.payload.cardInstanceId);
+    return id !== undefined && DEFS.get(id)?.kind === 'Trap';
+  });
+  return traps;
 }
 
 /**
@@ -925,12 +1136,15 @@ async function fuzzSeed(
     cardDefinitions: (id) => DEFS.get(id),
     newDuelId: () => `fuzz-${seed}-${++duelN}`,
   });
-  let rng = createRng(`fuzz-${variant.tag}-${seed}`);
+  let rng = createRng(variant.rngName?.(seed) ?? `fuzz-${variant.tag}-${seed}`);
   const newDuel = async () =>
     (
       await manager.createDuel({
         playerIds: ['p0', 'p1'],
         deckLists: [variant.deck(), variant.deck()],
+        ...(variant.extraDeck
+          ? { extraDeckLists: [variant.extraDeck(), variant.extraDeck()] }
+          : {}),
         seed: `duel-${seed}-${duelN}`,
       })
     ).duelId;
@@ -999,6 +1213,7 @@ async function fuzzSeed(
     countMechanics(result, after, stats);
     countFieldMechanics(action, actor, state, result, after, stats);
     countNegateMechanics(action, actor, state, result, stats);
+    countFusionMechanics(state, result, after, stats);
     if (after.pendingPrompt?.kind === 'SelectEffectTarget') stats.targetPrompts++;
     if (after.pendingPrompt?.kind === 'TriggerActivation') stats.triggerPrompts++;
     if (after.chainWindow?.reactionTo) stats.reactionWindows++;
@@ -1038,6 +1253,16 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     counterTrapActivations: 0,
     faceDownSetTrapsDestroyed: 0,
     negatedVsAi: 0,
+    fusionSummons: 0,
+    fusionMaterialsFromHand: 0,
+    fusionMaterialsFromField: 0,
+    fusionMonsterPrompts: 0,
+    fusionMaterialPrompts: 0,
+    fusionPromptsSeenByOpponent: 0,
+    fusionsNegated: 0,
+    fusionTriggers: 0,
+    fusionVsAi: 0,
+    extraDeckSteps: 0,
     events: new Map(),
     violations: [],
   };
@@ -1117,6 +1342,55 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     },
     120_000,
   );
+
+  const FUSION_VARIANT: FuzzVariant = {
+    tag: '4.5b-fusion',
+    deck: fusionDeckList,
+    extraDeck: fusionExtraDeckList,
+    rngName: (seed) => `fusion-leak-${seed}`,
+    steer: steerToFusion,
+  };
+
+  it.each(Array.from({ length: FUSION_SEEDS }, (_, i) => i))(
+    'seed fusion-leak-%i (Fusion deck, Extra Deck on both seats, task 4.5b): every response to both viewers passes the leak oracle',
+    async (seed) => {
+      const before = stats.violations.length;
+      await fuzzSeed(seed, stats, FUSION_VARIANT);
+      expect(stats.violations.slice(before).slice(0, 5)).toEqual([]);
+    },
+    120_000,
+  );
+
+  it.each(Array.from({ length: Math.ceil(FUSION_SEEDS / 2) }, (_, i) => i))(
+    'seed fusion-leak-ai-%i (Fusion deck, solo-vs-ai, task 4.5b): the human fuses, the AI seat has no Extra Deck, no leak',
+    async (seed) => {
+      const before = stats.violations.length;
+      await fuzzSeedVsAi(seed, STEPS, stats, {
+        ...FUSION_VARIANT,
+        deck: fusionDemoDeckList,
+        rngName: (n) => `fusion-leak-ai-${n}`,
+      });
+      expect(stats.violations.slice(before).slice(0, 5)).toEqual([]);
+    },
+    120_000,
+  );
+
+  it('covered Fusion on the wire (task 4.5b)', () => {
+    const fusion = {
+      fusionSummons: stats.fusionSummons,
+      fusionMaterialsFromHand: stats.fusionMaterialsFromHand,
+      fusionMaterialsFromField: stats.fusionMaterialsFromField,
+      fusionMonsterPrompts: stats.fusionMonsterPrompts,
+      fusionMaterialPrompts: stats.fusionMaterialPrompts,
+      fusionPromptsSeenByOpponent: stats.fusionPromptsSeenByOpponent,
+      fusionTriggers: stats.fusionTriggers,
+      fusionVsAi: stats.fusionVsAi,
+      extraDeckSteps: stats.extraDeckSteps,
+    };
+    // Printed, not required: a Counter Trap on the fusion Spell needs the opponent to hold one Set at that moment.
+    console.info('[fuzz 4.5b]', { ...fusion, fusionsNegated: stats.fusionsNegated });
+    for (const [name, n] of Object.entries(fusion)) expect(n, name).toBeGreaterThan(0);
+  });
 
   it('covered Counter Trap / Negate on the wire (task 4.4b)', () => {
     const negate = {

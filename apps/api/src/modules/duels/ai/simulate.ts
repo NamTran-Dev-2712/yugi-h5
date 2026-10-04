@@ -30,6 +30,8 @@ export interface SimOptions {
   /** Policy per seat. */
   readonly policies: readonly [AiPolicy, AiPolicy];
   readonly deck?: readonly string[];
+  /** Task 4.5b: Extra Deck per seat (default: none, the duel starts exactly as before). */
+  readonly extraDecks?: readonly [readonly string[], readonly string[]];
   /** Card data for `deck` (default: the server card pool). Task 3.4b: test decks with Traps/triggers. */
   readonly cardDefinitions?: (definitionId: string) => CardDefinition | undefined;
   /** Safety valve: a game still running after this many actions counts as "stuck". */
@@ -59,6 +61,7 @@ export function simulate(options: SimOptions): SimResult {
       seed: options.seed,
       playerIds: ['sim-a', 'sim-b'],
       deckLists: [deck, deck],
+      ...(options.extraDecks ? { extraDeckLists: options.extraDecks } : {}),
     },
   }).state;
   let actions = 0;

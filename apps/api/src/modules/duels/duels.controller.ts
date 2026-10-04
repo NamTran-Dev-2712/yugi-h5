@@ -43,8 +43,11 @@ export class DuelsController {
   ): Promise<CreateSoloResponse> {
     const single = body.deck ?? STARTER_DECK;
     const decks = body.decks ?? [single, single];
+    // Task 4.5b: the Extra Deck is validated together with its Main Deck (Fusion Monsters only, ≤ 20, ≤ 3 copies).
+    const singleExtra = body.extraDeck ?? [];
+    const extraDecks = body.extraDecks ?? [singleExtra, singleExtra];
     const errors = decks.flatMap((deck, seat) => {
-      const check = validateDeck(deck, lookupCard);
+      const check = validateDeck(deck, lookupCard, extraDecks[seat]);
       return check.ok ? [] : check.errors.map((e) => ({ seat, ...e }));
     });
     if (errors.length > 0) {
@@ -67,6 +70,8 @@ export class DuelsController {
     const created = await this.duels.createDuel({
       playerIds: playerIdsFor(mode, guestId, aiSeat),
       deckLists: [decks[0], decks[1]],
+      // The AI seat's list is dropped by DuelManager (solo-vs-ai): the AI never starts with an Extra Deck.
+      extraDeckLists: [extraDecks[0] ?? [], extraDecks[1] ?? []],
       mode,
       ownerId: guestId,
       ...(aiSeat !== undefined ? { aiSeat } : {}),

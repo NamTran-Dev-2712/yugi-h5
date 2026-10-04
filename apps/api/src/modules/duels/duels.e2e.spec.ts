@@ -7,6 +7,8 @@ import { Test } from '@nestjs/testing';
 import { createRng, nextInt } from '@yugi/game-engine';
 import {
   FIELD_DEMO_DECK,
+  FUSION_DEMO_DECK,
+  FUSION_DEMO_EXTRA_DECK,
   MECH_DEMO_DECK,
   NEGATE_DEMO_DECK,
   PlayerActionSchema,
@@ -209,6 +211,76 @@ describe('POST /duels/solo', () => {
     const res = await http().post('/duels/solo').set(guest.auth).send(body).expect(400);
     expect(res.body.code).toBe('INVALID_DECK');
     expect(res.body.errors.map((e: { code: string }) => e.code)).toContain(code);
+  });
+
+  it('task 4.5b: accepts an Extra Deck — the caller sees their own list, only the size of the other seat’s', async () => {
+    const guest = await newGuest();
+    const res = await http()
+      .post('/duels/solo')
+      .set(guest.auth)
+      .send({ deck: [...FUSION_DEMO_DECK], extraDeck: [...FUSION_DEMO_EXTRA_DECK] })
+      .expect(201);
+    const view: StateView = res.body.view;
+    expect(view.players[0].extraDeck?.map((c) => c.definitionId)).toEqual([
+      ...FUSION_DEMO_EXTRA_DECK,
+    ]);
+    expect(view.players[0].extraDeckCount).toBe(FUSION_DEMO_EXTRA_DECK.length);
+    expect('extraDeck' in view.players[1]).toBe(false);
+    expect(view.players[1].extraDeckCount).toBe(FUSION_DEMO_EXTRA_DECK.length);
+    // The other seat's Extra Deck cards are never mentioned to this viewer.
+    expect(JSON.stringify(res.body)).not.toContain('"p1-x');
+    const other = await viewOf({ guest, duelId: res.body.duelId }, 1);
+    expect(other.players[1].extraDeck).toHaveLength(FUSION_DEMO_EXTRA_DECK.length);
+    expect('extraDeck' in other.players[0]).toBe(false);
+  });
+
+  it('task 4.5b: solo-vs-ai — the AI seat gets NO Extra Deck even when one is sent for it', async () => {
+    const guest = await newGuest();
+    const res = await http()
+      .post('/duels/solo')
+      .set(guest.auth)
+      .send({
+        mode: 'solo-vs-ai',
+        deck: [...FUSION_DEMO_DECK],
+        extraDecks: [[...FUSION_DEMO_EXTRA_DECK], [...FUSION_DEMO_EXTRA_DECK]],
+      })
+      .expect(201);
+    const view: StateView = res.body.view;
+    expect(view.players[0].extraDeck).toHaveLength(FUSION_DEMO_EXTRA_DECK.length);
+    expect(view.players[1].extraDeckCount).toBe(0);
+  });
+
+  it.each([
+    ['a non-Fusion card in the Extra Deck', { extraDeck: ['SMP-001'] }, 'EXTRA_NOT_FUSION'],
+    ['an unknown card in the Extra Deck', { extraDeck: ['NOPE-X'] }, 'UNKNOWN_CARD'],
+    ['4 copies in the Extra Deck', { extraDeck: Array(4).fill('SMP-045') }, 'TOO_MANY_COPIES'],
+    ['over 20 cards in the Extra Deck', { extraDeck: Array(21).fill('SMP-045') }, 'EXTRA_TOO_MANY'],
+    [
+      'a Fusion Monster in the Main Deck',
+      { deck: [...FUSION_DEMO_DECK.slice(1), 'SMP-045'] },
+      'FUSION_IN_MAIN_DECK',
+    ],
+  ])('task 4.5b: rejects %s with 400 INVALID_DECK', async (_n, body, code) => {
+    const guest = await newGuest();
+    const res = await http().post('/duels/solo').set(guest.auth).send(body).expect(400);
+    expect(res.body.code).toBe('INVALID_DECK');
+    expect(res.body.errors.map((e: { code: string }) => e.code)).toContain(code);
+  });
+
+  it('task 4.5b: reports the seat of a bad Extra Deck; refuses extraDeck together with extraDecks', async () => {
+    const guest = await newGuest();
+    const bad = await http()
+      .post('/duels/solo')
+      .set(guest.auth)
+      .send({ extraDecks: [['SMP-045'], ['SMP-002']] })
+      .expect(400);
+    expect(bad.body.errors.every((e: { seat: number }) => e.seat === 1)).toBe(true);
+    const both = await http()
+      .post('/duels/solo')
+      .set(guest.auth)
+      .send({ extraDeck: ['SMP-045'], extraDecks: [['SMP-045'], []] })
+      .expect(400);
+    expect(both.body.statusCode).toBe(400);
   });
 
   it('reports which seat has the bad deck', async () => {

@@ -7,7 +7,9 @@ import type { CardInstance, GameState } from '@yugi/game-engine';
  * object that carries a `definitionId`, and checks each against the raw server state AFTER the action:
  *  - the card must exist and carry that very definitionId;
  *  - it may be shown only if it is in a graveyard/banished/a chain link (public), face-up on the field, or the viewer's own card in
- *    hand or on the field (face-down included). A card in a deck or Extra Deck is never shown, not even to its owner;
+ *    hand or on the field (face-down included). A card in a Main Deck is never shown, not even to its owner; a card in
+ *    an Extra Deck is shown to (and may be pointed at for) its OWNER only — task 4.5b, owner decision, ADR 069: the one
+ *    rule that became per seat; nothing else was relaxed;
  *  - a `definitionId` without an `instanceId` next to it is flagged too (it cannot be checked, so it is not allowed).
  * Knowing nothing about the wire shape is the point: a new field that smuggles a card identity is caught as well.
  * Task 4.3b: the Field Zone is a field zone like the others here (a face-down Field Spell is hidden from the opponent
@@ -82,8 +84,10 @@ function reasonToHide(place: Place | null, viewer: 0 | 1): string | null {
   const { zone, card } = place;
   switch (zone) {
     case 'deck':
+      return 'card is in a deck';
+    // Task 4.5b (owner decision, ADR 069): a player may see their OWN Extra Deck; the opponent's stays closed.
     case 'extraDeck':
-      return `card is in a ${zone}`;
+      return card.ownerIndex === viewer ? null : "card is in the opponent's Extra Deck";
     case 'graveyard':
     case 'banished':
     case 'chain':
@@ -136,11 +140,14 @@ function collectPointers(value: unknown): {
   return { ids, equips };
 }
 
-/** Where a pointed-at id must not be for `viewer`: the opponent's hand, or any deck / Extra Deck. */
+/**
+ * Where a pointed-at id must not be for `viewer`: any Main Deck, or the opponent's hand / Extra Deck. Task 4.5b: the
+ * viewer's own Extra Deck may be pointed at (a Fusion prompt lists its candidates there).
+ */
 function pointsAtHidden(place: Place | null, viewer: 0 | 1): boolean {
   if (place === null) return false;
-  if (place.zone === 'deck' || place.zone === 'extraDeck') return true;
-  return place.zone === 'hand' && place.card.ownerIndex !== viewer;
+  if (place.zone === 'deck') return true;
+  return (place.zone === 'hand' || place.zone === 'extraDeck') && place.card.ownerIndex !== viewer;
 }
 
 /** `equippedTo` may only sit on a face-up card and name a face-up monster in a Monster Zone. */

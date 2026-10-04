@@ -88,6 +88,18 @@ export function scenarioToState(
 
     const graveyard = src.gy.map((id) => make('gy', id, null));
 
+    // Task 4.5b: the Extra Deck, built as `StartDuel` builds it — list order, ids `p<seat>-x<i>` (a numbering of its
+    // own, so every other card keeps the id it had before), Fusion Monsters only.
+    const extraDeck = (src.extraDeck ?? []).map((definitionId, i): CardInstance => {
+      const def = lookup(definitionId);
+      if (!def) {
+        problems.push(`player ${seat} extraDeck: unknown card "${definitionId}"`);
+      } else if (def.kind !== 'Monster' || def.category !== 'Fusion') {
+        problems.push(`player ${seat} extraDeck: "${definitionId}" is not a Fusion Monster`);
+      }
+      return { instanceId: `p${seat}-x${i}`, definitionId, position: null, ownerIndex: seat };
+    });
+
     return {
       playerId: identity.playerIds[seat],
       lifePoints: src.lp,
@@ -96,7 +108,7 @@ export function scenarioToState(
       deck,
       graveyard,
       banished: [],
-      extraDeck: [],
+      extraDeck,
       hasNormalSummonedThisTurn: false,
     };
   });

@@ -31,6 +31,11 @@ export interface CreateDuelConfig {
   readonly playerIds: readonly [string, string];
   /** Card definition ids in deck order (pre-shuffle), one list per player. */
   readonly deckLists: readonly [readonly string[], readonly string[]];
+  /**
+   * Task 4.5b: Extra Deck ids per player, in order (not shuffled). Absent = both empty. In `solo-vs-ai` the AI seat's
+   * list is ignored: the AI always starts with an empty Extra Deck (it is not taught to Fusion Summon before P8).
+   */
+  readonly extraDeckLists?: readonly [readonly string[], readonly string[]];
   readonly ruleset?: Partial<RulesetConfig>;
   readonly startingLP?: readonly [number, number];
   /** Tests/replays only; production leaves it out and the server picks one. */
@@ -141,6 +146,7 @@ export class DuelManager {
     this.validateConfig(config);
     const duelId = this.newDuelId();
     const seed = config.seed ?? this.newSeed();
+    const extraDeckLists = extraDecksFor(config);
     const startAction: StartDuelAction = {
       type: 'StartDuel',
       payload: {
@@ -148,6 +154,8 @@ export class DuelManager {
         seed,
         playerIds: config.playerIds,
         deckLists: config.deckLists,
+        // Left out when nobody has an Extra Deck: the start action (kept for replays) is then the one it always was.
+        ...(extraDeckLists ? { extraDeckLists } : {}),
         ...(config.ruleset ? { ruleset: config.ruleset } : {}),
         ...(config.startingLP ? { startingLP: config.startingLP } : {}),
       },
@@ -483,12 +491,34 @@ export class DuelManager {
     ) {
       throw new DuelServiceError('INVALID_CONFIG', 'deckLists must be two non-empty arrays.');
     }
-    for (const id of deckLists.flat()) {
+    const extra = config.extraDeckLists;
+    if (
+      extra !== undefined &&
+      (!Array.isArray(extra) || extra.length !== 2 || extra.some((d) => !Array.isArray(d)))
+    ) {
+      throw new DuelServiceError('INVALID_CONFIG', 'extraDeckLists must be two arrays.');
+    }
+    for (const id of [...deckLists.flat(), ...(extra ?? []).flat()]) {
       if (!this.cardDefinitions(id)) {
         throw new DuelServiceError('UNKNOWN_CARD', `Unknown card definition "${id}".`);
       }
     }
   }
+}
+
+/**
+ * Task 4.5b: the Extra Decks the duel starts with, or `undefined` when both are empty. In `solo-vs-ai` the AI seat's
+ * list is dropped HERE, whatever the caller sent — the one place a duel is started, so no entry point can forget it
+ * (the AI does not Fusion Summon before P8; ADR 069).
+ */
+function extraDecksFor(
+  config: CreateDuelConfig,
+): readonly [readonly string[], readonly string[]] | undefined {
+  const lists = config.extraDeckLists;
+  if (lists === undefined) return undefined;
+  const ai = config.mode === 'solo-vs-ai' ? config.aiSeat : undefined;
+  const result = [ai === 0 ? [] : lists[0], ai === 1 ? [] : lists[1]] as const;
+  return result[0].length === 0 && result[1].length === 0 ? undefined : result;
 }
 
 /** `hiddenIdsFor` of both seats, on the state a response is built from. */

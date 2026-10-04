@@ -150,6 +150,61 @@ describe('scenarioToState — the state it builds', () => {
       Object.keys(real.players[0].hand[0] ?? {}).sort(),
     );
   });
+
+  it('task 4.5b: without extraDeck both Extra Decks are empty and every other card keeps the id it had', () => {
+    const plain = build(scenario());
+    const withExtra = build(
+      scenario({ players: [player({ extraDeck: ['SMP-045', 'SMP-046'] }), player()] }),
+    );
+    expect(plain.players[0].extraDeck).toEqual([]);
+    expect(plain.players[1].extraDeck).toEqual([]);
+    expect({
+      ...withExtra,
+      players: withExtra.players.map((p) => ({ ...p, extraDeck: [] })),
+    }).toEqual(plain);
+  });
+
+  it('task 4.5b: builds the Extra Deck exactly as StartDuel does (order, ids p<seat>-x<i>, owner, no position)', () => {
+    const extra: [string[], string[]] = [['SMP-045', 'SMP-046', 'SMP-045'], ['SMP-047']];
+    const real = applyAction(null, {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'm1',
+        seed: 's',
+        playerIds: ['a', 'b'],
+        deckLists: [STARTER_DECK, STARTER_DECK],
+        extraDeckLists: extra,
+      },
+    }).state;
+    const built = build(
+      scenario({ players: [player({ extraDeck: extra[0] }), player({ extraDeck: extra[1] })] }),
+    );
+    for (const seat of [0, 1] as const) {
+      expect(built.players[seat].extraDeck).toEqual(real.players[seat].extraDeck);
+    }
+    expect(built.players[0].extraDeck.map((c) => c.instanceId)).toEqual([
+      'p0-x0',
+      'p0-x1',
+      'p0-x2',
+    ]);
+  });
+
+  it('task 4.5b: the engine accepts a Fusion Summon on a state it built (SMP-116 + materials in hand)', () => {
+    const state = build(
+      scenario({
+        players: [
+          player({ hand: ['SMP-116', 'SMP-001', 'SMP-007'], extraDeck: ['SMP-045'] }),
+          player(),
+        ],
+        turn: { count: 3, player: 0 },
+        phase: 'Main1',
+      }),
+    );
+    const activate = getLegalActions(state, 0, ctx).find((a) => a.type === 'ActivateEffect');
+    expect(activate).toBeDefined();
+    const asked = applyAction(state, activate!, ctx).state;
+    expect(asked.pendingPrompt?.kind).toBe('SelectFusionMonster');
+  });
 });
 
 describe('scenarioToState — the engine accepts what it built', () => {
@@ -228,6 +283,18 @@ describe('scenarioToState — invalid scenarios', () => {
     ]) {
       expect(message(scenario({ players: [p, player()] }))).toMatch(/X-/);
     }
+  });
+
+  it('task 4.5b: rejects an unknown card and a card that is not a Fusion Monster in the Extra Deck', () => {
+    expect(message(scenario({ players: [player({ extraDeck: ['X-EXTRA'] }), player()] }))).toMatch(
+      /extraDeck.*X-EXTRA/,
+    );
+    const notFusion = message(
+      scenario({ players: [player(), player({ extraDeck: ['SMP-045', 'SMP-001', 'SMP-116'] })] }),
+    );
+    expect(notFusion).toMatch(/player 1 extraDeck: "SMP-001" is not a Fusion Monster/);
+    expect(notFusion).toMatch(/"SMP-116" is not a Fusion Monster/);
+    expect(notFusion).not.toMatch(/SMP-045/);
   });
 
   it('rejects two monsters in the same zone', () => {
