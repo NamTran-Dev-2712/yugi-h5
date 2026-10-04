@@ -62,6 +62,10 @@ export function categoryOfEvent(type: EventView['type']): LogCategory {
       return 'field';
     case 'AttackNegated':
       return 'combat';
+    // Task 4.5b: a Fusion Summon and its materials sit with the Summons.
+    case 'FusionMaterialSent':
+    case 'MonsterFusionSummoned':
+      return 'field';
     default: {
       const unhandled: never = type;
       throw new Error(`Event chưa có nhóm log: ${String(unhandled)}`);

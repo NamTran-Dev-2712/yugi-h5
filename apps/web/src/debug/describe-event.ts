@@ -186,6 +186,25 @@ export function describeEvent(event: EventView, ctx: DescribeContext): string {
         card: ctx.cardName(event.definitionId),
         target: ctx.instanceLabel(event.targetInstanceId),
       });
+    // Task 4.5b: Fusion. The material is in the public graveyard and the Fusion Monster face-up on the field by the
+    // time the event arrives, so both may be named. The source of a material is the server's `from`, not a guess.
+    case 'FusionMaterialSent':
+      return event.from === 'MonsterZone'
+        ? t('event.fusionMaterialField', {
+            player: p(event.ownerIndex),
+            card: ctx.cardName(event.definitionId),
+            zone: event.zoneIndex ?? '?',
+          })
+        : t(event.from === 'Hand' ? 'event.fusionMaterialHand' : 'event.fusionMaterialDeck', {
+            player: p(event.ownerIndex),
+            card: ctx.cardName(event.definitionId),
+          });
+    case 'MonsterFusionSummoned':
+      return t('event.fusionSummoned', {
+        player: p(event.playerIndex),
+        card: ctx.cardName(event.definitionId),
+        zone: event.zoneIndex,
+      });
     default: {
       const unhandled: never = event;
       return t('event.unknown', { json: JSON.stringify(unhandled) });

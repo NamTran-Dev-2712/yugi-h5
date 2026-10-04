@@ -25,6 +25,9 @@ export const FIXTURE_NAMES = [
   // Task 4.4b.
   'counter-main',
   'counter-window',
+  // Task 4.5b.
+  'fusion-monster',
+  'fusion-material',
 ] as const;
 export type FixtureName = (typeof FIXTURE_NAMES)[number];
 

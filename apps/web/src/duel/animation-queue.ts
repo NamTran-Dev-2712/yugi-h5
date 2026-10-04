@@ -45,7 +45,10 @@ export type StepKind =
   // Task 4.4b: a negation (an activation / an attack / a Summon)
   | 'negateLink'
   | 'negateAttack'
-  | 'negateSummon';
+  | 'negateSummon'
+  // Task 4.5b: Fusion (a material leaves for the graveyard / the Fusion Monster arrives)
+  | 'fusionMaterial'
+  | 'fusionSummon';
 
 /**
  * How long each step lasts at speed 1 (ms). One place to tune the feel (`?fast=1` = ×3, `?anim=off` = none).
@@ -93,6 +96,11 @@ export const DURATION_MS: Readonly<Record<StepKind, number>> = {
   negateLink: 500, // [GUESS]
   negateAttack: 500, // [GUESS]
   negateSummon: 500, // [GUESS]
+  // Task 4.5b — Fusion. [REF, low] video #1: the whole Fusion ~1.25–1.5 s (video #2 measured ~3–3.5 s with another
+  // method; `animation-durations.md`). 2 materials + the Summon = 1.3 s, 3 materials = 1.5 s. The swirl / glow drawn
+  // by the scene is a placeholder ([GUESS] G27): there is no art yet.
+  fusionMaterial: 200, // [GUESS] split of the measured total
+  fusionSummon: 900, // [GUESS] split of the measured total
 };
 /** Several cards drawn in a row (the opening hand) play as one longer step instead of N short ones. */
 const DRAW_MANY_MS = 600;
@@ -220,6 +228,23 @@ export type AnimationStep =
   | (StepBase & {
       /** Task 4.4b: the Summon of monster `instanceId` into Monster Zone `zoneIndex` was negated (to the graveyard). */
       readonly kind: 'negateSummon';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+      readonly zoneIndex: number;
+    })
+  | (StepBase & {
+      /**
+       * Task 4.5b: fusion material `instanceId` of `playerIndex` leaves for the graveyard. `zoneIndex` = the Monster
+       * Zone it left; null = it came from the hand (the scene then draws nothing on the board).
+       */
+      readonly kind: 'fusionMaterial';
+      readonly playerIndex: PlayerIndex;
+      readonly instanceId: string;
+      readonly zoneIndex: number | null;
+    })
+  | (StepBase & {
+      /** Task 4.5b: a Fusion Monster arrives face-up in Monster Zone `zoneIndex` (swirl, then a glow on the zone). */
+      readonly kind: 'fusionSummon';
       readonly playerIndex: PlayerIndex;
       readonly instanceId: string;
       readonly zoneIndex: number;
@@ -436,6 +461,22 @@ function stepFor(e: EventView, text: string): AnimationStep | null {
         playerIndex: e.playerIndex,
         instanceId: e.instanceId,
         targetInstanceId: e.targetInstanceId,
+      };
+    case 'FusionMaterialSent':
+      return {
+        kind: 'fusionMaterial',
+        ...d('fusionMaterial'),
+        playerIndex: e.ownerIndex,
+        instanceId: e.instanceId,
+        zoneIndex: e.from === 'MonsterZone' && e.zoneIndex !== undefined ? e.zoneIndex : null,
+      };
+    case 'MonsterFusionSummoned':
+      return {
+        kind: 'fusionSummon',
+        ...d('fusionSummon'),
+        playerIndex: e.playerIndex,
+        instanceId: e.instanceId,
+        zoneIndex: e.zoneIndex,
       };
     default: {
       const exhaustive: never = e;

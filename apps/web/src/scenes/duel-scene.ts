@@ -10,7 +10,8 @@ import { captionStyle, type AnimationStep } from '../duel/animation-queue';
 import { formatDetail } from '../duel/detail-text';
 import type { SelectionPurpose } from '../duel/interaction';
 import { createInteractionDriver, type InteractionDriver } from '../duel/interaction-driver';
-import { computeLayout, pickerPanel, staticRects, type Rect } from '../duel/layout';
+import type { FusionSource } from '../duel/fusion-prompt';
+import { computeLayout, PICKER_LABEL_H, pickerPanel, staticRects, type Rect } from '../duel/layout';
 import { filterEntries } from '../duel/log-entries';
 import {
   loadLogPanel,
@@ -35,13 +36,24 @@ export interface DuelSceneData {
 const LOG_LINES = 24;
 const TOAST_MS = 2500;
 
-/** Hint above Confirm, per what the card selection is for (read at draw time: the language may change). */
-const CONFIRM_HINT: Record<SelectionPurpose, () => string> = {
+/**
+ * Hint above Confirm, per what the card selection is for (read at draw time: the language may change). `count` = how
+ * many cards a Fusion prompt asks for (task 4.5b).
+ */
+const CONFIRM_HINT: Record<SelectionPurpose, (count: number) => string> = {
   tribute: () => strings.pickTributeHint,
   discard: () => strings.pickDiscardHint,
   cost: () => strings.pickCostHint,
   target: () => strings.pickTargetHint,
   trigger: () => strings.pickTriggerHint,
+  'fusion-monster': () => strings.pickFusionMonsterHint,
+  'fusion-material': (count) => strings.pickFusionMaterialHint(count),
+};
+
+/** Task 4.5b: the label under a fusion material in the picker row — where the server's view says the card is. */
+const FUSION_SOURCE_LABEL: Record<FusionSource, () => string> = {
+  hand: () => strings.fusionSourceHand,
+  field: () => strings.fusionSourceField,
 };
 
 /** localStorage may be missing or throw (private window); the panel then just uses its defaults. */
@@ -292,7 +304,19 @@ export class DuelScene extends Phaser.Scene {
     for (const t of o.targets) outline(t, c.target);
     if (o.lpTarget) outline(o.lpTarget, c.target);
     // Task 4.2d: candidates off the board (graveyard) are drawn in a picker row over the board.
-    const panel = pickerPanel(o.picker.length);
+    // Task 4.5b: a Fusion prompt shows ALL its candidates there, under its own title ([REF] video #2: "Chọn mục tiêu
+    // dung hợp" / "Chọn N nguyên liệu dung hợp"), each material with the label of where it is.
+    const fusionPurpose =
+      o.confirm?.purpose === 'fusion-monster' || o.confirm?.purpose === 'fusion-material'
+        ? o.confirm.purpose
+        : null;
+    const pickerTitle =
+      fusionPurpose === 'fusion-monster'
+        ? strings.fusionMonsterTitle
+        : fusionPurpose === 'fusion-material'
+          ? strings.fusionMaterialTitle(o.confirm?.count ?? 0)
+          : strings.pickerTitle;
+    const panel = pickerPanel(o.picker.length, fusionPurpose !== null);
     if (panel) {
       const bg = this.add
         .rectangle(panel.x, panel.y, panel.w, panel.h, c.pickerBg, 0.95)
@@ -300,12 +324,29 @@ export class DuelScene extends Phaser.Scene {
       bg.setStrokeStyle(2, c.highlight, 0.8);
       this.overlay.add(bg);
       this.overlay.add(
-        this.add.text(panel.x + 8, panel.y + 3, strings.pickerTitle, {
+        this.add.text(panel.x + 8, panel.y + 3, pickerTitle, {
           fontFamily: theme.fonts.ui,
           fontSize: `${theme.fontSize.small}px`,
-          color: theme.css.textDim,
+          color: fusionPurpose ? theme.css.gold : theme.css.textDim,
         }),
       );
+      for (const slot of o.picker) {
+        if (!slot.source) continue;
+        this.overlay.add(
+          this.add
+            .text(
+              slot.rect.x + slot.rect.w / 2,
+              slot.rect.y + slot.rect.h + PICKER_LABEL_H / 2 + 2,
+              FUSION_SOURCE_LABEL[slot.source](),
+              {
+                fontFamily: theme.fonts.ui,
+                fontSize: `${theme.fontSize.small}px`,
+                color: theme.css.text,
+              },
+            )
+            .setOrigin(0.5),
+        );
+      }
       for (const pc of pickerCards(ctx.view, o.picker, this.controller.lookup)) {
         const view = createCardView(this, pc);
         view.on('pointerover', () => this.showDetail(pc.detail));
@@ -314,7 +355,8 @@ export class DuelScene extends Phaser.Scene {
     }
     const pickerRect = (id: string): Rect | undefined => o.picker.find((x) => x.id === id)?.rect;
     for (const id of o.candidates) {
-      const r = cardRect(id) ?? pickerRect(id);
+      // A Fusion candidate is chosen in the picker row only, so that is where it is outlined.
+      const r = fusionPurpose ? pickerRect(id) : (cardRect(id) ?? pickerRect(id));
       if (r)
         outline(
           r,
@@ -359,7 +401,14 @@ export class DuelScene extends Phaser.Scene {
       });
     }
 
-    if (o.confirm) this.drawConfirmBar(o.confirm.enabled, o.confirm.showCancel, o.confirm.purpose);
+    if (o.confirm) {
+      this.drawConfirmBar(
+        o.confirm.enabled,
+        o.confirm.showCancel,
+        o.confirm.purpose,
+        o.confirm.count ?? 0,
+      );
+    }
 
     this.drawToast();
   }
@@ -382,7 +431,12 @@ export class DuelScene extends Phaser.Scene {
     this.overlay.add(g);
   }
 
-  private drawConfirmBar(enabled: boolean, showCancel: boolean, purpose: SelectionPurpose): void {
+  private drawConfirmBar(
+    enabled: boolean,
+    showCancel: boolean,
+    purpose: SelectionPurpose,
+    count: number,
+  ): void {
     const { bar, hint, confirm, cancel } = this.layout.overlay;
     const c = theme.colors;
     // Task 4.3b: an opaque bar UNDER the turn / phase line (it replaces the note / chain banner while choosing), the
@@ -395,7 +449,7 @@ export class DuelScene extends Phaser.Scene {
     );
     this.overlay.add(
       this.add
-        .text(hint.x, hint.y + hint.h / 2, CONFIRM_HINT[purpose](), {
+        .text(hint.x, hint.y + hint.h / 2, CONFIRM_HINT[purpose](count), {
           fontFamily: theme.fonts.ui,
           fontSize: `${theme.fontSize.body}px`,
           color: theme.css.gold,
@@ -417,9 +471,17 @@ export class DuelScene extends Phaser.Scene {
         .setOrigin(0.5);
       this.overlay.add([box, text]);
     };
-    // A trigger prompt asks Yes/No ("Kích hoạt" / "Không" = decline); every other selection is Confirm/Cancel.
+    // A trigger prompt asks Yes/No ("Kích hoạt" / "Không" = decline); a Fusion prompt has the original's own words
+    // ("Chọn" for the monster, "Đồng ý" for the materials — task 4.5b); every other selection is Confirm/Cancel.
     const trigger = purpose === 'trigger';
-    button(confirm, trigger ? strings.triggerYes : strings.confirm, enabled);
+    const confirmLabel = trigger
+      ? strings.triggerYes
+      : purpose === 'fusion-monster'
+        ? strings.fusionChoose
+        : purpose === 'fusion-material'
+          ? strings.fusionAgree
+          : strings.confirm;
+    button(confirm, confirmLabel, enabled);
     if (showCancel) button(cancel, trigger ? strings.triggerNo : strings.cancel, true);
   }
 
@@ -639,6 +701,25 @@ export class DuelScene extends Phaser.Scene {
         if (at) this.drawFxCross(at, step.durationMs);
         break;
       }
+      // Task 4.5b [GUESS] G27 (placeholder, no art yet): a material lights up in the Fusion colour where it leaves from
+      // (its zone, or the hand band); the Fusion Monster arrives under a swirl, then its zone glows.
+      case 'fusionMaterial':
+        flash(
+          step.zoneIndex === null
+            ? this.layout[sideOf(step.playerIndex)].handBand
+            : (cardRect(step.instanceId) ?? zoneRect(step.playerIndex, step.zoneIndex)),
+          c.fusion,
+        );
+        break;
+      case 'fusionSummon': {
+        const zone = zoneRect(step.playerIndex, step.zoneIndex);
+        if (zone) {
+          this.drawFxSwirl(centre(zone), Math.max(zone.w, zone.h) * 0.75, step.durationMs);
+          flash(zone, c.fusion);
+          pop(zone, 'card-frame-monster');
+        }
+        break;
+      }
       case 'discard':
       case 'deckOut':
       case 'phase':
@@ -684,6 +765,30 @@ export class DuelScene extends Phaser.Scene {
       g.lineBetween(cap.x + cap.w / 2 - half, mid, cap.x + cap.w / 2 + half, mid);
       this.fx.add(g);
     }
+  }
+
+  /**
+   * Task 4.5b [GUESS] G27: a swirl — three arcs turning around `at` while they shrink and fade (placeholder for the
+   * original's full-screen vortex, for which there is no art).
+   */
+  private drawFxSwirl(at: { x: number; y: number }, radius: number, durationMs: number): void {
+    const g = this.add.graphics({ x: at.x, y: at.y });
+    g.lineStyle(5, theme.colors.fusion, 1);
+    for (let i = 0; i < 3; i++) {
+      const start = (i * 2 * Math.PI) / 3;
+      g.beginPath();
+      g.arc(0, 0, radius * (1 - i * 0.22), start, start + Math.PI * 1.2);
+      g.strokePath();
+    }
+    this.fx.add(g);
+    this.tweens.add({
+      targets: g,
+      angle: 540,
+      scale: 0.25,
+      alpha: 0,
+      duration: durationMs,
+      ease: 'Cubic.easeIn',
+    });
   }
 
   /** Task 4.4b [GUESS] G24: a red cross over `r` that fades with the step (something was negated). */

@@ -55,6 +55,10 @@ interface PlayerParts {
   /** Task 4.3b: the card in the Field Zone. */
   readonly field?: CardView | null;
   readonly normalSummonUsed?: boolean;
+  /** Task 4.5b: MY Extra Deck (the server sends the list to its owner only). */
+  readonly extraDeck?: readonly CardView[];
+  /** Task 4.5b: the size of an Extra Deck whose cards are not sent (the opponent's). */
+  readonly extraDeckCount?: number;
 }
 
 function player(p: PlayerParts): PlayerView {
@@ -67,7 +71,14 @@ function player(p: PlayerParts): PlayerView {
     hand: p.hand,
     handCount: p.hand.length,
     deckCount: p.deckCount,
-    extraDeckCount: 0,
+    extraDeckCount: p.extraDeck?.length ?? p.extraDeckCount ?? 0,
+    ...(p.extraDeck
+      ? {
+          extraDeck: p.extraDeck.filter(
+            (c): c is Extract<CardView, { hidden: false }> => !c.hidden,
+          ),
+        }
+      : {}),
     graveyard,
     banished: [],
     board: {
@@ -1083,8 +1094,112 @@ function counterWindowFixture(): Fixture {
   };
 }
 
+// ---- Task 4.5b: the two Fusion prompts (real cards SMP-116 / SMP-045 / SMP-046 / SMP-047) ----
+
+const answerPrompt = (promptId: string, cardInstanceIds: string[]): PlayerAction => ({
+  type: 'ResolvePendingPrompt',
+  payload: { playerIndex: 0, promptId, cardInstanceIds },
+});
+
+/**
+ * My fusion Spell (SMP-116) is resolving: its link is alone on the chain, I hold the window and the server asks. In my
+ * hand SMP-001 / SMP-007 (→ SMP-045) and SMP-006; on my field SMP-009 (with SMP-006 → SMP-047) and a face-down SMP-007.
+ * SMP-046 is in my Extra Deck but cannot be made, so it is not a candidate. The opponent's Extra Deck is a number only.
+ */
+function fusionBoard(pendingPrompt: NonNullable<StateView['pendingPrompt']>): StateView {
+  const self = player({
+    playerId: 'fixture-you',
+    lifePoints: 8000,
+    hand: [
+      up('p0-1', 'SMP-001', 0, null),
+      up('p0-2', 'SMP-007', 0, null),
+      up('p0-3', 'SMP-006', 0, null),
+    ],
+    deckCount: 30,
+    normalSummonUsed: true,
+    monsters: five<CardView>([
+      [1, withStats(up('p0-10', 'SMP-009', 0, 'Attack'), 1700, 1000)],
+      [3, up('p0-11', 'SMP-007', 0, 'DefenseDown')],
+    ]),
+    extraDeck: [
+      up('p0-x0', 'SMP-045', 0, null),
+      up('p0-x1', 'SMP-046', 0, null),
+      up('p0-x2', 'SMP-047', 0, null),
+    ],
+  });
+  const opp = oppBasic({
+    monsters: five<CardView>([[2, withStats(up('p1-12', 'SMP-030', 1, 'Attack'), 1700, 1000)]]),
+    extraDeckCount: 5,
+  });
+  return view(
+    {
+      turnCount: 5,
+      turnPlayerIndex: 0,
+      phase: 'Main1',
+      pendingPrompt,
+      chain: [
+        {
+          linkId: 'link-5-20',
+          playerIndex: 0,
+          card: up('p0-20', 'SMP-116', 0, null) as Extract<CardView, { hidden: false }>,
+          source: { zone: 'Hand' },
+          effectId: 'merging-crucible',
+          spellSpeed: 1,
+          targetInstanceIds: [],
+        },
+      ],
+      chainWindow: { priorityPlayer: 0, passCount: 0 },
+    },
+    self,
+    opp,
+  );
+}
+
+/** Step 1 — "Chọn mục tiêu dung hợp": two Fusion Monsters of my Extra Deck can be made. */
+function fusionMonsterFixture(): Fixture {
+  const promptId = 'fusion-5-31';
+  return {
+    view: fusionBoard({
+      promptId,
+      playerIndex: 0,
+      kind: 'SelectFusionMonster',
+      payload: { candidateInstanceIds: ['p0-x0', 'p0-x2'], count: 1 },
+    }),
+    legalActions: [answerPrompt(promptId, ['p0-x0']), answerPrompt(promptId, ['p0-x2']), surrender],
+  };
+}
+
+/**
+ * Step 2 — "Chọn 2 nguyên liệu dung hợp" for SMP-045: SMP-001 in my hand, SMP-007 in my hand and a face-down SMP-007
+ * on my field. The server lists the two valid pairs; the screen chooses from the candidates of the prompt.
+ */
+function fusionMaterialFixture(): Fixture {
+  const promptId = 'fusion-5-32';
+  return {
+    view: fusionBoard({
+      promptId,
+      playerIndex: 0,
+      kind: 'SelectFusionMaterials',
+      payload: {
+        fusionInstanceId: 'p0-x0',
+        candidateInstanceIds: ['p0-1', 'p0-2', 'p0-11'],
+        count: 2,
+      },
+    }),
+    legalActions: [
+      answerPrompt(promptId, ['p0-1', 'p0-2']),
+      answerPrompt(promptId, ['p0-1', 'p0-11']),
+      surrender,
+    ],
+  };
+}
+
 export function loadFixture(name: FixtureName): Fixture {
   switch (name) {
+    case 'fusion-monster':
+      return fusionMonsterFixture();
+    case 'fusion-material':
+      return fusionMaterialFixture();
     case 'counter-main':
       return counterMainFixture();
     case 'counter-window':

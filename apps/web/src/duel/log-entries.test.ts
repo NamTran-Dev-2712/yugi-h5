@@ -49,6 +49,8 @@ const EVENT_CATEGORY: Record<EventView['type'], LogCategory> = {
   ChainLinkNegated: 'field',
   SummonNegated: 'field',
   AttackNegated: 'combat',
+  FusionMaterialSent: 'field',
+  MonsterFusionSummoned: 'field',
 };
 
 const AI_CATEGORY: Record<PlayerAction['type'], LogCategory> = {

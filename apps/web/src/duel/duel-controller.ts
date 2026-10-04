@@ -16,6 +16,7 @@ import { describeEvent } from '../debug/describe-event';
 import { messageFor } from './error-messages';
 import { instanceLabelIn } from './labels';
 import { entriesFor, errorEntry, type LogEntry } from './log-entries';
+import { isFusionAnswer } from './fusion-prompt';
 import { isListed } from './legal-index';
 import type { ButtonId, CardLookup } from './presenter';
 import { strings } from './strings';
@@ -307,8 +308,9 @@ export function createDuelController({
     },
     async submit(action) {
       if (!state.view) return { ok: false, message: strings.toastNotAllowed };
-      // Only ever send what the server lists (defence against a stale click target).
-      if (!isListed(state.legalActions, action)) {
+      // Only ever send what the server lists (defence against a stale click target) — or the answer to the Fusion
+      // prompt open for me, built from that prompt's own candidates (task 4.5b, see `fusion-prompt.ts`).
+      if (!isListed(state.legalActions, action) && !isFusionAnswer(state.view, action)) {
         return { ok: false, message: strings.toastNotAllowed };
       }
       if (state.busy) return { ok: false, message: strings.toastBusy };

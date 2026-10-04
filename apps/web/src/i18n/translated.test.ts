@@ -275,6 +275,29 @@ const EVENTS: Record<EventView['type'], { event: EventView; en: string }> = {
     },
     en: "P1's Summon of Name(SMP-009) is negated: sent to the Graveyard (zone 2)",
   },
+  FusionMaterialSent: {
+    event: {
+      type: 'FusionMaterialSent',
+      ownerIndex: 0,
+      instanceId: 'p0-4',
+      definitionId: 'SMP-001',
+      from: 'MonsterZone',
+      zoneIndex: 2,
+    },
+    en: 'P0 uses Name(SMP-001) on the field (zone 2) as fusion material (to the Graveyard)',
+  },
+  MonsterFusionSummoned: {
+    event: {
+      type: 'MonsterFusionSummoned',
+      playerIndex: 0,
+      instanceId: 'p0-x0',
+      definitionId: 'SMP-045',
+      zoneIndex: 1,
+      position: 'Attack',
+      materialInstanceIds: ['p0-4', 'p0-9'],
+    },
+    en: 'P0 Fusion Summons Name(SMP-045) to zone 1',
+  },
 };
 
 describe('English wording', () => {

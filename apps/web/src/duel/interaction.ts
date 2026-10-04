@@ -16,6 +16,13 @@ import {
 } from './legal-index';
 import { t } from '../i18n/i18n';
 import {
+  fusionAnswer,
+  fusionPromptOf,
+  fusionSourceOf,
+  isFusionAnswer,
+  type FusionSource,
+} from './fusion-prompt';
+import {
   fieldZoneAt,
   hitTest,
   optionRects,
@@ -36,6 +43,9 @@ import { strings } from './strings';
  * can be attacked and what a choice sends are all read from `legalActions`, and the only actions it ever emits are
  * elements of that list (`emit` re-checks). The board is never changed here: it changes only when the server answers
  * (no optimistic update), so a refusal just returns the machine to `idle`.
+ * One exception (task 4.5b, ADR 069): the answer to a Fusion prompt is built from the prompt's own payload
+ * (`candidateInstanceIds` + `count`, see `fusion-prompt.ts`), not picked from `legalActions` — still no rule here, the
+ * server decides whether the chosen cards are a valid fusion.
  */
 
 /**
@@ -43,7 +53,18 @@ import { strings } from './strings';
  * `discard`/`target` answer a server prompt and cannot (the engine has no way back out of a prompt). `trigger`
  * answers a TriggerActivation prompt: its "cancel" is the listed decline ("Không"), only there for an optional trigger.
  */
-export type SelectionPurpose = 'tribute' | 'discard' | 'cost' | 'target' | 'trigger';
+export type SelectionPurpose =
+  | 'tribute'
+  | 'discard'
+  | 'cost'
+  | 'target'
+  | 'trigger'
+  // Task 4.5b: the two Fusion prompts (not cancellable; every candidate is shown in the picker row).
+  | 'fusion-monster'
+  | 'fusion-material';
+
+const isFusionPurpose = (purpose: SelectionPurpose): boolean =>
+  purpose === 'fusion-monster' || purpose === 'fusion-material';
 
 const cancellable = (purpose: SelectionPurpose): boolean =>
   purpose === 'tribute' || purpose === 'cost';
@@ -84,6 +105,11 @@ export type InteractionState =
       readonly selected: readonly string[];
       /** `trigger` only: the listed decline, sent by "Không" (absent for a mandatory trigger). */
       readonly decline?: PlayerAction;
+      /**
+       * Task 4.5b, Fusion prompts only: exactly this many candidates must be chosen; Confirm then sends the answer built
+       * from the prompt (`actions` is empty: the answer is not looked up in `legalActions`).
+       */
+      readonly count?: number;
     }
   | { readonly kind: 'pending-server' };
 
@@ -127,9 +153,14 @@ const toIdle = (...effects: InteractionEffect[]): Transition => ({ state: IDLE, 
 
 const dist = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - b.y);
 
-/** The one place a request is produced: it must be in the list the server sent. */
+/**
+ * The one place a request is produced: it must be in the list the server sent — or be the answer to the Fusion prompt
+ * open for me, built from that prompt's candidates (task 4.5b, `isFusionAnswer`).
+ */
 function emit(action: PlayerAction, ctx: InteractionContext): Transition {
-  if (!isListed(ctx.legalActions, action)) return toIdle(toast(strings.toastNotAllowed));
+  if (!isListed(ctx.legalActions, action) && !isFusionAnswer(ctx.view, action)) {
+    return toIdle(toast(strings.toastNotAllowed));
+  }
   return { state: { kind: 'pending-server' }, effects: [{ type: 'send', action }] };
 }
 
@@ -152,9 +183,14 @@ function matchingAction(
   return state.actions.find((a) => sameSet(chosenIds(a), state.selected));
 }
 
-/** True when the tribute/discard selection matches exactly one listed action. */
+/**
+ * True when the tribute/discard selection matches exactly one listed action — or, for a Fusion prompt, when exactly
+ * `count` cards are chosen (the button lights up only then; which cards are right is the server's call).
+ */
 export function canConfirm(state: InteractionState): boolean {
-  return state.kind === 'selecting-tribute' && matchingAction(state) !== undefined;
+  if (state.kind !== 'selecting-tribute') return false;
+  if (state.count !== undefined) return state.selected.length === state.count;
+  return matchingAction(state) !== undefined;
 }
 
 interface OptionGroup {
@@ -268,6 +304,21 @@ function settle(ctx: InteractionContext, effects: InteractionEffect[]): Transiti
   const prompt = ctx.view.pendingPrompt;
   if (!prompt || prompt.playerIndex !== ctx.view.viewerIndex || ctx.view.winnerIndex !== null) {
     return { state: IDLE, effects };
+  }
+  // Task 4.5b: a Fusion prompt opens a selection over the candidates of its payload (not over legalActions).
+  const fusion = fusionPromptOf(ctx.view);
+  if (fusion) {
+    return {
+      state: {
+        kind: 'selecting-tribute',
+        purpose: fusion.kind === 'SelectFusionMonster' ? 'fusion-monster' : 'fusion-material',
+        actions: [],
+        candidates: fusion.candidates,
+        selected: [],
+        count: fusion.count,
+      },
+      effects,
+    };
   }
   if (prompt.kind === 'TriggerActivation') {
     // Yes/No: "Kích hoạt" sends the answer whose targets match the selection (none needed = at once), "Không" the decline.
@@ -469,6 +520,12 @@ function onUpSelecting(
   ctx: InteractionContext,
 ): Transition {
   if (pointInRect(ctx.layout.overlay.confirm, point)) {
+    if (state.count !== undefined) {
+      const fusion = fusionPromptOf(ctx.view);
+      return fusion && canConfirm(state)
+        ? emit(fusionAnswer(ctx.view, fusion, state.selected), ctx)
+        : stay(state);
+    }
     const action = matchingAction(state);
     return action ? emit(action, ctx) : stay(state);
   }
@@ -477,13 +534,18 @@ function onUpSelecting(
     // "Không" on an optional trigger = the listed decline.
     if (state.decline) return emit(state.decline, ctx);
   }
-  const picked = pickerFor(state.candidates, ctx).find((p) => pointInRect(p.rect, point));
-  const hit = hitTest(ctx.layout, ctx.model, point);
-  const id = picked?.id ?? (hit.kind === 'card' ? hit.id : null);
+  const fusion = isFusionPurpose(state.purpose);
+  const picker = pickerFor(state.candidates, ctx, fusion);
+  const picked = picker.find((p) => pointInRect(p.rect, point));
+  // A Fusion selection is made in its picker row only (every candidate is there; the row covers part of the board).
+  const hit = fusion ? null : hitTest(ctx.layout, ctx.model, point);
+  const id = picked?.id ?? (hit?.kind === 'card' ? hit.id : null);
   if (id !== null && state.candidates.includes(id)) {
     const selected = state.selected.includes(id)
       ? state.selected.filter((x) => x !== id)
-      : [...state.selected, id];
+      : state.count === 1
+        ? [id] // one card to choose: a tap on another one replaces the choice
+        : [...state.selected, id];
     return stay({ ...state, selected });
   }
   return stay(state);
@@ -492,14 +554,29 @@ function onUpSelecting(
 /**
  * Task 4.2d: candidates of a selection that are not drawn on the board (a Special Summon from the graveyard) get a slot
  * in the graveyard picker row, in candidate order; the others are clicked where they are.
+ * Task 4.5b: `all` (a Fusion prompt) puts EVERY candidate in the row — the Fusion Monsters of my Extra Deck, or the
+ * materials from my hand and my field side by side, each with the label of where it is (`source`, read from the view).
  */
 export function pickerFor(
   candidates: readonly string[],
   ctx: InteractionContext,
-): { readonly id: string; readonly rect: Rect }[] {
-  const off = candidates.filter((id) => !ctx.model.cards.some((c) => c.id === id));
-  const slots = pickerSlots(off.length);
-  return off.map((id, i) => ({ id, rect: slots[i]! }));
+  all = false,
+): PickerSlot[] {
+  const shown = all
+    ? candidates
+    : candidates.filter((id) => !ctx.model.cards.some((c) => c.id === id));
+  const slots = pickerSlots(shown.length, all);
+  return shown.map((id, i) => {
+    const source = all ? fusionSourceOf(ctx.view, id) : null;
+    return { id, rect: slots[i]!, ...(source ? { source } : {}) };
+  });
+}
+
+export interface PickerSlot {
+  readonly id: string;
+  readonly rect: Rect;
+  /** Task 4.5b: where a fusion material is (my hand / my field); absent for every other picker card. */
+  readonly source?: FusionSource;
 }
 
 export function reduce(
@@ -559,8 +636,11 @@ export interface OverlayModel {
   readonly lpTarget: Rect | null;
   readonly candidates: readonly string[];
   readonly selected: readonly string[];
-  /** Task 4.2d: candidates off the board, drawn face-up in a picker row (ids in candidate order). */
-  readonly picker: readonly { readonly id: string; readonly rect: Rect }[];
+  /**
+   * Task 4.2d: candidates off the board, drawn face-up in a picker row (ids in candidate order). Task 4.5b: for a Fusion
+   * prompt, every candidate (with its source label for a material).
+   */
+  readonly picker: readonly PickerSlot[];
   readonly ghost: { readonly cardId: string; readonly at: Point } | null;
   readonly arrow: { readonly from: Point; readonly to: Point } | null;
   readonly menu: { readonly rects: readonly Rect[]; readonly labels: readonly string[] } | null;
@@ -569,6 +649,8 @@ export interface OverlayModel {
     readonly showCancel: boolean;
     /** Picks the hint text of the confirm bar. */
     readonly purpose: SelectionPurpose;
+    /** Task 4.5b, Fusion prompts only: how many cards must be chosen (for the title "Chọn N nguyên liệu dung hợp"). */
+    readonly count?: number;
   } | null;
 }
 
@@ -644,11 +726,12 @@ export function overlayFor(state: InteractionState, ctx: InteractionContext): Ov
         ...EMPTY_OVERLAY,
         candidates: state.candidates,
         selected: state.selected,
-        picker: pickerFor(state.candidates, ctx),
+        picker: pickerFor(state.candidates, ctx, isFusionPurpose(state.purpose)),
         confirm: {
           enabled: canConfirm(state),
           showCancel: cancellable(state.purpose) || state.decline !== undefined,
           purpose: state.purpose,
+          ...(state.count !== undefined ? { count: state.count } : {}),
         },
       };
     default:

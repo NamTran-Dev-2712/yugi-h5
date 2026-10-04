@@ -11,6 +11,7 @@ import {
 } from '@yugi/shared';
 import { computeLayout, handSlots, type BoardLayout, type Rect, type Side } from './layout';
 import { cardName, cardEffectText } from './card-text';
+import { fusionPromptOf } from './fusion-prompt';
 import { activatableSetCards, passAction } from './legal-index';
 import { t } from '../i18n/i18n';
 import { strings } from './strings';
@@ -419,9 +420,13 @@ export function present(
             : strings.discardNeedsDrag
           : prompt.kind === 'SelectEffectTarget'
             ? strings.targetPrompt
-            : prompt.kind === 'TriggerActivation'
-              ? triggerPromptText(prompt.payload, ctx.lookup)
-              : strings.promptOther,
+            : prompt.kind === 'SelectFusionMonster'
+              ? strings.fusionMonsterTitle
+              : prompt.kind === 'SelectFusionMaterials'
+                ? strings.fusionMaterialTitle(fusionPromptOf(view)?.count ?? 0)
+                : prompt.kind === 'TriggerActivation'
+                  ? triggerPromptText(prompt.payload, ctx.lookup)
+                  : strings.promptOther,
     };
   }
 
@@ -489,6 +494,9 @@ function chainBanner(view: StateView, lookup: CardLookup): RenderModel['chain'] 
 /**
  * Task 4.2d: the graveyard picker slots (`OverlayModel.picker`) as cards to draw, face-up. Only a card the view shows in
  * a graveyard is drawn (always public); any other id gets no card (never guessed).
+ * Task 4.5b: the picker of a Fusion prompt also holds the VIEWER'S OWN cards — their Extra Deck (the server sends that
+ * list to its owner only), their hand and their Monster Zones. A card of mine that is face-down on the field is drawn
+ * face-up here (I know it; the row is only ever drawn for me). Nothing of the opponent's is looked up but the graveyard.
  */
 export function pickerCards(
   view: StateView,
@@ -496,10 +504,19 @@ export function pickerCards(
   lookup: CardLookup,
 ): CardRender[] {
   const graveyard = view.players.flatMap((p) => p.graveyard);
+  const own = view.players[view.viewerIndex];
+  const mine: readonly CardView[] = [
+    ...(own.extraDeck ?? []),
+    ...own.hand,
+    ...own.board.monsterZones.flatMap((c) => (c ? [c] : [])),
+  ];
   return picker.flatMap(({ id, rect }) => {
-    const card = graveyard.find((c) => c.instanceId === id);
+    const inGraveyard = graveyard.find((c) => c.instanceId === id);
+    const card = inGraveyard ?? mine.find((c) => c.instanceId === id);
     if (!card || card.hidden) return [];
     const side: Side = card.ownerIndex === view.viewerIndex ? 'self' : 'opp';
-    return [renderCard(card, side, 'hand', rect, view.viewerIndex, lookup)];
+    // Upright and face-up in the row, whatever its position on the field.
+    const shown = inGraveyard ? card : { ...card, position: null };
+    return [renderCard(shown, side, 'hand', rect, view.viewerIndex, lookup)];
   });
 }

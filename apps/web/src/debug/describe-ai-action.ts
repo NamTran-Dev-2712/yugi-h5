@@ -66,6 +66,12 @@ export function describeAiAction(
           return ids.length === 0 ? t('ai.chooseTargetHidden') : t('ai.chooseTarget', { cards });
         case 'TriggerActivation':
           return ids.length === 0 ? t('ai.acceptTrigger') : t('ai.acceptTriggerTargets', { cards });
+        // Task 4.5b: the Fusion Monster is in the AI's Extra Deck and materials may be in its hand — the server removes
+        // those ids, so neither sentence names a card (a partial list would mislead).
+        case 'SelectFusionMonster':
+          return t('ai.chooseFusionMonster');
+        case 'SelectFusionMaterials':
+          return t('ai.chooseFusionMaterials');
         default:
           // An unknown / missing kind (an older server, a future prompt): a neutral sentence, no guess.
           return ids.length === 0 ? t('ai.answerPromptNone') : t('ai.answerPrompt', { cards });

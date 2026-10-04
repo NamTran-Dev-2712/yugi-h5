@@ -150,6 +150,36 @@ export const strings = {
   get pickerTitle() {
     return t('duel.pickerTitle');
   },
+  // Task 4.5b: the two Fusion prompts ([REF] video #2: "Chọn mục tiêu dung hợp" + "Chọn", "Chọn N nguyên liệu dung
+  // hợp" + "Đồng ý", a source label under each material).
+  get fusionMonsterTitle() {
+    return t('duel.fusionMonsterTitle');
+  },
+  fusionMaterialTitle(count: number) {
+    return t('duel.fusionMaterialTitle', { count });
+  },
+  get fusionChoose() {
+    return t('duel.fusionChoose');
+  },
+  get fusionAgree() {
+    return t('duel.fusionAgree');
+  },
+  get fusionSourceHand() {
+    return t('duel.fusionSourceHand');
+  },
+  get fusionSourceField() {
+    return t('duel.fusionSourceField');
+  },
+  /** Not shown yet: no real card takes materials from the Deck (the "Bộ bài" label of the original, ADR 069). */
+  get fusionSourceDeck() {
+    return t('duel.fusionSourceDeck');
+  },
+  get pickFusionMonsterHint() {
+    return t('duel.pickFusionMonsterHint');
+  },
+  pickFusionMaterialHint(count: number) {
+    return t('duel.pickFusionMaterialHint', { count });
+  },
   /** Task 4.3b: caption of the (empty) Field Zone. */
   get fieldZone() {
     return t('duel.fieldZone');

@@ -271,6 +271,28 @@ const EXAMPLES: Record<EventView['type'], { event: EventView; text: string }> = 
     },
     text: 'Triệu hồi Name(SMP-009) của P1 bị vô hiệu: quái vào mộ (ô 2)',
   },
+  FusionMaterialSent: {
+    event: {
+      type: 'FusionMaterialSent',
+      ownerIndex: 0,
+      instanceId: 'p0-4',
+      definitionId: 'SMP-001',
+      from: 'Hand',
+    },
+    text: 'P0 dùng Name(SMP-001) trên tay làm nguyên liệu dung hợp (vào mộ)',
+  },
+  MonsterFusionSummoned: {
+    event: {
+      type: 'MonsterFusionSummoned',
+      playerIndex: 0,
+      instanceId: 'p0-x0',
+      definitionId: 'SMP-045',
+      zoneIndex: 1,
+      position: 'Attack',
+      materialInstanceIds: ['p0-4', 'p0-9'],
+    },
+    text: 'P0 Triệu hồi Dung hợp Name(SMP-045) vào ô 1',
+  },
 };
 
 describe('describeEvent', () => {
@@ -303,6 +325,26 @@ describe('describeEvent', () => {
     for (const type of ['ChainLinkNegated', 'AttackNegated', 'SummonNegated'] as const) {
       expect(describeEvent(EXAMPLES[type].event, ctx), type).toContain('vô hiệu');
     }
+  });
+
+  it('a fusion material says where it came from, as the server sent it: hand / field (+ zone) / Deck (task 4.5b)', () => {
+    const sent = (from: 'Hand' | 'MonsterZone' | 'Deck', zoneIndex?: number): EventView => ({
+      type: 'FusionMaterialSent',
+      ownerIndex: 1,
+      instanceId: 'p1-7',
+      definitionId: 'SMP-007',
+      from,
+      ...(zoneIndex !== undefined ? { zoneIndex } : {}),
+    });
+    expect(describeEvent(sent('Hand'), ctx)).toBe(
+      'P1 dùng Name(SMP-007) trên tay làm nguyên liệu dung hợp (vào mộ)',
+    );
+    expect(describeEvent(sent('MonsterZone', 3), ctx)).toBe(
+      'P1 dùng Name(SMP-007) trên sân (ô 3) làm nguyên liệu dung hợp (vào mộ)',
+    );
+    expect(describeEvent(sent('Deck'), ctx)).toBe(
+      'P1 dùng Name(SMP-007) từ Bộ bài làm nguyên liệu dung hợp (vào mộ)',
+    );
   });
 
   it('a Field Spell replaced by a new one has its own sentence; other graveyard moves keep theirs (task 4.3b)', () => {

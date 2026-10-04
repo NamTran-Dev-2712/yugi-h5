@@ -172,6 +172,23 @@ const SAMPLES: Record<EventView['type'], EventView> = {
     definitionId: 'SMP-009',
     zoneIndex: 3,
   },
+  FusionMaterialSent: {
+    type: 'FusionMaterialSent',
+    ownerIndex: 0,
+    instanceId: 'p0-4',
+    definitionId: 'SMP-001',
+    from: 'MonsterZone',
+    zoneIndex: 2,
+  },
+  MonsterFusionSummoned: {
+    type: 'MonsterFusionSummoned',
+    playerIndex: 0,
+    instanceId: 'p0-x0',
+    definitionId: 'SMP-045',
+    zoneIndex: 2,
+    position: 'Attack',
+    materialInstanceIds: ['p0-4', 'p0-9'],
+  },
 };
 
 const KIND_OF: Record<EventView['type'], StepKind | null> = {
@@ -208,6 +225,8 @@ const KIND_OF: Record<EventView['type'], StepKind | null> = {
   ChainLinkNegated: 'negateLink',
   AttackNegated: 'negateAttack',
   SummonNegated: 'negateSummon',
+  FusionMaterialSent: 'fusionMaterial',
+  MonsterFusionSummoned: 'fusionSummon',
 };
 
 describe('stepsFor', () => {
@@ -436,6 +455,59 @@ describe('stepsFor — Counter Trap / Negate (task 4.4b)', () => {
       },
     ]);
     expect(JSON.stringify(steps)).not.toContain('definitionId');
+  });
+
+  it('Fusion (task 4.5b): a material says the zone it left (null = from the hand), the monster the zone it lands in; no card is named', () => {
+    const fromHand: EventView = {
+      type: 'FusionMaterialSent',
+      ownerIndex: 0,
+      instanceId: 'p0-9',
+      definitionId: 'SMP-007',
+      from: 'Hand',
+    };
+    const steps = stepsFor(
+      [SAMPLES.FusionMaterialSent, fromHand, SAMPLES.MonsterFusionSummoned],
+      describe1,
+    );
+    expect(steps).toEqual([
+      {
+        kind: 'fusionMaterial',
+        durationMs: DURATION_MS.fusionMaterial,
+        text: 'ev:FusionMaterialSent',
+        playerIndex: 0,
+        instanceId: 'p0-4',
+        zoneIndex: 2,
+      },
+      {
+        kind: 'fusionMaterial',
+        durationMs: DURATION_MS.fusionMaterial,
+        text: 'ev:FusionMaterialSent',
+        playerIndex: 0,
+        instanceId: 'p0-9',
+        zoneIndex: null,
+      },
+      {
+        kind: 'fusionSummon',
+        durationMs: DURATION_MS.fusionSummon,
+        text: 'ev:MonsterFusionSummoned',
+        playerIndex: 0,
+        instanceId: 'p0-x0',
+        zoneIndex: 2,
+      },
+    ]);
+    expect(JSON.stringify(steps)).not.toContain('definitionId');
+    expect(JSON.stringify(steps)).not.toContain('SMP-');
+  });
+
+  it('[REF, low] a whole Fusion lasts 1.25–1.5 s: 2 materials + the Summon = 1.3 s, 3 materials = 1.5 s (task 4.5b)', () => {
+    const total = (materials: number): number =>
+      materials * DURATION_MS.fusionMaterial + DURATION_MS.fusionSummon;
+    expect(total(2)).toBe(1300);
+    expect(total(3)).toBe(1500);
+    for (const n of [2, 3]) {
+      expect(total(n)).toBeGreaterThanOrEqual(1250);
+      expect(total(n)).toBeLessThanOrEqual(1500);
+    }
   });
 
   it('a negated direct attack keeps targetInstanceId null (the arrow stops short of the LP box)', () => {

@@ -295,8 +295,10 @@ const PICKER_BOTTOM = PHASE_Y - 10;
  * Task 4.2d: slots for `count` cards of the graveyard picker (effect targets that are not on the board), a centred row
  * over the middle of the board, squeezed like the hand when it does not fit. Left-to-right order = candidate order.
  */
-export function pickerSlots(count: number): Rect[] {
+export function pickerSlots(count: number, labelled = false): Rect[] {
   if (count <= 0) return [];
+  // Task 4.5b: a Fusion picker has a line under each card (where the material is), so its row sits that much higher.
+  const lift = labelled ? PICKER_LABEL_H : 0;
   const w = card.handW;
   const h = card.handH;
   const width = BOARD_RIGHT - BOARD_LEFT - 2 * card.handGap;
@@ -306,23 +308,33 @@ export function pickerSlots(count: number): Rect[] {
   const x0 = BOARD_CENTER - total / 2;
   return Array.from({ length: count }, (_, i) => ({
     x: x0 + i * step,
-    y: PICKER_BOTTOM - h,
+    y: PICKER_BOTTOM - h - lift,
     w,
     h,
   }));
 }
 
-/** The panel drawn behind `pickerSlots(count)` (room for a title line above the cards); null when empty. */
-export function pickerPanel(count: number): Rect | null {
-  const slots = pickerSlots(count);
+/** Task 4.5b: height of the label line under each card of a Fusion picker ("Bài trên tay" / "Trên sân"). */
+export const PICKER_LABEL_H = 18;
+/** Narrowest panel of a Fusion picker: its title ("Chọn N nguyên liệu dung hợp") must fit even over one card. */
+const PICKER_MIN_LABELLED_W = 300;
+
+/**
+ * The panel drawn behind `pickerSlots(count, labelled)` (room for a title line above the cards, and for the label line
+ * under them when `labelled`); null when empty. It always ends above the turn / phase line.
+ */
+export function pickerPanel(count: number, labelled = false): Rect | null {
+  const slots = pickerSlots(count, labelled);
   if (slots.length === 0) return null;
   const first = slots[0]!;
   const last = slots[slots.length - 1]!;
   const pad = card.handGap;
+  const cardsW = last.x + last.w - first.x + 2 * pad;
+  const w = labelled ? Math.max(cardsW, PICKER_MIN_LABELLED_W) : cardsW;
   return {
-    x: first.x - pad,
+    x: first.x - pad - (w - cardsW) / 2,
     y: first.y - pad - 18,
-    w: last.x + last.w - first.x + 2 * pad,
-    h: first.h + 2 * pad + 18,
+    w,
+    h: first.h + 2 * pad + 18 + (labelled ? PICKER_LABEL_H : 0),
   };
 }

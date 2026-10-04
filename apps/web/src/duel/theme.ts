@@ -66,6 +66,11 @@ export const theme = {
      * through the caption of a negated chain link.
      */
     negate: 0xff4d4d,
+    /**
+     * Task 4.5b [GUESS] G27: Fusion — the outline of a material leaving for the graveyard, the swirl and the glow of the
+     * Fusion Monster arriving (placeholder: no art / clip of the original effect at a usable size yet).
+     */
+    fusion: 0xb07cff,
   },
 
   css: {
