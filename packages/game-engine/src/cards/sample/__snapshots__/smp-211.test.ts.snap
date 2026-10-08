@@ -1,0 +1,60 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-211 > Set on an earlier turn: discards, then the monster returns in face-up Defense (any phase) 1`] = `
+[
+  {
+    "definitionId": "SMP-211",
+    "effectId": "second-rising",
+    "instanceId": "ms-0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "definitionId": "SMP-103",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "CardDiscarded",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-211",
+    "effectId": "second-rising",
+    "instanceId": "ms-0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 2,
+    "targetInstanceIds": [
+      "g0",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "BIG",
+    "from": "Graveyard",
+    "instanceId": "g0",
+    "playerIndex": 0,
+    "position": "DefenseUp",
+    "type": "MonsterSpecialSummoned",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-211",
+    "effectId": "second-rising",
+    "instanceId": "ms-0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-211",
+    "from": "SpellTrapZone",
+    "instanceId": "ms-0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

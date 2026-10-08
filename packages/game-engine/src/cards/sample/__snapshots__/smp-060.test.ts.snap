@@ -1,0 +1,51 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-060 > fused from one material in the hand and one on the field: both go to the graveyard, it arrives in Attack 1`] = `
+[
+  {
+    "definitionId": "SMP-057",
+    "from": "Hand",
+    "instanceId": "h1",
+    "ownerIndex": 0,
+    "type": "FusionMaterialSent",
+  },
+  {
+    "definitionId": "SMP-050",
+    "from": "MonsterZone",
+    "instanceId": "m0-2",
+    "ownerIndex": 0,
+    "type": "FusionMaterialSent",
+    "zoneIndex": 2,
+  },
+  {
+    "definitionId": "SMP-060",
+    "instanceId": "x0",
+    "materialInstanceIds": [
+      "h1",
+      "m0-2",
+    ],
+    "playerIndex": 0,
+    "position": "Attack",
+    "type": "MonsterFusionSummoned",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-116",
+    "effectId": "merging-crucible",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-116",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

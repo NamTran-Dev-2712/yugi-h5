@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-051 Dustbound Archivist > Flip Summon: draws 1, no prompt 1`] = `
+[
+  {
+    "definitionId": "SMP-051",
+    "instanceId": "m0-0",
+    "playerIndex": 0,
+    "type": "FlipSummoned",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-051",
+    "effectId": "flip-draw",
+    "instanceId": "m0-0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-051",
+    "effectId": "flip-draw",
+    "instanceId": "m0-0",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "D",
+    "instanceId": "p0-17",
+    "playerIndex": 0,
+    "type": "CardDrawn",
+  },
+  {
+    "definitionId": "SMP-051",
+    "effectId": "flip-draw",
+    "instanceId": "m0-0",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

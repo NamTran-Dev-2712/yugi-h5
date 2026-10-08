@@ -1,0 +1,50 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-056 Forgewright Shade > accept: 500 LP paid, the Spell/Trap is destroyed 1`] = `
+[
+  {
+    "definitionId": "SMP-056",
+    "effectId": "last-hammer",
+    "instanceId": "m0-0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "amount": 500,
+    "playerIndex": 0,
+    "type": "LifePointsPaid",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-056",
+    "effectId": "last-hammer",
+    "instanceId": "m0-0",
+    "linkId": "trigger-3-2-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "os-2",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "TRAP_PLAIN",
+    "instanceId": "os-2",
+    "ownerIndex": 1,
+    "type": "SpellTrapDestroyed",
+    "zoneIndex": 2,
+  },
+  {
+    "definitionId": "SMP-056",
+    "effectId": "last-hammer",
+    "instanceId": "m0-0",
+    "linkId": "trigger-3-2-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

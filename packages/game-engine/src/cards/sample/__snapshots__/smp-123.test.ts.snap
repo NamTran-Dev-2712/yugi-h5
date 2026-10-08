@@ -1,0 +1,41 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-123 > activated from the hand: heals 500 once, stays face-up, my DARK monsters gain 300 ATK 1`] = `
+[
+  {
+    "definitionId": "SMP-123",
+    "effectId": "activate",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-123",
+    "effectId": "activate",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "amount": 500,
+    "playerIndex": 0,
+    "type": "LifePointsRecovered",
+  },
+  {
+    "definitionId": "SMP-123",
+    "effectId": "activate",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

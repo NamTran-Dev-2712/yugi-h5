@@ -1,0 +1,65 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-214 > negates a Normal Spell (SMP-101): nothing is drawn, 1 card discarded, both cards in the graveyard 1`] = `
+[
+  {
+    "definitionId": "SMP-214",
+    "effectId": "spell-ward",
+    "instanceId": "os-0",
+    "playerIndex": 1,
+    "type": "EffectActivated",
+  },
+  {
+    "definitionId": "D",
+    "instanceId": "p1-19",
+    "playerIndex": 1,
+    "type": "CardDiscarded",
+  },
+  {
+    "chainIndex": 2,
+    "definitionId": "SMP-214",
+    "effectId": "spell-ward",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "spellSpeed": 3,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "byInstanceId": "os-0",
+    "definitionId": "SMP-101",
+    "effectId": "draw-one",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "ChainLinkNegated",
+  },
+  {
+    "definitionId": "SMP-101",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "definitionId": "SMP-214",
+    "effectId": "spell-ward",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-214",
+    "from": "SpellTrapZone",
+    "instanceId": "os-0",
+    "ownerIndex": 1,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 2,
+    "type": "ChainResolved",
+  },
+]
+`;

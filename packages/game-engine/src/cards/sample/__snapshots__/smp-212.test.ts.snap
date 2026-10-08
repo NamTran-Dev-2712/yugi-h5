@@ -1,0 +1,52 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-212 > answers a monster\`s trigger effect: the burn of SMP-019 never happens 1`] = `
+[
+  {
+    "definitionId": "SMP-212",
+    "effectId": "hush",
+    "instanceId": "os-0",
+    "playerIndex": 1,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 2,
+    "definitionId": "SMP-212",
+    "effectId": "hush",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "spellSpeed": 2,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "byInstanceId": "os-0",
+    "definitionId": "SMP-019",
+    "effectId": "burn-on-summon",
+    "instanceId": "h0",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 0,
+    "type": "ChainLinkNegated",
+  },
+  {
+    "definitionId": "SMP-212",
+    "effectId": "hush",
+    "instanceId": "os-0",
+    "linkId": "link-3-2",
+    "playerIndex": 1,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-212",
+    "from": "SpellTrapZone",
+    "instanceId": "os-0",
+    "ownerIndex": 1,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 2,
+    "type": "ChainResolved",
+  },
+]
+`;

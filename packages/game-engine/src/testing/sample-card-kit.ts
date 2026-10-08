@@ -2,6 +2,7 @@ import { SAMPLE_CARDS } from '@yugi/shared';
 import { applyAction } from '../apply-action.js';
 import type { Action, ActionContext, ActivateEffectAction } from '../actions/types.js';
 import type { GameState } from '../state/types.js';
+import { effectiveStats } from '../effects/continuous.js';
 import { deepFreeze } from './deep-freeze.js';
 import { FIXTURE_DEFS, fixtureState, type FixtureSetup } from './effect-fixtures.js';
 
@@ -95,3 +96,24 @@ export const lp = (state: GameState): [number, number] => [
   state.players[0].lifePoints,
   state.players[1].lifePoints,
 ];
+
+/** Task 4.7 — Flip Summon one of player 0's face-down monsters. */
+export const flipSummon = (cardInstanceId: string): Action => ({
+  type: 'FlipSummon',
+  payload: { playerIndex: 0, cardInstanceId },
+});
+
+export const endPhase = (playerIndex: 0 | 1 = 0): Action => ({
+  type: 'EndPhase',
+  payload: { playerIndex },
+});
+
+/** Task 4.7 — ATK / DEF of the monster in `player`'s Monster Zone `zone` after every Continuous effect. */
+export const stats = (state: GameState, player: 0 | 1, zone = 0): { atk: number; def: number } => {
+  const { atk, def } = effectiveStats(
+    state,
+    state.players[player].board.monsterZones[zone]!,
+    sampleCtx,
+  );
+  return { atk, def };
+};

@@ -1,0 +1,50 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-049 Mistfen Marksman > accept: 800 LP paid, the chosen monster is destroyed 1`] = `
+[
+  {
+    "definitionId": "SMP-049",
+    "effectId": "marked-shot",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "amount": 800,
+    "playerIndex": 0,
+    "type": "LifePointsPaid",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-049",
+    "effectId": "marked-shot",
+    "instanceId": "h0",
+    "linkId": "trigger-3-2-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "o0-3",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "M2",
+    "instanceId": "o0-3",
+    "ownerIndex": 1,
+    "type": "MonsterDestroyed",
+    "zoneIndex": 3,
+  },
+  {
+    "definitionId": "SMP-049",
+    "effectId": "marked-shot",
+    "instanceId": "h0",
+    "linkId": "trigger-3-2-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

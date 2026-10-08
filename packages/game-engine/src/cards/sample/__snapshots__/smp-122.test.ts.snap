@@ -1,0 +1,45 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-122 > equips to the opponent's face-up monster: −600 ATK, the card stays in MY Spell/Trap Zone 1`] = `
+[
+  {
+    "definitionId": "SMP-122",
+    "effectId": "equip",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-122",
+    "effectId": "equip",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "o0-1",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "SMP-122",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "targetInstanceId": "o0-1",
+    "type": "CardEquipped",
+  },
+  {
+    "definitionId": "SMP-122",
+    "effectId": "equip",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

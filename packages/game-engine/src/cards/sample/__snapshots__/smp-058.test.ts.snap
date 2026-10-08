@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-058 Gloam Devourer > the penalty decides a battle: 1600 beats SMP-017 (1800 − 400) 1`] = `
+[
+  {
+    "attackerInstanceId": "m0-0",
+    "playerIndex": 0,
+    "targetInstanceId": "o0-0",
+    "type": "AttackDeclared",
+  },
+  {
+    "definitionId": "SMP-017",
+    "instanceId": "o0-0",
+    "ownerIndex": 1,
+    "type": "MonsterDestroyed",
+    "zoneIndex": 0,
+  },
+  {
+    "amount": 200,
+    "playerIndex": 1,
+    "type": "DamageDealt",
+  },
+]
+`;

@@ -1,0 +1,47 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-054 Barrow Thane > accept: the retainer returns from the graveyard in face-up Defense 1`] = `
+[
+  {
+    "definitionId": "SMP-054",
+    "effectId": "raise-retainer",
+    "instanceId": "m0-0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-054",
+    "effectId": "raise-retainer",
+    "instanceId": "m0-0",
+    "linkId": "trigger-3-2-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "g0",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "SMP-005",
+    "from": "Graveyard",
+    "instanceId": "g0",
+    "playerIndex": 0,
+    "position": "DefenseUp",
+    "type": "MonsterSpecialSummoned",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-054",
+    "effectId": "raise-retainer",
+    "instanceId": "m0-0",
+    "linkId": "trigger-3-2-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

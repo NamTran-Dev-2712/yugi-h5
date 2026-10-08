@@ -1,0 +1,47 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-050 Packcaller > accept: the chosen monster is Special Summoned face-up in Defense, lowest empty zone 1`] = `
+[
+  {
+    "definitionId": "SMP-050",
+    "effectId": "call-the-pack",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-050",
+    "effectId": "call-the-pack",
+    "instanceId": "h0",
+    "linkId": "trigger-3-2-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "h2",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "SMP-005",
+    "from": "Hand",
+    "instanceId": "h2",
+    "playerIndex": 0,
+    "position": "DefenseUp",
+    "type": "MonsterSpecialSummoned",
+    "zoneIndex": 1,
+  },
+  {
+    "definitionId": "SMP-050",
+    "effectId": "call-the-pack",
+    "instanceId": "h0",
+    "linkId": "trigger-3-2-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

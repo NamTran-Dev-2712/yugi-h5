@@ -1,0 +1,58 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-117 > discards the chosen card, destroys the only legal target 1`] = `
+[
+  {
+    "definitionId": "SMP-117",
+    "effectId": "culling",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "definitionId": "M1",
+    "instanceId": "h1",
+    "playerIndex": 0,
+    "type": "CardDiscarded",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-117",
+    "effectId": "culling",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "o0-0",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "M1",
+    "instanceId": "o0-0",
+    "ownerIndex": 1,
+    "type": "MonsterDestroyed",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-117",
+    "effectId": "culling",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-117",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

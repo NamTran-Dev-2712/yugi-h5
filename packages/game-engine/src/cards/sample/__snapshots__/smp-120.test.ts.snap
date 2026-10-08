@@ -1,0 +1,54 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-120 > in the Battle Phase: the only Level 4 or lower monster in hand arrives in face-up Defense 1`] = `
+[
+  {
+    "definitionId": "SMP-120",
+    "effectId": "ambush",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-120",
+    "effectId": "ambush",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 2,
+    "targetInstanceIds": [
+      "h1",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "SMP-005",
+    "from": "Hand",
+    "instanceId": "h1",
+    "playerIndex": 0,
+    "position": "DefenseUp",
+    "type": "MonsterSpecialSummoned",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-120",
+    "effectId": "ambush",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-120",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

@@ -1,0 +1,62 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-118 > Tributes my monster, draws 2 1`] = `
+[
+  {
+    "definitionId": "SMP-118",
+    "effectId": "offering-draw",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "definitionId": "M1",
+    "instanceId": "m0-0",
+    "ownerIndex": 0,
+    "type": "MonsterTributed",
+    "zoneIndex": 0,
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-118",
+    "effectId": "offering-draw",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "D",
+    "instanceId": "p0-17",
+    "playerIndex": 0,
+    "type": "CardDrawn",
+  },
+  {
+    "definitionId": "D",
+    "instanceId": "p0-27",
+    "playerIndex": 0,
+    "type": "CardDrawn",
+  },
+  {
+    "definitionId": "SMP-118",
+    "effectId": "offering-draw",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "definitionId": "SMP-118",
+    "from": "Hand",
+    "instanceId": "h0",
+    "ownerIndex": 0,
+    "type": "CardSentToGraveyard",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

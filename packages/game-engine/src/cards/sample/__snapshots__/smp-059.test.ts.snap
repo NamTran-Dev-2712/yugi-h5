@@ -1,0 +1,17 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-059 Rampart Mason > the wall holds: BIG (2000) attacks it in Defense (1700 + 400) — not destroyed, the attacker takes 100 1`] = `
+[
+  {
+    "attackerInstanceId": "m0-0",
+    "playerIndex": 0,
+    "targetInstanceId": "o0-0",
+    "type": "AttackDeclared",
+  },
+  {
+    "amount": 100,
+    "playerIndex": 0,
+    "type": "DamageDealt",
+  },
+]
+`;

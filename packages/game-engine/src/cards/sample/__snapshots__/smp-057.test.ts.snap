@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-057 Greymane Alpha > the boost decides a battle: SMP-005 (900 + 200) beats a 1000 ATK monster 1`] = `
+[
+  {
+    "attackerInstanceId": "m0-1",
+    "playerIndex": 0,
+    "targetInstanceId": "o0-0",
+    "type": "AttackDeclared",
+  },
+  {
+    "definitionId": "M1",
+    "instanceId": "o0-0",
+    "ownerIndex": 1,
+    "type": "MonsterDestroyed",
+    "zoneIndex": 0,
+  },
+  {
+    "amount": 100,
+    "playerIndex": 1,
+    "type": "DamageDealt",
+  },
+]
+`;

@@ -1,0 +1,45 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-121 > equips to my face-up monster: +300 ATK and +700 DEF, the card stays on the field 1`] = `
+[
+  {
+    "definitionId": "SMP-121",
+    "effectId": "equip",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-121",
+    "effectId": "equip",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [
+      "m0-0",
+    ],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "SMP-121",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "targetInstanceId": "m0-0",
+    "type": "CardEquipped",
+  },
+  {
+    "definitionId": "SMP-121",
+    "effectId": "equip",
+    "instanceId": "h0",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

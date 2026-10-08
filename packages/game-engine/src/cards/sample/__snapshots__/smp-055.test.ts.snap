@@ -1,0 +1,59 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-055 Rolling Blastrock > destroyed by battle (attacks BIG, ATK 2000): I take 800 battle damage, the opponent takes 500 1`] = `
+[
+  {
+    "attackerInstanceId": "m0-0",
+    "playerIndex": 0,
+    "targetInstanceId": "o0-0",
+    "type": "AttackDeclared",
+  },
+  {
+    "definitionId": "SMP-055",
+    "instanceId": "m0-0",
+    "ownerIndex": 0,
+    "type": "MonsterDestroyed",
+    "zoneIndex": 0,
+  },
+  {
+    "amount": 800,
+    "playerIndex": 0,
+    "type": "DamageDealt",
+  },
+  {
+    "definitionId": "SMP-055",
+    "effectId": "blast-on-destroyed",
+    "instanceId": "m0-0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-055",
+    "effectId": "blast-on-destroyed",
+    "instanceId": "m0-0",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "amount": 500,
+    "playerIndex": 1,
+    "type": "DamageDealt",
+  },
+  {
+    "definitionId": "SMP-055",
+    "effectId": "blast-on-destroyed",
+    "instanceId": "m0-0",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

@@ -1,0 +1,36 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-213 > Set on an earlier turn: flips, stays face-up, my monsters gain 400 DEF (ATK and the opponent\`s do not) 1`] = `
+[
+  {
+    "definitionId": "SMP-213",
+    "effectId": "activate",
+    "instanceId": "ms-1",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-213",
+    "effectId": "activate",
+    "instanceId": "ms-1",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "spellSpeed": 2,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "definitionId": "SMP-213",
+    "effectId": "activate",
+    "instanceId": "ms-1",
+    "linkId": "link-3-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;

@@ -1,0 +1,48 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SMP-048 Wellspring Medic > Normal Summon: the trigger goes on the chain by itself and heals 500 (no prompt) 1`] = `
+[
+  {
+    "definitionId": "SMP-048",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "NormalSummoned",
+    "zoneIndex": 0,
+  },
+  {
+    "definitionId": "SMP-048",
+    "effectId": "mend-on-summon",
+    "instanceId": "h0",
+    "playerIndex": 0,
+    "type": "EffectActivated",
+  },
+  {
+    "chainIndex": 1,
+    "definitionId": "SMP-048",
+    "effectId": "mend-on-summon",
+    "instanceId": "h0",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 0,
+    "spellSpeed": 1,
+    "targetInstanceIds": [],
+    "type": "ChainLinkAdded",
+  },
+  {
+    "amount": 500,
+    "playerIndex": 0,
+    "type": "LifePointsRecovered",
+  },
+  {
+    "definitionId": "SMP-048",
+    "effectId": "mend-on-summon",
+    "instanceId": "h0",
+    "linkId": "trigger-3-1-1",
+    "playerIndex": 0,
+    "type": "EffectResolved",
+  },
+  {
+    "linkCount": 1,
+    "type": "ChainResolved",
+  },
+]
+`;
