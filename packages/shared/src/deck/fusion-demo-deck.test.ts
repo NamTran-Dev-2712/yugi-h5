@@ -36,8 +36,13 @@ describe('FUSION_DEMO_DECK + FUSION_DEMO_EXTRA_DECK (task 4.5b)', () => {
     expect([...new Set(fusing)]).toEqual(['SMP-116']);
   });
 
-  it('the Extra Deck holds every Fusion Monster of the pool, and the Main Deck 3 copies of each material', () => {
-    const fusions = SAMPLE_CARDS.filter((c) => c.kind === 'Monster' && c.category === 'Fusion');
+  it('the Extra Deck holds every Fusion Monster of tasks 4.5 / 4.5b, and the Main Deck 3 copies of each material', () => {
+    // Task 4.7 added two more Fusion Monsters (SMP-060, SMP-061); they live in BATCH2_FUSION_EXTRA_DECK, not here.
+    const own = ['SMP-045', 'SMP-046', 'SMP-047'];
+    const fusions = SAMPLE_CARDS.filter(
+      (c) => c.kind === 'Monster' && c.category === 'Fusion' && own.includes(c.id),
+    );
+    expect(fusions).toHaveLength(own.length);
     expect([...new Set(FUSION_DEMO_EXTRA_DECK)].sort()).toEqual(fusions.map((c) => c.id).sort());
     for (const f of fusions) {
       if (f.kind !== 'Monster') continue;

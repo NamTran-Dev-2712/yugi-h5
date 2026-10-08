@@ -144,8 +144,8 @@ describe('task 4.5 cards', () => {
     }
   });
 
-  it('are appended at the END of the list (older cards keep their place; task 4.5b added SMP-047 after them)', () => {
-    expect(SAMPLE_CARDS.slice(-4).map((c) => c.id)).toEqual([...IDS, 'SMP-047']);
+  it('were appended at the END of the list when they were added (index 69–72: older cards keep their place; task 4.5b added SMP-047 after them, task 4.7 its batch after that)', () => {
+    expect(SAMPLE_CARDS.slice(69, 73).map((c) => c.id)).toEqual([...IDS, 'SMP-047']);
   });
 
   it('SMP-045 / SMP-046: Fusion Monsters whose materials are existing non-Fusion monsters (2 and 3 of them)', () => {

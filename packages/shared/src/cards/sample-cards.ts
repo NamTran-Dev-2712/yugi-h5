@@ -838,4 +838,639 @@ export const SAMPLE_CARDS: CardDefinition[] = [
       },
     ],
   },
+  // Task 4.7 — card batch 2 (Tier B): 26 cards built ONLY from the effect DSL that already exists — no new primitive,
+  // no engine change. Appended at the end so every older card keeps its index. Placeholder names, no Konami IP.
+  // Owner decisions (2026-10-08): classic power level (no monster above 2500 ATK); no monster has an Ignition effect —
+  // the engine cannot activate a monster on the field yet (ADR 070).
+  // 12 Effect Monsters: OnSummon × 3, OnFlip × 3, OnDestroyed × 3, Continuous × 3.
+  {
+    id: 'SMP-048',
+    kind: 'Monster',
+    name: { vi: 'Y Sĩ Suối Nguồn', en: 'Wellspring Medic' },
+    category: 'Effect',
+    attribute: 'WATER',
+    race: 'Aqua',
+    level: 3,
+    atk: 1100,
+    def: 1300,
+    effectText: {
+      vi: 'Khi lá này được Triệu hồi: bạn hồi 500 LP (bắt buộc).',
+      en: 'When this card is Summoned: gain 500 LP (mandatory).',
+    },
+    effects: [
+      {
+        id: 'mend-on-summon',
+        trigger: { kind: 'OnSummon', mandatory: true },
+        operations: [{ kind: 'Heal', amount: 500, target: 'self' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-049',
+    kind: 'Monster',
+    name: { vi: 'Xạ Thủ Đầm Sương', en: 'Mistfen Marksman' },
+    category: 'Effect',
+    attribute: 'WIND',
+    race: 'Warrior',
+    level: 4,
+    atk: 1300,
+    def: 1000,
+    effectText: {
+      vi: 'Khi lá này được Triệu hồi: bạn có thể trả 800 LP, rồi chọn 1 quái thú ngửa Cấp 4 trở xuống đối thủ điều khiển; phá huỷ nó.',
+      en: 'When this card is Summoned: you can pay 800 LP, then target 1 face-up Level 4 or lower monster your opponent controls; destroy it.',
+    },
+    effects: [
+      {
+        id: 'marked-shot',
+        trigger: { kind: 'OnSummon' },
+        cost: [{ kind: 'PayLP', amount: 800 }],
+        target: {
+          kind: 'Card',
+          zone: 'MonsterZone',
+          side: 'opponent',
+          count: 1,
+          filter: { level: { max: 4 } },
+        },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-050',
+    kind: 'Monster',
+    name: { vi: 'Kẻ Gọi Bầy', en: 'Packcaller' },
+    category: 'Effect',
+    attribute: 'EARTH',
+    race: 'Beast',
+    level: 4,
+    atk: 1400,
+    def: 1000,
+    effectText: {
+      vi: 'Khi lá này được Triệu hồi: bạn có thể chọn 1 quái thú Cấp 3 trở xuống trên tay bạn; Triệu hồi Đặc biệt nó ở Tư thế Thủ ngửa.',
+      en: 'When this card is Summoned: you can target 1 Level 3 or lower monster in your hand; Special Summon it in face-up Defense Position.',
+    },
+    effects: [
+      {
+        id: 'call-the-pack',
+        trigger: { kind: 'OnSummon' },
+        target: {
+          kind: 'Card',
+          zone: 'Hand',
+          side: 'self',
+          count: 1,
+          filter: { kind: 'Monster', level: { max: 3 } },
+        },
+        operations: [{ kind: 'SpecialSummon', position: 'DefenseUp' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-051',
+    kind: 'Monster',
+    name: { vi: 'Thủ Thư Phủ Bụi', en: 'Dustbound Archivist' },
+    category: 'Effect',
+    attribute: 'LIGHT',
+    race: 'Spellcaster',
+    level: 2,
+    atk: 500,
+    def: 1300,
+    effectText: {
+      vi: 'LẬT: Bạn rút 1 lá (bắt buộc).',
+      en: 'FLIP: Draw 1 card (mandatory).',
+    },
+    effects: [
+      {
+        id: 'flip-draw',
+        trigger: { kind: 'OnFlip', mandatory: true },
+        operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-052',
+    kind: 'Monster',
+    name: { vi: 'Chuột Chũi Đào Hầm', en: 'Tunnel Mole' },
+    category: 'Effect',
+    attribute: 'EARTH',
+    race: 'Beast',
+    level: 2,
+    atk: 600,
+    def: 1000,
+    effectText: {
+      vi: 'LẬT: Bạn có thể chọn 1 lá Phép/Bẫy đối thủ điều khiển; phá huỷ nó.',
+      en: 'FLIP: You can target 1 Spell/Trap your opponent controls; destroy it.',
+    },
+    effects: [
+      {
+        id: 'flip-burrow',
+        trigger: { kind: 'OnFlip' },
+        target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-053',
+    kind: 'Monster',
+    name: { vi: 'Nấm Bào Tử Nổ', en: 'Sporeburst Cap' },
+    category: 'Effect',
+    attribute: 'EARTH',
+    race: 'Plant',
+    level: 1,
+    atk: 300,
+    def: 700,
+    effectText: {
+      vi: 'LẬT: Gây 600 sát thương cho đối thủ (bắt buộc).',
+      en: 'FLIP: Inflict 600 damage to your opponent (mandatory).',
+    },
+    effects: [
+      {
+        id: 'flip-burst',
+        trigger: { kind: 'OnFlip', mandatory: true },
+        operations: [{ kind: 'Damage', amount: 600, target: 'opponent' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-054',
+    kind: 'Monster',
+    name: { vi: 'Lãnh Chúa Gò Mộ', en: 'Barrow Thane' },
+    category: 'Effect',
+    attribute: 'DARK',
+    race: 'Zombie',
+    level: 5,
+    atk: 2000,
+    def: 1500,
+    effectText: {
+      vi: 'Khi lá này bị phá huỷ và đưa vào Mộ: bạn có thể chọn 1 quái thú Cấp 4 trở xuống trong Mộ của bạn; Triệu hồi Đặc biệt nó ở Tư thế Thủ ngửa.',
+      en: 'When this card is destroyed and sent to the Graveyard: you can target 1 Level 4 or lower monster in your Graveyard; Special Summon it in face-up Defense Position.',
+    },
+    effects: [
+      {
+        id: 'raise-retainer',
+        trigger: { kind: 'OnDestroyed' },
+        target: {
+          kind: 'Card',
+          zone: 'Graveyard',
+          side: 'self',
+          count: 1,
+          filter: { kind: 'Monster', level: { max: 4 } },
+        },
+        operations: [{ kind: 'SpecialSummon', position: 'DefenseUp' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-055',
+    kind: 'Monster',
+    name: { vi: 'Đá Nổ Lăn Dốc', en: 'Rolling Blastrock' },
+    category: 'Effect',
+    attribute: 'FIRE',
+    race: 'Rock',
+    level: 3,
+    atk: 1200,
+    def: 600,
+    effectText: {
+      vi: 'Khi lá này bị phá huỷ và đưa vào Mộ: gây 500 sát thương cho đối thủ (bắt buộc).',
+      en: 'When this card is destroyed and sent to the Graveyard: inflict 500 damage to your opponent (mandatory).',
+    },
+    effects: [
+      {
+        id: 'blast-on-destroyed',
+        trigger: { kind: 'OnDestroyed', mandatory: true },
+        operations: [{ kind: 'Damage', amount: 500, target: 'opponent' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-056',
+    kind: 'Monster',
+    name: { vi: 'Bóng Ma Thợ Rèn', en: 'Forgewright Shade' },
+    category: 'Effect',
+    attribute: 'FIRE',
+    race: 'Pyro',
+    level: 4,
+    atk: 1500,
+    def: 1100,
+    effectText: {
+      vi: 'Khi lá này bị phá huỷ và đưa vào Mộ: bạn có thể trả 500 LP, rồi chọn 1 lá Phép/Bẫy đối thủ điều khiển; phá huỷ nó.',
+      en: 'When this card is destroyed and sent to the Graveyard: you can pay 500 LP, then target 1 Spell/Trap your opponent controls; destroy it.',
+    },
+    effects: [
+      {
+        id: 'last-hammer',
+        trigger: { kind: 'OnDestroyed' },
+        cost: [{ kind: 'PayLP', amount: 500 }],
+        target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-057',
+    kind: 'Monster',
+    name: { vi: 'Sói Đầu Đàn Bờm Xám', en: 'Greymane Alpha' },
+    category: 'Effect',
+    attribute: 'EARTH',
+    race: 'Beast',
+    level: 4,
+    atk: 1500,
+    def: 1200,
+    effectText: {
+      vi: 'Khi lá này ngửa trên sân: các quái thú tộc Thú ngửa khác bạn điều khiển tăng 200 ATK.',
+      en: 'While this card is face-up on the field: other face-up Beast monsters you control gain 200 ATK.',
+    },
+    effects: [
+      {
+        id: 'pack-leader',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          {
+            kind: 'ModifyStat',
+            stat: 'atk',
+            amount: 200,
+            side: 'self',
+            filter: { race: 'Beast' },
+            excludeSource: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'SMP-058',
+    kind: 'Monster',
+    name: { vi: 'Kẻ Nuốt Hoàng Hôn', en: 'Gloam Devourer' },
+    category: 'Effect',
+    attribute: 'DARK',
+    race: 'Fiend',
+    level: 4,
+    atk: 1600,
+    def: 1000,
+    effectText: {
+      vi: 'Khi lá này ngửa trên sân: quái thú hệ ÁNH SÁNG ngửa đối thủ điều khiển giảm 400 ATK.',
+      en: 'While this card is face-up on the field: face-up LIGHT monsters your opponent controls lose 400 ATK.',
+    },
+    effects: [
+      {
+        id: 'devour-light',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          {
+            kind: 'ModifyStat',
+            stat: 'atk',
+            amount: -400,
+            side: 'opponent',
+            filter: { attribute: 'LIGHT' },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'SMP-059',
+    kind: 'Monster',
+    name: { vi: 'Thợ Xây Thành Luỹ', en: 'Rampart Mason' },
+    category: 'Effect',
+    attribute: 'EARTH',
+    race: 'Rock',
+    level: 3,
+    atk: 800,
+    def: 1700,
+    effectText: {
+      vi: 'Khi lá này ngửa trên sân: các quái thú tộc Đá ngửa bạn điều khiển (kể cả lá này) tăng 400 DEF.',
+      en: 'While this card is face-up on the field: face-up Rock monsters you control (this card included) gain 400 DEF.',
+    },
+    effects: [
+      {
+        id: 'raise-ramparts',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          { kind: 'ModifyStat', stat: 'def', amount: 400, side: 'self', filter: { race: 'Rock' } },
+        ],
+      },
+    ],
+  },
+  // 2 Fusion Monsters whose materials are Effect Monsters of this batch (owner decision, 2026-10-08).
+  {
+    id: 'SMP-060',
+    kind: 'Monster',
+    name: { vi: 'Chúa Tể Bầy Hoang', en: 'Wildpack Sovereign' },
+    category: 'Fusion',
+    attribute: 'EARTH',
+    race: 'Beast',
+    level: 6,
+    atk: 2400,
+    def: 1800,
+    fusionMaterials: ['SMP-057', 'SMP-050'],
+    effectText: {
+      vi: '"Sói Đầu Đàn Bờm Xám" + "Kẻ Gọi Bầy"',
+      en: '"Greymane Alpha" + "Packcaller"',
+    },
+  },
+  {
+    id: 'SMP-061',
+    kind: 'Monster',
+    name: { vi: 'Bạo Chúa Mộ Đêm', en: 'Nightbarrow Tyrant' },
+    category: 'Fusion',
+    attribute: 'DARK',
+    race: 'Fiend',
+    level: 7,
+    atk: 2500,
+    def: 2000,
+    fusionMaterials: ['SMP-058', 'SMP-054'],
+    effectText: {
+      vi: '"Kẻ Nuốt Hoàng Hôn" + "Lãnh Chúa Gò Mộ". Khi lá này ngửa trên sân: quái thú ngửa đối thủ điều khiển giảm 200 ATK.',
+      en: '"Gloam Devourer" + "Barrow Thane". While this card is face-up on the field: face-up monsters your opponent controls lose 200 ATK.',
+    },
+    effects: [
+      {
+        id: 'dread-aura',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount: -200, side: 'opponent' }],
+      },
+    ],
+  },
+  // 8 Spells: Normal × 2, Quick-Play × 2, Equip × 2 (one aimed at the opponent's monster), Continuous, Field.
+  {
+    id: 'SMP-117',
+    kind: 'Spell',
+    name: { vi: 'Lệnh Thanh Trừng', en: 'Culling Order' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Chi phí: bỏ 1 lá bài trên tay. Chọn 1 quái thú ngửa Cấp 4 trở xuống đối thủ điều khiển; phá huỷ nó.',
+      en: 'Cost: discard 1 card. Target 1 face-up Level 4 or lower monster your opponent controls; destroy it.',
+    },
+    effects: [
+      {
+        id: 'culling',
+        trigger: { kind: 'Ignition' },
+        cost: [{ kind: 'Discard', count: 1 }],
+        target: {
+          kind: 'Card',
+          zone: 'MonsterZone',
+          side: 'opponent',
+          count: 1,
+          filter: { level: { max: 4 } },
+        },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-118',
+    kind: 'Spell',
+    name: { vi: 'Lễ Vật Tri Thức', en: 'Offering of Lore' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Chi phí: hiến tế 1 quái thú. Rút 2 lá.',
+      en: 'Cost: Tribute 1 monster. Draw 2 cards.',
+    },
+    effects: [
+      {
+        id: 'offering-draw',
+        trigger: { kind: 'Ignition' },
+        cost: [{ kind: 'Tribute', count: 1 }],
+        operations: [{ kind: 'Draw', count: 2, target: 'self' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-119',
+    kind: 'Spell',
+    name: { vi: 'Cơn Gió Giật', en: 'Snap Gust' },
+    subType: 'QuickPlay',
+    effectText: {
+      vi: 'Chọn 1 lá Phép/Bẫy đối thủ điều khiển; phá huỷ nó.',
+      en: 'Target 1 Spell/Trap your opponent controls; destroy it.',
+    },
+    effects: [
+      {
+        id: 'snap-gust',
+        trigger: { kind: 'Quick' },
+        target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-120',
+    kind: 'Spell',
+    name: { vi: 'Phục Binh Bụi Rậm', en: 'Thicket Ambush' },
+    subType: 'QuickPlay',
+    effectText: {
+      vi: 'Chọn 1 quái thú Cấp 4 trở xuống trên tay bạn; Triệu hồi Đặc biệt nó ở Tư thế Thủ ngửa.',
+      en: 'Target 1 Level 4 or lower monster in your hand; Special Summon it in face-up Defense Position.',
+    },
+    effects: [
+      {
+        id: 'ambush',
+        trigger: { kind: 'Quick' },
+        target: {
+          kind: 'Card',
+          zone: 'Hand',
+          side: 'self',
+          count: 1,
+          filter: { kind: 'Monster', level: { max: 4 } },
+        },
+        operations: [{ kind: 'SpecialSummon', position: 'DefenseUp' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-121',
+    kind: 'Spell',
+    name: { vi: 'Khiên Tháp Canh', en: 'Watchtower Shield' },
+    subType: 'Equip',
+    effectText: {
+      vi: 'Chỉ trang bị cho quái thú ngửa bạn điều khiển. Quái thú được trang bị tăng 300 ATK và 700 DEF.',
+      en: 'Equip only to a face-up monster you control. The equipped monster gains 300 ATK and 700 DEF.',
+    },
+    effects: [
+      {
+        id: 'equip',
+        trigger: { kind: 'Ignition' },
+        target: {
+          kind: 'Card',
+          zone: 'MonsterZone',
+          side: 'self',
+          count: 1,
+          filter: { kind: 'Monster' },
+        },
+        operations: [{ kind: 'Equip' }],
+      },
+      {
+        id: 'equip-boost',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          { kind: 'ModifyStat', stat: 'atk', amount: 300, equipped: true },
+          { kind: 'ModifyStat', stat: 'def', amount: 700, equipped: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'SMP-122',
+    kind: 'Spell',
+    name: { vi: 'Xiềng Xích Rỉ Sét', en: 'Rusted Shackles' },
+    subType: 'Equip',
+    effectText: {
+      vi: 'Chỉ trang bị cho quái thú ngửa đối thủ điều khiển. Quái thú được trang bị giảm 600 ATK.',
+      en: 'Equip only to a face-up monster your opponent controls. The equipped monster loses 600 ATK.',
+    },
+    effects: [
+      {
+        id: 'equip',
+        trigger: { kind: 'Ignition' },
+        target: {
+          kind: 'Card',
+          zone: 'MonsterZone',
+          side: 'opponent',
+          count: 1,
+          filter: { kind: 'Monster' },
+        },
+        operations: [{ kind: 'Equip' }],
+      },
+      {
+        id: 'equip-drain',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount: -600, equipped: true }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-123',
+    kind: 'Spell',
+    name: { vi: 'Nghi Lễ Chạng Vạng', en: 'Duskfall Vigil' },
+    subType: 'Continuous',
+    effectText: {
+      vi: 'Khi kích hoạt lá này: bạn hồi 500 LP. Mọi quái thú hệ BÓNG TỐI ngửa bạn điều khiển tăng 300 ATK.',
+      en: 'When this card is activated: gain 500 LP. All face-up DARK monsters you control gain 300 ATK.',
+    },
+    effects: [
+      {
+        id: 'activate',
+        trigger: { kind: 'Ignition' },
+        operations: [{ kind: 'Heal', amount: 500, target: 'self' }],
+      },
+      {
+        id: 'dusk-boost',
+        trigger: { kind: 'Continuous' },
+        operations: [
+          {
+            kind: 'ModifyStat',
+            stat: 'atk',
+            amount: 300,
+            side: 'self',
+            filter: { attribute: 'DARK' },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'SMP-124',
+    kind: 'Spell',
+    name: { vi: 'Đồng Bằng Phì Nhiêu', en: 'Loamfield Expanse' },
+    subType: 'Field',
+    effectText: {
+      vi: 'Mọi quái thú hệ ĐẤT ngửa trên sân tăng 200 ATK và 200 DEF.',
+      en: 'All face-up EARTH monsters on the field gain 200 ATK and 200 DEF.',
+    },
+    effects: [
+      { id: 'activate', trigger: { kind: 'Ignition' }, operations: [] },
+      {
+        id: 'loam-boost',
+        trigger: { kind: 'Continuous' },
+        operations: (['atk', 'def'] as const).flatMap((stat) =>
+          (['self', 'opponent'] as const).map((side) => ({
+            kind: 'ModifyStat' as const,
+            stat,
+            amount: 200,
+            side,
+            filter: { attribute: 'EARTH' as const },
+          })),
+        ),
+      },
+    ],
+  },
+  // 4 Traps: Normal × 2, Continuous, Counter.
+  {
+    id: 'SMP-211',
+    kind: 'Trap',
+    name: { vi: 'Trỗi Dậy Lần Hai', en: 'Second Rising' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Chi phí: bỏ 1 lá bài trên tay. Chọn 1 quái thú trong Mộ của bạn; Triệu hồi Đặc biệt nó ở Tư thế Thủ ngửa.',
+      en: 'Cost: discard 1 card. Target 1 monster in your Graveyard; Special Summon it in face-up Defense Position.',
+    },
+    effects: [
+      {
+        id: 'second-rising',
+        trigger: { kind: 'Quick' },
+        cost: [{ kind: 'Discard', count: 1 }],
+        target: {
+          kind: 'Card',
+          zone: 'Graveyard',
+          side: 'self',
+          count: 1,
+          filter: { kind: 'Monster' },
+        },
+        operations: [{ kind: 'SpecialSummon', position: 'DefenseUp' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-212',
+    kind: 'Trap',
+    name: { vi: 'Lời Ru Câm Lặng', en: 'Hushing Lullaby' },
+    subType: 'Normal',
+    effectText: {
+      vi: 'Khi đối thủ kích hoạt hiệu ứng của một quái thú: vô hiệu việc kích hoạt đó.',
+      en: "When your opponent activates a monster's effect: negate the activation.",
+    },
+    effects: [
+      {
+        id: 'hush',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'NegateActivation', cardKinds: ['Monster'] }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-213',
+    kind: 'Trap',
+    name: { vi: 'Hàng Khiên Kiên Cố', en: 'Steadfast Shieldwall' },
+    subType: 'Continuous',
+    effectText: {
+      vi: 'Mọi quái thú ngửa bạn điều khiển tăng 400 DEF.',
+      en: 'All face-up monsters you control gain 400 DEF.',
+    },
+    effects: [
+      { id: 'activate', trigger: { kind: 'Quick' }, operations: [] },
+      {
+        id: 'shield-wall',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'def', amount: 400, side: 'self' }],
+      },
+    ],
+  },
+  {
+    id: 'SMP-214',
+    kind: 'Trap',
+    name: { vi: 'Kết Giới Phản Phép', en: 'Spellward Seal' },
+    subType: 'Counter',
+    effectText: {
+      vi: 'Chi phí: bỏ 1 lá bài trên tay. Khi đối thủ kích hoạt một lá Phép: vô hiệu việc kích hoạt đó và gửi lá đó vào mộ.',
+      en: 'Cost: discard 1 card. When your opponent activates a Spell Card: negate the activation and send that card to the Graveyard.',
+    },
+    effects: [
+      {
+        id: 'spell-ward',
+        trigger: { kind: 'Quick' },
+        cost: [{ kind: 'Discard', count: 1 }],
+        operations: [{ kind: 'NegateActivation', cardKinds: ['Spell'] }],
+      },
+    ],
+  },
 ];

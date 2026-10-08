@@ -296,13 +296,23 @@ const NEGATE_CARDS = new Set(['SMP-201', 'SMP-209', 'SMP-210']);
  */
 const FUSION_CARDS = new Set(['SMP-116', 'SMP-047']);
 
+/**
+ * Task 4.7 — card batch 2 (26 cards, most of them with effects). Kept out of the fixed seeds' deck for the same reason
+ * as the two sets above: the seeds below keep the deck they had before. Batch 2 is in this gate through seeds of its
+ * own (`batch2DeckList`). The Fusion Monsters of the batch belong to an Extra Deck anyway.
+ */
+const smpRange = (from: number, to: number): string[] =>
+  Array.from({ length: to - from + 1 }, (_, i) => `SMP-${String(from + i).padStart(3, '0')}`);
+const BATCH2_CARDS = new Set([...smpRange(48, 61), ...smpRange(117, 124), ...smpRange(211, 214)]);
+
 /** Task 3.8: the real effect cards of the sample pool (triggers, Continuous, Quick-Play, Traps, a cost). */
 const REAL_EFFECT_CARDS = SAMPLE_CARDS.filter(
   (c) =>
     (c.effects?.length ?? 0) > 0 &&
     c.id !== 'SMP-101' &&
     !NEGATE_CARDS.has(c.id) &&
-    !FUSION_CARDS.has(c.id),
+    !FUSION_CARDS.has(c.id) &&
+    !BATCH2_CARDS.has(c.id),
 ).map((c) => c.id);
 
 /**
