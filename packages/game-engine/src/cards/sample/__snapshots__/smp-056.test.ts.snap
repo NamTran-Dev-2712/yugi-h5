@@ -1,10 +1,10 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`SMP-056 Forgewright Shade > accept: 500 LP paid, the Spell/Trap is destroyed 1`] = `
+exports[`SMP-056 Forgewright Shade > accept: 500 LP paid, 1 card drawn 1`] = `
 [
   {
     "definitionId": "SMP-056",
-    "effectId": "last-hammer",
+    "effectId": "last-spark",
     "instanceId": "m0-0",
     "playerIndex": 0,
     "type": "EffectActivated",
@@ -17,26 +17,23 @@ exports[`SMP-056 Forgewright Shade > accept: 500 LP paid, the Spell/Trap is dest
   {
     "chainIndex": 1,
     "definitionId": "SMP-056",
-    "effectId": "last-hammer",
+    "effectId": "last-spark",
     "instanceId": "m0-0",
     "linkId": "trigger-3-2-1",
     "playerIndex": 0,
     "spellSpeed": 1,
-    "targetInstanceIds": [
-      "os-2",
-    ],
+    "targetInstanceIds": [],
     "type": "ChainLinkAdded",
   },
   {
-    "definitionId": "TRAP_PLAIN",
-    "instanceId": "os-2",
-    "ownerIndex": 1,
-    "type": "SpellTrapDestroyed",
-    "zoneIndex": 2,
+    "definitionId": "D",
+    "instanceId": "p0-17",
+    "playerIndex": 0,
+    "type": "CardDrawn",
   },
   {
     "definitionId": "SMP-056",
-    "effectId": "last-hammer",
+    "effectId": "last-spark",
     "instanceId": "m0-0",
     "linkId": "trigger-3-2-1",
     "playerIndex": 0,

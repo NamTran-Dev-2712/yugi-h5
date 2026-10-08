@@ -26,6 +26,11 @@ const NAMES = [
   'fusion-success-real',
   'fusion-material-destroyed-real',
   'fusion-negated-real',
+  // Task 4.7: card batch 2 (SMP-122 Equip on the opponent's monster; SMP-057 + SMP-124 Continuous / Field boosts;
+  // SMP-054 destroyed in battle brings SMP-048 back from the graveyard).
+  'equip-opponent-real',
+  'beast-pack-real',
+  'revive-on-destroyed-real',
 ];
 /** Task 4.4b: scenario → the Negate event that tapping the listed Set card must return. */
 const NEGATES: Record<string, string> = {

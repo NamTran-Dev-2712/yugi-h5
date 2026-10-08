@@ -1,0 +1,22 @@
+# Task 4.7 — long leak fuzz of the batch-2 variant (2026-10-08)
+## FUZZ_BATCH2_SEEDS=60 FUZZ_STEPS=300 vitest run event-visibility.fuzz.spec.ts -t 'batch'  (60 two-seat seeds batch2-leak-<i> + 30 solo-vs-ai seeds batch2-leak-ai-<i>, 300 steps each; own stats)
+[fuzz 4.7] {
+  steps: 25725,
+  ssFromHand: 235,
+  ssFromGraveyard: 226,
+  filteredTargets: 26,
+  targetPrompts: 290,
+  triggerPrompts: 199,
+  cardsDiscarded: 450,
+  lifePointsPaid: 178,
+  monstersTributed: 270,
+  equips: 188,
+  flipSummons: 627,
+  chainLinksNegated: 89,
+  fusionSummons: 70,
+  aiSteps: 6595,
+  extraDeckSteps: 25892
+}
+ Test Files  1 passed (1)
+      Tests  91 passed | 44 skipped (135)
+   Duration  297.12s (transform 719ms, setup 0ms, collect 2.70s, tests 293.94s, environment 0ms, prepare 172ms)

@@ -1,0 +1,28 @@
+{
+  "name": "beast-pack-real",
+  "seed": "sandbox-beast-pack-real",
+  "players": [
+    {
+      "lp": 8000,
+      "hand": ["SMP-057", "SMP-124", "SMP-011", "SMP-050"],
+      "deck": ["SMP-005", "SMP-009", "SMP-011", "SMP-052", "SMP-057", "SMP-058"],
+      "field": {
+        "monsters": [{ "card": "SMP-005", "zone": 1, "position": "Attack" }],
+        "spellTraps": []
+      },
+      "gy": []
+    },
+    {
+      "lp": 8000,
+      "hand": ["SMP-008", "SMP-012"],
+      "deck": ["SMP-004", "SMP-006", "SMP-009", "SMP-010", "SMP-012", "SMP-014"],
+      "field": {
+        "monsters": [{ "card": "SMP-006", "zone": 0, "position": "Attack" }],
+        "spellTraps": []
+      },
+      "gy": []
+    }
+  ],
+  "turn": { "count": 3, "player": 0 },
+  "phase": "Main1"
+}

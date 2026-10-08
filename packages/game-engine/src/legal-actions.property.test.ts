@@ -7,6 +7,8 @@ import { createRng, nextInt } from './rng/seeded-rng.js';
 import type { RngState } from './rng/seeded-rng.js';
 import type { GameState } from './state/types.js';
 import {
+  BATCH2_DECK_POOL,
+  BATCH2_EXTRA_DECK_POOL,
   formatFuzzFailure,
   FUSION_DECK_POOL,
   FUSION_EXTRA_DECK_POOL,
@@ -209,6 +211,12 @@ describe('getLegalActions — property (fuzzed duels)', () => {
       'Fusion pool + Extra Decks',
       'legal-fusion',
       { deckPool: FUSION_DECK_POOL, extraDeckPool: FUSION_EXTRA_DECK_POOL },
+    ],
+    // Task 4.7: and over duels played with the REAL batch-2 cards (named effect ids, costs, hand / graveyard targets).
+    [
+      'batch-2 real cards + Extra Decks',
+      'legal-batch2',
+      { deckPool: BATCH2_DECK_POOL, extraDeckPool: BATCH2_EXTRA_DECK_POOL },
     ],
   ])(
     `agrees with applyAction on ${SEEDS} seeds × ${STEPS} steps (%s)`,

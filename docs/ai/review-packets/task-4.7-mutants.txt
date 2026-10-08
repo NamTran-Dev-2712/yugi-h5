@@ -1,0 +1,111 @@
+# Task 4.7 — mutation on the card data (node tools/mutants-4.7.mjs, 2026-10-08). Column 1: the engine test file of the card. "data pin": the shared test that pins the exact data (reported, not counted).
+
+KILLED   (data pin: red) SMP-048 heals 400
+KILLED   (data pin: red) SMP-048 becomes optional
+KILLED   (data pin: red) SMP-048 heals the opponent
+KILLED   (data pin: red) SMP-049 pays 500
+KILLED   (data pin: red) SMP-049 costs nothing
+KILLED   (data pin: red) SMP-049 hits Level 5
+KILLED   (data pin: red) SMP-049 no filter (face-down / any Level)
+KILLED   (data pin: red) SMP-049 targets my own monster
+KILLED   (data pin: red) SMP-049 becomes mandatory
+KILLED   (data pin: red) SMP-050 calls a Level 4
+KILLED   (data pin: red) SMP-050 arrives in Attack
+KILLED   (data pin: red) SMP-050 calls from the graveyard
+KILLED   (data pin: red) SMP-051 draws 2
+KILLED   (data pin: red) SMP-051 becomes optional
+KILLED   (data pin: red) SMP-051 triggers on Summon
+KILLED   (data pin: red) SMP-051 the opponent draws
+KILLED   (data pin: red) SMP-052 targets a monster
+KILLED   (data pin: red) SMP-052 targets my own backrow
+KILLED   (data pin: red) SMP-052 becomes mandatory
+KILLED   (data pin: red) SMP-052 triggers when destroyed
+KILLED   (data pin: red) SMP-053 burns 500
+KILLED   (data pin: red) SMP-053 burns its controller
+KILLED   (data pin: red) SMP-053 triggers on Summon
+KILLED   (data pin: red) SMP-054 may bring ITSELF back (loop)
+KILLED   (data pin: red) SMP-054 returns in Attack
+KILLED   (data pin: red) SMP-054 calls from the hand
+KILLED   (data pin: red) SMP-054 triggers on Summon
+KILLED   (data pin: red) SMP-054 survives the battle of its test
+KILLED   (data pin: red) SMP-055 burns 600
+KILLED   (data pin: red) SMP-055 burns its owner
+KILLED   (data pin: red) SMP-055 becomes optional
+KILLED   (data pin: red) SMP-056 pays 300
+KILLED   (data pin: red) SMP-056 costs nothing
+KILLED   (data pin: red) SMP-056 draws 2
+KILLED   (data pin: red) SMP-056 the opponent draws
+KILLED   (data pin: red) SMP-056 becomes mandatory
+KILLED   (data pin: red) SMP-057 +300 ATK
+KILLED   (data pin: red) SMP-057 boosts itself too
+KILLED   (data pin: red) SMP-057 boosts Warriors
+KILLED   (data pin: red) SMP-057 boosts every monster
+KILLED   (data pin: red) SMP-057 boosts the opponent's Beasts
+KILLED   (data pin: red) SMP-058 −300 ATK
+KILLED   (data pin: red) SMP-058 weakens EARTH monsters
+KILLED   (data pin: red) SMP-058 weakens my own LIGHT monsters
+KILLED   (data pin: red) SMP-058 weakens every opponent monster
+KILLED   (data pin: red) SMP-059 boosts ATK instead of DEF
+KILLED   (data pin: red) SMP-059 +300 DEF
+KILLED   (data pin: red) SMP-059 boosts Warriors
+KILLED   (data pin: red) SMP-059 boosts the opponent's Rocks
+KILLED   (data pin: red) SMP-060 other material
+KILLED   (data pin: red) SMP-060 ATK 2300
+KILLED   (data pin: red) SMP-061 −300 ATK
+KILLED   (data pin: red) SMP-061 weakens my own monsters
+KILLED   (data pin: red) SMP-061 other material
+KILLED   (data pin: red) SMP-117 costs nothing
+KILLED   (data pin: red) SMP-117 hits Level 5
+KILLED   (data pin: red) SMP-117 no filter
+KILLED   (data pin: red) SMP-117 declared a Quick-Play Spell
+KILLED   (data pin: red) SMP-118 costs nothing
+KILLED   (data pin: red) SMP-118 draws 3
+KILLED   (data pin: red) SMP-118 discards instead of Tributing
+KILLED   (data pin: red) SMP-119 declared a Normal Spell
+KILLED   (data pin: red) SMP-119 targets my own backrow
+KILLED   (data pin: red) SMP-119 targets a monster
+KILLED   (data pin: red) SMP-120 ambushes with a Level 5
+KILLED   (data pin: red) SMP-120 arrives in Attack
+KILLED   (data pin: red) SMP-120 calls from the graveyard
+KILLED   (data pin: red) SMP-121 +400 ATK
+KILLED   (data pin: red) SMP-121 +600 DEF
+KILLED   (data pin: red) SMP-121 equips to the opponent's monster
+KILLED   (data pin: red) SMP-122 equips to my own monster
+KILLED   (data pin: red) SMP-122 −500 ATK
+KILLED   (data pin: red) SMP-122 lowers DEF instead of ATK
+KILLED   (data pin: red) SMP-123 heals 600
+KILLED   (data pin: red) SMP-123 no heal on activation
+KILLED   (data pin: red) SMP-123 boosts EARTH monsters
+KILLED   (data pin: red) SMP-123 +200 ATK
+KILLED   (data pin: red) SMP-123 boosts the opponent's DARK monsters
+KILLED   (data pin: red) SMP-124 +300 / +300
+KILLED   (data pin: red) SMP-124 boosts WIND monsters
+KILLED   (data pin: red) SMP-124 boosts my side only
+KILLED   (data pin: red) SMP-124 no DEF bonus
+KILLED   (data pin: red) SMP-211 costs nothing
+KILLED   (data pin: red) SMP-211 returns in Attack
+KILLED   (data pin: red) SMP-211 calls from the hand
+KILLED   (data pin: red) SMP-212 negates Spells instead
+KILLED   (data pin: red) SMP-212 negates any activation
+KILLED   (data pin: red) SMP-212 declared a Counter Trap (Spell Speed 3)
+KILLED   (data pin: red) SMP-213 +300 DEF
+KILLED   (data pin: red) SMP-213 boosts the opponent's monsters
+KILLED   (data pin: red) SMP-213 boosts ATK instead of DEF
+KILLED   (data pin: red) SMP-214 also negates Traps
+KILLED   (data pin: red) SMP-214 negates monster effects instead
+KILLED   (data pin: red) SMP-214 costs nothing
+KILLED   (data pin: red) SMP-214 declared a Normal Trap (Spell Speed 2, may start a chain)
+KILLED   (deck test)        deck without the fusion Spell
+KILLED   (deck test)        deck without SMP-054
+BADPATTERN            Extra Deck with another task's Fusion Monster  (pattern written for a multi-line list; fixed, re-run below)
+
+97/98 on this run (the 98th was a bad pattern in the script, not a survivor)
+0 card mutant(s) NOT seen by the shared data pin (cards/batch2.test.ts)
+
+## Re-run of the deck mutants after fixing the pattern: node tools/mutants-4.7.mjs deck
+KILLED   (deck test)        deck without the fusion Spell
+KILLED   (deck test)        deck without SMP-054
+KILLED   (deck test)        Extra Deck with another task's Fusion Monster
+3/3 mutants killed by behaviour tests
+
+## Total: 98/98 killed — 95 card-data mutants, each by the engine test file of its own card (behaviour), + 3 deck mutants by the deck test. 0 survivors, 0 invalid (non-compiling) mutants.

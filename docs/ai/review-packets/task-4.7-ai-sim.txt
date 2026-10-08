@@ -1,0 +1,46 @@
+# Task 4.7 — AI simulations with BATCH2_DEMO_DECK, 100 games x 3 kinds (2026-10-08), run as 2 chunks of 50 (AI_SIM_GAMES=50, AI_SIM_OFFSET=0 / 50), after SMP-056 was changed (see the note at the end)
+
+## AI_SIM_GAMES=50 AI_SIM_OFFSET=0 vitest run simulate.batch2-deck
+[AI vs AI batch-2 deck] games=50 finished=50 meanTurns=45.1 {
+  decisions: 17098,
+  promptsAnswered: 1342,
+  windowActivations: 0,
+  spellTrapOnItsOwn: 0
+[player vs AI, batch-2 deck] games=50 finished=50 meanTurns=28.6 {
+  promptAnswers: 180,
+  activations: 243,
+  sets: 205,
+  aiDecisions: 5279,
+  aiSpellTrapOnItsOwn: 0
+[player vs player, batch-2 deck] games=50 finished=50 meanTurns=30.8 { promptAnswers: 391, activations: 587, sets: 411 }
+ ✓ src/modules/duels/ai/simulate.batch2-deck.spec.ts (3 tests) 371528ms
+   ✓ simulations with BATCH2_DEMO_DECK (task 4.7, real batch-2 cards) > the server AI on both seats, no Extra Deck: every game ends, no Spell/Trap move of its own  223257ms
+   ✓ simulations with BATCH2_DEMO_DECK (task 4.7, real batch-2 cards) > a seat that really plays the cards (Extra Deck) against the server AI: cards are used, nobody gets stuck  87664ms
+   ✓ simulations with BATCH2_DEMO_DECK (task 4.7, real batch-2 cards) > that player on both seats, both with the Extra Deck: every game still ends  60605ms
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+
+## AI_SIM_GAMES=50 AI_SIM_OFFSET=50 vitest run simulate.batch2-deck
+[AI vs AI batch-2 deck] games=50 finished=50 meanTurns=51.0 {
+  decisions: 19292,
+  promptsAnswered: 1621,
+  windowActivations: 0,
+  spellTrapOnItsOwn: 0
+[player vs AI, batch-2 deck] games=50 finished=50 meanTurns=32.3 {
+  promptAnswers: 213,
+  activations: 240,
+  sets: 213,
+  aiDecisions: 6099,
+  aiSpellTrapOnItsOwn: 0
+[player vs player, batch-2 deck] games=50 finished=50 meanTurns=28.8 { promptAnswers: 370, activations: 571, sets: 377 }
+ ✓ src/modules/duels/ai/simulate.batch2-deck.spec.ts (3 tests) 472154ms
+   ✓ simulations with BATCH2_DEMO_DECK (task 4.7, real batch-2 cards) > the server AI on both seats, no Extra Deck: every game ends, no Spell/Trap move of its own  301389ms
+   ✓ simulations with BATCH2_DEMO_DECK (task 4.7, real batch-2 cards) > a seat that really plays the cards (Extra Deck) against the server AI: cards are used, nobody gets stuck  108709ms
+   ✓ simulations with BATCH2_DEMO_DECK (task 4.7, real batch-2 cards) > that player on both seats, both with the Extra Deck: every game still ends  62054ms
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+
+## Note — the FIRST run (first design of SMP-056: "destroyed: pay 500 LP, destroy 1 Spell/Trap the opponent controls")
+Kinds 1 and 2: 50 / 50 games finished. Kind 3 (the stand-in player on both seats) stopped at game b2pp-6 with
+"AiNoActionError: The AI has no legal action other than Surrender": a TriggerActivation prompt nobody could answer
+(engine issue, docs/ai/OPEN-ISSUES.md P7). SMP-056 was changed to a no-target effect; the run above is the re-run.

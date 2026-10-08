@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../../apply-action.js';
 import {
+  BATCH2_DECK_POOL,
+  BATCH2_EXTRA_DECK_POOL,
   formatFuzzFailure,
   FUSION_DECK_POOL,
   FUSION_EXTRA_DECK_POOL,
@@ -40,6 +42,16 @@ const FUSION: Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'> = {
   extraDeckPool: FUSION_EXTRA_DECK_POOL,
 };
 
+/** Task 4.7: seeds of the batch-2 pool (the REAL cards SMP-048…061 / 117…124 / 211…214). Long run: FUZZ_BATCH2_SEEDS. */
+const BATCH2_SEEDS = Array.from(
+  { length: Number(process.env['FUZZ_BATCH2_SEEDS'] ?? 5) },
+  (_, i) => `batch2-long-${i + 1}`,
+);
+const BATCH2: Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'> = {
+  deckPool: BATCH2_DECK_POOL,
+  extraDeckPool: BATCH2_EXTRA_DECK_POOL,
+};
+
 /** Task 4.2d: let the vitest worker answer its RPC between seeds (a long synchronous test starves it under load). */
 const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -51,6 +63,11 @@ describe('fuzz: engine invariants hold', () => {
 
   it.each(SUMMON_TRIGGER_SEEDS)('seed %s (Summon-trigger deck pool, task 4.4c)', (seed) => {
     const result = runFuzz({ seed, steps: STEPS, deckPool: SUMMON_TRIGGER_DECK_POOL });
+    expect(result.ok, formatFuzzFailure(result)).toBe(true);
+  });
+
+  it.each(BATCH2_SEEDS)('seed %s (batch-2 real cards + Extra Decks, task 4.7)', (seed) => {
+    const result = runFuzz({ seed, steps: STEPS, ...BATCH2 });
     expect(result.ok, formatFuzzFailure(result)).toBe(true);
   });
 
@@ -256,6 +273,61 @@ describe('fuzz: engine invariants hold', () => {
       expect(n, `${key} never happened`).toBeGreaterThan(0);
     }
   }, 120_000);
+
+  it('the real batch-2 cards are really played (task 4.7; own seeds, deck pool and Extra Decks: 60 × 400 steps)', async () => {
+    const total = {
+      triggerLinks: 0,
+      triggerPrompts: 0,
+      flipLinks: 0,
+      continuousApplied: 0,
+      specialSummons: 0,
+      equips: 0,
+      equipsDetached: 0,
+      fieldSpellLinks: 0,
+      continuousCardsStayed: 0,
+      activationsNegated: 0,
+      counterTrapLinks: 0,
+      fusionSummons: 0,
+    };
+    const played = new Set<string>();
+    // A variant of its own: the default pool has no batch-2 card, so every older seed keeps its pool and its stream.
+    for (let i = 1; i <= 60; i++) {
+      await yieldToWorker();
+      const result = runFuzz({ seed: `batch2-${i}`, steps: 400, ...BATCH2 });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const key of Object.keys(total) as (keyof typeof total)[])
+        total[key] += result.stats[key];
+      for (const action of result.log) {
+        if (action.type !== 'StartDuel') continue;
+        for (const id of action.payload.deckLists.flat()) played.add(id);
+        for (const id of (action.payload.extraDeckLists ?? []).flat()) played.add(id);
+      }
+    }
+    console.log(`fuzz 4.7 coverage: ${JSON.stringify(total)}`);
+    for (const [key, n] of Object.entries(total))
+      expect(n, `${key} never happened`).toBeGreaterThan(0);
+    // Every card of the batch was in some deck of these runs.
+    for (const id of [...BATCH2_DECK_POOL, ...BATCH2_EXTRA_DECK_POOL])
+      expect(played.has(id), id).toBe(true);
+  }, 180_000);
+
+  it('older runs never see a batch-2 card: the default, Negate, Summon-trigger and Fusion pools have none (task 4.7)', () => {
+    const older: [string, Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'>][] = [
+      ['fuzz-1', {}],
+      ['negate-1', { deckPool: NEGATE_DECK_POOL }],
+      ['sumwin-1', { deckPool: SUMMON_TRIGGER_DECK_POOL }],
+      ['fusion-1', FUSION],
+    ];
+    for (const [seed, pools] of older) {
+      const result = runFuzz({ seed, steps: 300, ...pools });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const action of result.log) {
+        if (action.type !== 'StartDuel') continue;
+        const ids = [...action.payload.deckLists, ...(action.payload.extraDeckLists ?? [])].flat();
+        for (const id of ids) expect(id.startsWith('SMP-'), `${seed}: ${id}`).toBe(false);
+      }
+    }
+  });
 
   it('older runs never see a fusion card: the default pool has none and no run without extraDeckPool has an Extra Deck (task 4.5)', () => {
     for (const seed of ['fuzz-1', 'fuzz-2', 'fuzz-3']) {

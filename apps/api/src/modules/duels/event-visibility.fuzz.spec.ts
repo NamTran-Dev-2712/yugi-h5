@@ -13,6 +13,8 @@ import {
   FUSION_DEMO_DECK,
   FUSION_DEMO_EXTRA_DECK,
   NEGATE_DEMO_DECK,
+  BATCH2_DEMO_DECK,
+  BATCH2_FUSION_EXTRA_DECK,
   SAMPLE_CARDS,
   isFusionEffect,
   isNegateOperationKind,
@@ -66,6 +68,8 @@ const NEGATE_SEEDS = Number(process.env['FUZZ_NEGATE_SEEDS'] ?? Math.max(6, Math
 /** Task 4.4c: seeds of the flip-monster deck (own rng stream; the seeds above are not touched). */
 const FLIP_SEEDS = Number(process.env['FUZZ_FLIP_SEEDS'] ?? Math.max(4, Math.ceil(SEEDS / 4)));
 /** Task 4.5b: seeds of the Fusion deck, Extra Deck on both seats (own rng stream; the seeds above are not touched). */
+/** Task 4.7: seeds of the batch-2 deck (rng `batch2-leak-<i>`). Long run: FUZZ_BATCH2_SEEDS. */
+const BATCH2_SEEDS = Number(process.env['FUZZ_BATCH2_SEEDS'] ?? Math.max(6, Math.ceil(SEEDS / 2)));
 const FUSION_SEEDS = Number(process.env['FUZZ_FUSION_SEEDS'] ?? Math.max(6, Math.ceil(SEEDS / 2)));
 
 const text = (s: string) => ({ vi: s, en: s });
@@ -395,6 +399,62 @@ function fusionDemoDeckList(): string[] {
 function fusionExtraDeckList(): string[] {
   return [...FUSION_DEMO_EXTRA_DECK];
 }
+/**
+ * Task 4.7: the real batch-2 cards, played by their OWN seeds (rng `batch2-leak-<i>`). Two Main Decks:
+ *  - `batch2DeckList` (two-seat mode): every Main Deck card of the batch, heavy on what touches hidden zones — targets
+ *    in the hand (SMP-050, SMP-120), targets in the graveyard (SMP-054, SMP-211), Discard costs (SMP-117, SMP-211,
+ *    SMP-214), LP costs (SMP-049, SMP-056), an Equip on the opponent's monster (SMP-122) and the fusion Spell with
+ *    its materials;
+ *  - `BATCH2_DEMO_DECK` itself (solo-vs-ai), the deck a person really plays.
+ * Both seats get `BATCH2_FUSION_EXTRA_DECK` (the AI seat's is dropped by the server, as always).
+ */
+function batch2DeckList(): string[] {
+  const times = (id: string, n: number): string[] => Array.from({ length: n }, () => id);
+  const deck = [
+    ...['SMP-050', 'SMP-120', 'SMP-211'].flatMap((id) => times(id, 4)),
+    ...['SMP-054', 'SMP-117', 'SMP-049', 'SMP-057', 'SMP-058', 'SMP-116'].flatMap((id) =>
+      times(id, 3),
+    ),
+    ...['SMP-214', 'SMP-056', 'SMP-122', 'SMP-212', 'SMP-048'].flatMap((id) => times(id, 2)),
+    ...['SMP-051', 'SMP-052', 'SMP-053', 'SMP-055', 'SMP-059', 'SMP-118', 'SMP-119'],
+    ...['SMP-121', 'SMP-123', 'SMP-124', 'SMP-213'],
+    ...['SMP-005', 'SMP-011'].flatMap((id) => times(id, 3)),
+  ];
+  const demo = new Set(BATCH2_DEMO_DECK);
+  if (deck.some((id) => !demo.has(id))) throw new Error('not a batch-2 demo-deck card');
+  if (BATCH2_DEMO_DECK.some((id) => !deck.includes(id) && id !== 'SMP-009'))
+    throw new Error('a batch-2 card is missing from the fuzz deck');
+  return deck;
+}
+function batch2DemoDeckList(): string[] {
+  return [...BATCH2_DEMO_DECK];
+}
+function batch2ExtraDeckList(): string[] {
+  return [...BATCH2_FUSION_EXTRA_DECK];
+}
+
+/**
+ * Task 4.7 steering (test generator only, the engine decides what is legal): say YES to every prompt (trigger offers,
+ * targets in the hand / graveyard, the two Fusion prompts), activate whatever the engine lists — in a window or not —,
+ * then flip, Summon / Set monsters and Set Spells / Traps. Attacks and phase changes are left to the 40% random picks.
+ */
+function steerToBatch2(
+  state: GameState,
+  _actor: 0 | 1,
+  legal: readonly PlayerAction[],
+): PlayerAction[] {
+  if (state.pendingPrompt !== null) {
+    return legal.filter((a) => a.type === 'ResolvePendingPrompt' && a.payload.decline !== true);
+  }
+  const activations = legal.filter((a) => a.type === 'ActivateEffect');
+  if (activations.length > 0 || legal.some((a) => a.type === 'PassPriority')) return activations;
+  const flips = legal.filter((a) => a.type === 'FlipSummon');
+  if (flips.length > 0) return flips;
+  const monsters = legal.filter((a) => a.type === 'NormalSummon' || a.type === 'SetMonster');
+  if (monsters.length > 0) return monsters;
+  return legal.filter((a) => a.type === 'SetSpellTrap');
+}
+
 /** A card that Fusion Summons: read from its operations, not from its id. */
 const fuses = (definitionId: string): boolean =>
   (DEFS.get(definitionId)?.effects ?? []).some(isFusionEffect);
@@ -1231,51 +1291,55 @@ async function fuzzSeed(
   }
 }
 
+const newStats = (): Stats => ({
+  steps: 0,
+  duels: 0,
+  rejected: 0,
+  targetPrompts: 0,
+  triggerPrompts: 0,
+  declines: 0,
+  reactionWindows: 0,
+  multiLinkChains: 0,
+  setActivations: 0,
+  passes: 0,
+  ssFromHand: 0,
+  ssFromGraveyard: 0,
+  battleFlipTriggers: 0,
+  filteredTargets: 0,
+  aiSteps: 0,
+  aiPromptAnswers: 0,
+  fieldSets: 0,
+  fieldFromHand: 0,
+  fieldFromZone: 0,
+  fieldReplaced: 0,
+  faceDownFieldDestroyed: 0,
+  continuousSpellStays: 0,
+  continuousTrapStays: 0,
+  chainLinksNegated: 0,
+  attacksNegated: 0,
+  attacksNegatedOnFaceDown: 0,
+  summonsNegated: 0,
+  counterTrapActivations: 0,
+  faceDownSetTrapsDestroyed: 0,
+  negatedVsAi: 0,
+  fusionSummons: 0,
+  fusionMaterialsFromHand: 0,
+  fusionMaterialsFromField: 0,
+  fusionMonsterPrompts: 0,
+  fusionMaterialPrompts: 0,
+  fusionPromptsSeenByOpponent: 0,
+  fusionsNegated: 0,
+  fusionTriggers: 0,
+  fusionVsAi: 0,
+  extraDeckSteps: 0,
+  events: new Map(),
+  violations: [],
+});
+
 describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEEDS} seeds × ${STEPS} steps)`, () => {
-  const stats: Stats = {
-    steps: 0,
-    duels: 0,
-    rejected: 0,
-    targetPrompts: 0,
-    triggerPrompts: 0,
-    declines: 0,
-    reactionWindows: 0,
-    multiLinkChains: 0,
-    setActivations: 0,
-    passes: 0,
-    ssFromHand: 0,
-    ssFromGraveyard: 0,
-    battleFlipTriggers: 0,
-    filteredTargets: 0,
-    aiSteps: 0,
-    aiPromptAnswers: 0,
-    fieldSets: 0,
-    fieldFromHand: 0,
-    fieldFromZone: 0,
-    fieldReplaced: 0,
-    faceDownFieldDestroyed: 0,
-    continuousSpellStays: 0,
-    continuousTrapStays: 0,
-    chainLinksNegated: 0,
-    attacksNegated: 0,
-    attacksNegatedOnFaceDown: 0,
-    summonsNegated: 0,
-    counterTrapActivations: 0,
-    faceDownSetTrapsDestroyed: 0,
-    negatedVsAi: 0,
-    fusionSummons: 0,
-    fusionMaterialsFromHand: 0,
-    fusionMaterialsFromField: 0,
-    fusionMonsterPrompts: 0,
-    fusionMaterialPrompts: 0,
-    fusionPromptsSeenByOpponent: 0,
-    fusionsNegated: 0,
-    fusionTriggers: 0,
-    fusionVsAi: 0,
-    extraDeckSteps: 0,
-    events: new Map(),
-    violations: [],
-  };
+  const stats = newStats();
+  /** Task 4.7: the batch-2 variant counts into stats of its OWN, so it never stands in for an older coverage check. */
+  const batch2Stats = newStats();
 
   it.each(Array.from({ length: SEEDS }, (_, i) => i))(
     'seed %i: every response to both viewers passes the leak oracle',
@@ -1384,6 +1448,64 @@ describe(`fuzz gate: no hidden definitionId over the wire with Spell/Trap (${SEE
     },
     120_000,
   );
+
+  const BATCH2_VARIANT: FuzzVariant = {
+    tag: '4.7-batch2',
+    deck: batch2DeckList,
+    extraDeck: batch2ExtraDeckList,
+    rngName: (seed) => `batch2-leak-${seed}`,
+    steer: steerToBatch2,
+  };
+
+  it.each(Array.from({ length: BATCH2_SEEDS }, (_, i) => i))(
+    'seed batch2-leak-%i (batch-2 deck, Extra Deck on both seats, task 4.7): every response to both viewers passes the leak oracle',
+    async (seed) => {
+      const before = batch2Stats.violations.length;
+      await fuzzSeed(seed, batch2Stats, BATCH2_VARIANT);
+      expect(batch2Stats.violations.slice(before).slice(0, 5)).toEqual([]);
+    },
+    120_000,
+  );
+
+  it.each(Array.from({ length: Math.ceil(BATCH2_SEEDS / 2) }, (_, i) => i))(
+    'seed batch2-leak-ai-%i (BATCH2_DEMO_DECK, solo-vs-ai, task 4.7): aiActions included, no leak',
+    async (seed) => {
+      const before = batch2Stats.violations.length;
+      await fuzzSeedVsAi(seed, STEPS, batch2Stats, {
+        ...BATCH2_VARIANT,
+        deck: batch2DemoDeckList,
+        rngName: (n) => `batch2-leak-ai-${n}`,
+      });
+      expect(batch2Stats.violations.slice(before).slice(0, 5)).toEqual([]);
+    },
+    120_000,
+  );
+
+  it('covered the batch-2 cards on the wire (task 4.7; own stats, own seeds)', () => {
+    const seen = (type: string): number => batch2Stats.events.get(type) ?? 0;
+    const batch2 = {
+      steps: batch2Stats.steps,
+      // Targets in hidden / public zones: the hand (filtered for the opponent) and the graveyard.
+      ssFromHand: batch2Stats.ssFromHand,
+      ssFromGraveyard: batch2Stats.ssFromGraveyard,
+      filteredTargets: batch2Stats.filteredTargets,
+      targetPrompts: batch2Stats.targetPrompts,
+      triggerPrompts: batch2Stats.triggerPrompts,
+      // Costs: a discarded card leaves the hidden hand, LP are paid, a monster is Tributed.
+      cardsDiscarded: seen('CardDiscarded'),
+      lifePointsPaid: seen('LifePointsPaid'),
+      monstersTributed: seen('MonsterTributed'),
+      equips: seen('CardEquipped'),
+      flipSummons: seen('FlipSummoned'),
+      chainLinksNegated: seen('ChainLinkNegated'),
+      fusionSummons: batch2Stats.fusionSummons,
+      aiSteps: batch2Stats.aiSteps,
+      extraDeckSteps: batch2Stats.extraDeckSteps,
+    };
+    console.info('[fuzz 4.7]', batch2);
+    for (const [name, n] of Object.entries(batch2)) expect(n, name).toBeGreaterThan(0);
+    expect(batch2Stats.violations).toEqual([]);
+  });
 
   it('covered Fusion on the wire (task 4.5b)', () => {
     const fusion = {

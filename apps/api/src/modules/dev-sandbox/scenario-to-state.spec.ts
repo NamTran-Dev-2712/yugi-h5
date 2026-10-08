@@ -377,6 +377,8 @@ describe('sample scenarios', () => {
 
   const SHIPPED = [
     'attack-defense',
+    // Task 4.7: card batch 2 (Continuous by race + Field by attribute).
+    'beast-pack-real',
     'chain-basic',
     // Task 3.8: scenarios on the real effect cards.
     'chain-reaction-real',
@@ -387,6 +389,8 @@ describe('sample scenarios', () => {
     // Task 4.4b: Counter Trap / Negate on real cards (counter-spell-real, counter-summon-real, negate-attack-real).
     'counter-spell-real',
     'counter-summon-real',
+    // Task 4.7: an Equip Spell on the opponent's monster.
+    'equip-opponent-real',
     'equip-real',
     'field-real',
     'field-set-real',
@@ -397,6 +401,8 @@ describe('sample scenarios', () => {
     'fusion-success-real',
     'negate-attack-real',
     'normal-set-real',
+    // Task 4.7: an OnDestroyed trigger that Special Summons from the graveyard.
+    'revive-on-destroyed-real',
     'special-summon-real',
     'tribute-summon',
     'trigger-optional-real',

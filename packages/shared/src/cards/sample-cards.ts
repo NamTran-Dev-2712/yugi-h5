@@ -1053,16 +1053,18 @@ export const SAMPLE_CARDS: CardDefinition[] = [
     atk: 1500,
     def: 1100,
     effectText: {
-      vi: 'Khi lá này bị phá huỷ và đưa vào Mộ: bạn có thể trả 500 LP, rồi chọn 1 lá Phép/Bẫy đối thủ điều khiển; phá huỷ nó.',
-      en: 'When this card is destroyed and sent to the Graveyard: you can pay 500 LP, then target 1 Spell/Trap your opponent controls; destroy it.',
+      vi: 'Khi lá này bị phá huỷ và đưa vào Mộ: bạn có thể trả 500 LP; rút 1 lá.',
+      en: 'When this card is destroyed and sent to the Graveyard: you can pay 500 LP; draw 1 card.',
     },
     effects: [
       {
-        id: 'last-hammer',
+        // Not "destroy 1 Spell/Trap": a trigger that targets a Spell/Trap while an Equip Spell is about to follow its
+        // destroyed monster to the graveyard can leave a prompt nobody can answer (engine issue found by task 4.7,
+        // docs/ai/OPEN-ISSUES.md P7) — so this card takes no target.
+        id: 'last-spark',
         trigger: { kind: 'OnDestroyed' },
         cost: [{ kind: 'PayLP', amount: 500 }],
-        target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
-        operations: [{ kind: 'Destroy' }],
+        operations: [{ kind: 'Draw', count: 1, target: 'self' }],
       },
     ],
   },

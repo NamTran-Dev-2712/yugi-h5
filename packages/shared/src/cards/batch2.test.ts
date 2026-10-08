@@ -219,7 +219,7 @@ describe('card batch 2 — Effect Monsters', () => {
     expect(monster('SMP-054').level).toBeGreaterThan(max);
   });
 
-  it('SMP-055: OnDestroyed mandatory, 500 damage; SMP-056: OnDestroyed optional, pay 500 LP, destroy 1 Spell/Trap', () => {
+  it('SMP-055: OnDestroyed mandatory, 500 damage; SMP-056: OnDestroyed optional, pay 500 LP, draw 1 (no target)', () => {
     expect(get('SMP-055').effects).toEqual([
       {
         id: 'blast-on-destroyed',
@@ -229,11 +229,10 @@ describe('card batch 2 — Effect Monsters', () => {
     ]);
     expect(get('SMP-056').effects).toEqual([
       {
-        id: 'last-hammer',
+        id: 'last-spark',
         trigger: { kind: 'OnDestroyed' },
         cost: [{ kind: 'PayLP', amount: 500 }],
-        target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
-        operations: [{ kind: 'Destroy' }],
+        operations: [{ kind: 'Draw', count: 1, target: 'self' }],
       },
     ]);
   });

@@ -27,6 +27,12 @@
  * (4 of 5 runs short at HEAD, 5 of 5 at the commit before task 4.5). Now the human holds its monsters back until a
  * negation was seen (the AI then Summons and attacks directly), and up to NEGATE_DUELS duels are played; the two
  * coverage checks are made on the totals. Every other check (leaks, the AI never Sets / activates) still runs per duel.
+ * Task 4.7: `DECK=batch2` plays both seats with `BATCH2_DEMO_DECK` (the 24 Main Deck cards of batch 2 + the fusion
+ * Spell); the human seat also gets `BATCH2_FUSION_EXTRA_DECK`. The human Summons, activates whatever the server lists
+ * (costs included: the listed action names the cards to discard / Tribute), accepts trigger prompts and Sets the rest.
+ * Up to `BATCH2_DUELS` duels are played until the run saw chain links, a Continuous effect on the wire and a card that
+ * moved by an effect (a Special Summon or an Equip); the AI must still never Set a Spell/Trap (its activations inside a
+ * chain window — a Quick-Play Spell that harms the human, allowed since task 3.4b — are printed).
  */
 import {
   BASE,
@@ -81,6 +87,24 @@ const NEGATE_DECK = process.env.DECK === 'negate';
 const FUSION_DECK = process.env.DECK === 'fusion';
 const FUSION_DUELS = Number(process.env.FUSION_DUELS ?? 6);
 const FUSION_PROMPTS = new Set(['SelectFusionMonster', 'SelectFusionMaterials']);
+const BATCH2_DECK = process.env.DECK === 'batch2';
+const BATCH2_DUELS = Number(process.env.BATCH2_DUELS ?? 4);
+/** Totals over the duels of one DECK=batch2 run. */
+const batch2Totals = {
+  duels: 0,
+  chainLinks: 0,
+  effAtk: 0,
+  specialSummons: 0,
+  equips: 0,
+  flipSummons: 0,
+  triggerPrompts: 0,
+  aiSets: 0,
+  aiActivations: 0,
+};
+const batch2Covered = (): boolean =>
+  batch2Totals.chainLinks > 0 &&
+  batch2Totals.effAtk > 0 &&
+  batch2Totals.specialSummons + batch2Totals.equips > 0;
 const NEGATE_DUELS = Number(process.env.NEGATE_DUELS ?? 6);
 /** Totals over the duels of one DECK=negate run. */
 const negateTotals = { duels: 0, windows: 0, attacksNegated: 0, summonsNegated: 0 };
@@ -129,7 +153,7 @@ function chooseHuman(view: ViewV, legal: Action[]): Action {
     if (a.type === 'ActivateEffect' && MECH_DECK) return 3.9;
     // DECK=fusion: Summon first (a material may then come from the field), then activate (the fusion Spell) before
     // Setting anything.
-    if (a.type === 'ActivateEffect' && FUSION_DECK) return 3.5;
+    if (a.type === 'ActivateEffect' && (FUSION_DECK || BATCH2_DECK)) return 3.5;
     if (a.type === 'SetSpellTrap') return 4;
     if (a.type === 'ActivateEffect') return 5;
     if (a.type === 'EndPhase') return 9;
@@ -167,8 +191,45 @@ async function mainNegate(): Promise<void> {
   if (failed.length > 0) process.exit(1);
 }
 
+async function mainBatch2(): Promise<void> {
+  for (let i = 0; i < BATCH2_DUELS && !batch2Covered(); i++) {
+    if (i > 0)
+      say(`\n--- batch-2 coverage not complete yet: duel ${i + 1} of at most ${BATCH2_DUELS} ---`);
+    batch2Totals.duels++;
+    await playOne();
+  }
+  say(`   batch2 totals: ${JSON.stringify(batch2Totals)}`);
+  check(
+    `batch-2 chain links were added over HTTP within ${BATCH2_DUELS} duels`,
+    batch2Totals.chainLinks > 0,
+    JSON.stringify(batch2Totals),
+  );
+  check(
+    'a Continuous effect of batch 2 reached the wire (effectiveStats)',
+    batch2Totals.effAtk > 0,
+    JSON.stringify(batch2Totals),
+  );
+  check(
+    'a Special Summon or an Equip of batch 2 happened over HTTP',
+    batch2Totals.specialSummons + batch2Totals.equips > 0,
+    JSON.stringify(batch2Totals),
+  );
+  // The AI may activate a Quick-Play Spell that harms me inside a chain window it holds (taught in task 3.4b: SMP-119
+  // qualifies); it is not taught to Set anything. aiActivations is printed, not required to be 0.
+  check(
+    'the AI never Set a Spell/Trap itself (batch-2 deck)',
+    batch2Totals.aiSets === 0,
+    JSON.stringify(batch2Totals),
+  );
+  const failed = results.filter((r) => !r.ok);
+  say(`${results.length - failed.length}/${results.length} checks passed (all duels)`);
+  for (const f of failed) say(`  FAIL ${f.name} ${f.detail}`);
+  if (failed.length > 0) process.exit(1);
+}
+
 async function main(): Promise<void> {
   if (NEGATE_DECK) return mainNegate();
+  if (BATCH2_DECK) return mainBatch2();
   if (!FUSION_DECK) return playOne();
   for (let i = 0; i < FUSION_DUELS && fusionTotals.summons === 0; i++) {
     if (i > 0) say(`\n--- no Fusion Summon yet: duel ${i + 1} of at most ${FUSION_DUELS} ---`);
@@ -230,6 +291,17 @@ async function playOne(): Promise<void> {
     say(`   deck: NEGATE_DEMO_DECK (${deck.length} cards)`);
   }
   let extraDeck: readonly string[] | undefined;
+  if (BATCH2_DECK) {
+    const shared = (await import('../packages/shared/dist/index.js')) as {
+      BATCH2_DEMO_DECK: readonly string[];
+      BATCH2_FUSION_EXTRA_DECK: readonly string[];
+    };
+    deck = shared.BATCH2_DEMO_DECK;
+    extraDeck = shared.BATCH2_FUSION_EXTRA_DECK;
+    say(
+      `   deck: BATCH2_DEMO_DECK (${deck.length} cards) + Extra Deck (${extraDeck.length} cards)`,
+    );
+  }
   if (FUSION_DECK) {
     const shared = (await import('../packages/shared/dist/index.js')) as {
       FUSION_DEMO_DECK: readonly string[];
@@ -251,7 +323,7 @@ async function playOne(): Promise<void> {
   const duelId = res.duelId ?? '';
   check('mode/aiSeat/viewer', res.mode === 'solo-vs-ai' && res.aiSeat === 1 && res.viewer === 0);
   check('opening response has no leak', findLeaks(res, aiHidden(res.view)).length === 0);
-  if (FUSION_DECK) {
+  if (FUSION_DECK || BATCH2_DECK) {
     check(
       'my Extra Deck is listed to me; the AI seat has none (count 0, no list)',
       res.view.players[0].extraDeck?.length === extraDeck?.length &&
@@ -394,6 +466,16 @@ async function playOne(): Promise<void> {
         if ('definitionId' in e) seen.attackNegatedWithDefinitionId++;
       }
     }
+    if (BATCH2_DECK) {
+      batch2Totals.aiSets += steps.filter((s) => s.action.type === 'SetSpellTrap').length;
+      for (const s of steps.filter((x) => x.action.type === 'ActivateEffect')) {
+        batch2Totals.aiActivations++;
+        const fired = res.events
+          .slice(s.eventsFrom, s.eventsTo)
+          .find((e) => e.type === 'EffectActivated');
+        say('   AI activated ' + String(fired?.definitionId ?? '?') + ' (chain window)');
+      }
+    }
     seen.aiSpellTrapMoves += steps.filter(
       (s) => s.action.type === 'SetSpellTrap' || s.action.type === 'ActivateEffect',
     ).length;
@@ -427,7 +509,7 @@ async function playOne(): Promise<void> {
         JSON.stringify(steps.map((s) => [s.eventsFrom, s.eventsTo])),
       );
     }
-    if (FUSION_DECK) {
+    if (FUSION_DECK || BATCH2_DECK) {
       // The AI seat never has an Extra Deck, and nothing I receive lists one for it.
       if (res.view.players[1].extraDeckCount !== 0 || 'extraDeck' in res.view.players[1])
         check('the AI seat has no Extra Deck', false);
@@ -460,6 +542,14 @@ async function playOne(): Promise<void> {
   });
   check('actions after the end are refused (409)', after.status === 409, `${after.status}`);
   say(`   effect stats: ${JSON.stringify(seen)}`);
+  if (BATCH2_DECK) {
+    batch2Totals.chainLinks += seen.chainLinks;
+    batch2Totals.effAtk += seen.effAtk;
+    batch2Totals.specialSummons += seen.specialSummons;
+    batch2Totals.equips += seen.equips;
+    batch2Totals.flipSummons += seen.flipSummons;
+    batch2Totals.triggerPrompts += seen.humanTriggerPrompts;
+  }
   if (EFFECT_DECK) {
     check('real chain links were added over HTTP', seen.chainLinks > 0, JSON.stringify(seen));
     check('the human held a chain / reaction window', seen.humanWindows > 0, JSON.stringify(seen));

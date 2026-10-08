@@ -1,0 +1,60 @@
+# Task 4.7 — long engine fuzz (2026-10-08)
+## FUZZ_BATCH2_SEEDS=200 FUZZ_STEPS=400 vitest run src/testing/fuzz/fuzz.test.ts -t 'batch-2'  (pool: the real cards SMP-048…061 / 117…124 / 211…214 + Extra Decks)
+stdout | src/testing/fuzz/fuzz.test.ts > fuzz: engine invariants hold > the real batch-2 cards are really played (task 4.7; own seeds, deck pool and Extra Decks: 60 × 400 steps)
+fuzz 4.7 coverage: {"triggerLinks":124,"triggerPrompts":75,"flipLinks":12,"continuousApplied":2236,"specialSummons":81,"equips":31,"equipsDetached":7,"fieldSpellLinks":29,"continuousCardsStayed":32,"activationsNegated":2,"counterTrapLinks":1,"fusionSummons":8}
+   ✓ fuzz: engine invariants hold > the real batch-2 cards are really played (task 4.7; own seeds, deck pool and Extra Decks: 60 × 400 steps)  2391ms
+ Test Files  1 passed (1)
+      Tests  202 passed | 51 skipped (253)
+   Duration  11.21s (transform 551ms, setup 0ms, collect 1.95s, tests 8.80s, environment 0ms, prepare 160ms)
+
+## Fingerprints of 50 older seeds (fuzz-1…20, negate-1…10, sumwin-1…10, fusion-1…10; 300 steps; FNV-1a of the JSON action log) before / after the fuzz.ts change: identical (diff empty). Temporary test, not committed.
+fuzz-1 true 300 a8c7e0e1
+fuzz-2 true 300 41048bd8
+fuzz-3 true 300 49f3204a
+fuzz-4 true 300 f9fdc56f
+fuzz-5 true 300 f355e806
+fuzz-6 true 300 9c363ada
+fuzz-7 true 300 edc510d9
+fuzz-8 true 300 b1083c89
+fuzz-9 true 300 5ca3585a
+fuzz-10 true 300 21df1ce4
+fuzz-11 true 300 ba0c8daf
+fuzz-12 true 300 dd5ec5b7
+fuzz-13 true 300 a7727c8e
+fuzz-14 true 300 6d3d4a91
+fuzz-15 true 300 9590c1a3
+fuzz-16 true 300 163b95f0
+fuzz-17 true 300 54be4633
+fuzz-18 true 300 b99afc2
+fuzz-19 true 300 d6464d1d
+fuzz-20 true 300 359f83c6
+negate-1 true 300 71c38ee7
+negate-2 true 300 1fa11061
+negate-3 true 300 58513949
+negate-4 true 300 aa2340a0
+negate-5 true 300 be132542
+negate-6 true 300 af4b51c2
+negate-7 true 300 8caba267
+negate-8 true 300 ade97a69
+negate-9 true 300 6b38cd6f
+negate-10 true 300 232f3d06
+sumwin-1 true 300 9cc95209
+sumwin-2 true 300 491d309d
+sumwin-3 true 300 809b8b69
+sumwin-4 true 300 39627261
+sumwin-5 true 300 a53c19f
+sumwin-6 true 300 7871e538
+sumwin-7 true 300 ed1e762d
+sumwin-8 true 300 a35c1234
+sumwin-9 true 300 b7a0244e
+sumwin-10 true 300 9317ab0c
+fusion-1 true 300 668e0887
+fusion-2 true 300 f5f35ab5
+fusion-3 true 300 bc13ed9e
+fusion-4 true 300 534de551
+fusion-5 true 300 a4fb911a
+fusion-6 true 300 a682fc8a
+fusion-7 true 300 bfb44ae0
+fusion-8 true 300 c830d5b8
+fusion-9 true 300 2ddc7ada
+fusion-10 true 300 71ad2b9d

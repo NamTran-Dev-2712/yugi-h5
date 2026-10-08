@@ -1,0 +1,28 @@
+{
+  "name": "equip-opponent-real",
+  "seed": "sandbox-equip-opponent-real",
+  "players": [
+    {
+      "lp": 8000,
+      "hand": ["SMP-122", "SMP-121", "SMP-048"],
+      "deck": ["SMP-005", "SMP-009", "SMP-011", "SMP-050", "SMP-057", "SMP-058"],
+      "field": {
+        "monsters": [{ "card": "SMP-006", "zone": 0, "position": "Attack" }],
+        "spellTraps": []
+      },
+      "gy": []
+    },
+    {
+      "lp": 8000,
+      "hand": ["SMP-007", "SMP-012"],
+      "deck": ["SMP-004", "SMP-005", "SMP-009", "SMP-010", "SMP-012", "SMP-011"],
+      "field": {
+        "monsters": [{ "card": "SMP-031", "zone": 2, "position": "Attack" }],
+        "spellTraps": []
+      },
+      "gy": []
+    }
+  ],
+  "turn": { "count": 3, "player": 0 },
+  "phase": "Main1"
+}

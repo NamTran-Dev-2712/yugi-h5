@@ -1,0 +1,44 @@
+# Task 4.7 — tools/play-vs-ai.ts over the real HTTP API (2026-10-08), one run per deck
+
+## DECK=default
+human actions 60, AI actions 65 over 8 responses, winner 1, turns 16
+71/71 checks passed
+exit code: 0
+
+## DECK=effect
+   deck: EFFECT_DEMO_DECK (40 cards)
+human actions 48, AI actions 28 over 5 responses, winner 0, turns 9
+62/62 checks passed
+exit code: 0
+
+## DECK=negate
+   deck: NEGATE_DEMO_DECK (40 cards)
+human actions 28, AI actions 30 over 4 responses, winner 1, turns 8
+40/40 checks passed
+--- no negation yet: duel 2 of at most 6 ---
+   deck: NEGATE_DEMO_DECK (40 cards)
+human actions 29, AI actions 30 over 5 responses, winner 1, turns 8
+81/81 checks passed
+   negate totals: {"duels":2,"windows":1,"attacksNegated":1,"summonsNegated":0}
+83/83 checks passed (all duels)
+exit code: 0
+
+## DECK=fusion
+   deck: FUSION_DEMO_DECK (40 cards) + Extra Deck (5 cards)
+human actions 43, AI actions 28 over 5 responses, winner 0, turns 9
+55/55 checks passed
+--- no Fusion Summon yet: duel 2 of at most 6 ---
+   deck: FUSION_DEMO_DECK (40 cards) + Extra Deck (5 cards)
+human actions 88, AI actions 72 over 10 responses, winner 0, turns 19
+155/155 checks passed
+   fusion totals: {"duels":2,"summons":1,"materials":2,"monsterPrompts":1,"materialPrompts":1}
+157/157 checks passed (all duels)
+exit code: 0
+
+## DECK=batch2
+   deck: BATCH2_DEMO_DECK (40 cards) + Extra Deck (4 cards)
+human actions 67, AI actions 63 over 10 responses, winner 1, turns 16
+79/79 checks passed
+   batch2 totals: {"duels":1,"chainLinks":5,"effAtk":64,"specialSummons":2,"equips":0,"flipSummons":2,"triggerPrompts":0,"aiSets":0,"aiActivations":0}
+83/83 checks passed (all duels)
+exit code: 0

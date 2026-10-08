@@ -1,0 +1,28 @@
+{
+  "name": "revive-on-destroyed-real",
+  "seed": "sandbox-revive-on-destroyed-real",
+  "players": [
+    {
+      "lp": 8000,
+      "hand": ["SMP-005"],
+      "deck": ["SMP-009", "SMP-011", "SMP-050", "SMP-057", "SMP-058", "SMP-059"],
+      "field": {
+        "monsters": [{ "card": "SMP-054", "zone": 0, "position": "Attack" }],
+        "spellTraps": []
+      },
+      "gy": ["SMP-048", "SMP-002"]
+    },
+    {
+      "lp": 8000,
+      "hand": ["SMP-007", "SMP-012"],
+      "deck": ["SMP-004", "SMP-005", "SMP-009", "SMP-010", "SMP-012", "SMP-011"],
+      "field": {
+        "monsters": [{ "card": "SMP-003", "zone": 0, "position": "Attack" }],
+        "spellTraps": []
+      },
+      "gy": []
+    }
+  ],
+  "turn": { "count": 3, "player": 0 },
+  "phase": "Battle"
+}

@@ -1,4 +1,9 @@
-import { staysOnField, type CardDefinition, type EffectDefinition } from '@yugi/shared';
+import {
+  SAMPLE_CARDS,
+  staysOnField,
+  type CardDefinition,
+  type EffectDefinition,
+} from '@yugi/shared';
 import type { Action, ActionContext, StartDuelAction } from '../../actions/types.js';
 import type { ApplyActionResult } from '../../apply-action.js';
 import { applyAction } from '../../apply-action.js';
@@ -22,6 +27,21 @@ export type ApplyFn = (
   action: Action,
   ctx: ActionContext,
 ) => ApplyActionResult;
+
+/**
+ * Task 4.7 — the REAL cards of batch 2 (SMP-048…061, SMP-117…124, SMP-211…214), read from the shared pool so the fuzz
+ * plays the very data players get. They sit in FUZZ_DEFS but OUTSIDE the default deck pool (BATCH2_ONLY below): only
+ * the runs that ask for BATCH2_DECK_POOL ever draw them.
+ */
+const inRange = (id: string, from: number, to: number): boolean => {
+  const n = Number(id.slice(4));
+  return id.startsWith('SMP-') && n >= from && n <= to;
+};
+const BATCH2_REAL: Readonly<Record<string, CardDefinition>> = Object.fromEntries(
+  SAMPLE_CARDS.filter(
+    (c) => inRange(c.id, 48, 61) || inRange(c.id, 117, 124) || inRange(c.id, 211, 214),
+  ).map((c) => [c.id, c]),
+);
 
 /** Small monster table (levels 2/4/5/7 exercise 0/1/2 tributes) plus a Spell for "not a monster" rejections. */
 export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
@@ -210,10 +230,30 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
     trigger: { kind: 'OnSummon', mandatory: true },
     operations: [{ kind: 'Damage', amount: 200, target: 'opponent' }],
   }),
+  ...BATCH2_REAL,
 };
 /** Task 4.5 cards: played only by the Fusion runs, so the default pool — and every older seed's game — is unchanged. */
 const FUSION_ONLY: readonly string[] = ['FUS', 'FUD', 'FX1', 'FX2', 'FXS'];
-const DECK_POOL = Object.keys(FUZZ_DEFS).filter((id) => !FUSION_ONLY.includes(id));
+/** Task 4.7 cards: played only by the batch-2 runs (same reason). */
+const BATCH2_ONLY: readonly string[] = Object.keys(BATCH2_REAL);
+const DECK_POOL = Object.keys(FUZZ_DEFS).filter(
+  (id) => !FUSION_ONLY.includes(id) && !BATCH2_ONLY.includes(id),
+);
+const isBatch2Fusion = (id: string): boolean => {
+  const def = BATCH2_REAL[id];
+  return def?.kind === 'Monster' && def.category === 'Fusion';
+};
+/**
+ * Task 4.7 — Main Deck pool of the batch-2 runs (own seeds `batch2-<i>`): every Main Deck card of the batch once, the
+ * four fusion materials and the plain monsters their filters look for twice more, and the fusion Spell `FUS`.
+ */
+export const BATCH2_DECK_POOL: readonly string[] = [
+  ...BATCH2_ONLY.filter((id) => !isBatch2Fusion(id)),
+  ...['SMP-050', 'SMP-057', 'SMP-058', 'SMP-054', 'SMP-050', 'SMP-057', 'SMP-058', 'SMP-054'],
+  ...['M2', 'M2', 'M4', 'M4', 'FUS', 'FUS'],
+];
+/** Task 4.7 — Extra Deck pool of the batch-2 runs: the two Fusion Monsters of the batch. */
+export const BATCH2_EXTRA_DECK_POOL: readonly string[] = BATCH2_ONLY.filter(isBatch2Fusion);
 /**
  * Task 4.5 — Main Deck pool of the Fusion runs (own seeds `fusion-<i>`): the materials, the two fusion Spells, and
  * cards that interfere (a negation of the Spell, a Quick-Play that destroys a material — or the Fusion Monster — in
@@ -612,7 +652,10 @@ function plausibleSetSpellTrap(state: GameState, rand: Rand): Action | null {
   };
 }
 
-/** A hand card + its first effect; cost ids are drawn from the matching pools (may still be wrong: engine decides). */
+/**
+ * A hand card + its first effect (every fuzz card names it `e1`; the real batch-2 cards of task 4.7 have ids of their
+ * own); cost ids are drawn from the matching pools (may still be wrong: engine decides).
+ */
 function plausibleActivate(state: GameState, rand: Rand): Action | null {
   const p = state.chainWindow?.priorityPlayer ?? state.turnPlayerIndex;
   const hand = state.players[p].hand;
@@ -648,7 +691,7 @@ function plausibleActivate(state: GameState, rand: Rand): Action | null {
     payload: {
       playerIndex: p,
       cardInstanceId: card.instanceId,
-      effectId: rand.chance(0.05) ? 'bogus' : 'e1',
+      effectId: rand.chance(0.05) ? 'bogus' : (effect?.id ?? 'e1'),
       ...(costIds.length > 0 || rand.chance(0.1) ? { costInstanceIds: costIds } : {}),
     },
   };
