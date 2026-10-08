@@ -1,0 +1,290 @@
+# Task 4.7 — red run BEFORE the card data exists (2026-10-08). Shared: batch2.test.ts + batch2-demo-deck.test.ts; engine: 26 per-card test files.
+
+## pnpm --filter @yugi/shared exec vitest run src/cards/batch2.test.ts src/deck/batch2-demo-deck.test.ts
+   × card batch 2 — the pool > the 70 older cards keep their index; the 26 new ones follow, in id order per group 14ms
+   × card batch 2 — the pool > every new card parses, has bilingual name + effect text, and no scriptId (Tier B: DSL only) 1ms
+   ✓ card batch 2 — the pool > names are unique across the whole pool (vi and en) 1ms
+   × card batch 2 — the pool > 12 Effect Monsters + 2 Fusion Monsters, 8 Spells, 4 Traps with the planned sub types 1ms
+   × card batch 2 — the pool > [DECISION] owner, 2026-10-08: classic power level — no monster of the batch above 2500 ATK, Level 1–4 at 1900 or less 1ms
+   × card batch 2 — the pool > no monster of the batch has an Ignition / Quick effect (the engine cannot activate a monster on the field yet) 0ms
+   × card batch 2 — Effect Monsters > SMP-048: OnSummon mandatory, heal 500 0ms
+   × card batch 2 — Effect Monsters > SMP-049: OnSummon optional, pay 800 LP, destroy 1 face-up Level 4 or lower opponent monster 0ms
+   × card batch 2 — Effect Monsters > SMP-050: OnSummon optional, Special Summon 1 Level 3 or lower monster from the hand in Defense 1ms
+   × card batch 2 — Effect Monsters > SMP-051 / 052 / 053: three OnFlip effects (draw, destroy a Spell/Trap, burn) 0ms
+   × card batch 2 — Effect Monsters > SMP-054: OnDestroyed optional, Special Summon 1 Level 4 or lower monster from its owner graveyard — it is Level 5, so never itself 0ms
+   × card batch 2 — Effect Monsters > SMP-055: OnDestroyed mandatory, 500 damage; SMP-056: OnDestroyed optional, pay 500 LP, destroy 1 Spell/Trap 0ms
+   × card batch 2 — Effect Monsters > SMP-057 / 058 / 059: Continuous effects filtered by race or attribute 0ms
+   × card batch 2 — Fusion Monsters > SMP-060 = SMP-057 + SMP-050 (no effect); SMP-061 = SMP-058 + SMP-054 (Continuous: opponent monsters lose 200 ATK) 0ms
+   × card batch 2 — Fusion Monsters > every material is an Effect Monster of this batch, and the effect text names it 0ms
+   × card batch 2 — Spells > SMP-117: Normal, discard 1, destroy 1 face-up Level 4 or lower opponent monster 0ms
+   × card batch 2 — Spells > SMP-118: Normal, Tribute 1, draw 2 0ms
+   × card batch 2 — Spells > SMP-119: Quick-Play, destroy 1 Spell/Trap; SMP-120: Quick-Play, Special Summon 1 Level 4 or lower monster from the hand in Defense 0ms
+   × card batch 2 — Spells > SMP-121: Equip to your own monster, +300 ATK and +700 DEF 0ms
+   × card batch 2 — Spells > SMP-122: Equip to an OPPONENT's monster, −600 ATK (the first real Equip aimed at the other side) 0ms
+   × card batch 2 — Spells > SMP-123: Continuous Spell — heal 500 when activated, then your DARK monsters gain 300 ATK 0ms
+   × card batch 2 — Spells > SMP-124: Field Spell — every EARTH monster on both sides gains 200 ATK and 200 DEF 3ms
+   × card batch 2 — Traps > SMP-211: Normal Trap, discard 1, Special Summon 1 monster from your graveyard in Defense 0ms
+   × card batch 2 — Traps > SMP-212: Normal Trap that negates a MONSTER effect's activation (Spell Speed 2, not a Counter Trap) 0ms
+   × card batch 2 — Traps > SMP-213: Continuous Trap — your monsters gain 400 DEF 0ms
+   × card batch 2 — Traps > SMP-214: Counter Trap, discard 1, negates a SPELL activation only (SMP-209 pays LP and also stops Traps) 0ms
+   × card batch 2 — every existing mechanism is used > triggers: OnSummon / OnFlip / OnDestroyed each mandatory and optional, Continuous, Ignition, Quick 0ms
+   × card batch 2 — every existing mechanism is used > operations used at least twice: Damage, Heal, Draw, Destroy, SpecialSummon, Equip, ModifyStat, NegateActivation 0ms
+   × card batch 2 — every existing mechanism is used > costs: Discard and PayLP at least twice, Tribute once; a trigger effect only ever pays LP 0ms
+   × card batch 2 — every existing mechanism is used > filters by level, race and attribute, and targets in the hand and the graveyard, are all used 0ms
+   × card batch 2 — every existing mechanism is used > stated exception (task 4.7): no new card uses NegateAttack, NegateSummon or FusionSummon 0ms
+ FAIL  src/deck/batch2-demo-deck.test.ts [ src/deck/batch2-demo-deck.test.ts ]
+Error: Cannot find module './batch2-demo-deck.js' imported from 'E:/code/game/turn_battle/yugi-h5/packages/shared/src/deck/batch2-demo-deck.test.ts'
+Caused by: Error: Failed to load url ./batch2-demo-deck.js (resolved id: ./batch2-demo-deck.js) in E:/code/game/turn_battle/yugi-h5/packages/shared/src/deck/batch2-demo-deck.test.ts. Does the file exist?
+⎯⎯⎯⎯⎯⎯ Failed Tests 30 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/cards/batch2.test.ts > card batch 2 — the pool > the 70 older cards keep their index; the 26 new ones follow, in id order per group
+AssertionError: expected [ 'SMP-001', 'SMP-002', …(68) ] to deeply equal [ 'SMP-001', 'SMP-002', …(71) ]
+ FAIL  src/cards/batch2.test.ts > card batch 2 — the pool > every new card parses, has bilingual name + effect text, and no scriptId (Tier B: DSL only)
+Error: missing SMP-048
+ FAIL  src/cards/batch2.test.ts > card batch 2 — the pool > 12 Effect Monsters + 2 Fusion Monsters, 8 Spells, 4 Traps with the planned sub types
+Error: missing SMP-048
+ FAIL  src/cards/batch2.test.ts > card batch 2 — the pool > [DECISION] owner, 2026-10-08: classic power level — no monster of the batch above 2500 ATK, Level 1–4 at 1900 or less
+Error: missing SMP-048
+ FAIL  src/cards/batch2.test.ts > card batch 2 — the pool > no monster of the batch has an Ignition / Quick effect (the engine cannot activate a monster on the field yet)
+Error: missing SMP-048
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Effect Monsters > SMP-048: OnSummon mandatory, heal 500
+Error: missing SMP-048
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Effect Monsters > SMP-049: OnSummon optional, pay 800 LP, destroy 1 face-up Level 4 or lower opponent monster
+Error: missing SMP-049
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Effect Monsters > SMP-050: OnSummon optional, Special Summon 1 Level 3 or lower monster from the hand in Defense
+Error: missing SMP-050
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Effect Monsters > SMP-051 / 052 / 053: three OnFlip effects (draw, destroy a Spell/Trap, burn)
+Error: missing SMP-051
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Effect Monsters > SMP-054: OnDestroyed optional, Special Summon 1 Level 4 or lower monster from its owner graveyard — it is Level 5, so never itself
+Error: missing SMP-054
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Effect Monsters > SMP-055: OnDestroyed mandatory, 500 damage; SMP-056: OnDestroyed optional, pay 500 LP, destroy 1 Spell/Trap
+Error: missing SMP-055
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Effect Monsters > SMP-057 / 058 / 059: Continuous effects filtered by race or attribute
+Error: missing SMP-057
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Fusion Monsters > SMP-060 = SMP-057 + SMP-050 (no effect); SMP-061 = SMP-058 + SMP-054 (Continuous: opponent monsters lose 200 ATK)
+Error: missing SMP-060
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Fusion Monsters > every material is an Effect Monster of this batch, and the effect text names it
+Error: missing SMP-060
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Spells > SMP-117: Normal, discard 1, destroy 1 face-up Level 4 or lower opponent monster
+Error: missing SMP-117
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Spells > SMP-118: Normal, Tribute 1, draw 2
+Error: missing SMP-118
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Spells > SMP-119: Quick-Play, destroy 1 Spell/Trap; SMP-120: Quick-Play, Special Summon 1 Level 4 or lower monster from the hand in Defense
+Error: missing SMP-119
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Spells > SMP-121: Equip to your own monster, +300 ATK and +700 DEF
+Error: missing SMP-121
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Spells > SMP-122: Equip to an OPPONENT's monster, −600 ATK (the first real Equip aimed at the other side)
+Error: missing SMP-122
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Spells > SMP-123: Continuous Spell — heal 500 when activated, then your DARK monsters gain 300 ATK
+Error: missing SMP-123
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Spells > SMP-124: Field Spell — every EARTH monster on both sides gains 200 ATK and 200 DEF
+Error: missing SMP-124
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Traps > SMP-211: Normal Trap, discard 1, Special Summon 1 monster from your graveyard in Defense
+Error: missing SMP-211
+ FAIL  src/cards/batch2.test.ts > card batch 2 — Traps > SMP-212: Normal Trap that negates a MONSTER effect's activation (Spell Speed 2, not a Counter Trap)
+
+## pnpm --filter @yugi/game-engine exec vitest run (26 new files under src/cards/sample)
+ ❯ src/cards/sample/smp-054.test.ts (6 tests | 6 failed) 71ms
+   × SMP-054 Barrow Thane > destroyed by battle: asks its owner; only Level 4 or lower monsters of the graveyard are candidates (never itself) 41ms
+   × SMP-054 Barrow Thane > accept: the retainer returns from the graveyard in face-up Defense 9ms
+   × SMP-054 Barrow Thane > decline: nothing comes back 9ms
+   × SMP-054 Barrow Thane > only itself / Level 5+ monsters / Spells in the graveyard: no prompt (no loop) 1ms
+   × SMP-054 Barrow Thane > survives the battle (attacks a weaker monster): no trigger 1ms
+   × SMP-054 Barrow Thane > the returning monster is Summoned: SMP-048 then heals its controller 7ms
+ ❯ src/cards/sample/smp-050.test.ts (6 tests | 6 failed) 82ms
+   × SMP-050 Packcaller > Summon asks its owner; only Level 3 or lower MONSTERS in the hand are candidates 53ms
+   × SMP-050 Packcaller > accept: the chosen monster is Special Summoned face-up in Defense, lowest empty zone 6ms
+   × SMP-050 Packcaller > decline: the hand is untouched 1ms
+   × SMP-050 Packcaller > no Level 3 or lower monster in the hand: no prompt 8ms
+   × SMP-050 Packcaller > no empty Monster Zone left after its own Summon: no prompt 10ms
+   × SMP-050 Packcaller > the pack answers: Special Summoning SMP-048 fires its own "when Summoned" heal afterwards 1ms
+ ❯ src/cards/sample/smp-049.test.ts (6 tests | 6 failed) 88ms
+   × SMP-049 Mistfen Marksman > Summon asks its owner; only face-up Level 4 or lower monsters are candidates 49ms
+   × SMP-049 Mistfen Marksman > accept: 800 LP paid, the chosen monster is destroyed 3ms
+   × SMP-049 Mistfen Marksman > decline: nothing paid, nothing destroyed 10ms
+   × SMP-049 Mistfen Marksman > a Level 5 or face-down monster is not a legal answer 1ms
+   × SMP-049 Mistfen Marksman > cannot pay (LP must stay above 0: exactly 800 LP is not enough): the trigger does not activate 1ms
+   × SMP-049 Mistfen Marksman > no legal target (only Level 5+ / face-down monsters): no prompt 7ms
+ ❯ src/cards/sample/smp-124.test.ts (6 tests | 6 failed) 125ms
+   × SMP-124 > activated from the hand: stays face-up in the Field Zone, EARTH monsters of BOTH sides gain 200 / 200 50ms
+   × SMP-124 > Set first: no bonus while face-down, then activated from the Field Zone 18ms
+   × SMP-124 > both sides are boosted alike: two EARTH 1000s still tie and destroy each other 6ms
+   × SMP-124 > the DEF bonus counts: SMP-008 (1600) no longer breaks an EARTH monster with 1500 → 1700 DEF 1ms
+   × SMP-124 > replaced by another Field Spell of mine: the old one goes to the graveyard, its bonus ends 9ms
+   × SMP-124 > its Continuous effect is never activated 38ms
+ ❯ src/cards/sample/smp-211.test.ts (5 tests | 5 failed) 97ms
+   × SMP-211 > Set on an earlier turn: discards, then the monster returns in face-up Defense (any phase) 47ms
+   × SMP-211 > several monsters in the graveyard: asks which one (a Level 8 monster comes back without Tributes) 7ms
+   × SMP-211 > a Trap: not from the hand, not on the turn it was Set 32ms
+   × SMP-211 > nothing to discard → INVALID_COST; the monster discarded as the cost is not a target → NO_VALID_TARGET 8ms
+   × SMP-211 > the returning monster is Summoned: SMP-048 heals its controller 1ms
+ ❯ src/cards/sample/smp-117.test.ts (5 tests | 5 failed) 112ms
+   × SMP-117 > discards the chosen card, destroys the only legal target 50ms
+   × SMP-117 > two legal targets: asks which one, then destroys it 8ms
+   × SMP-117 > the cost must be paid: no other card in hand, or no card named → INVALID_COST 36ms
+   × SMP-117 > only Level 5+ or face-down monsters: NO_VALID_TARGET 10ms
+   × SMP-117 > a Normal Spell: Main Phase only 6ms
+ ❯ src/cards/sample/smp-212.test.ts (5 tests | 4 failed) 144ms
+   × SMP-212 > answers a monster`s trigger effect: the burn of SMP-019 never happens 81ms
+   × SMP-212 > the opponent may let it through: passing resolves the burn, the Trap stays Set 19ms
+   × SMP-212 > a negated effect keeps its cost paid (G23): SMP-049 loses 800 LP, the target survives 15ms
+   ✓ SMP-212 > does not answer a Spell: SMP-101 resolves at once, no window opens for it 11ms
+   × SMP-212 > nothing to negate: it cannot be activated on its own 11ms
+ ❯ src/cards/sample/smp-213.test.ts (4 tests | 4 failed) 130ms
+   × SMP-213 > a Trap: not from the hand, not on the turn it was Set 63ms
+   × SMP-213 > Set on an earlier turn: flips, stays face-up, my monsters gain 400 DEF (ATK and the opponent`s do not) 17ms
+   × SMP-213 > the wall holds on the opponent's side: SMP-008 (1600) bounces off a 1300 → 1700 DEF monster 42ms
+   × SMP-213 > face-up it cannot be activated again; its Continuous effect is never activated 6ms
+ ❯ src/cards/sample/smp-122.test.ts (5 tests | 5 failed) 121ms
+   × SMP-122 > equips to the opponent's face-up monster: −600 ATK, the card stays in MY Spell/Trap Zone 68ms
+   × SMP-122 > the penalty decides a battle: SMP-006 (1500) beats BIG (2000 − 600); the Equip then goes to MY graveyard 10ms
+   × SMP-122 > ATK never goes below 0 (SMP-013: 500 − 600) 9ms
+   × SMP-122 > several opponent monsters: asks which one; my own monsters are never candidates 2ms
+   × SMP-122 > no face-up monster on the other side: NO_VALID_TARGET 29ms
+ ❯ src/cards/sample/smp-052.test.ts (6 tests | 5 failed) 124ms
+   × SMP-052 Tunnel Mole > Flip Summon asks its owner: one answer per opponent Spell/Trap + decline 81ms
+   × SMP-052 Tunnel Mole > accept + target: the chosen face-down Spell/Trap is destroyed 9ms
+   × SMP-052 Tunnel Mole > decline: nothing is destroyed 6ms
+   × SMP-052 Tunnel Mole > a face-up Field Spell is a Spell/Trap on the field: it can be destroyed too 9ms
+   × SMP-052 Tunnel Mole > flipped by an attack: the prompt goes to the Mole's controller (the opponent here) 12ms
+   ✓ SMP-052 Tunnel Mole > no Spell/Trap on the other side: the flip asks nothing 4ms
+ ❯ src/cards/sample/smp-214.test.ts (5 tests | 3 failed) 140ms
+   × SMP-214 > negates a Normal Spell (SMP-101): nothing is drawn, 1 card discarded, both cards in the graveyard 91ms
+   × SMP-214 > the cost must be named: no discard → INVALID_COST; passing lets the Spell resolve 25ms
+   ✓ SMP-214 > does not answer a Trap: my Set SMP-203 resolves at once (SMP-209 would have stopped it) 14ms
+   ✓ SMP-214 > does not answer a monster effect either: SMP-019 burns on Summon 5ms
+   × SMP-214 > a Counter Trap never starts a chain 3ms
+ ❯ src/cards/sample/smp-119.test.ts (4 tests | 4 failed) 31ms
+   × SMP-119 > from the hand in the Battle Phase: destroys the only Spell/Trap 13ms
+   × SMP-119 > several Spells/Traps (a Field Spell included): asks which one 2ms
+   × SMP-119 > nothing to destroy: NO_VALID_TARGET (my own cards are not targets) 12ms
+   × SMP-119 > Set this turn: not yet; Set on an earlier turn: activated from its zone 3ms
+ ❯ src/cards/sample/smp-060.test.ts (4 tests | 3 failed) 28ms
+   × SMP-060 > fused from one material in the hand and one on the field: both go to the graveyard, it arrives in Attack 13ms
+   × SMP-060 > it is a Beast: a Greymane Alpha left on the field gives it +200 ATK 2ms
+   ✓ SMP-060 > a material is missing: the fusion Spell cannot be activated 2ms
+   × SMP-060 > never Normal Summoned, never brought back by SMP-111 9ms
+ ❯ src/cards/sample/smp-123.test.ts (4 tests | 4 failed) 28ms
+   × SMP-123 > activated from the hand: heals 500 once, stays face-up, my DARK monsters gain 300 ATK 12ms
+   × SMP-123 > the boost decides a battle between two SMP-009: mine (2000) wins 3ms
+   × SMP-123 > face-up it cannot be activated again (no second heal); its Continuous effect is never activated 2ms
+   × SMP-123 > a Spell Speed 1 card: Main Phase only; no empty Spell/Trap Zone → NO_FREE_SPELL_TRAP_ZONE 10ms
+ ❯ src/cards/sample/smp-061.test.ts (4 tests | 4 failed) 37ms
+   × SMP-061 > Fusion Summoned by SMP-116: the opponent`s monsters lose 200 ATK from then on 14ms
+   × SMP-061 > every opponent monster, any attribute; DEF and my own monsters are untouched 12ms
+   × SMP-061 > the penalty decides a battle: it ties with SMP-003 (2700 − 200), both are destroyed 2ms
+   × SMP-061 > a Continuous effect is never activated 6ms
+ ❯ src/cards/sample/smp-120.test.ts (5 tests | 5 failed) 32ms
+   × SMP-120 > in the Battle Phase: the only Level 4 or lower monster in hand arrives in face-up Defense 14ms
+   × SMP-120 > two candidates: asks which one 2ms
+   × SMP-120 > only Level 5+ monsters or Spells in hand: NO_VALID_TARGET 10ms
+   × SMP-120 > no empty Monster Zone: NO_FREE_MONSTER_ZONE 3ms
+   × SMP-120 > the ambusher is Summoned: SMP-048 heals its controller 1ms
+ ❯ src/cards/sample/smp-056.test.ts (5 tests | 5 failed) 24ms
+   × SMP-056 Forgewright Shade > destroyed by battle: asks its owner, from the graveyard 16ms
+   × SMP-056 Forgewright Shade > accept: 500 LP paid, the Spell/Trap is destroyed 2ms
+   × SMP-056 Forgewright Shade > decline: no LP paid, the card stays 2ms
+   × SMP-056 Forgewright Shade > 500 LP left after the battle damage: the cost cannot be paid, no prompt 2ms
+   × SMP-056 Forgewright Shade > no Spell/Trap on the other side: no prompt 1ms
+ ❯ src/cards/sample/smp-121.test.ts (5 tests | 5 failed) 34ms
+   × SMP-121 > equips to my face-up monster: +300 ATK and +700 DEF, the card stays on the field 15ms
+   × SMP-121 > the ATK boost counts in battle: 1300 beats 1000 3ms
+   × SMP-121 > the monster is destroyed: the Equip goes to the graveyard with it 1ms
+   × SMP-121 > only my own face-up monsters: an opponent monster or my face-down one is no target 10ms
+   × SMP-121 > its Continuous effect is never activated 2ms
+ ❯ src/cards/sample/smp-051.test.ts (4 tests | 4 failed) 34ms
+   × SMP-051 Dustbound Archivist > Flip Summon: draws 1, no prompt 19ms
+   × SMP-051 Dustbound Archivist > flipped by an attack it survives (DEF 1300 > ATK 1000): its controller draws, the attacker takes 300 8ms
+   × SMP-051 Dustbound Archivist > flipped and destroyed by the attack: still draws (the effect activates from the graveyard) 2ms
+   × SMP-051 Dustbound Archivist > Normal Summoned face-up: it never flipped, nothing is drawn 3ms
+ ❯ src/cards/sample/smp-058.test.ts (5 tests | 5 failed) 33ms
+   × SMP-058 Gloam Devourer > the opponent's LIGHT monsters lose 400 ATK; other attributes and my own LIGHT monsters do not 18ms
+   × SMP-058 Gloam Devourer > two Devourers stack, and ATK never goes below 0 2ms
+   × SMP-058 Gloam Devourer > the penalty decides a battle: 1600 beats SMP-017 (1800 − 400) 4ms
+   × SMP-058 Gloam Devourer > once it leaves the field the penalty is gone 2ms
+   × SMP-058 Gloam Devourer > a Continuous effect is never activated 5ms
+ ❯ src/cards/sample/smp-059.test.ts (4 tests | 4 failed) 26ms
+   × SMP-059 Rampart Mason > my Rocks gain 400 DEF, itself included; ATK, other races and the opponent`s Rocks are untouched 10ms
+   × SMP-059 Rampart Mason > the wall holds: BIG (2000) attacks it in Defense (1700 + 400) — not destroyed, the attacker takes 100 5ms
+   × SMP-059 Rampart Mason > attacked while face-down: it is flipped first, then its own bonus counts 1ms
+   × SMP-059 Rampart Mason > a Continuous effect is never activated 8ms
+ ❯ src/cards/sample/smp-057.test.ts (5 tests | 4 failed) 31ms
+   × SMP-057 Greymane Alpha > my other Beasts gain 200 ATK; not itself, not a Warrior, not the opponent`s Beast 11ms
+   × SMP-057 Greymane Alpha > two Alphas boost each other 2ms
+   ✓ SMP-057 Greymane Alpha > face-down it boosts nobody 2ms
+   × SMP-057 Greymane Alpha > the boost decides a battle: SMP-005 (900 + 200) beats a 1000 ATK monster 9ms
+   × SMP-057 Greymane Alpha > a Continuous effect is never activated 6ms
+ ❯ src/cards/sample/smp-118.test.ts (4 tests | 4 failed) 22ms
+   × SMP-118 > Tributes my monster, draws 2 11ms
+   × SMP-118 > a face-down monster of mine can be Tributed too 1ms
+   × SMP-118 > no monster of mine, none named, or the opponent`s monster named → INVALID_COST 8ms
+   × SMP-118 > a Normal Spell: Main Phase only 2ms
+ ❯ src/cards/sample/smp-055.test.ts (4 tests | 4 failed) 25ms
+   × SMP-055 Rolling Blastrock > destroyed by battle (attacks BIG, ATK 2000): I take 800 battle damage, the opponent takes 500 10ms
+   × SMP-055 Rolling Blastrock > the opponent's copy destroyed by my effect (fixture Spell KILL): it burns ME 9ms
+   × SMP-055 Rolling Blastrock > survives the battle (Defense 600 against ATK 500): no trigger 2ms
+   × SMP-055 Rolling Blastrock > Tributed for a cost (SMP-118) is not destroyed: no damage 2ms
+ ❯ src/cards/sample/smp-053.test.ts (4 tests | 4 failed) 21ms
+   × SMP-053 Sporeburst Cap > Flip Summon: 600 damage to the opponent, no prompt 12ms
+   × SMP-053 Sporeburst Cap > attacked while face-down and destroyed: it still bursts — the ATTACKER takes 600 4ms
+   × SMP-053 Sporeburst Cap > Normal Summoned face-up: no flip, no damage 2ms
+   × SMP-053 Sporeburst Cap > the burst can end the duel 3ms
+ ❯ src/cards/sample/smp-048.test.ts (4 tests | 4 failed) 14ms
+   × SMP-048 Wellspring Medic > Normal Summon: the trigger goes on the chain by itself and heals 500 (no prompt) 7ms
+   × SMP-048 Wellspring Medic > Set is not a Summon: nothing triggers 1ms
+   × SMP-048 Wellspring Medic > Special Summoned by SMP-111 from the hand: it is a Summon too, heals 500 3ms
+   × SMP-048 Wellspring Medic > heals its CONTROLLER, whatever the LP total (no cap at 8000) 1ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 118 ⎯⎯⎯⎯⎯⎯
+ ❯ reject src/actions/handlers/summon.ts:52:11
+ ❯ resolveMonster src/cards/resolve-monster.ts:16:12
+ ❯ placeMonsterFromHand src/actions/handlers/summon.ts:73:22
+ ❯ applyNormalSummon src/actions/handlers/summon.ts:31:10
+ ❯ dispatch src/apply-action.ts:112:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:22:3
+ ❯ src/cards/sample/smp-048.test.ts:16:31
+ ❯ reject src/actions/handlers/summon.ts:52:11
+ ❯ resolveMonster src/cards/resolve-monster.ts:16:12
+ ❯ placeMonsterFromHand src/actions/handlers/summon.ts:73:22
+ ❯ applySetMonster src/actions/handlers/summon.ts:39:10
+ ❯ dispatch src/apply-action.ts:114:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:22:3
+ ❯ src/cards/sample/smp-048.test.ts:32:31
+ ❯ fail src/actions/handlers/activate-effect.ts:78:9
+ ❯ prepare src/actions/handlers/activate-effect.ts:270:7
+ ❯ applyActivateEffect src/actions/handlers/activate-effect.ts:436:20
+ ❯ dispatch src/apply-action.ts:122:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:22:3
+ ❯ src/cards/sample/smp-048.test.ts:39:31
+ ❯ reject src/actions/handlers/summon.ts:52:11
+ ❯ resolveMonster src/cards/resolve-monster.ts:16:12
+ ❯ placeMonsterFromHand src/actions/handlers/summon.ts:73:22
+ ❯ applyNormalSummon src/actions/handlers/summon.ts:31:10
+ ❯ dispatch src/apply-action.ts:112:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:22:3
+ ❯ src/cards/sample/smp-048.test.ts:47:23
+ ❯ reject src/actions/handlers/summon.ts:52:11
+ ❯ resolveMonster src/cards/resolve-monster.ts:16:12
+ ❯ placeMonsterFromHand src/actions/handlers/summon.ts:73:22
+ ❯ applyNormalSummon src/actions/handlers/summon.ts:31:10
+ ❯ dispatch src/apply-action.ts:112:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:22:3
+ ❯ src/cards/sample/smp-049.test.ts:33:31
+ ❯ reject src/actions/handlers/summon.ts:52:11
+ ❯ resolveMonster src/cards/resolve-monster.ts:16:12
+ ❯ placeMonsterFromHand src/actions/handlers/summon.ts:73:22
+ ❯ applyNormalSummon src/actions/handlers/summon.ts:31:10
+ ❯ dispatch src/apply-action.ts:112:14
+ ❯ applyAction src/apply-action.ts:85:18
+ ❯ apply src/testing/sample-card-kit.ts:22:3
+ ❯ src/cards/sample/smp-049.test.ts:48:19
+ ❯ reject src/actions/handlers/summon.ts:52:11
+ ❯ resolveMonster src/cards/resolve-monster.ts:16:12
+
+## Summary
+shared:  Test Files 2 failed (2) — Tests 30 failed | 1 passed (31)
+engine:  Test Files 26 failed (26) — Tests 118 failed | 6 passed (124)
+The 7 tests that pass without the data are "nothing happens" cases (an unknown card has no effect) and the name-uniqueness check.
