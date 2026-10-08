@@ -22,6 +22,11 @@
  * SMP-209 a Spell/Trap activation). The human Sets them and answers in every window the server opens; the run must see
  * an attack or a Summon of the AI negated (`AttackNegated` never with a definitionId), and the AI must never Set or
  * activate a Spell/Trap itself (it is not taught to; the deck has no Quick card that harms the opponent).
+ * Task 4.7 (Phase 0c): the two coverage checks of DECK=negate depended on the deal — the AI only Summons / attacks when
+ * it can beat the human's strongest monster, otherwise it Sets (not a Summon) and never attacks, so no window ever opened
+ * (4 of 5 runs short at HEAD, 5 of 5 at the commit before task 4.5). Now the human holds its monsters back until a
+ * negation was seen (the AI then Summons and attacks directly), and up to NEGATE_DUELS duels are played; the two
+ * coverage checks are made on the totals. Every other check (leaks, the AI never Sets / activates) still runs per duel.
  */
 import {
   BASE,
@@ -76,6 +81,10 @@ const NEGATE_DECK = process.env.DECK === 'negate';
 const FUSION_DECK = process.env.DECK === 'fusion';
 const FUSION_DUELS = Number(process.env.FUSION_DUELS ?? 6);
 const FUSION_PROMPTS = new Set(['SelectFusionMonster', 'SelectFusionMaterials']);
+const NEGATE_DUELS = Number(process.env.NEGATE_DUELS ?? 6);
+/** Totals over the duels of one DECK=negate run. */
+const negateTotals = { duels: 0, windows: 0, attacksNegated: 0, summonsNegated: 0 };
+const negationSeen = (): boolean => negateTotals.attacksNegated + negateTotals.summonsNegated > 0;
 
 /**
  * Cards of the AI seat still hidden from the human in this very view (hand + face-down monsters, Spells/Traps and the
@@ -102,6 +111,10 @@ function chooseHuman(view: ViewV, legal: Action[]): Action {
   const rank = (a: Action): number => {
     if (a.type === 'ResolvePendingPrompt') return a.payload.decline === true ? 0.5 : 0;
     if (inWindow) return a.type === 'ActivateEffect' ? 0 : a.type === 'PassPriority' ? 1 : 99;
+    // DECK=negate: no monster of mine on the field until a negation happened, so the AI Summons and attacks (it Sets
+    // and waits when it cannot beat my strongest monster) — my Set negating cards then get their windows.
+    if (NEGATE_DECK && !negationSeen() && (a.type === 'DeclareAttack' || a.type === 'NormalSummon'))
+      return 99;
     if (a.type === 'DeclareAttack') return a.payload.targetInstanceId == null ? 1 : 2;
     // Task 4.2d (DECK=mech): Flip Summon a Set monster, and Set SMP-044 rather than Summoning it (to flip it later).
     if (a.type === 'FlipSummon') return 2.5;
@@ -131,7 +144,31 @@ function chooseHuman(view: ViewV, legal: Action[]): Action {
 /** Totals over the duels of one run (DECK=fusion may play several). */
 const fusionTotals = { duels: 0, summons: 0, materials: 0, monsterPrompts: 0, materialPrompts: 0 };
 
+async function mainNegate(): Promise<void> {
+  for (let i = 0; i < NEGATE_DUELS && !(negateTotals.windows > 0 && negationSeen()); i++) {
+    if (i > 0) say(`\n--- no negation yet: duel ${i + 1} of at most ${NEGATE_DUELS} ---`);
+    negateTotals.duels++;
+    await playOne();
+  }
+  say(`   negate totals: ${JSON.stringify(negateTotals)}`);
+  check(
+    `the human held a reaction window with a Set negating card within ${NEGATE_DUELS} duels`,
+    negateTotals.windows > 0,
+    JSON.stringify(negateTotals),
+  );
+  check(
+    'an attack or a Summon of the AI was negated over HTTP (AttackNegated / SummonNegated)',
+    negationSeen(),
+    JSON.stringify(negateTotals),
+  );
+  const failed = results.filter((r) => !r.ok);
+  say(`${results.length - failed.length}/${results.length} checks passed (all duels)`);
+  for (const f of failed) say(`  FAIL ${f.name} ${f.detail}`);
+  if (failed.length > 0) process.exit(1);
+}
+
 async function main(): Promise<void> {
+  if (NEGATE_DECK) return mainNegate();
   if (!FUSION_DECK) return playOne();
   for (let i = 0; i < FUSION_DUELS && fusionTotals.summons === 0; i++) {
     if (i > 0) say(`\n--- no Fusion Summon yet: duel ${i + 1} of at most ${FUSION_DUELS} ---`);
@@ -267,7 +304,10 @@ async function playOne(): Promise<void> {
     aiSpellTrapMoves: 0,
   };
   while (res.view.winnerIndex === null) {
-    if (res.view.chainWindow?.priorityPlayer === 0) seen.humanWindows++;
+    if (res.view.chainWindow?.priorityPlayer === 0) {
+      seen.humanWindows++;
+      negateTotals.windows++;
+    }
     if (res.view.pendingPrompt?.kind === 'TriggerActivation') seen.humanTriggerPrompts++;
     const board = res.view.players.flatMap((p) => p.board.monsterZones);
     if (board.some((c) => c?.effectiveStats !== undefined)) seen.effAtk++;
@@ -344,9 +384,13 @@ async function playOne(): Promise<void> {
       if (e.type === 'FusionMaterialSent') fusionTotals.materials++;
       // Task 4.4b: the Negate events.
       if (e.type === 'ChainLinkNegated') seen.linksNegated++;
-      if (e.type === 'SummonNegated') seen.summonsNegated++;
+      if (e.type === 'SummonNegated') {
+        seen.summonsNegated++;
+        negateTotals.summonsNegated++;
+      }
       if (e.type === 'AttackNegated') {
         seen.attacksNegated++;
+        negateTotals.attacksNegated++;
         if ('definitionId' in e) seen.attackNegatedWithDefinitionId++;
       }
     }
@@ -472,16 +516,6 @@ async function playOne(): Promise<void> {
     JSON.stringify(seen),
   );
   if (NEGATE_DECK) {
-    check(
-      'the human held a reaction window with a Set negating card',
-      seen.humanWindows > 0,
-      JSON.stringify(seen),
-    );
-    check(
-      'an attack or a Summon of the AI was negated over HTTP (AttackNegated / SummonNegated)',
-      seen.attacksNegated + seen.summonsNegated > 0,
-      JSON.stringify(seen),
-    );
     check(
       'the AI never Set or activated a Spell/Trap itself',
       seen.aiSpellTrapMoves === 0,
