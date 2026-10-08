@@ -41,6 +41,12 @@ handler function đăng ký sẵn trong engine.
   nhiều hơn → `PendingPrompt SelectEffectTarget`, trả lời bằng `ResolvePendingPrompt.cardInstanceIds`. Lá úp chỉ là target khi effect
   không có `filter`. `Destroy` bắt buộc có target `Card`.
 
+> **Quái trên sân chưa kích hoạt được effect** (ghi rõ ở task 4.7): `ActivateEffect` chỉ tìm lá ở tay / ô Phép-Bẫy / ô
+> Môi trường và từ chối mọi quái (`NOT_A_SPELL_TRAP`). Effect `Ignition` / `Quick` đặt trên một quái parse được nhưng
+> **không bao giờ chạy** — quái chỉ có `OnSummon` / `OnFlip` / `OnDestroyed` (cost chỉ `PayLP`) và `Continuous`. Test ở
+> `packages/shared/src/cards/batch2.test.ts` chặn lô 4.7 dùng nhầm. Việc cần làm: `docs/plan/card-and-effect-plan.md`
+> mục "Còn thiếu gì".
+
 ## Trigger effect (task 3.5)
 
 - `OnSummon` (quái được **Normal Summon**, kể cả Tribute; **Set không phải triệu hồi** `[RULE]`) và `OnDestroyed` (lá bị phá bởi

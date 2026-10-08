@@ -37,6 +37,11 @@
 | Surrender                                       | [DECISION]        | P1    | S   | Thấp    | G11                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Replay/determinism                              | —                 | P1    | M   | Thấp    | Golden replay ngay từ P1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
+> **Task 4.7 (card batch 2, 2026-10-08) không thêm / đổi luật nào** (engine 0 dòng) nên bảng trên không đổi. Hai điều rút ra
+> cho các task sau: (1) **quái trên sân chưa kích hoạt được hiệu ứng** (`Ignition` / `Quick` trên quái) — chưa có dòng nào ở
+> bảng vì chưa làm, sẽ thêm ở task engine (đề xuất 4.8); (2) **lỗi lõi P7** (`docs/ai/OPEN-ISSUES.md`): prompt trigger có mục
+> tiêu Phép/Bẫy có thể không trả lời được khi một lá Trang bị rời sân theo quái trong cùng bước — chưa sửa.
+
 ## Early Master Rule vs modern — cấu hình bằng `RulesetConfig`
 
 Engine đọc `state.ruleset` (JSON, nằm trong state để replay tái lập). Mặc định = early Master Rule.

@@ -62,3 +62,13 @@ suốt ván ⇒ không cửa sổ nào mở. Đây là hành vi đúng của AI 
 
 1. G26 (f) — nguyên liệu từ Bộ bài: cần video bản gốc có nhãn "Bộ bài" (`docs/plan/human-tasks.md`).
 2. Mở rộng `CLAUDE.md` #5 cho P10+ (ADR 043) — để tới P10.
+
+## E. Dòng mới do task 4.7 thêm vào sheet
+
+**0 dòng.** Task 4.7 chỉ thêm dữ liệu lá, không thêm / đổi luật nào của engine, nên không có hành vi mới cần chủ dự án
+duyệt ở `RULES-REVIEW-SHEET.md`: trang bị lên quái đối thủ đã nằm ở dòng "Lá Trang bị (Equip Spell) (task 4.2c)" (đã ☑),
+vô hiệu việc kích hoạt đã nằm ở các dòng task 4.4. Vì vậy **không có câu hỏi loại C ở cuối task**. Sau task: sheet vẫn 106
+dòng luật, **còn đúng 1 ô trống** (G26 f).
+
+Điều chủ dự án cần biết thay vì một dòng sheet: **lỗi lõi luật P7** ở `docs/ai/OPEN-ISSUES.md` (prompt không ai trả lời
+được khi lá Trang bị rời sân) — tìm ra trong task này, **chưa sửa**, đề xuất làm ở task engine riêng.

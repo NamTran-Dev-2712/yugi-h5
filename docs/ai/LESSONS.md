@@ -63,6 +63,17 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - Đổi shape một field (vd `name` → `{vi,en}`): template literal nhận object không làm `tsc` đỏ (`[object Object]`) ⇒ grep
   mọi nơi dùng (ADR 046, 055).
 
+- Lá thật vào fuzz engine: nạp vào `FUZZ_DEFS` nhưng ngoài `DECK_POOL` (`BATCH2_ONLY`) + pool và seed riêng; bộ sinh
+  nước đi phải dùng **id effect thật** của lá (`effect?.id ?? 'e1'`), không thì Phép/Bẫy thật không bao giờ được kích hoạt
+  (độ phủ 0 mà không vi phạm nào). Variant fuzz mới ở api đếm vào `Stats` **riêng** để không đỡ hộ độ phủ variant cũ (ADR 070).
+- Mutation trên **dữ liệu lá**: test ghim nguyên dữ liệu (shared) giết mọi mutant ⇒ không chứng minh gì; mutant phải chết
+  bởi test hành vi của lá (`tools/mutants-4.7.mjs` báo hai cột). Script đó build lại `dist` của shared liên tục ⇒ **không**
+  chạy test / API / mô phỏng khác cùng lúc (ADR 070).
+- Mô phỏng "hai ghế cùng chơi hết bài" (stand-in người chơi ở cả hai ghế) tìm ra trạng thái kẹt mà fuzz engine bỏ sót vì
+  bất biến "còn đường đi" tính cả `Surrender`: thêm kiểu mô phỏng đó cho mỗi deck demo mới (ADR 070, `OPEN-ISSUES` P7).
+- Thiết kế lá: **đọc `activate-effect.ts` trước** — quái trên sân chưa kích hoạt được effect, trigger chỉ trả `PayLP`;
+  trigger "bị phá" **đừng lấy mục tiêu Phép/Bẫy** cho tới khi P7 được sửa (ADR 070).
+
 ## Mẫu thiết kế đã lặp lại (làm theo, đừng phát minh lại)
 
 - **Containment**: tính năng engine chưa lên wire ⇒ `toEventView` trả `null` cho event mới, action vào
@@ -114,7 +125,8 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - Fusion trên wire (brief 4.5b, ADR 069): Extra Deck **theo ghế** — chủ thấy / được trỏ tới của mình, đối thủ chỉ thấy số
   lượng, Deck chính kín với cả hai (đừng nới thêm); ghế AI **không có** Extra Deck ở ván thật; nguồn nguyên liệu `Deck`
   **không lên wire** (G26 f giữ tạm, chờ tư liệu "Bộ bài"); luôn hỏi bước chọn quái; không chọn ô / tư thế.
-- **G22 là `[DECISION]`** (chủ dự án chốt 2026-10-04): quái vừa triệu hồi / Set không tấn công trong lượt đó — không hỏi lại.
+- **G22 là `[DECISION]`** (chủ dự án chốt 2026-10-04, giữ lại 2026-10-08): quái vừa triệu hồi / Set không tấn công trong
+  lượt đó — không hỏi lại. Batch 2 (ADR 070): mức mạnh cổ điển (quái ≤ 2500 ATK); không quái `Ignition` trước task engine.
 - Card data viết bằng TS, **không** pipeline CSV (ADR 058). Không Duration, không action `SpecialSummon` (ADR 059, 061).
 - C11: Trap phải Set mới kích hoạt (ADR 018). C13: phản ứng = chạm lá, **không** dialog "Kích hoạt?" (ADR 054).
 - AI server không tự Set/kích hoạt Phép/Bẫy ngoài cửa sổ ưu tiên (ADR 048, 055).
