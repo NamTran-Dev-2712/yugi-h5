@@ -1,0 +1,163 @@
+# Task 4.8 — test đỏ TRƯỚC khi sửa code (2026-10-09, trên commit d84020f + test mới)
+
+## packages/shared — pnpm exec vitest run src/effects/effects.test.ts src/rules/ruleset-config.test.ts
+   ✓ RulesetConfig > defaults to early Master Rule values 2ms
+   ✓ RulesetConfig > C1 [DECISION]: extraMonsterZones is stored only (0-2); Extra Deck holds up to 20 (C3) 1ms
+   ✓ RulesetConfig > resolveRuleset with no argument returns the defaults 0ms
+   ✓ RulesetConfig > resolveRuleset merges overrides onto the defaults 0ms
+   ✓ RulesetConfig > C11 defaults: trap cannot be activated from hand and must wait a turn after Set 0ms
+   ✓ RulesetConfig > C11 keys can be overridden 0ms
+   ✓ RulesetConfig > rejects invalid values 0ms
+   × RulesetConfig > task 4.8: allowMonsterEffectActivation is OPTIONAL — absent from the defaults (so older states, golden files and the wire keep their bytes), true / false when given 11ms
+     → expected { startingLP: 8000, …(16) } to deeply equal { startingLP: 8000, …(17) }
+   ✓ RulesetConfig > is plain JSON (serializable, replay-safe) 1ms
+   ✓ CardFilter > accepts kind/level/attribute/race 2ms
+   ✓ CardFilter > rejects empty, min>max, unknown attribute, unknown key 1ms
+   ✓ Trigger > accepts OnSummon 0ms
+   ✓ Trigger > accepts OnFlip 0ms
+   ✓ Trigger > accepts Continuous 0ms
+   ✓ Trigger > accepts Ignition 0ms
+   ✓ Trigger > accepts Quick 0ms
+   ✓ Trigger > accepts OnDestroyed 0ms
+   ✓ Trigger > rejects unknown kind, missing kind, extra key 0ms
+   ✓ Trigger > accepts `mandatory` only on OnSummon/OnDestroyed (task 3.5) and OnFlip (task 4.2b) 1ms
+   ✓ Condition > accepts PhaseIs / IsMyTurn / ZoneCount 0ms
+   ✓ Condition > rejects bad phase, missing field, no bounds, min>max, unknown kind 0ms
+   ✓ Cost > accepts Discard / Tribute / PayLP 0ms
+   ✓ Cost > rejects zero/negative/non-integer/wrong type/unknown kind 0ms
+   ✓ Target > accepts Card and Player 0ms
+   ✓ Target > rejects missing zone/count, bad who, unknown kind 0ms
+   ✓ Operation > accepts Damage / Heal / Draw / Destroy 0ms
+   ✓ Operation > rejects bad amount/target/missing field/unknown kind 0ms
+   ✓ Operation > accepts ModifyStat (task 3.6): atk/def, signed non-zero amount, side, optional filter/excludeSource 0ms
+   ✓ Operation > rejects a malformed ModifyStat 1ms
+   ✓ EffectDefinition > accepts the batch-1 examples 0ms
+   ✓ EffectDefinition > rejects empty/missing operations 0ms
+   ✓ EffectDefinition > rejects empty optional arrays, empty id, unknown trigger 0ms
+   ✓ EffectDefinition > rejects Continuous with cost or target (it never goes on the chain) 0ms
+   ✓ EffectDefinition > trigger effects (OnSummon/OnDestroyed) may only cost PayLP (task 3.5) 2ms
+   ✓ EffectDefinition > Continuous effects hold only continuous operations, other effects only resolve ones (task 3.6) 0ms
+   ✓ EffectDefinition > accepts an effect-level scriptId (task 3.6); operations may be empty only with a scriptId 0ms
+   ✓ EffectDefinition > accepts an optional explicit spellSpeed 1|2|3 (task 3.4), nothing else 1ms
+   × EffectDefinition > accepts an optional oncePerTurn: true (task 4.8); absent = no limit; nothing else 8ms
+   ✓ EffectDefinition > no real card uses oncePerTurn yet (task 4.8 is engine-only; real cards come with 4.8b) 1ms
+   ✓ registry (metadata only: no functions) > has one entry per operation kind, metadata only (task 3.2: all batch-1 operations implemented) 2ms
+   ✓ registry (metadata only: no functions) > CONTINUOUS_OPERATION_KINDS = the kinds whose timing is continuous (task 3.6) 0ms
+   ✓ registry (metadata only: no functions) > kind lists match the schemas 0ms
+   ✓ CardDefinition with effects + bilingual text > accepts effects and bilingual effectText 1ms
+   ✓ CardDefinition with effects + bilingual text > rejects string name, half-translated name, empty text 0ms
+   ✓ CardDefinition with effects + bilingual text > rejects duplicate effect ids within a card and invalid effects 1ms
+   ✓ CardDefinition with effects + bilingual text > every sample card has both languages 3ms
+   ✓ OnFlip (task 4.2b) > accepts mandatory true/false/omitted 0ms
+   ✓ OnFlip (task 4.2b) > like the other triggers, may only cost PayLP (the engine cannot pick cost cards) 0ms
+   ✓ SpecialSummon (task 4.2a) > accepts a Monster target in your own hand or graveyard, position Attack / DefenseUp 1ms
+   ✓ SpecialSummon (task 4.2a) > rejects a face-down position, unknown fields, no target, and targets outside your hand/graveyard 1ms
+   ✓ SpecialSummon (task 4.2a) > needs a Monster filter (a Spell/Trap is never Summoned) 0ms
+   ✓ SpecialSummon (task 4.2a) > is a resolve-time operation: never in a Continuous effect 0ms
+   ✓ Equip + ModifyStat.equipped (task 4.2c) > Equip needs exactly one face-up monster target (MonsterZone, count 1, filter kind Monster), either side 1ms
+   ✓ Equip + ModifyStat.equipped (task 4.2c) > ModifyStat takes either `side` or `equipped: true`, never both; equipped has no filter/excludeSource 1ms
+   ✓ Equip + ModifyStat.equipped (task 4.2c) > Equip / equipped belong to Equip Spells only 1ms
+   ✓ task 4.3 — cards that stay on the field (Continuous Spell/Trap, Field Spell) > an Ignition/Quick effect may be empty (card activation); any other trigger may not 0ms
+   ✓ task 4.3 — cards that stay on the field (Continuous Spell/Trap, Field Spell) > an empty activation effect only on a Continuous Spell/Trap or Field Spell that has a Continuous effect 1ms
+   ✓ task 4.3 — cards that stay on the field (Continuous Spell/Trap, Field Spell) > a Field Spell needs a Continuous effect or a scriptId 1ms
+   ✓ task 4.3 — cards that stay on the field (Continuous Spell/Trap, Field Spell) > a Spell/Trap with a Continuous effect needs the effect that activates it (Spell: Ignition, Trap: Quick) 1ms
+   ✓ task 4.3 — cards that stay on the field (Continuous Spell/Trap, Field Spell) > staysOnField reads the sub type 1ms
+   ✓ task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon) > parses the three kinds; NegateActivation may restrict the card kinds it answers 0ms
+   ✓ task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon) > rejects unknown fields, an empty or unknown cardKinds list 0ms
+   ✓ task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon) > the three kinds run on resolution and are implemented 2ms
+   ✓ task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon) > a Negate operation only answers something: its effect must be Quick 1ms
+   ✓ task 4.4 — Negate operations (NegateActivation / NegateAttack / NegateSummon) > a Negate effect may carry a cost and further operations 0ms
+ Test Files  2 failed (2)
+      Tests  2 failed | 63 passed (65)
+
+## packages/game-engine — pnpm exec vitest run src/rules/p7-orphan-equip-trigger.test.ts src/rules/monster-ignition.test.ts
+   × a destroyed monster whose trigger targets a Spell/Trap, while an Equip Spell is on it (task 4.8) > the Equip is the only Spell/Trap: no prompt, the trigger does not activate, the duel goes on 34ms
+     → expected { promptId: 'trigger-3-3', …(3) } to be null
+   × a destroyed monster whose trigger targets a Spell/Trap, while an Equip Spell is on it (task 4.8) > the same with a MANDATORY trigger: nothing goes on the chain, no prompt 6ms
+     → expected [ 'AttackDeclared', …(7) ] to not include 'EffectActivated'
+   × a destroyed monster whose trigger targets a Spell/Trap, while an Equip Spell is on it (task 4.8) > another Spell/Trap is there: the prompt lists it and NOT the Equip; choosing it destroys it 3ms
+     → expected { promptId: 'trigger-3-3', …(3) } to match object { kind: 'TriggerActivation', …(2) }
+   ✓ a destroyed monster whose trigger targets a Spell/Trap, while an Equip Spell is on it (task 4.8) > another Spell/Trap is there: declining works too 3ms
+   × a destroyed monster whose trigger targets a Spell/Trap, while an Equip Spell is on it (task 4.8) > MANDATORY trigger with one other Spell/Trap: it is the only candidate, so the link goes on the chain by itself 2ms
+     → expected { promptId: 'trigger-3-3', …(3) } to be null
+   × a destroyed monster whose trigger targets a Spell/Trap, while an Equip Spell is on it (task 4.8) > every prompt this situation opens has an answer the engine accepts (never only Surrender) 4ms
+     → P7_DES_KILL_ST with 0 Set card(s): expected 0 to be greater than 0
+   × answering a TriggerActivation prompt whose trigger can no longer activate (task 4.8, defence in depth) > decline: taken as "does not activate"; the prompt closes and the remaining trigger runs 2ms
+     → ResolvePendingPrompt rejected: the trigger can no longer activate.
+   × answering a TriggerActivation prompt whose trigger can no longer activate (task 4.8, defence in depth) > the listed candidate: taken as "does not activate"; the prompt closes and the remaining trigger runs 1ms
+     → ResolvePendingPrompt rejected: the trigger can no longer activate.
+   × answering a TriggerActivation prompt whose trigger can no longer activate (task 4.8, defence in depth) > no ids: taken as "does not activate"; the prompt closes and the remaining trigger runs 1ms
+     → ResolvePendingPrompt rejected: the trigger can no longer activate.
+   × answering a TriggerActivation prompt whose trigger can no longer activate (task 4.8, defence in depth) > such a prompt always has a legal answer 1ms
+     → expected 0 to be greater than 0
+   ✓ the flag is off (default): a monster on the field activates nothing, exactly as before > the default ruleset has no such key at all (older states and golden files stay as they are) 5ms
+   ✓ the flag is off (default): a monster on the field activates nothing, exactly as before > own face-up monster with an Ignition effect: CARD_NOT_IN_HAND 3ms
+   ✓ the flag is off (default): a monster on the field activates nothing, exactly as before > own monster with a Continuous effect: CONTINUOUS_NOT_ACTIVATABLE; a monster in the hand: NOT_A_SPELL_TRAP 2ms
+   ✓ the flag is off (default): a monster on the field activates nothing, exactly as before > nothing of a monster is listed in the legal actions 9ms
+   ✓ the flag is off (default): a monster on the field activates nothing, exactly as before > an explicit false is off too 1ms
+   × the flag is on: activating an Ignition effect of a monster on the field > pays the cost, goes on the chain as a Spell Speed 1 link from the Monster Zone, resolves; the monster STAYS 16ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × the flag is on: activating an Ignition effect of a monster on the field > works in Main Phase 2 and for a monster in face-up Defense Position 1ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × the flag is on: activating an Ignition effect of a monster on the field > an effect without `oncePerTurn` may be activated again and again in the same turn 1ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × the flag is on: activating an Ignition effect of a monster on the field > G28 [DECISION]: usable on the very turn the monster was Normal Summoned 2ms
+     → ActivateEffect rejected: card h0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × the flag is on: activating an Ignition effect of a monster on the field > wrong phase: WRONG_PHASE 5ms
+     → expected 'CARD_NOT_IN_HAND' to be 'WRONG_PHASE' // Object.is equality
+   ✓ the flag is on: activating an Ignition effect of a monster on the field > not your turn: NOT_TURN_PLAYER; the opponent's monster is never yours to activate: CARD_NOT_IN_HAND 1ms
+   × the flag is on: activating an Ignition effect of a monster on the field > a face-down monster: NOT_ACTIVATABLE 1ms
+     → expected 'CARD_NOT_IN_HAND' to be 'NOT_ACTIVATABLE' // Object.is equality
+   × the flag is on: activating an Ignition effect of a monster on the field > only Ignition: a trigger effect / a Quick effect of a monster is NOT_ACTIVATABLE, a Continuous one CONTINUOUS_NOT_ACTIVATABLE 2ms
+     → expected 'CARD_NOT_IN_HAND' to be 'NOT_ACTIVATABLE' // Object.is equality
+   × the flag is on: activating an Ignition effect of a monster on the field > an unknown effect id: EFFECT_NOT_FOUND; a monster without effects: EFFECT_NOT_FOUND 1ms
+     → expected 'CARD_NOT_IN_HAND' to be 'EFFECT_NOT_FOUND' // Object.is equality
+   ✓ the flag is on: activating an Ignition effect of a monster on the field > a monster in the HAND still cannot activate: NOT_A_SPELL_TRAP 0ms
+   × the flag is on: activating an Ignition effect of a monster on the field > Spell Speed 1: it cannot be chained to a link already on the chain (SPELL_SPEED_TOO_LOW) 2ms
+     → expected 'CARD_NOT_IN_HAND' to be 'SPELL_SPEED_TOO_LOW' // Object.is equality
+   × the flag is on: activating an Ignition effect of a monster on the field > the opponent may answer the link: their Set Trap resolves first, then the monster effect 1ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × the flag is on: activating an Ignition effect of a monster on the field > a target is chosen at activation (SelectEffectTarget prompt), as for a Spell 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × the flag is on: activating an Ignition effect of a monster on the field > no legal target: NO_VALID_TARGET 1ms
+     → expected 'CARD_NOT_IN_HAND' to be 'NO_VALID_TARGET' // Object.is equality
+   × costs of a monster effect > PayLP: needs MORE Life Points than the cost (INVALID_COST otherwise) 1ms
+     → expected 'CARD_NOT_IN_HAND' to be 'INVALID_COST' // Object.is equality
+   × costs of a monster effect > Discard: the chosen hand card is discarded, then the effect resolves 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × costs of a monster effect > Discard: no id / an id that is not in the hand: INVALID_COST 1ms
+     → expected 'CARD_NOT_IN_HAND' to be 'INVALID_COST' // Object.is equality
+   × costs of a monster effect > Tribute ANOTHER monster: it goes to the graveyard, the activating monster stays 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × costs of a monster effect > Tribute ITSELF: not supported yet — INVALID_COST, and never listed 1ms
+     → expected 'CARD_NOT_IN_HAND' to be 'INVALID_COST' // Object.is equality
+   × oncePerTurn (G28 [DECISION]: counted per copy of the card) > the second activation in the same turn is refused: ONCE_PER_TURN_USED 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × oncePerTurn (G28 [DECISION]: counted per copy of the card) > still refused later in the same turn (Main Phase 2) 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × oncePerTurn (G28 [DECISION]: counted per copy of the card) > two copies on the field: each one once 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × oncePerTurn (G28 [DECISION]: counted per copy of the card) > usable again on the controller’s next turn 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × oncePerTurn (G28 [DECISION]: counted per copy of the card) > a copy that left the field and came back is a new copy: usable again the same turn 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × oncePerTurn (G28 [DECISION]: counted per copy of the card) > refused before anything is paid, and never listed once used 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × a monster effect answered by the real SMP-212 (NegateActivation of a monster effect) > the activation is negated: no damage, the cost is not refunded (G23), the monster stays face-up on the field 2ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × a monster effect answered by the real SMP-212 (NegateActivation of a monster effect) > [RULE] a negated activation still counts as this turn’s use 0ms
+     → ActivateEffect rejected: card m0-0 is neither in your hand nor Set in your Spell/Trap Zone.
+   × legal actions with the flag on > lists the Ignition effects the engine accepts — and only in a Main Phase of the controller 6ms
+     → expected [] to deeply equal [ …(3) ]
+   × legal actions with the flag on > Spells keep their place: hand and Set cards first, monsters after 2ms
+     → expected [ …(2) ] to deeply equal [ …(3) ]
+ Test Files  2 failed (2)
+      Tests  36 failed | 8 passed (44)
+
+## Ghi chú
+- shared: 2 đỏ / 65 (2 test mới về field optional; test "no real card uses oncePerTurn" xanh từ đầu vì nó là test ghim).
+- engine: 36 đỏ / 44. 8 test xanh từ đầu là CÓ CHỦ ĐÍCH: 5 test "cờ tắt = y như cũ" (ghim hành vi hiện tại, phải xanh trước và sau),
+  2 test mã lỗi không phụ thuộc cờ (NOT_TURN_PLAYER / CARD_NOT_IN_HAND cho quái đối thủ, NOT_A_SPELL_TRAP cho quái trên tay),
+  và "từ chối khi còn ứng viên khác" của P7 (trước bản sửa vẫn từ chối được; chỉ payload liệt kê thừa lá Trang bị).
+- Lỗi biên dịch kiểu (oncePerTurn / allowMonsterEffectActivation / effectUsedTurns chưa có trong type) không hiện ở đây vì vitest không typecheck;
+  tsc chỉ xanh lại ở commit 3/5.

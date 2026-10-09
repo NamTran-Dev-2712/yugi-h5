@@ -264,6 +264,22 @@ describe('EffectDefinition', () => {
     for (const spellSpeed of [0, 4, 2.5, '2', null])
       bad(EffectDefinitionSchema, { ...base, spellSpeed });
   });
+  it('accepts an optional oncePerTurn: true (task 4.8); absent = no limit; nothing else', () => {
+    const base = { id: 'x', trigger: { kind: 'Ignition' }, operations: [draw] };
+    const parsed = EffectDefinitionSchema.parse(base);
+    expect('oncePerTurn' in parsed).toBe(false);
+    expect(EffectDefinitionSchema.parse({ ...base, oncePerTurn: true }).oncePerTurn).toBe(true);
+    for (const oncePerTurn of [false, 1, 'true', null])
+      bad(EffectDefinitionSchema, { ...base, oncePerTurn });
+    // Allowed on any trigger kind; the engine only reads it for effects a player activates.
+    ok(EffectDefinitionSchema, { ...base, trigger: { kind: 'Quick' }, oncePerTurn: true });
+    ok(EffectDefinitionSchema, { ...base, trigger: { kind: 'OnSummon' }, oncePerTurn: true });
+  });
+  it('no real card uses oncePerTurn yet (task 4.8 is engine-only; real cards come with 4.8b)', () => {
+    for (const card of SAMPLE_CARDS)
+      for (const effect of card.effects ?? [])
+        expect('oncePerTurn' in effect, `${card.id} ${effect.id}`).toBe(false);
+  });
 });
 
 describe('registry (metadata only: no functions)', () => {

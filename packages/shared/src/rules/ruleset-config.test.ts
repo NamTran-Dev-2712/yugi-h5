@@ -61,6 +61,21 @@ describe('RulesetConfig', () => {
     expect(RulesetConfigSchema.safeParse({ deckMin: 61, deckMax: 60 }).success).toBe(false);
   });
 
+  it('task 4.8: allowMonsterEffectActivation is OPTIONAL — absent from the defaults (so older states, golden files and the wire keep their bytes), true / false when given', () => {
+    expect('allowMonsterEffectActivation' in DEFAULT_RULESET).toBe(false);
+    expect('allowMonsterEffectActivation' in resolveRuleset({ handLimit: 5 })).toBe(false);
+    expect(resolveRuleset({ allowMonsterEffectActivation: true })).toEqual({
+      ...DEFAULT_RULESET,
+      allowMonsterEffectActivation: true,
+    });
+    expect(
+      resolveRuleset({ allowMonsterEffectActivation: false }).allowMonsterEffectActivation,
+    ).toBe(false);
+    expect(RulesetConfigSchema.safeParse({ allowMonsterEffectActivation: 'yes' }).success).toBe(
+      false,
+    );
+  });
+
   it('is plain JSON (serializable, replay-safe)', () => {
     expect(JSON.parse(JSON.stringify(DEFAULT_RULESET))).toEqual(DEFAULT_RULESET);
   });
