@@ -9,6 +9,8 @@ import {
   FUSION_DECK_POOL,
   FUSION_EXTRA_DECK_POOL,
   FUZZ_DEFS,
+  IGNITION_DECK_POOL,
+  IGNITION_RULESET,
   NEGATE_DECK_POOL,
   runFuzz,
   SUMMON_TRIGGER_DECK_POOL,
@@ -60,6 +62,17 @@ const EQUIP_TRIGGER_SEEDS = Array.from(
   (_, i) => `equiptrig-long-${i + 1}`,
 );
 
+/** Task 4.8: seeds of the monster-Ignition pool (ruleset flag on). Long run: FUZZ_IGNITION_SEEDS. */
+const IGNITION_SEEDS = Array.from(
+  { length: Number(process.env['FUZZ_IGNITION_SEEDS'] ?? 5) },
+  (_, i) => `ignition-long-${i + 1}`,
+);
+/** Task 4.8: the monster-Ignition variant — decks from IGNITION_DECK_POOL, `allowMonsterEffectActivation` on. */
+const IGNITION: Pick<FuzzOptions, 'deckPool' | 'ruleset'> = {
+  deckPool: IGNITION_DECK_POOL,
+  ruleset: IGNITION_RULESET,
+};
+
 /** Task 4.2d: let the vitest worker answer its RPC between seeds (a long synchronous test starves it under load). */
 const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -83,6 +96,14 @@ describe('fuzz: engine invariants hold', () => {
     const result = runFuzz({ seed, steps: STEPS, deckPool: EQUIP_TRIGGER_DECK_POOL });
     expect(result.ok, formatFuzzFailure(result)).toBe(true);
   });
+
+  it.each(IGNITION_SEEDS)(
+    'seed %s (monster-Ignition deck pool, ruleset flag on, task 4.8)',
+    (seed) => {
+      const result = runFuzz({ seed, steps: STEPS, ...IGNITION });
+      expect(result.ok, formatFuzzFailure(result)).toBe(true);
+    },
+  );
 
   it.each(NEGATE_SEEDS)('seed %s (Negate deck pool, task 4.4)', (seed) => {
     const result = runFuzz({ seed, steps: STEPS, deckPool: NEGATE_DECK_POOL });
@@ -353,6 +374,70 @@ describe('fuzz: engine invariants hold', () => {
       expect(n, `${key} never happened`).toBeGreaterThan(0);
   }, 120_000);
 
+  it('monsters really activate Ignition effects from the field (task 4.8; own seeds, deck pool and ruleset: 60 × 400 steps)', async () => {
+    const total = {
+      monsterIgnitionLinks: 0,
+      monsterIgnitionsNegated: 0,
+      oncePerTurnRefused: 0,
+      oncePerTurnReused: 0,
+      promptStatesChecked: 0,
+    };
+    const paid = { PayLP: 0, Discard: 0, Tribute: 0 };
+    // A variant of its own: no other run has the flag, so no older seed ever lists or accepts such an activation.
+    for (let i = 1; i <= 60; i++) {
+      await yieldToWorker();
+      const result = runFuzz({ seed: `ignition-${i}`, steps: 400, ...IGNITION });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const key of Object.keys(total) as (keyof typeof total)[])
+        total[key] += result.stats[key];
+      // Which costs were really paid: replay the accepted activations of a monster by their definition.
+      let state: ReturnType<typeof applyAction>['state'] | null = null;
+      const ctx = { cardDefinitions: (id: string) => FUZZ_DEFS[id] };
+      for (const action of result.log) {
+        let next;
+        try {
+          next = applyAction(action.type === 'StartDuel' ? null : state, action, ctx);
+        } catch (error) {
+          if (!(error instanceof EngineError)) throw error;
+          continue;
+        }
+        if (state && action.type === 'ActivateEffect') {
+          const monster = state.players[action.payload.playerIndex].board.monsterZones.find(
+            (c) => c?.instanceId === action.payload.cardInstanceId,
+          );
+          const effect = monster
+            ? FUZZ_DEFS[monster.definitionId]?.effects?.find(
+                (e) => e.id === action.payload.effectId,
+              )
+            : undefined;
+          for (const cost of effect?.cost ?? []) paid[cost.kind]++;
+        }
+        state = next.state;
+      }
+    }
+    console.log(`fuzz 4.8 monster Ignition coverage: ${JSON.stringify({ ...total, paid })}`);
+    for (const [key, n] of Object.entries(total))
+      expect(n, `${key} never happened`).toBeGreaterThan(0);
+    for (const [kind, n] of Object.entries(paid))
+      expect(n, `cost ${kind} never paid by a monster`).toBeGreaterThan(0);
+  }, 180_000);
+
+  it('without the ruleset flag the very same pool never activates a monster effect (task 4.8)', async () => {
+    let links = 0;
+    let refused = 0;
+    for (let i = 1; i <= 10; i++) {
+      await yieldToWorker();
+      const result = runFuzz({ seed: `ignition-${i}`, steps: 400, deckPool: IGNITION_DECK_POOL });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      links += result.stats.monsterIgnitionLinks;
+      refused += result.stats.oncePerTurnRefused;
+      for (const action of result.log)
+        if (action.type === 'StartDuel') expect(action.payload.ruleset).toBeUndefined();
+    }
+    expect(links).toBe(0);
+    expect(refused).toBe(0);
+  }, 120_000);
+
   it('older runs never see a task-4.8 card: the default, Negate, Summon-trigger, Fusion and batch-2 pools have none', () => {
     const older: [string, Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'>][] = [
       ['fuzz-1', {}],
@@ -366,10 +451,16 @@ describe('fuzz: engine invariants hold', () => {
       if (!result.ok) throw new Error(formatFuzzFailure(result));
       for (const action of result.log) {
         if (action.type !== 'StartDuel') continue;
+        expect(action.payload.ruleset, `${seed}: a ruleset override`).toBeUndefined();
         for (const id of action.payload.deckLists.flat())
-          expect(['MDS', 'MDSM'].includes(id), `${seed}: ${id}`).toBe(false);
+          expect(
+            ['MDS', 'MDSM', 'MIP', 'MID', 'MIO', 'MIK', 'MIT', 'TNM'].includes(id),
+            `${seed}: ${id}`,
+          ).toBe(false);
       }
       expect(result.stats.equipLeftWithTriggerMonster).toBe(0);
+      expect(result.stats.monsterIgnitionLinks).toBe(0);
+      expect(result.stats.oncePerTurnRefused).toBe(0);
     }
   });
 
@@ -880,6 +971,86 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
     const r = detectEquipTrigger(preTask48(false));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.violation).toMatch(/left the field with .* but is a target of its/);
+  });
+
+  /** First failing run over the monster-Ignition pool (own seeds and ruleset, as for the coverage run). */
+  const detectIgnition = (apply: ApplyFn): FuzzResult => {
+    let last: FuzzResult | null = null;
+    for (let i = 1; i <= 60 && (last === null || last.ok); i++)
+      last = runFuzz({ seed: `ignition-${i}`, steps: 400, ...IGNITION, apply });
+    return last!;
+  };
+  /** The state with every monster of `seat` rewritten by `change` (null = the zone is emptied). */
+  const withMonsters = (
+    state: ReturnType<ApplyFn>['state'],
+    seat: 0 | 1,
+    change: (
+      c: NonNullable<(typeof state.players)[0]['board']['monsterZones'][0]>,
+    ) => typeof c | null,
+    graveyard: (typeof state.players)[0]['graveyard'] = state.players[seat].graveyard,
+  ): typeof state => {
+    const p = state.players[seat];
+    const monsterZones = p.board.monsterZones.map((c) =>
+      c ? change(c) : c,
+    ) as unknown as typeof p.board.monsterZones;
+    const next = { ...p, board: { ...p.board, monsterZones }, graveyard };
+    return { ...state, players: seat === 0 ? [next, state.players[1]] : [state.players[0], next] };
+  };
+
+  it('flags a monster that goes to the graveyard for having activated its effect (task 4.8)', () => {
+    // Like a Spell: after the activation the monster is "used up". The card set stays intact, so only the 4.8
+    // invariant can report it.
+    const r = detectIgnition(
+      broken('ActivateEffect', ({ state, events }) => {
+        const added = events.find((e) => e.type === 'ChainLinkAdded');
+        if (!added || added.type !== 'ChainLinkAdded') return { state, events };
+        const seat = added.playerIndex;
+        const card = state.players[seat].board.monsterZones.find(
+          (c) => c?.instanceId === added.instanceId,
+        );
+        if (!card) return { state, events };
+        return {
+          events,
+          state: withMonsters(state, seat, (c) => (c.instanceId === card.instanceId ? null : c), [
+            ...state.players[seat].graveyard,
+            {
+              instanceId: card.instanceId,
+              definitionId: card.definitionId,
+              ownerIndex: card.ownerIndex,
+              position: null,
+            },
+          ]),
+        };
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/left the field by activating its effect/);
+  });
+
+  it('flags an activation that leaves no once-per-turn stamp (task 4.8)', () => {
+    const r = detectIgnition(
+      broken('ActivateEffect', ({ state, events }) => {
+        const strip = (seat: 0 | 1, s: typeof state) =>
+          withMonsters(s, seat, ({ effectUsedTurns: _dropped, ...rest }) => rest);
+        return { events, state: strip(1, strip(0, state)) };
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/carries no turn stamp/);
+  });
+
+  it('flags a once-per-turn effect activated twice in a turn (task 4.8)', () => {
+    // The stamp is written but forgotten by the next action that is not an activation: the real engine then accepts a
+    // second activation in the same turn.
+    const strip = (seat: 0 | 1, s: ReturnType<ApplyFn>['state']) =>
+      withMonsters(s, seat, ({ effectUsedTurns: _dropped, ...rest }) => rest);
+    const r = detectIgnition((state, action, ctx) => {
+      const result = applyAction(state, action, ctx);
+      if (action.type === 'ActivateEffect' || action.type === 'StartDuel') return result;
+      return { events: result.events, state: strip(1, strip(0, result.state)) };
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/activated its once-per-turn effect .* twice in turn/);
   });
 
   it('flags an uncontrolled exception', () => {

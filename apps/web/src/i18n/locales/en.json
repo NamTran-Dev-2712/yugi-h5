@@ -232,6 +232,7 @@
   "error.engine.NOTHING_TO_NEGATE": "There is nothing for this card to negate right now.",
   "error.engine.INVALID_EXTRA_DECK": "The Extra Deck has too many cards.",
   "error.engine.FUSION_NOT_SUMMONABLE": "A Fusion Monster can only be Fusion Summoned from the Extra Deck.",
+  "error.engine.ONCE_PER_TURN_USED": "This card already activated that effect this turn.",
 
   "error.api.NOT_OWNER": "You do not control this duel.",
   "error.api.PLAYER_MISMATCH": "That action does not belong to this player.",

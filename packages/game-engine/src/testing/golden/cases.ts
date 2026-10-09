@@ -179,6 +179,47 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
       },
     ],
   },
+  /** Task 4.8 — ATK 1500, Ignition ONCE PER TURN, cost: pay 500 LP — 500 damage to the opponent. */
+  G_IGN_ONCE: {
+    ...monster('G_IGN_ONCE', 4, 1500, 1000),
+    category: 'Effect',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        oncePerTurn: true,
+        cost: [{ kind: 'PayLP', amount: 500 }],
+        operations: [{ kind: 'Damage', amount: 500, target: 'opponent' }],
+      },
+    ],
+  } as CardDefinition,
+  /** Task 4.8 — ATK 1200, Ignition (no limit per turn), cost: discard 1 card — draw 1 card. */
+  G_IGN_DISCARD: {
+    ...monster('G_IGN_DISCARD', 4, 1200, 1200),
+    category: 'Effect',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        cost: [{ kind: 'Discard', count: 1 }],
+        operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+      },
+    ],
+  } as CardDefinition,
+  /** Task 4.8 — Normal Trap: negate the activation of a monster's effect. */
+  G_NEG_MON: {
+    id: 'G_NEG_MON',
+    kind: 'Trap',
+    name: { vi: 'Golden G_NEG_MON', en: 'Golden G_NEG_MON' },
+    subType: 'Normal',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Quick' },
+        operations: [{ kind: 'NegateActivation', cardKinds: ['Monster'] }],
+      },
+    ],
+  },
   /** Task 4.8 — ATK 1500, OnDestroyed OPTIONAL: destroy 1 Spell/Trap the opponent controls. */
   G_DES_KILL_ST: {
     ...monster('G_DES_KILL_ST', 4, 1500, 1000),
@@ -515,6 +556,27 @@ const EQUIP_TRIGGER_DECK_P1 = Array.from(
   { length: 40 },
   (_, i) => ['G_DES_KILL_ST', 'M1000'][i % 2]!,
 );
+
+/**
+ * Task 4.8 — monsters activating Ignition effects from the field (`ruleset.allowMonsterEffectActivation`); both cases
+ * share one deal (seed `g-ign-1`). P0 hand: p0-39 G_IGN_ONCE, p0-19 / p0-13 / p0-28 G_IGN_DISCARD, p0-32 M1000; P0
+ * draws p0-14 M1000 (T3). P1 hand: p1-28 G_NEG_MON, four M1000.
+ */
+const IGNITION_DECK_P0 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_IGN_ONCE', 'G_IGN_DISCARD', 'M1000'][i % 3]!,
+);
+const IGNITION_DECK_P1 = Array.from({ length: 40 }, (_, i) => ['G_NEG_MON', 'M1000'][i % 2]!);
+const ignitionStart: GoldenCase['start'] = {
+  type: 'StartDuel',
+  payload: {
+    matchId: 'golden',
+    seed: 'g-ign-1',
+    playerIds: ['alice', 'bob'],
+    deckLists: [IGNITION_DECK_P0, IGNITION_DECK_P1],
+    ruleset: { allowMonsterEffectActivation: true },
+  },
+};
 
 const endPhase = (playerIndex: 0 | 1, times = 1): Action[] =>
   Array.from({ length: times }, () => ({ type: 'EndPhase', payload: { playerIndex } }));
@@ -1726,6 +1788,85 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
         payload: { playerIndex: 1, promptId: 'trigger-5-35', cardInstanceIds: ['p0-17'] },
       },
       ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'monster-ignition-once-per-turn',
+    definitions: GOLDEN_DEFS,
+    start: ignitionStart,
+    actions: [
+      // T1 (P0): Summon G_IGN_ONCE (p0-39) and activate it at once (G28: the turn it was Summoned is no obstacle): 500
+      // LP paid, 500 to P1; the monster stays. Rejected: a second activation this turn — in Main 1 and again in Main 2.
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-39', zoneIndex: 0 } },
+      activateBy(0, 'p0-39'),
+      activateBy(0, 'p0-39'),
+      ...endPhase(0, 2),
+      activateBy(0, 'p0-39'),
+      ...endPhase(0, 2),
+      // T2 (P1): nothing. Rejected: P0 activating on P1's turn.
+      ...endPhase(1, 2),
+      activateBy(0, 'p0-39'),
+      ...endPhase(1, 4),
+      // T3 (P0): a new turn — G_IGN_ONCE activates again. Summon G_IGN_DISCARD (p0-19, no limit per turn). Rejected:
+      // its effect without the card to discard. Then twice, discarding p0-32 and p0-13 (1 card drawn each time).
+      // Rejected in the Battle Phase: WRONG_PHASE.
+      ...endPhase(0, 2),
+      activateBy(0, 'p0-39'),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-19', zoneIndex: 1 } },
+      activateBy(0, 'p0-19'),
+      {
+        type: 'ActivateEffect',
+        payload: {
+          playerIndex: 0,
+          cardInstanceId: 'p0-19',
+          effectId: 'e1',
+          costInstanceIds: ['p0-32'],
+        },
+      },
+      {
+        type: 'ActivateEffect',
+        payload: {
+          playerIndex: 0,
+          cardInstanceId: 'p0-19',
+          effectId: 'e1',
+          costInstanceIds: ['p0-13'],
+        },
+      },
+      ...endPhase(0, 1),
+      {
+        type: 'ActivateEffect',
+        payload: {
+          playerIndex: 0,
+          cardInstanceId: 'p0-19',
+          effectId: 'e1',
+          costInstanceIds: ['p0-28'],
+        },
+      },
+      ...endPhase(0, 3),
+    ],
+  },
+  {
+    name: 'monster-ignition-negated',
+    definitions: GOLDEN_DEFS,
+    start: ignitionStart,
+    actions: [
+      // T1 (P0): Summon G_IGN_ONCE (p0-39).
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-39', zoneIndex: 0 } },
+      ...endPhase(0, 4),
+      // T2 (P1): Set G_NEG_MON (p1-28).
+      ...endPhase(1, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 1, cardInstanceId: 'p1-28', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): G_IGN_ONCE activates (500 LP paid) → P1 answers with G_NEG_MON: the activation is negated — no
+      // damage, the 500 LP stay paid (G23), the monster stays on the field. Rejected: activating it again this turn
+      // (a negated activation still counts).
+      ...endPhase(0, 2),
+      activateBy(0, 'p0-39'),
+      activateBy(1, 'p1-28'),
+      activateBy(0, 'p0-39'),
+      ...endPhase(0, 4),
     ],
   },
 ];

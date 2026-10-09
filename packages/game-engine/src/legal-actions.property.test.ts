@@ -10,6 +10,8 @@ import {
   BATCH2_DECK_POOL,
   BATCH2_EXTRA_DECK_POOL,
   EQUIP_TRIGGER_DECK_POOL,
+  IGNITION_DECK_POOL,
+  IGNITION_RULESET,
   formatFuzzFailure,
   FUSION_DECK_POOL,
   FUSION_EXTRA_DECK_POOL,
@@ -27,6 +29,8 @@ import {
 
 const SEEDS = Number(process.env.LEGAL_SEEDS ?? 8);
 const STEPS = Number(process.env.LEGAL_STEPS ?? 200);
+/** Task 4.8: seeds of the two variants added by that task (LEGAL_SEEDS still overrides for a long run). */
+const NEW_VARIANT_SEEDS = Number(process.env.LEGAL_SEEDS ?? 2);
 
 function accepts(state: GameState, action: Action, ctx: ActionContext): boolean {
   try {
@@ -207,7 +211,9 @@ const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(r
 describe('getLegalActions — property (fuzzed duels)', () => {
   // Task 4.5: the same property over Fusion duels (own seeds, deck pool and Extra Decks), where it also demands that
   // an open Fusion prompt always lists an answer for the prompted player.
-  it.each<[string, string, Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'>]>([
+  // The two task-4.8 variants run fewer seeds (the last tuple item): each seed costs seconds, and the whole workspace
+  // runs its tests in parallel.
+  it.each<[string, string, Pick<FuzzOptions, 'deckPool' | 'extraDeckPool' | 'ruleset'>, number?]>([
     ['default pool', 'legal-prop', {}],
     [
       'Fusion pool + Extra Decks',
@@ -221,17 +227,30 @@ describe('getLegalActions — property (fuzzed duels)', () => {
       { deckPool: BATCH2_DECK_POOL, extraDeckPool: BATCH2_EXTRA_DECK_POOL },
     ],
     // Task 4.8: and over duels where a trigger monster is destroyed with an opponent's Equip Spell on it.
-    ['Equip + trigger-monster pool', 'legal-equiptrig', { deckPool: EQUIP_TRIGGER_DECK_POOL }],
+    [
+      'Equip + trigger-monster pool',
+      'legal-equiptrig',
+      { deckPool: EQUIP_TRIGGER_DECK_POOL },
+      NEW_VARIANT_SEEDS,
+    ],
+    // Task 4.8: and over duels where monsters activate Ignition effects from the field (ruleset flag on).
+    [
+      'monster-Ignition pool, ruleset flag on',
+      'legal-ignition',
+      { deckPool: IGNITION_DECK_POOL, ruleset: IGNITION_RULESET },
+      NEW_VARIANT_SEEDS,
+    ],
   ])(
-    `agrees with applyAction on ${SEEDS} seeds × ${STEPS} steps (%s)`,
-    async (_label, prefix, variant) => {
+    `agrees with applyAction over ${STEPS}-step fuzzed duels (%s)`,
+    async (_label, prefix, variant, seeds = SEEDS) => {
       let statesChecked = 0;
       let listedTotal = 0;
       let negativesTotal = 0;
       let fusionPrompts = 0;
       let promptStates = 0;
+      let monsterActivationsListed = 0;
 
-      for (let s = 0; s < SEEDS; s++) {
+      for (let s = 0; s < seeds; s++) {
         await yieldToWorker();
         const seed = `${prefix}-${s}`;
         const int = makeInt(`neg-${seed}`);
@@ -250,6 +269,13 @@ describe('getLegalActions — property (fuzzed duels)', () => {
               const keySet = new Set(keys);
               if (keySet.size !== keys.length) return `seat ${seat}: duplicate legal actions`;
               listedTotal += list.length;
+              // Task 4.8: activations of a monster on the field (only ever listed with the ruleset flag on).
+              const fieldMonsters = new Set(
+                state.players[seat].board.monsterZones.flatMap((c) => (c ? [c.instanceId] : [])),
+              );
+              monsterActivationsListed += list.filter(
+                (a) => a.type === 'ActivateEffect' && fieldMonsters.has(a.payload.cardInstanceId),
+              ).length;
 
               for (const a of list) {
                 if (!accepts(state, a, ctx))
@@ -313,9 +339,11 @@ describe('getLegalActions — property (fuzzed duels)', () => {
       console.info(
         `legal-actions property (${prefix}): ${statesChecked} states, ${listedTotal} listed, ${negativesTotal} negatives checked, ${promptStates} prompt states (${fusionPrompts} Fusion)`,
       );
-      expect(statesChecked).toBeGreaterThan(SEEDS * STEPS * 0.3);
+      expect(statesChecked).toBeGreaterThan(seeds * STEPS * 0.3);
       expect(negativesTotal).toBeGreaterThan(1000);
       expect(promptStates).toBeGreaterThan(0);
+      if (variant.ruleset) expect(monsterActivationsListed).toBeGreaterThan(0);
+      else expect(monsterActivationsListed).toBe(0);
       if (variant.extraDeckPool) expect(fusionPrompts).toBeGreaterThan(0);
       else expect(fusionPrompts).toBe(0);
     },

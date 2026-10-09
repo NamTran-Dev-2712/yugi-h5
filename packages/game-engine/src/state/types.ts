@@ -32,6 +32,12 @@ export interface CardInstance {
    * (`state/detach-equips.ts`).
    */
   readonly equippedTo?: string;
+  /**
+   * Task 4.8: on a monster on the field, the turn (`GameState.turnCount`) in which each of its `oncePerTurn` effects was
+   * last ACTIVATED, by effect id. A turn stamp like the ones above: it expires on its own and is only read on the field;
+   * a card that enters the field is a fresh instance without it (G28: "once per turn" is counted per copy).
+   */
+  readonly effectUsedTurns?: Readonly<Record<string, number>>;
 }
 
 export type PlayerZoneKey = 'hand' | 'deck' | 'graveyard' | 'banished' | 'extraDeck';

@@ -62,7 +62,8 @@ function costSelections(
 
 /**
  * Every effect of every non-Monster card in `seat`'s hand, then of every card in their Spell/Trap Zones (task 3.4) and
- * Field Zone (task 4.3), × every candidate cost selection. Deterministic order.
+ * Field Zone (task 4.3), then (task 4.8) of every monster in their Monster Zones, × every candidate cost selection.
+ * Deterministic order.
  */
 export function activationCandidates(
   state: GameState,
@@ -76,13 +77,18 @@ export function activationCandidates(
     (c): c is CardInstance => c !== null,
   );
   const out: ActivateEffectAction[] = [];
-  for (const source of [...me.hand, ...backrow]) {
+  // Task 4.8: the player's own monsters on the field come last (their Ignition effects; whether the ruleset allows it,
+  // and everything else, is the engine's call). A monster in the hand activates nothing.
+  const onField = new Set(ownMonsters.map((c) => c.instanceId));
+  for (const source of [...me.hand, ...backrow, ...ownMonsters]) {
     const def = ctx.cardDefinitions(source.definitionId);
-    if (!def || def.kind === 'Monster') continue;
+    if (!def || (def.kind === 'Monster' && !onField.has(source.instanceId))) continue;
+    // A monster never pays for its own effect with itself (a Tribute cost takes OTHER monsters).
+    const tributable = ownMonsters.filter((c) => c.instanceId !== source.instanceId);
     for (const effect of def.effects ?? []) {
       // Task 3.6: a Continuous effect is never activated (structural: it is not a player action at all).
       if (effect.trigger.kind === 'Continuous') continue;
-      for (const costInstanceIds of costSelections(effect.cost, source, me.hand, ownMonsters)) {
+      for (const costInstanceIds of costSelections(effect.cost, source, me.hand, tributable)) {
         out.push({
           type: 'ActivateEffect',
           payload: {

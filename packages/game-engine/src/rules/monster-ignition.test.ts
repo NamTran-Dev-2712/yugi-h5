@@ -7,6 +7,7 @@ import {
   activate,
   answer,
   apply,
+  attack,
   battle,
   endPhase,
   lp,
@@ -128,6 +129,21 @@ describe('the flag is on: activating an Ignition effect of a monster on the fiel
     const state = on({ oppMonsters: [[0, 'IGN_PAY']] });
     expectEngineError(() => apply(state, activate('o0-0', 'e1', 1)), 'NOT_TURN_PLAYER');
     expectEngineError(() => apply(state, activate('o0-0', 'e1', 0)), 'CARD_NOT_IN_HAND');
+  });
+
+  it('the opponent holding priority in a reaction window of MY turn cannot use a monster effect: NOT_TURN_PLAYER', () => {
+    // My Summon opens a window for the opponent (their Set Trap could answer); the chain is still empty, so only the
+    // "your own turn" rule stands between their monster and its Ignition effect.
+    const state = on({
+      hand: ['M1'],
+      oppMonsters: [[0, 'IGN_PAY']],
+      oppSpellTraps: [[0, 'TRAP']],
+    });
+    const waiting = apply(state, summon('h0')).state;
+    expect(waiting.chainWindow).toMatchObject({ priorityPlayer: 1 });
+    expect(waiting.chainStack).toEqual([]);
+    expectEngineError(() => apply(waiting, activate('o0-0', 'e1', 1)), 'NOT_TURN_PLAYER');
+    expect(getLegalActions(waiting, 1, sampleCtx)).not.toContainEqual(activate('o0-0', 'e1', 1));
   });
 
   it('a face-down monster: NOT_ACTIVATABLE', () => {
@@ -322,6 +338,21 @@ describe('oncePerTurn (G28 [DECISION]: counted per copy of the card)', () => {
     expect(monsterAt(back)).toMatchObject({ instanceId: 'm0-0', position: 'DefenseUp' });
     expect(monsterAt(back)?.effectUsedTurns).toBeUndefined();
     expect(lp(apply(back, activate('m0-0', 'e1')).state)).toEqual([7500, 7000]);
+  });
+
+  it('destroyed in battle and Special Summoned back in Main Phase 2 of the same turn: a new copy too', () => {
+    const state = on({
+      hand: ['SS_GY_DEF'],
+      myMonsters: [[0, 'IGN_ONCE']],
+      oppMonsters: [[0, 'BIG']],
+    });
+    const used = apply(state, activate('m0-0', 'e1')).state;
+    const fought = apply(apply(used, endPhase()).state, attack('m0-0', 'o0-0')).state;
+    expect(monsterAt(fought)).toBeNull();
+    const back = apply(apply(fought, endPhase()).state, activate('h0', 'e1')).state;
+    expect(back.phase).toBe('Main2');
+    expect(monsterAt(back)?.effectUsedTurns).toBeUndefined();
+    expect(() => apply(back, activate('m0-0', 'e1'))).not.toThrow();
   });
 
   it('refused before anything is paid, and never listed once used', () => {

@@ -27,14 +27,21 @@ import type { ActionContext, ActivateEffectAction, ResolvePendingPromptAction } 
  * (task 3.4; the card flips face-up and stays there until its link resolves). Validation (`prepare`) and the target
  * prompt are side-effect free. `activate` pays the cost, fixes the targets and pushes a chain link; the operations only run when
  * the chain resolves (`effects/chain.ts`). With nobody able to respond, the chain resolves in the same call.
+ *
+ * Task 4.8: with `ruleset.allowMonsterEffectActivation`, a face-up monster in its controller's Monster Zone activates
+ * its own Ignition effect the same way (Main Phase of its controller's turn, Spell Speed 1). The monster does not move:
+ * the link's source is its Monster Zone, and `effects/chain.ts` leaves such a card where it is, resolved or negated.
  */
 
 type Result = { state: GameState; events: GameEvent[] };
 
-/** Where `ActivateEffect` finds a card: the hand, a Spell/Trap Zone or the Field Zone (trigger sources: task 3.5). */
+/**
+ * Where `ActivateEffect` finds a card: the hand, a Spell/Trap Zone, the Field Zone or — task 4.8, behind the ruleset
+ * flag — the player's own Monster Zone.
+ */
 type ActivationSource = Extract<
   ChainLinkSource,
-  { zone: 'Hand' } | { zone: 'SpellTrapZone' } | { zone: 'FieldZone' }
+  { zone: 'Hand' } | { zone: 'SpellTrapZone' } | { zone: 'FieldZone' } | { zone: 'MonsterZone' }
 >;
 
 /** `PendingPrompt.payload` of kind `SelectEffectTarget`. */
@@ -90,9 +97,14 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
   if (state.chainWindow === null && playerIndex !== state.turnPlayerIndex)
     fail('NOT_TURN_PLAYER', 'only the turn player may act.');
 
-  const found = locate(state.players[playerIndex], cardInstanceId);
+  const found = locate(
+    state.players[playerIndex],
+    cardInstanceId,
+    state.ruleset.allowMonsterEffectActivation === true,
+  );
   if (!found) {
-    // Task 3.6: a monster on the field is never activated; say why when the asked effect is Continuous.
+    // Task 3.6: a monster on the field is never activated (task 4.8: unless the ruleset allows it — then it was found
+    // above); say why when the asked effect is Continuous.
     const monster = state.players[playerIndex].board.monsterZones.find(
       (c) => c?.instanceId === cardInstanceId,
     );
@@ -124,12 +136,30 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
       'CONTINUOUS_NOT_ACTIVATABLE',
       `effect "${effectId}" of "${definition.name.en}" is Continuous: it applies by itself while the card is face-up.`,
     );
-  if (definition.kind === 'Monster')
-    return fail('NOT_A_SPELL_TRAP', `"${definition.name.en}" is not a Spell/Trap card.`);
+  // What the card is called in messages: "Normal Spell", "Counter Trap", "Monster".
+  const cardLabel =
+    definition.kind === 'Monster' ? 'Monster' : `${definition.subType} ${definition.kind}`;
 
   // Which trigger this card may activate from where it is [RULE]; null = not activatable from there (yet).
   let trigger: 'Ignition' | 'Quick' | null;
-  if (source.zone === 'Hand') {
+  if (definition.kind === 'Monster') {
+    // A monster activates nothing from the hand; on the field only when it was found there (task 4.8, ruleset flag).
+    if (source.zone !== 'MonsterZone')
+      return fail('NOT_A_SPELL_TRAP', `"${definition.name.en}" is not a Spell/Trap card.`);
+    // Task 4.8 [RULE]: a monster's Ignition effect — the monster is face-up, it is its controller's turn (even while
+    // they hold priority in a window: Spell Speed 1 never answers, see below) and a Main Phase. G28 [DECISION]: the
+    // turn it was Summoned or flipped is no obstacle. A monster's Quick effect is not activatable yet.
+    if (card.position === 'DefenseDown')
+      fail('NOT_ACTIVATABLE', `"${definition.name.en}" is face-down.`);
+    if (playerIndex !== state.turnPlayerIndex)
+      fail('NOT_TURN_PLAYER', "a monster's effect may only be activated on your own turn.");
+    if (state.phase !== 'Main1' && state.phase !== 'Main2')
+      fail('WRONG_PHASE', `only allowed in a Main Phase (current phase: ${state.phase}).`);
+    trigger = 'Ignition';
+  } else if (source.zone === 'MonsterZone') {
+    // Only monsters stand in a Monster Zone; this guards hand-made states.
+    return fail('NOT_ACTIVATABLE', `"${definition.name.en}" is not a monster.`);
+  } else if (source.zone === 'Hand') {
     // [RULE] a Spell in the hand is activated on your own turn only (Quick-Play included), even in a window.
     if (playerIndex !== state.turnPlayerIndex)
       fail('NOT_TURN_PLAYER', 'a card in the hand may only be activated on your own turn.');
@@ -178,7 +208,7 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
   if (trigger === null)
     return fail(
       'NOT_ACTIVATABLE',
-      `a ${definition.subType} ${definition.kind} cannot be activated from the ${source.zone} yet.`,
+      `a ${cardLabel} cannot be activated from the ${source.zone} yet.`,
     );
 
   const effect = definition.effects?.find((e) => e.id === effectId);
@@ -187,10 +217,17 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
   if (effect.trigger.kind !== trigger)
     return fail(
       'NOT_ACTIVATABLE',
-      `a ${effect.trigger.kind} effect cannot be activated as a ${definition.subType} ${definition.kind}.`,
+      `a ${effect.trigger.kind} effect cannot be activated as a ${cardLabel}.`,
     );
   if (effect.scriptId !== undefined && !scriptFor(effect.scriptId))
     return fail('UNKNOWN_SCRIPT', `script "${effect.scriptId}" is not registered.`);
+  // Task 4.8 [RULE]: `oncePerTurn` — this copy already activated the effect this turn (resolved, negated or still on
+  // the chain: it counts from the activation). Checked before any cost is planned.
+  if (effect.oncePerTurn === true && card.effectUsedTurns?.[effect.id] === state.turnCount)
+    fail(
+      'ONCE_PER_TURN_USED',
+      `effect "${effect.id}" of "${definition.name.en}" was already activated this turn.`,
+    );
 
   if (source.zone !== 'Hand' && card.setTurn === state.turnCount) {
     // [RULE] not on the turn it was Set: Traps per `ruleset.trapSetTurnDelay`, Quick-Play Spells always. Any other Set
@@ -260,6 +297,16 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
     return fail('CONDITION_NOT_MET', "the effect's conditions are not met.");
 
   const costPlan = planCosts(state, playerIndex, cardInstanceId, effect.cost, costInstanceIds, ctx);
+  // Task 4.8: a monster cannot Tribute ITSELF for its own effect yet ("Tribute this card" is a cost of its own, not
+  // decided); any other monster of its controller pays as for a Spell.
+  if (
+    source.zone === 'MonsterZone' &&
+    costPlan.some(
+      (step) =>
+        step.kind === 'Tribute' && step.cards.some((t) => t.card.instanceId === cardInstanceId),
+    )
+  )
+    fail('INVALID_COST', 'a monster cannot be Tributed for its own effect.');
 
   let candidates: readonly string[] | null = null;
   let targetCount = 0;
@@ -285,10 +332,14 @@ function prepare(state: GameState, request: Request, ctx: ActionContext): Prepar
   };
 }
 
-/** The card in `player`'s hand, in their Spell/Trap Zone, or (task 4.3) in their Field Zone. */
+/**
+ * The card in `player`'s hand, in their Spell/Trap Zone, (task 4.3) in their Field Zone, or — task 4.8, only when
+ * `monsters` — in their Monster Zone.
+ */
 function locate(
   player: PlayerState,
   instanceId: string,
+  monsters: boolean,
 ): { card: CardInstance; source: ActivationSource } | null {
   const inHand = player.hand.find((c) => c.instanceId === instanceId);
   if (inHand) return { card: inHand, source: { zone: 'Hand' } };
@@ -296,8 +347,13 @@ function locate(
   const onField = player.board.spellTrapZones[zoneIndex];
   if (onField) return { card: onField, source: { zone: 'SpellTrapZone', zoneIndex } };
   const inFieldZone = player.board.fieldZone;
-  return inFieldZone?.instanceId === instanceId
-    ? { card: inFieldZone, source: { zone: 'FieldZone' } }
+  if (inFieldZone?.instanceId === instanceId)
+    return { card: inFieldZone, source: { zone: 'FieldZone' } };
+  if (!monsters) return null;
+  const monsterZone = player.board.monsterZones.findIndex((c) => c?.instanceId === instanceId);
+  const monster = player.board.monsterZones[monsterZone];
+  return monster
+    ? { card: monster, source: { zone: 'MonsterZone', zoneIndex: monsterZone } }
     : null;
 }
 
@@ -372,16 +428,18 @@ function activate(
           position: 'Attack',
         };
   const board: PlayerState['board'] =
-    source.zone === 'SpellTrapZone'
-      ? {
-          ...player.board,
-          spellTrapZones: player.board.spellTrapZones.map((slot, i) =>
-            i === source.zoneIndex ? faceUp : slot,
-          ) as unknown as PlayerState['board']['spellTrapZones'],
-        }
-      : source.zone === 'FieldZone'
-        ? { ...player.board, fieldZone: faceUp }
-        : player.board;
+    source.zone === 'MonsterZone'
+      ? stampUse(player.board, source.zoneIndex, effect, state.turnCount)
+      : source.zone === 'SpellTrapZone'
+        ? {
+            ...player.board,
+            spellTrapZones: player.board.spellTrapZones.map((slot, i) =>
+              i === source.zoneIndex ? faceUp : slot,
+            ) as unknown as PlayerState['board']['spellTrapZones'],
+          }
+        : source.zone === 'FieldZone'
+          ? { ...player.board, fieldZone: faceUp }
+          : player.board;
   const activated: PlayerState = { ...player, hand: leftHand, board };
   current = {
     ...current,
@@ -420,6 +478,27 @@ function activate(
   const settled = settle(pushed.state, ctx, (s, seat) => hasLegalActivation(s, seat, ctx));
   events.push(...settled.events);
   return { state: { ...settled.state, version: state.version + 1 }, events };
+}
+
+/**
+ * Task 4.8: the monster that activates stays as it is; a `oncePerTurn` effect leaves its turn stamp on this copy
+ * (`CardInstance.effectUsedTurns`). Any other effect: the very same board object.
+ */
+function stampUse(
+  board: PlayerState['board'],
+  zoneIndex: number,
+  effect: EffectDefinition,
+  turnCount: number,
+): PlayerState['board'] {
+  if (effect.oncePerTurn !== true) return board;
+  return {
+    ...board,
+    monsterZones: board.monsterZones.map((slot, i) =>
+      i === zoneIndex && slot
+        ? { ...slot, effectUsedTurns: { ...slot.effectUsedTurns, [effect.id]: turnCount } }
+        : slot,
+    ) as unknown as PlayerState['board']['monsterZones'],
+  };
 }
 
 export function applyActivateEffect(

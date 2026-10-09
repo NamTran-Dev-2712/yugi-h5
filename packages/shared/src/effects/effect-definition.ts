@@ -17,6 +17,13 @@ export const EffectDefinitionSchema = z
      * and Quick-Play Spells 2, everything else 1 [RULE]. Set it only for cards that break that default.
      */
     spellSpeed: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    /**
+     * Task 4.8: this effect may be ACTIVATED only once per turn by each copy of the card (G28 [DECISION]: counted per
+     * copy; a copy that left the field and came back counts anew). Counted when it is activated, so a negated
+     * activation still uses the turn [RULE]. Omitted = no limit. Read for effects a player activates (`Ignition` /
+     * `Quick`); trigger effects (`OnSummon` / `OnFlip` / `OnDestroyed`) and `Continuous` ones ignore it.
+     */
+    oncePerTurn: z.literal(true).optional(),
     /** AND — all must hold to activate/resolve. */
     condition: z.array(ConditionSchema).min(1).optional(),
     /** Paid on activation. */

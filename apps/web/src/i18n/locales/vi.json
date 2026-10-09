@@ -232,6 +232,7 @@
   "error.engine.NOTHING_TO_NEGATE": "Lúc này không có gì để lá này vô hiệu.",
   "error.engine.INVALID_EXTRA_DECK": "Extra Deck có quá nhiều lá.",
   "error.engine.FUSION_NOT_SUMMONABLE": "Quái thú Dung hợp chỉ có thể được Triệu hồi Dung hợp từ Extra Deck.",
+  "error.engine.ONCE_PER_TURN_USED": "Hiệu ứng này của lá đã được kích hoạt trong lượt này rồi.",
 
   "error.api.NOT_OWNER": "Bạn không có quyền điều khiển trận này.",
   "error.api.PLAYER_MISMATCH": "Hành động không thuộc về người chơi này.",

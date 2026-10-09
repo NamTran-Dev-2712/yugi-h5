@@ -57,7 +57,8 @@ export type EngineErrorCode =
   | 'NOTHING_TO_RESPOND_TO'
   | 'NOTHING_TO_NEGATE'
   | 'INVALID_EXTRA_DECK'
-  | 'FUSION_NOT_SUMMONABLE';
+  | 'FUSION_NOT_SUMMONABLE'
+  | 'ONCE_PER_TURN_USED';
 
 /** Thrown by `applyAction` when an action is illegal. `message` is for humans; `code` is the contract. */
 export class EngineError extends Error {

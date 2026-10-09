@@ -21,13 +21,10 @@ const MAX_TRIBUTES = 2;
 
 type Seat = 0 | 1;
 
-function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] {
+/** Structural candidates for answering the open prompt (none without a prompt): the first part of `candidates`. */
+function promptAnswerCandidates(state: GameState, seat: Seat): Action[] {
   const me = state.players[seat];
-  const opp = state.players[seat === 0 ? 1 : 0];
   const out: Action[] = [];
-
-  const ownMonsters = me.board.monsterZones.filter((c): c is CardInstance => c !== null);
-  const oppMonsters = opp.board.monsterZones.filter((c): c is CardInstance => c !== null);
 
   // Prompt answers.
   const prompt = state.pendingPrompt;
@@ -97,6 +94,17 @@ function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] 
       }
     }
   }
+
+  return out;
+}
+
+function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] {
+  const me = state.players[seat];
+  const opp = state.players[seat === 0 ? 1 : 0];
+  const out: Action[] = promptAnswerCandidates(state, seat);
+
+  const ownMonsters = me.board.monsterZones.filter((c): c is CardInstance => c !== null);
+  const oppMonsters = opp.board.monsterZones.filter((c): c is CardInstance => c !== null);
 
   out.push({ type: 'PassPriority', payload: { playerIndex: seat } });
   out.push({ type: 'EndPhase', payload: { playerIndex: seat } });
@@ -171,23 +179,35 @@ function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] 
 
 /** Actions `seat` may submit right now: each one is accepted by `applyAction(state, action, ctx)`. Pure; deterministic order. */
 export function getLegalActions(state: GameState, seat: Seat, ctx: ActionContext): Action[] {
-  return legalActionsWith(applyAction, state, seat, ctx);
+  if (state.winnerIndex !== null) return [];
+  return accepted(applyAction, state, candidates(state, seat, ctx), ctx);
 }
 
 /**
- * `getLegalActions` over a given engine (task 4.8): the fuzz harness passes the engine under test, so "does this prompt
- * have an answer?" is asked of that very engine. Everything else should call `getLegalActions`.
+ * Task 4.8 — the answers to the open prompt that `apply` accepts (the `ResolvePendingPrompt` part of the legal actions
+ * of the prompted player; empty without a prompt). The fuzz harness passes the engine under test, so "does this prompt
+ * have an answer?" is asked of that very engine, at the cost of a few dry runs instead of the whole candidate list.
  */
-export function legalActionsWith(
+export function promptAnswersWith(
   apply: (state: GameState, action: Action, ctx: ActionContext) => unknown,
   state: GameState,
-  seat: Seat,
   ctx: ActionContext,
 ): Action[] {
-  if (state.winnerIndex !== null) return [];
+  const prompt = state.pendingPrompt;
+  if (state.winnerIndex !== null || prompt === null) return [];
+  return accepted(apply, state, promptAnswerCandidates(state, prompt.playerIndex), ctx);
+}
+
+/** The candidates `apply` accepts, without duplicates, in order. A non-EngineError exception is a bug: it propagates. */
+function accepted(
+  apply: (state: GameState, action: Action, ctx: ActionContext) => unknown,
+  state: GameState,
+  list: readonly Action[],
+  ctx: ActionContext,
+): Action[] {
   const seen = new Set<string>();
   const legal: Action[] = [];
-  for (const candidate of candidates(state, seat, ctx)) {
+  for (const candidate of list) {
     const key = JSON.stringify(candidate);
     if (seen.has(key)) continue;
     seen.add(key);

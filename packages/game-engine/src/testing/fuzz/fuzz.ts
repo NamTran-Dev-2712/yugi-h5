@@ -3,6 +3,7 @@ import {
   staysOnField,
   type CardDefinition,
   type EffectDefinition,
+  type RulesetConfig,
 } from '@yugi/shared';
 import type { Action, ActionContext, StartDuelAction } from '../../actions/types.js';
 import type { ApplyActionResult } from '../../apply-action.js';
@@ -10,7 +11,7 @@ import { applyAction } from '../../apply-action.js';
 import { hasLegalActivation } from '../../actions/handlers/activate-effect.js';
 import { activeContinuousEffects, effectiveStats } from '../../effects/continuous.js';
 import { EngineError } from '../../errors.js';
-import { legalActionsWith } from '../../legal-actions.js';
+import { promptAnswersWith } from '../../legal-actions.js';
 import { createRng, nextInt } from '../../rng/seeded-rng.js';
 import type { RngState } from '../../rng/seeded-rng.js';
 import type { CardInstance, GameState, Phase } from '../../state/types.js';
@@ -243,6 +244,39 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
     target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
     operations: [{ kind: 'Destroy' }],
   }),
+  // Task 4.8 — monsters with an Ignition effect activated from the field (`ruleset.allowMonsterEffectActivation`):
+  // pay LP (no limit per turn), discard, once per turn (with and without a target), Tribute another monster; and a
+  // Normal Trap that negates the activation of a monster's effect. NOT in the default pool.
+  MIP: effectMonster('MIP', 4, 1500, 1000, {
+    trigger: { kind: 'Ignition' },
+    cost: [{ kind: 'PayLP', amount: 300 }],
+    operations: [{ kind: 'Damage', amount: 300, target: 'opponent' }],
+  }),
+  MID: effectMonster('MID', 3, 1200, 1200, {
+    trigger: { kind: 'Ignition' },
+    cost: [{ kind: 'Discard', count: 1 }],
+    operations: [{ kind: 'Draw', count: 1, target: 'self' }],
+  }),
+  MIO: effectMonster('MIO', 4, 1400, 1100, {
+    trigger: { kind: 'Ignition' },
+    oncePerTurn: true,
+    cost: [{ kind: 'PayLP', amount: 200 }],
+    operations: [{ kind: 'Damage', amount: 200, target: 'opponent' }],
+  }),
+  MIK: effectMonster('MIK', 4, 1300, 900, {
+    trigger: { kind: 'Ignition' },
+    oncePerTurn: true,
+    target: { kind: 'Card', zone: 'MonsterZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  MIT: effectMonster('MIT', 2, 900, 900, {
+    trigger: { kind: 'Ignition' },
+    cost: [{ kind: 'Tribute', count: 1 }],
+    operations: [{ kind: 'Heal', amount: 500, target: 'self' }],
+  }),
+  TNM: trap('TNM', 'Normal', {
+    operations: [{ kind: 'NegateActivation', cardKinds: ['Monster'] }],
+  }),
   ...BATCH2_REAL,
 };
 /** Task 4.5 cards: played only by the Fusion runs, so the default pool — and every older seed's game — is unchanged. */
@@ -250,7 +284,7 @@ const FUSION_ONLY: readonly string[] = ['FUS', 'FUD', 'FX1', 'FX2', 'FXS'];
 /** Task 4.7 cards: played only by the batch-2 runs (same reason). */
 const BATCH2_ONLY: readonly string[] = Object.keys(BATCH2_REAL);
 /** Task 4.8 cards: played only by the runs of their own pools (same reason). */
-const TASK48_ONLY: readonly string[] = ['MDS', 'MDSM'];
+const TASK48_ONLY: readonly string[] = ['MDS', 'MDSM', 'MIP', 'MID', 'MIO', 'MIK', 'MIT', 'TNM'];
 const DECK_POOL = Object.keys(FUZZ_DEFS).filter(
   (id) => !FUSION_ONLY.includes(id) && !BATCH2_ONLY.includes(id) && !TASK48_ONLY.includes(id),
 );
@@ -307,6 +341,17 @@ export const SUMMON_TRIGGER_DECK_POOL: readonly string[] = [
   ...['MS', 'MS', 'MS', 'MSO', 'MF', 'MF', 'MFO', 'M2', 'M4'],
   ...['CNS', 'CNS', 'CNS', 'TRB', 'TRB', 'CNA'],
 ];
+/**
+ * Task 4.8 — pool of the monster-Ignition runs (own seeds `ignition-<i>`, always with `IGNITION_RULESET`): the five
+ * Ignition monsters, plain monsters (Tribute costs, targets), the Trap that negates a monster effect, and cards to
+ * discard / to chain.
+ */
+export const IGNITION_DECK_POOL: readonly string[] = [
+  ...['MIP', 'MIP', 'MID', 'MID', 'MIO', 'MIO', 'MIO', 'MIK', 'MIK', 'MIT'],
+  ...['M2', 'M4', 'TNM', 'TNM', 'TNM', 'SP', 'QPH'],
+];
+/** Task 4.8 — the ruleset of the monster-Ignition runs (`FuzzOptions.ruleset`); every other run leaves the flag out. */
+export const IGNITION_RULESET: Partial<RulesetConfig> = { allowMonsterEffectActivation: true };
 const PHASES: readonly Phase[] = ['Draw', 'Standby', 'Main1', 'Battle', 'Main2', 'End'];
 
 function spell(id: string, effect: Omit<EffectDefinition, 'id'>): CardDefinition {
@@ -448,6 +493,11 @@ export interface FuzzOptions {
    * random stream is exactly the one older seeds always had.
    */
   readonly extraDeckPool?: readonly string[];
+  /**
+   * Task 4.8: ruleset overrides for every duel of the run. Omitted = the default ruleset, a `StartDuel` without the key,
+   * and the random stream older seeds always had.
+   */
+  readonly ruleset?: Partial<RulesetConfig>;
 }
 
 export interface FuzzStats {
@@ -522,6 +572,15 @@ export interface FuzzStats {
    */
   readonly promptStatesChecked: number;
   readonly equipLeftWithTriggerMonster: number;
+  /**
+   * Task 4.8 — Ignition effects of a monster on the field put on the chain; those whose activation was negated;
+   * activations refused because that copy had already used its `oncePerTurn` effect this turn; and `oncePerTurn`
+   * effects activated again by the same copy in a LATER turn (the stamp really expires).
+   */
+  readonly monsterIgnitionLinks: number;
+  readonly monsterIgnitionsNegated: number;
+  readonly oncePerTurnRefused: number;
+  readonly oncePerTurnReused: number;
 }
 
 export type FuzzResult =
@@ -604,6 +663,7 @@ function randomStartDuel(
   duelNo: number,
   pool: readonly string[],
   extraPool: readonly string[] | undefined,
+  ruleset: Partial<RulesetConfig> | undefined,
 ): StartDuelAction {
   const deckSize = 8 + rand.int(33);
   const deck = () => Array.from({ length: deckSize }, () => rand.pick(pool));
@@ -622,6 +682,7 @@ function randomStartDuel(
       deckLists,
       startingLP,
       ...(extraPool ? { extraDeckLists: [extra(extraPool), extra(extraPool)] } : {}),
+      ...(ruleset ? { ruleset } : {}),
     },
   };
 }
@@ -695,11 +756,17 @@ function plausibleActivate(state: GameState, rand: Rand): Action | null {
   const backrow = [...board.spellTrapZones, board.fieldZone].filter(
     (c): c is CardInstance => c !== null,
   );
-  const pool = backrow.length > 0 && rand.chance(0.5) ? backrow : hand;
+  // Task 4.8: with the ruleset flag on, often one of the player's own monsters (face-down ones and monsters without
+  // an Ignition effect must be rejected). The extra random number is only drawn in that case, so every run without
+  // the flag keeps its stream.
+  const monsters = monstersOf(state, p);
+  const fromField =
+    state.ruleset.allowMonsterEffectActivation === true && monsters.length > 0 && rand.chance(0.6);
+  const pool = fromField ? monsters : backrow.length > 0 && rand.chance(0.5) ? backrow : hand;
   if (pool.length === 0) return null;
   const card = rand.pick(pool);
   const def = FUZZ_DEFS[card.definitionId];
-  const effect = def && def.kind !== 'Monster' ? def.effects?.[0] : undefined;
+  const effect = def && (def.kind !== 'Monster' || fromField) ? def.effects?.[0] : undefined;
   const costIds: string[] = [];
   for (const cost of effect?.cost ?? []) {
     if (cost.kind === 'Discard') {
@@ -1393,6 +1460,12 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let fusionPausesWithOwedTriggers = 0;
   let promptStatesChecked = 0;
   let equipLeftWithTriggerMonster = 0;
+  let monsterIgnitionLinks = 0;
+  let monsterIgnitionsNegated = 0;
+  let oncePerTurnRefused = 0;
+  let oncePerTurnReused = 0;
+  /** Task 4.8: `<instanceId>:<effectId>` → the turn in which that copy last activated its `oncePerTurn` effect. */
+  const lastUse = new Map<string, number>();
   /** Does the Summoned monster have a trigger that this kind of Summon fires (OnSummon; OnFlip for a Flip Summon)? */
   const hasSummonTrigger = (owed: { type: string; definitionId: string }): boolean =>
     (FUZZ_DEFS[owed.definitionId]?.effects ?? []).some(
@@ -1415,7 +1488,14 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
     const needsNewDuel = state === null || (state.winnerIndex !== null && rand.chance(0.6));
     const action: Action =
       needsNewDuel || state === null
-        ? randomStartDuel(rand, seed, duelsStarted, deckPool, options.extraDeckPool)
+        ? randomStartDuel(
+            rand,
+            seed,
+            duelsStarted,
+            deckPool,
+            options.extraDeckPool,
+            options.ruleset,
+          )
         : nextAction(state, rand);
     log.push(action);
 
@@ -1430,6 +1510,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
         );
       }
       if (action.type === 'StartDuel') return fail(step, `valid StartDuel rejected: ${error.code}`);
+      if (error.code === 'ONCE_PER_TURN_USED') oncePerTurnRefused++;
       rejected++;
       continue;
     }
@@ -1444,6 +1525,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
 
     if (action.type === 'StartDuel') {
       duelsStarted++;
+      lastUse.clear();
       initialIds = cardIds(next);
     } else if (state !== null) {
       const broken = checkTransition(state, next);
@@ -1655,9 +1737,7 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       promptStatesChecked++;
       let answers: number;
       try {
-        answers = legalActionsWith(apply, next, asked.playerIndex, ctx).filter(
-          (a) => a.type === 'ResolvePendingPrompt',
-        ).length;
+        answers = promptAnswersWith(apply, next, ctx).length;
       } catch (error) {
         return fail(
           step,
@@ -1700,6 +1780,119 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
             step,
             `Equip ${id} left the field with ${e.instanceId} but is a target of its "when destroyed" trigger`,
           );
+      }
+    }
+    // Task 4.8 — a monster's effect activated from the field (`ActivateEffect` on a card in a Monster Zone).
+    if (state !== null && action.type === 'ActivateEffect') {
+      const seat = action.payload.playerIndex;
+      const monster = state.players[seat].board.monsterZones.find(
+        (c) => c?.instanceId === action.payload.cardInstanceId,
+      );
+      const added = result.events.find(
+        (e) => e.type === 'ChainLinkAdded' && e.instanceId === action.payload.cardInstanceId,
+      );
+      if (monster && added?.type === 'ChainLinkAdded') {
+        monsterIgnitionLinks++;
+        const effect = FUZZ_DEFS[monster.definitionId]?.effects?.find(
+          (e) => e.id === added.effectId,
+        );
+        if (state.ruleset.allowMonsterEffectActivation !== true)
+          return fail(
+            step,
+            `monster ${monster.instanceId} activated an effect with the ruleset flag off`,
+          );
+        if (effect?.trigger.kind !== 'Ignition')
+          return fail(step, `monster ${monster.instanceId} activated a non-Ignition effect`);
+        if (monster.position === 'DefenseDown')
+          return fail(step, `face-down monster ${monster.instanceId} activated an effect`);
+        if (seat !== state.turnPlayerIndex || (state.phase !== 'Main1' && state.phase !== 'Main2'))
+          return fail(
+            step,
+            `monster ${monster.instanceId} activated its effect outside its controller's Main Phase`,
+          );
+        if (added.spellSpeed !== 1 || state.chainStack.length > 0)
+          return fail(step, `the Ignition effect of ${monster.instanceId} answered a chain`);
+        if (
+          result.events.some(
+            (e) => e.type === 'MonsterTributed' && e.instanceId === monster.instanceId,
+          )
+        )
+          return fail(step, `monster ${monster.instanceId} was Tributed for its own effect`);
+        // The activation itself never moves the monster: it is gone only if something in this action took it away.
+        const taken = result.events.some(
+          (e) =>
+            (e.type === 'MonsterDestroyed' || e.type === 'MonsterTributed') &&
+            e.instanceId === monster.instanceId,
+        );
+        const still = next.players[seat].board.monsterZones.find(
+          (c) => c?.instanceId === monster.instanceId,
+        );
+        if (!taken && !still)
+          return fail(
+            step,
+            `monster ${monster.instanceId} left the field by activating its effect`,
+          );
+        if (effect.oncePerTurn === true) {
+          const key = `${monster.instanceId}:${effect.id}`;
+          const before = lastUse.get(key);
+          if (before === state.turnCount)
+            return fail(
+              step,
+              `${monster.instanceId} activated its once-per-turn effect "${effect.id}" twice in turn ${state.turnCount}`,
+            );
+          if (before !== undefined) oncePerTurnReused++;
+          lastUse.set(key, state.turnCount);
+          if (still && still.effectUsedTurns?.[effect.id] !== state.turnCount)
+            return fail(step, `${monster.instanceId} carries no turn stamp for "${effect.id}"`);
+        }
+      }
+    }
+    // An activated (not triggered: link ids `link-…`) monster effect whose activation was negated — usually by the
+    // opponent's answer, an action later: the monster stays where it was unless something else took it away.
+    for (const e of result.events) {
+      if (e.type !== 'ChainLinkNegated' || !e.linkId.startsWith('link-')) continue;
+      if (FUZZ_DEFS[e.definitionId]?.kind !== 'Monster') continue;
+      monsterIgnitionsNegated++;
+      const before = state?.players[e.playerIndex].board.monsterZones.some(
+        (c) => c?.instanceId === e.instanceId,
+      );
+      const after = next.players[e.playerIndex].board.monsterZones.some(
+        (c) => c?.instanceId === e.instanceId,
+      );
+      const taken = result.events.some(
+        (x) =>
+          (x.type === 'MonsterDestroyed' || x.type === 'MonsterTributed') &&
+          x.instanceId === e.instanceId,
+      );
+      if (before && !after && !taken)
+        return fail(step, `monster ${e.instanceId} left the field because its effect was negated`);
+    }
+    // A copy that left the field is a new copy when it comes back: forget its uses (G28). Checked on the state between
+    // actions and on the events (it may leave and return inside one chain).
+    if (lastUse.size > 0) {
+      const onField = new Set(
+        next.players.flatMap((p) => p.board.monsterZones.flatMap((c) => (c ? [c.instanceId] : []))),
+      );
+      const left = new Set(
+        result.events.flatMap((e) =>
+          e.type === 'MonsterDestroyed' ||
+          e.type === 'MonsterTributed' ||
+          e.type === 'SummonNegated' ||
+          e.type === 'FusionMaterialSent'
+            ? [e.instanceId]
+            : [],
+        ),
+      );
+      for (const key of [...lastUse.keys()]) {
+        const id = key.slice(0, key.indexOf(':'));
+        if (!onField.has(id) || left.has(id)) lastUse.delete(key);
+      }
+    }
+    // The turn stamps only ever sit on a monster on the field... or on its copy in a graveyard (never read there).
+    for (const p of next.players) {
+      for (const c of [...p.hand, ...p.deck, ...p.extraDeck, ...p.board.spellTrapZones]) {
+        if (c?.effectUsedTurns !== undefined)
+          return fail(step, `card ${c.instanceId} outside a Monster Zone carries effectUsedTurns`);
       }
     }
     const custom = options.onState?.(next, ctx, step);
@@ -1752,6 +1945,10 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       fusionPausesWithOwedTriggers,
       promptStatesChecked,
       equipLeftWithTriggerMonster,
+      monsterIgnitionLinks,
+      monsterIgnitionsNegated,
+      oncePerTurnRefused,
+      oncePerTurnReused,
     },
   };
 }

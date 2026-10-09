@@ -39,6 +39,12 @@ export const RulesetConfigSchema = z
     allowTrapActivationFromHand: z.boolean().default(false),
     /** C11 [RULE]: a Trap cannot be activated on the turn it was Set. */
     trapSetTurnDelay: z.boolean().default(true),
+    /**
+     * Task 4.8: a face-up monster may activate its own Ignition effect from the Monster Zone. OPTIONAL on purpose, with
+     * no default: absent = off, so every state already recorded (golden replays, saved duels, the `StateView` on the
+     * wire) keeps its exact bytes. The API never lets it through until task 4.8b puts it on the wire.
+     */
+    allowMonsterEffectActivation: z.boolean().optional(),
   })
   .refine((r) => r.deckMin <= r.deckMax, {
     message: 'deckMin must be <= deckMax',
