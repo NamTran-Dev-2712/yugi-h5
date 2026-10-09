@@ -105,6 +105,17 @@ Sẽ thêm dần qua M1/M2 (giữ nguyên tắc: 1 Action = 1 quyết định r�
 - Test: `packages/game-engine/src/rules/trap-activation.test.ts`, `actions/handlers/quick-play-and-speed.test.ts`; golden `set-trap-quickplay-counter-chain`.
 - **Cửa sổ phản ứng** (task 3.4c): sau `DeclareAttack` và sau `NormalSummon`/`SetMonster`, đối thủ được một cửa sổ để kích hoạt lá Set — xem mục "Cửa sổ phản ứng" dưới "Chain stack".
 
+### Mã lỗi thêm ở task 4.8
+
+| Mã                   | Khi nào                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `ONCE_PER_TURN_USED` | `ActivateEffect` một effect có `oncePerTurn` mà **bản lá đó** đã kích hoạt nó trong lượt này (kể cả lần bị vô hiệu) |
+
+Mã cũ dùng lại cho quái kích hoạt effect (cờ `allowMonsterEffectActivation` bật): `NOT_ACTIVATABLE` (quái úp, effect
+không phải `Ignition`), `NOT_TURN_PLAYER`, `WRONG_PHASE`, `SPELL_SPEED_TOO_LOW`, `INVALID_COST` (gồm "quái tự hiến tế
+chính nó"). Cờ tắt: `CARD_NOT_IN_HAND` như trước. `INVALID_TRIGGER_ANSWER` **không còn** được trả cho một prompt mà
+trigger đã hết kích hoạt được (xem "Trigger effect").
+
 ### Mã lỗi thêm ở task 4.5
 
 `INVALID_EXTRA_DECK` (`StartDuel`: một Extra Deck dài hơn `ruleset.extraDeckSize`) và `FUSION_NOT_SUMMONABLE` (Normal Summon /
@@ -352,6 +363,39 @@ playerIndex, instanceId, definitionId, zoneIndex}`; optional, đi theo cửa s�
 - Mã lỗi mới: `INVALID_TRIGGER_ANSWER`. `ResolvePendingPrompt.payload.decline?: boolean` (mới, optional).
 - Test: `rules/trigger-effects.test.ts`, `effects/triggers.test.ts`; golden `on-summon-mandatory`, `on-summon-optional-declined`,
   `on-destroyed-in-combat`.
+
+### Trigger và lá Trang bị rời sân cùng quái (task 4.8, ADR 071)
+
+- `readyTrigger` đọc **bàn cờ như nó sẽ đứng khi action kết thúc**: nó tính điều kiện / cost / ứng viên mục tiêu trên
+  `detachOrphanEquips(state).state` (thuần; trả đúng object cũ khi không có lá Trang bị mồ côi). Lá Trang bị của quái vừa
+  rời sân vẫn nằm ở ô cho tới cuối action (`applyAction`), nhưng **không bao giờ** là mục tiêu, cost hay một phần điều kiện
+  của trigger gom trong action đó. Thời điểm và thứ tự event `CardSentToGraveyard` của lá Trang bị **không đổi**.
+- Hệ quả: trigger "khi bị phá: phá 1 Phép/Bẫy đối thủ" của một quái mang lá Trang bị của đối thủ — lá đó là Phép/Bẫy duy
+  nhất ⇒ trigger **không kích hoạt** (không prompt); còn lá khác ⇒ prompt / link chỉ nhắm lá khác.
+- **Một prompt không bao giờ là ngõ cụt**: trả lời `TriggerActivation` mà trigger đã hết kích hoạt được (lá nguồn, cost
+  hoặc mục tiêu cuối cùng biến mất) ⇒ **mọi** câu trả lời được hiểu là "không kích hoạt"; trigger còn lại chạy tiếp,
+  `version` +1. Bất biến "prompt đang mở luôn có ≥ 1 `ResolvePendingPrompt` hợp lệ (không tính `Surrender`)" được kiểm
+  ở fuzz engine, property test `legalActions` và mô phỏng ở api.
+
+## Quái kích hoạt effect Ignition + `oncePerTurn` (task 4.8, ADR 071)
+
+Nằm sau `RulesetConfig.allowMonsterEffectActivation` — khoá **optional, không có mặc định** (vắng = tắt) để state / golden
+/ wire cũ không đổi byte. Cờ tắt: mọi thứ như trước task 4.8.
+
+- **Action**: `ActivateEffect { cardInstanceId: <quái ở ô quái của mình>, effectId, costInstanceIds? }` — không action mới.
+- **Luật** `[RULE]` (`actions/handlers/activate-effect.ts`): quái ngửa; effect `Ignition`; lượt của người điều khiển (kể
+  cả khi họ giữ ưu tiên trong một cửa sổ phản ứng ở lượt đối thủ ⇒ `NOT_TURN_PLAYER`); Main 1 / Main 2; Spell Speed 1 ⇒
+  không lên trên mắt xích nào. `[DECISION]` G28: dùng được ngay lượt quái được triệu hồi / lật.
+- **Mắt xích**: `ChainLink.source = { zone: 'MonsterZone', zoneIndex }`, `card` chỉ là bản sao (như trigger). Đối thủ đáp
+  trả bình thường (vd `NegateActivation { cardKinds: ['Monster'] }`). Resolve hoặc bị vô hiệu: quái **ở yên**
+  (`effects/chain.ts` không đổi). Quái rời sân trước khi resolve: mắt xích vẫn resolve `[DECISION]` G28 (d).
+- **Cost**: `PayLP`, `Discard`, `Tribute` quái **khác**. Quái hiến tế chính nó ⇒ `INVALID_COST` (chưa hỗ trợ).
+- **`oncePerTurn`**: kiểm trước khi lập kế hoạch cost; ghi `CardInstance.effectUsedTurns[effectId] = turnCount` lúc kích
+  hoạt (bị vô hiệu vẫn tính `[RULE]`). Dấu lượt tự hết hạn (so với `state.turnCount`); lá vào sân là instance mới nên
+  "theo từng bản lá" (`[DECISION]` G28). Trigger và `Continuous` bỏ qua cờ này.
+- **`legalActions`**: `effects/activation-candidates.ts` liệt kê quái trên sân của mình sau tay và backrow (thứ tự cũ giữ
+  nguyên); pool `Tribute` không gồm chính quái đó.
+- **Chưa có**: effect `Quick` của quái; wire / UI / AI (task 4.8b — api gỡ khoá ở `wire-ruleset.ts`).
 
 ## Continuous effect + scriptId (task 3.6)
 

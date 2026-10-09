@@ -37,10 +37,16 @@
 | Surrender                                       | [DECISION]        | P1    | S   | Thấp    | G11                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Replay/determinism                              | —                 | P1    | M   | Thấp    | Golden replay ngay từ P1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
-> **Task 4.7 (card batch 2, 2026-10-08) không thêm / đổi luật nào** (engine 0 dòng) nên bảng trên không đổi. Hai điều rút ra
-> cho các task sau: (1) **quái trên sân chưa kích hoạt được hiệu ứng** (`Ignition` / `Quick` trên quái) — chưa có dòng nào ở
-> bảng vì chưa làm, sẽ thêm ở task engine (đề xuất 4.8); (2) **lỗi lõi P7** (`docs/ai/OPEN-ISSUES.md`): prompt trigger có mục
-> tiêu Phép/Bẫy có thể không trả lời được khi một lá Trang bị rời sân theo quái trong cùng bước — chưa sửa.
+> **Task 4.7 (card batch 2, 2026-10-08) không thêm / đổi luật nào** (engine 0 dòng) nên bảng trên không đổi.
+>
+> **Task 4.8 (2026-10-09, ADR 071)** — hai điều task 4.7 để lại đã làm ở engine:
+>
+> | Luật                                                                                                           | Nhãn                    | Trạng thái                                                                                            |
+> | -------------------------------------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
+> | Lá Trang bị rời sân cùng quái không là mục tiêu của trigger "bị phá" của quái đó; prompt nào cũng trả lời được | [RULE]                  | 🟨 nháp — **lỗi lõi P7 đã sửa** (xoá khỏi `OPEN-ISSUES.md`), có bất biến fuzz + golden                |
+> | Quái ngửa trên sân kích hoạt hiệu ứng `Ignition` (Main Phase lượt mình, Spell Speed 1, quái ở lại sân)         | [RULE] / [DECISION] G28 | 🟨 nháp — **chỉ engine, sau cờ `allowMonsterEffectActivation` (tắt)**; wire + UI + lá thật: task 4.8b |
+> | "Mỗi lượt 1 lần" (`oncePerTurn`), theo từng bản lá, bị vô hiệu vẫn tính                                        | [RULE] / [DECISION] G28 | 🟨 nháp — engine + schema; chưa lá thật nào dùng                                                      |
+> | Hiệu ứng `Quick` của quái; cost có chọn lá cho trigger; quái tự hiến tế chính nó làm cost                      | [RULE]                  | ⬜ chưa làm (4.9 / batch sau)                                                                         |
 
 ## Early Master Rule vs modern — cấu hình bằng `RulesetConfig`
 

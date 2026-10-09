@@ -41,11 +41,24 @@ handler function đăng ký sẵn trong engine.
   nhiều hơn → `PendingPrompt SelectEffectTarget`, trả lời bằng `ResolvePendingPrompt.cardInstanceIds`. Lá úp chỉ là target khi effect
   không có `filter`. `Destroy` bắt buộc có target `Card`.
 
-> **Quái trên sân chưa kích hoạt được effect** (ghi rõ ở task 4.7): `ActivateEffect` chỉ tìm lá ở tay / ô Phép-Bẫy / ô
-> Môi trường và từ chối mọi quái (`NOT_A_SPELL_TRAP`). Effect `Ignition` / `Quick` đặt trên một quái parse được nhưng
-> **không bao giờ chạy** — quái chỉ có `OnSummon` / `OnFlip` / `OnDestroyed` (cost chỉ `PayLP`) và `Continuous`. Test ở
-> `packages/shared/src/cards/batch2.test.ts` chặn lô 4.7 dùng nhầm. Việc cần làm: `docs/plan/card-and-effect-plan.md`
-> mục "Còn thiếu gì".
+> **Quái trên sân kích hoạt effect `Ignition` (task 4.8, ADR 071) — engine đã có, nằm sau cờ
+> `ruleset.allowMonsterEffectActivation` (khoá optional, vắng = tắt; api gỡ khoá ở mọi duel cho tới task 4.8b).**
+>
+> - Cờ tắt (mọi ván hiện nay): như trước — `ActivateEffect` không tìm lá ở ô quái (`CARD_NOT_IN_HAND`; effect
+>   `Continuous` ⇒ `CONTINUOUS_NOT_ACTIVATABLE`; quái trên tay ⇒ `NOT_A_SPELL_TRAP`). Lá thật **chưa được** dùng
+>   `Ignition` trên quái (test ở `packages/shared/src/cards/batch2.test.ts` vẫn chặn lô 4.7) — chờ 4.8b.
+> - Cờ bật: quái **ngửa** ở ô quái của mình kích hoạt effect `Ignition` trong Main 1 / Main 2 của lượt mình, Spell Speed 1
+>   (không đáp được mắt xích nào), **kể cả ngay lượt nó được triệu hồi / lật** (G28 `[DECISION]`). Quái **ở lại sân** khi
+>   resolve, và cả khi việc kích hoạt bị vô hiệu. Điều kiện, mục tiêu, prompt `SelectEffectTarget` như Phép.
+> - Cost của effect quái: `PayLP`, `Discard`, `Tribute` **quái khác** chạy được; quái hiến tế **chính nó** chưa hỗ trợ
+>   (`INVALID_COST`).
+> - Effect `Quick` trên quái vẫn **chưa** kích hoạt được (`NOT_ACTIVATABLE`); trigger của quái (`OnSummon` / `OnFlip` /
+>   `OnDestroyed`) vẫn chỉ trả cost `PayLP` (cost có chọn lá cho trigger: task 4.9).
+>
+> **`oncePerTurn: true` trên effect (task 4.8)**: mỗi **bản lá** chỉ kích hoạt effect đó một lần mỗi lượt (G28
+> `[DECISION]`: hai bản cùng tên mỗi bản một lần; bản rời sân rồi vào lại là bản mới). Tính **lúc kích hoạt** — bị vô hiệu
+> vẫn tính `[RULE]`; lần hai ⇒ `ONCE_PER_TURN_USED`. Thiếu = không giới hạn. Chỉ áp dụng cho effect người chơi kích hoạt:
+> trigger và `Continuous` **bỏ qua** cờ này. Engine ghi dấu ở `CardInstance.effectUsedTurns`.
 
 ## Trigger effect (task 3.5)
 
@@ -252,6 +265,7 @@ interface EffectDefinition {
   target?: Target; // chọn lúc activate
   operations: Operation[]; // thực thi tuần tự khi resolve (Continuous: modifier đang hiệu lực); rỗng khi có scriptId, hoặc effect kích hoạt lá ở lại sân (4.3)
   scriptId?: string; // task 3.6: script engine chạy lúc resolve, SAU operations; không cho Continuous
+  oncePerTurn?: true; // task 4.8: mỗi bản lá kích hoạt effect này 1 lần / lượt (trigger và Continuous bỏ qua)
 }
 ```
 
@@ -279,7 +293,8 @@ tiêu chí, `level.min ≤ level.max`.
 ## Kind CHƯA có (thêm qua `/new-effect-type`, theo `docs/plan/card-and-effect-plan.md`)
 
 - **Trigger**: `OnDraw`, `OnDestroyed` tham số `by` (Battle/Effect) — kind đã có ở 3.5, `by` chưa, `OnSentToGY`, `OnPhaseStart`, `OnDamage`, `OnAttackDeclared`, `OnActivate`.
-- **Condition**: `LPCompare`, `HasCardIn(zone, filter)`, `ChainLength`, `PositionIs`, `OncePerTurn`.
+- **Condition**: `LPCompare`, `HasCardIn(zone, filter)`, `ChainLength`, `PositionIs`. ("Mỗi lượt 1 lần" đã có ở task 4.8
+  dưới dạng cờ `oncePerTurn` trên effect, không phải condition.)
 - **Cost**: `Banish`, `SendToGY`, `Reveal`.
 - **Target**: `AllMatching(filter)`.
 - **Operation**: `SendToGY`, `Banish`, `Return(hand/deck)`, `ChangePosition`, `Shuffle`, `Search`, `SkipPhase` (`Negate*` đã có ở task 4.4; "vô hiệu **hiệu ứng**" — khác "vô hiệu việc kích hoạt" — chưa có). (`ModifyStat` continuous đã có ở 3.6; bản
@@ -303,7 +318,7 @@ Ví dụ trong bản spec cũ dùng tên `DrawCard`/`DealDamage`/`ModifyAtk`/`Ne
 }
 ```
 
-**Ignition** — "Trả 500 LP: gây 500 damage cho đối thủ" (chưa có `OncePerTurn`):
+**Ignition** — "Trả 500 LP: gây 500 damage cho đối thủ" (thêm `"oncePerTurn": true` để giới hạn mỗi lượt 1 lần, task 4.8):
 
 ```json
 {

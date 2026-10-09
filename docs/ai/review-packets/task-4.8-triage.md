@@ -54,3 +54,18 @@ Mọi câu đều có người trả lời (không dùng mặc định thay ngư
 
 1. G26 (f) — nguyên liệu từ Bộ bài: cần video bản gốc có nhãn "Bộ bài" (`docs/plan/human-tasks.md`).
 2. Mở rộng `CLAUDE.md` #5 cho P10+ (ADR 043) — để tới P10.
+
+## E. Dòng mới do task 4.8 thêm vào sheet (điền cuối task, 2026-10-10)
+
+**11 dòng** (sheet: 106 → 117 dòng luật). Theo quy trình A / B / C của ADR 064:
+
+| Loại                                               | Số dòng | Dòng nào                                                                                                                     |
+| -------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| A — thuần `[RULE]`, AI duyệt thay (đủ 4 điều kiện) | 5       | lá Trang bị không là mục tiêu; mọi prompt trả lời được; điều kiện bấm Ignition; "mỗi lượt 1 lần" tính lúc nào; cost của quái |
+| B — `[DECISION]` đã có câu trả lời từ trước        | 4       | công tắc tắt (Q1), dùng ngay lượt triệu hồi (Q2), theo từng bản lá (Q3), bị vô hiệu thì quái ở yên / cost không hoàn (G23)   |
+| C — phải hỏi ở cuối task                           | 2       | G28 (c) quái tự hiến tế chính nó; G28 (d) quái rời sân trước khi hiệu ứng resolve                                            |
+
+**Hộp thoại cuối task (2 câu, chủ dự án trả lời cả 2, đều chọn "giữ"):** (c) vẫn **từ chối**, làm ở 4.9; (d) hiệu ứng **vẫn
+thực hiện**. Hai dòng đó ghi "☑ (chủ dự án chọn qua hộp thoại, 2026-10-10)" và nhãn đổi thành `[DECISION]`.
+
+Sau task: **còn đúng 1 ô trống** (G26 f — không đổi).

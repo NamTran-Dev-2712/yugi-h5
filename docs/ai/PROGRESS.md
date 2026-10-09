@@ -4,31 +4,28 @@ File này được tự nạp mỗi session nên **chỉ giữ trạng thái hi�
 (1) thêm mục chi tiết (đã làm gì, số test, mutant, smoke, ảnh) vào CUỐI `docs/ai/progress/p<phase>.md`;
 (2) ở đây chỉ sửa "Đang ở đâu", dòng checklist của phase và các danh sách bên dưới. Không chép chi tiết task vào đây.
 
-## Đang ở đâu (cập nhật 2026-10-08, sau task 4.7)
+## Đang ở đâu (cập nhật 2026-10-09, sau task 4.8)
 
-- **Phase đang làm: P4**, xong bản nháp tới **4.7**: card batch 2 — 26 lá thật `SMP-048…061`, `SMP-117…124`,
-  `SMP-211…214` **chỉ bằng dữ liệu** (engine 0 dòng), `BATCH2_DEMO_DECK` + `BATCH2_FUSION_EXTRA_DECK`, test từng lá, fuzz,
-  mutation, 3 scenario Sandbox, ảnh thật. `RULES-REVIEW-SHEET.md` vẫn **1** ô duyệt trống (G26 f).
-- **Task tiếp theo (đề xuất):** **4.8** — primitive set 1 (engine), theo thứ tự: sửa **lỗi lõi P7**, quái trên sân kích
-  hoạt `Ignition` + `OncePerTurn`, cost có chọn lá cho trigger, `ChangePosition`
-  (`docs/plan/card-and-effect-plan.md` mục "Còn thiếu gì").
-- P0 xong. P1, P2, P3 và 4.1–4.7 là **bản nháp chờ chủ dự án duyệt** (AI chỉ tới 🟨; chỉ người dùng chuyển ✅ ở
-  `docs/plan/parity-board.md`). P2 còn **2.4 ⏳ chờ người dùng test** theo `docs/design/debug-ui.md`.
+- **Phase đang làm: P4**, xong bản nháp tới **4.8** (engine + shared; api chỉ containment): **sửa lỗi lõi P7** + bất biến
+  "prompt đang mở luôn có câu trả lời"; **quái trên sân kích hoạt `Ignition`** + **`oncePerTurn`** sau cờ
+  `ruleset.allowMonsterEffectActivation` — **tắt ở mọi ván** (api gỡ khoá). 30 golden cũ không đổi byte, +3. ADR 071, G28. `RULES-REVIEW-SHEET.md` vẫn **1** ô trống (G26 f).
+- **Task tiếp theo (đề xuất):** **4.8b** — nối wire + UI cho quái kích hoạt hiệu ứng + 3 lá thật; rồi **4.9**: cost có chọn
+  lá cho trigger, `ChangePosition`, `SendToGY` (`docs/plan/card-and-effect-plan.md` mục "Còn thiếu gì").
+- P0 xong. P1, P2, P3 và 4.1–4.8 là **bản nháp chờ chủ dự án duyệt** (AI chỉ tới 🟨; chỉ người dùng chuyển ✅ ở
+  `docs/plan/parity-board.md`). **Chủ dự án báo đã duyệt 4.7 (cả 26 lá) ngày 2026-10-09** — ô parity-board vẫn chờ chủ
+  dự án tự chuyển. P2 còn **2.4 ⏳ chờ người dùng test** theo `docs/design/debug-ui.md`.
 
 ## Chờ chủ dự án
 
-- **Lỗi lõi P7 (`docs/ai/OPEN-ISSUES.md`), tìm ra ở 4.7, chưa sửa:** quái mang lá Trang bị bị phá cùng lúc một hiệu ứng "khi
-  bị phá / khi triệu hồi" có mục tiêu Phép/Bẫy ⇒ prompt không ai trả lời được (chỉ còn đầu hàng). Lô 4.7 đã **tránh**
-  (SMP-056 không có mục tiêu); với lá cũ còn tới được qua chuỗi nhiều mắt xích (hiếm). Cần cho làm task engine.
 - Test tay task 2.4 (mục A/C/D/E của `docs/design/debug-ui.md`); duyệt các bản nháp (review packet từng task:
-  `docs/ai/review-packets/task-<số>.md`; mới nhất: `task-4.7.md` — bảng 26 lá, ảnh thật, "cách tự test tay").
+  `docs/ai/review-packets/task-<số>.md`; mới nhất: `task-4.8.md` — bảng TRƯỚC / SAU bằng tiếng Việt thường, không cần chạy lệnh).
 - Scope P10–P15: chốt `[DECISION]`/`[CẦN HỎI]` E1–E9 (`docs/plan/economy-plan.md`) + mục P13–P15
   (`docs/plan/modes-and-liveops-plan.md`); mở rộng danh sách bảng DB ở `CLAUDE.md` #5 (để tới P10) và câu hỏi quy mô
   deploy trước P14 (ADR 043).
 - Tư liệu còn thiếu (`docs/plan/human-tasks.md`): chain 2+ link, Set / đổi thế / Lật, màn thắng-thua, ảnh tab Dung
   Hợp, clip Bẫy Phản công / vô hiệu (G23, G24), clip Dung hợp + màn chọn, nguồn nguyên liệu **Bộ bài** (G26, G27), art quái
   Dung hợp; art 26 lá batch 2 (`docs/assets/ASSET_REQUESTS.md`). Mâu thuẫn còn mở: **C14** — `rules-observed.md`.
-- `docs/ai/OPEN-ISSUES.md` còn 3 mục: bảng DB cho P10, G26 (f), và P7 ở trên.
+- `docs/ai/OPEN-ISSUES.md` còn 2 mục: bảng DB cho P10 và G26 (f).
 
 ## Đã chốt (không hỏi lại)
 
@@ -40,11 +37,16 @@ File này được tự nạp mỗi session nên **chỉ giữ trạng thái hi�
   wire**; luôn hỏi bước chọn quái. **G22 là `[DECISION]`**: quái vừa triệu hồi / Set không tấn công trong lượt đó.
 - 2026-10-08 (ADR 070, hộp thoại): batch 2 = 24 lá + 2 quái Dung hợp, **mức mạnh cổ điển** (quái ≤ 2500 ATK); G22 **giữ**;
   quái "tự bấm kích hoạt" **không làm ở 4.7** (thay lá, không sửa engine).
+- 2026-10-09 (ADR 071, hộp thoại): tách **4.8** (engine, cờ tắt) / **4.8b** (wire + UI + 3 lá thật) / **4.9**; **G28**: quái
+  bấm `Ignition` được ngay lượt vừa triệu hồi / lật; "mỗi lượt 1 lần" tính **theo từng bản lá**; **4.7 đã duyệt** (26 lá). 2026-10-10: quái tự hiến tế chính nó làm cost **vẫn từ chối** tới 4.9;
+  quái rời sân trước khi hiệu ứng resolve thì hiệu ứng **vẫn resolve**.
 
 ## Giới hạn / quan sát chưa sửa
 
-- **Quái trên sân chưa kích hoạt được hiệu ứng** (`Ignition` / `Quick` trên quái không chạy); trigger của quái chỉ trả cost
-  bằng LP. Chưa có Duration, `ChangePosition`, `SendToGY`, `Return`, `Search`, `OncePerTurn`, filter `atk` / `def`.
+- **Quái kích hoạt hiệu ứng chỉ có trong engine, cờ tắt**: chưa ván nào (game / Sandbox / máy) dùng được; chưa lá thật
+  nào có `Ignition` / `oncePerTurn` trên quái. Hiệu ứng `Quick` của quái chưa có; quái tự hiến tế chính nó làm cost bị từ
+  chối; trigger của quái chỉ trả cost bằng LP. Chưa có Duration, `ChangePosition`, `SendToGY`, `Return`, `Search`, filter
+  `atk` / `def`.
 - Batch 2 chỉ chơi qua Sandbox hoặc body API (`deck` + `extraDeck`); trang game chưa có chọn deck (P7). AI không được dạy lá
   nào của batch 2: nó chỉ trả lời prompt và dùng Phép Tức thời gây hại trong cửa sổ (đã có từ 3.4b).
 - Panel Nhật ký tràn lên trên tiêu đề khi log dài. Trong lúc phát animation bàn vẫn là view cũ (thiết kế 2.9).
@@ -76,7 +78,7 @@ File này được tự nạp mỗi session nên **chỉ giữ trạng thái hi�
 | P1: task 1.1–1.12, ánh xạ số task P1                 | `docs/ai/progress/p1.md`       |
 | P2: task 2.1–2.12                                    | `docs/ai/progress/p2.md`       |
 | P3: task 3.1–3.8                                     | `docs/ai/progress/p3.md`       |
-| P4: task 4.1–4.7 + bàn giao                          | `docs/ai/progress/p4.md`       |
+| P4: task 4.1–4.8 + bàn giao                          | `docs/ai/progress/p4.md`       |
 | Ingest video, mở rộng scope, giá trị ruleset đã chốt | `docs/ai/progress/planning.md` |
 
 ## Checklist phase (P0–P9) — chi tiết task: `docs/plan/MASTER-PLAN.md`
@@ -86,7 +88,7 @@ File này được tự nạp mỗi session nên **chỉ giữ trạng thái hi�
 - [ ] P2 — Vertical slice: solo vs AI dummy — chỉ còn 2.4 (trang debug) chờ người dùng test
 - [ ] P3 — Effect system + Chain + 10 card mẫu — 3.1–3.8 xong (nháp)
 - [ ] P4 — Card batches + Special/Equip/Field/Counter/Fusion — 4.1, 4.2a–d, 4.3 + 4.3b, 4.4 + 4.4b, 4.4c, 4.5 + 4.5b, 4.7
-      (batch 2) xong (nháp); đề xuất 4.8 (primitive set 1) rồi batch 3
+      (batch 2), 4.8 (sửa P7 + quái Ignition / oncePerTurn, engine) xong (nháp); đề xuất 4.8b (wire + UI) rồi 4.9, batch 3
 - [ ] P5 — Asset pipeline + Card Gallery
 - [ ] P6 — Animation + Audio tier 1 + Animation Preview + Replay Viewer
 - [ ] P7 — Auth + Deck Builder + Collection

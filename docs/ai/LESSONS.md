@@ -69,10 +69,18 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
 - Mutation trên **dữ liệu lá**: test ghim nguyên dữ liệu (shared) giết mọi mutant ⇒ không chứng minh gì; mutant phải chết
   bởi test hành vi của lá (`tools/mutants-4.7.mjs` báo hai cột). Script đó build lại `dist` của shared liên tục ⇒ **không**
   chạy test / API / mô phỏng khác cùng lúc (ADR 070).
-- Mô phỏng "hai ghế cùng chơi hết bài" (stand-in người chơi ở cả hai ghế) tìm ra trạng thái kẹt mà fuzz engine bỏ sót vì
-  bất biến "còn đường đi" tính cả `Surrender`: thêm kiểu mô phỏng đó cho mỗi deck demo mới (ADR 070, `OPEN-ISSUES` P7).
-- Thiết kế lá: **đọc `activate-effect.ts` trước** — quái trên sân chưa kích hoạt được effect, trigger chỉ trả `PayLP`;
-  trigger "bị phá" **đừng lấy mục tiêu Phép/Bẫy** cho tới khi P7 được sửa (ADR 070).
+- Mô phỏng "hai ghế cùng chơi hết bài" (stand-in người chơi ở cả hai ghế) tìm ra trạng thái kẹt mà fuzz engine bỏ sót:
+  thêm kiểu mô phỏng đó cho mỗi deck demo mới và assert `deadPrompts` = 0 (ADR 070, 071).
+- Bất biến "còn đường đi" **không được tính `Surrender`**: prompt đang mở phải có câu trả lời engine nhận; kiểm bằng dry-run
+  trên **engine đang được kiểm** (`promptAnswersWith(apply, …)`), không thì engine hỏng cố ý lọt qua (ADR 071).
+- Luật trạng thái chạy ở **cuối** action (`detachOrphanEquips`) ⇒ mã gom việc **giữa** action (trigger) phải đọc state đã áp
+  luật đó bằng hàm thuần; đừng dời chỗ phát event của nó (đổi thứ tự event = đổi golden) (ADR 071).
+- Khoá `RulesetConfig` mới: `.optional()` không default — golden và `StateView` lưu nguyên `state.ruleset`, một khoá có
+  default đổi byte mọi golden. `ScenarioSchema.ruleset` tự nhận khoá mới ⇒ khoá engine-only phải gỡ ở `DuelManager` (ADR 071).
+- Thêm test fuzz / property nặng làm `pnpm test` song song chậm tới mức test e2e 5 s của api timeout và turbo cắt ngang
+  engine: đo thời gian file test trước / sau, variant mới chạy ít seed, kiểm bất biến bằng đường rẻ nhất (ADR 071).
+- Thiết kế lá: **đọc `activate-effect.ts` trước** — quái chỉ kích hoạt `Ignition` khi cờ ruleset bật (tắt ở mọi ván tới
+  4.8b), chưa có `Quick` của quái, trigger chỉ trả `PayLP` (ADR 070, 071).
 
 ## Mẫu thiết kế đã lặp lại (làm theo, đừng phát minh lại)
 
@@ -126,7 +134,9 @@ từng package nằm ở `CLAUDE.md` của package, không chép lại ở đây
   lượng, Deck chính kín với cả hai (đừng nới thêm); ghế AI **không có** Extra Deck ở ván thật; nguồn nguyên liệu `Deck`
   **không lên wire** (G26 f giữ tạm, chờ tư liệu "Bộ bài"); luôn hỏi bước chọn quái; không chọn ô / tư thế.
 - **G22 là `[DECISION]`** (chủ dự án chốt 2026-10-04, giữ lại 2026-10-08): quái vừa triệu hồi / Set không tấn công trong
-  lượt đó — không hỏi lại. Batch 2 (ADR 070): mức mạnh cổ điển (quái ≤ 2500 ATK); không quái `Ignition` trước task engine.
+  lượt đó — không hỏi lại. Batch 2 (ADR 070, **đã duyệt 2026-10-09**): mức mạnh cổ điển (quái ≤ 2500 ATK).
+- **G28** (hộp thoại 2026-10-09, ADR 071): quái bấm `Ignition` được **ngay lượt vừa triệu hồi / lật** (khác G22);
+  `oncePerTurn` tính **theo từng bản lá**; phạm vi tách 4.8 (engine, cờ tắt) / 4.8b (wire + UI + lá thật) / 4.9.
 - Card data viết bằng TS, **không** pipeline CSV (ADR 058). Không Duration, không action `SpecialSummon` (ADR 059, 061).
 - C11: Trap phải Set mới kích hoạt (ADR 018). C13: phản ứng = chạm lá, **không** dialog "Kích hoạt?" (ADR 054).
 - AI server không tự Set/kích hoạt Phép/Bẫy ngoài cửa sổ ưu tiên (ADR 048, 055).
