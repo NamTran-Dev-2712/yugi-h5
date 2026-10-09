@@ -9,6 +9,7 @@ import type {
   GameState,
   PendingPrompt,
 } from '../state/types.js';
+import { detachOrphanEquips } from '../state/detach-equips.js';
 import { pushLink } from './chain.js';
 import { conditionsHold } from './conditions.js';
 import { payCosts, planCosts, type CostStep } from './costs.js';
@@ -186,12 +187,19 @@ function stillThere(state: GameState, trigger: PendingTrigger): boolean {
   return owner.graveyard.some((c) => c.instanceId === trigger.instanceId);
 }
 
-/** Checks the trigger against the CURRENT state (condition, cost, targets); null = it does not activate. */
+/**
+ * Checks the trigger against the CURRENT state (condition, cost, targets); null = it does not activate.
+ * Task 4.8: "current" means the board as it will stand once this action is over — an Equip Spell whose monster just
+ * left the field is still in its zone here (`detachOrphanEquips` runs after the handler, in `applyAction`) but is on
+ * its way to the graveyard, so it is no target, pays no cost and counts for no condition. Without this a trigger that
+ * targets a Spell/Trap listed that Equip, and a prompt with it as the only candidate could not be answered.
+ */
 export function readyTrigger(
-  state: GameState,
+  current: GameState,
   trigger: PendingTrigger,
   ctx: ActionContext,
 ): ReadyTrigger | null {
+  const state = detachOrphanEquips(current).state;
   if (state.winnerIndex !== null || !stillThere(state, trigger)) return null;
   const definition = ctx.cardDefinitions(trigger.definitionId);
   const effect = definition?.effects?.find((e) => e.id === trigger.effectId);

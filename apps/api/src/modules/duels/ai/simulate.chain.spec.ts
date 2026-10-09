@@ -135,6 +135,7 @@ describe('AI vs AI with chain material (task 3.4b)', () => {
       seen,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected, 'actions the engine refused').toBe(0);
     expect(s.surrenders).toBe(0);
     expect(seen.windows, 'windows the AI held').toBeGreaterThan(0);

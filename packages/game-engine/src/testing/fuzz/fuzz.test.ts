@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../../apply-action.js';
+import { EngineError } from '../../errors.js';
 import {
   BATCH2_DECK_POOL,
   BATCH2_EXTRA_DECK_POOL,
+  EQUIP_TRIGGER_DECK_POOL,
   formatFuzzFailure,
   FUSION_DECK_POOL,
   FUSION_EXTRA_DECK_POOL,
@@ -52,6 +54,12 @@ const BATCH2: Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'> = {
   extraDeckPool: BATCH2_EXTRA_DECK_POOL,
 };
 
+/** Task 4.8: seeds of the "Equip leaves with a destroyed trigger monster" pool. Long run: FUZZ_EQUIPTRIG_SEEDS. */
+const EQUIP_TRIGGER_SEEDS = Array.from(
+  { length: Number(process.env['FUZZ_EQUIPTRIG_SEEDS'] ?? 5) },
+  (_, i) => `equiptrig-long-${i + 1}`,
+);
+
 /** Task 4.2d: let the vitest worker answer its RPC between seeds (a long synchronous test starves it under load). */
 const yieldToWorker = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -68,6 +76,11 @@ describe('fuzz: engine invariants hold', () => {
 
   it.each(BATCH2_SEEDS)('seed %s (batch-2 real cards + Extra Decks, task 4.7)', (seed) => {
     const result = runFuzz({ seed, steps: STEPS, ...BATCH2 });
+    expect(result.ok, formatFuzzFailure(result)).toBe(true);
+  });
+
+  it.each(EQUIP_TRIGGER_SEEDS)('seed %s (Equip + trigger-monster deck pool, task 4.8)', (seed) => {
+    const result = runFuzz({ seed, steps: STEPS, deckPool: EQUIP_TRIGGER_DECK_POOL });
     expect(result.ok, formatFuzzFailure(result)).toBe(true);
   });
 
@@ -96,6 +109,7 @@ describe('fuzz: engine invariants hold', () => {
     let flipSummons = 0;
     let flipLinks = 0;
     let equips = 0;
+    let promptStatesChecked = 0;
     const byType: Record<string, number> = {};
     // Own fixed seeds (not FUZZ_SEEDS): coverage is statistical; 30 seeds keep every feature reached (task 4.2a
     // widened it from 10 when two more cards in the pool thinned out the multi-link chains).
@@ -116,6 +130,7 @@ describe('fuzz: engine invariants hold', () => {
       flipSummons += result.stats.flipSummons;
       flipLinks += result.stats.flipLinks;
       equips += result.stats.equips;
+      promptStatesChecked += result.stats.promptStatesChecked;
       for (const [type, n] of Object.entries(result.stats.accepted)) {
         accepted += n;
         byType[type] = (byType[type] ?? 0) + n;
@@ -154,6 +169,8 @@ describe('fuzz: engine invariants hold', () => {
     expect(flipLinks, 'no OnFlip link').toBeGreaterThan(0);
     // Task 4.2c: Equip Spells get equipped, and some follow their monster to the graveyard.
     expect(equips, 'no Equip').toBeGreaterThan(0);
+    // Task 4.8: prompts are really open between actions — each of those states was checked to have an answer.
+    expect(promptStatesChecked, 'no open prompt was ever checked').toBeGreaterThan(0);
     // Task 4.2d: explicit timeout — ~2 s alone, 3–6× slower while the whole workspace tests in parallel.
   }, 120_000);
 
@@ -310,6 +327,51 @@ describe('fuzz: engine invariants hold', () => {
     for (const id of [...BATCH2_DECK_POOL, ...BATCH2_EXTRA_DECK_POOL])
       expect(played.has(id), id).toBe(true);
   }, 180_000);
+
+  it('a trigger monster is really destroyed with an Equip on it, and its prompts are answerable (task 4.8; own seeds and deck pool: 60 × 400 steps)', async () => {
+    const total = {
+      equipLeftWithTriggerMonster: 0,
+      triggerPrompts: 0,
+      triggerLinks: 0,
+      promptStatesChecked: 0,
+      equipsDetached: 0,
+    };
+    // A variant of its own: the default pool has neither MDS nor MDSM, so every older seed keeps its pool and stream.
+    for (let i = 1; i <= 60; i++) {
+      await yieldToWorker();
+      const result = runFuzz({
+        seed: `equiptrig-${i}`,
+        steps: 400,
+        deckPool: EQUIP_TRIGGER_DECK_POOL,
+      });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const key of Object.keys(total) as (keyof typeof total)[])
+        total[key] += result.stats[key];
+    }
+    console.log(`fuzz 4.8 Equip + trigger coverage: ${JSON.stringify(total)}`);
+    for (const [key, n] of Object.entries(total))
+      expect(n, `${key} never happened`).toBeGreaterThan(0);
+  }, 120_000);
+
+  it('older runs never see a task-4.8 card: the default, Negate, Summon-trigger, Fusion and batch-2 pools have none', () => {
+    const older: [string, Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'>][] = [
+      ['fuzz-1', {}],
+      ['negate-1', { deckPool: NEGATE_DECK_POOL }],
+      ['sumwin-1', { deckPool: SUMMON_TRIGGER_DECK_POOL }],
+      ['fusion-1', FUSION],
+      ['batch2-1', BATCH2],
+    ];
+    for (const [seed, pools] of older) {
+      const result = runFuzz({ seed, steps: 300, ...pools });
+      if (!result.ok) throw new Error(formatFuzzFailure(result));
+      for (const action of result.log) {
+        if (action.type !== 'StartDuel') continue;
+        for (const id of action.payload.deckLists.flat())
+          expect(['MDS', 'MDSM'].includes(id), `${seed}: ${id}`).toBe(false);
+      }
+      expect(result.stats.equipLeftWithTriggerMonster).toBe(0);
+    }
+  });
 
   it('older runs never see a batch-2 card: the default, Negate, Summon-trigger and Fusion pools have none (task 4.7)', () => {
     const older: [string, Pick<FuzzOptions, 'deckPool' | 'extraDeckPool'>][] = [
@@ -727,6 +789,97 @@ describe('fuzz: the checker is not vacuous (detects deliberately broken engines)
     );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.violation).toMatch(/Extra Deck is not a Fusion Monster/);
+  });
+
+  /** First failing run over the task-4.8 pool (own seeds, as for the coverage run). */
+  const detectEquipTrigger = (apply: ApplyFn): FuzzResult => {
+    let last: FuzzResult | null = null;
+    for (let i = 1; i <= 60 && (last === null || last.ok); i++)
+      last = runFuzz({
+        seed: `equiptrig-${i}`,
+        steps: 400,
+        deckPool: EQUIP_TRIGGER_DECK_POOL,
+        apply,
+      });
+    return last!;
+  };
+
+  /**
+   * The engine as it was before task 4.8, simulated on top of the real one: a monster with a "when destroyed: destroy 1
+   * Spell/Trap" trigger is destroyed while the opponent's Equip Spell — their only Spell/Trap — is on it. The old engine
+   * asked the monster's owner to choose that Equip (already in the graveyard when the action ends) and then refused
+   * every answer. `refuseAnswers: false` keeps only the first half (the prompt lists the Equip that left).
+   */
+  const preTask48 = (refuseAnswers: boolean): ApplyFn => {
+    const FAKE = 'old-engine-equip-prompt';
+    return (state, action, ctx) => {
+      if (
+        refuseAnswers &&
+        action.type === 'ResolvePendingPrompt' &&
+        state?.pendingPrompt?.promptId === FAKE &&
+        action.payload.promptId === FAKE
+      )
+        throw new EngineError('INVALID_TRIGGER_ANSWER', 'the trigger can no longer activate.');
+      const result = applyAction(state, action, ctx);
+      const next = result.state;
+      if (!state || next.winnerIndex !== null || next.pendingPrompt || next.chainWindow)
+        return result;
+      for (const e of result.events) {
+        if (e.type !== 'MonsterDestroyed') continue;
+        const effect = FUZZ_DEFS[e.definitionId]?.effects?.find(
+          (x) => x.trigger.kind === 'OnDestroyed' && x.target?.kind === 'Card',
+        );
+        if (effect?.target?.kind !== 'Card' || effect.target.zone !== 'SpellTrapZone') continue;
+        const other = e.ownerIndex === 0 ? 1 : 0;
+        const equip = state.players[other].board.spellTrapZones.find(
+          (c) => c?.equippedTo === e.instanceId,
+        );
+        const backrow = next.players[other].board;
+        if (!equip || backrow.fieldZone || backrow.spellTrapZones.some((c) => c !== null)) continue;
+        return {
+          events: result.events,
+          state: {
+            ...next,
+            pendingPrompt: {
+              promptId: FAKE,
+              playerIndex: e.ownerIndex,
+              kind: 'TriggerActivation',
+              payload: {
+                trigger: {
+                  playerIndex: e.ownerIndex,
+                  instanceId: e.instanceId,
+                  definitionId: e.definitionId,
+                  effectId: effect.id,
+                  source: { zone: 'Graveyard' },
+                },
+                optional:
+                  effect.trigger.kind === 'OnDestroyed' && effect.trigger.mandatory !== true,
+                candidateInstanceIds: [equip.instanceId],
+                count: 1,
+                remaining: [],
+                afterward: null,
+              },
+            },
+          },
+        };
+      }
+      return result;
+    };
+  };
+
+  it('flags a prompt nobody can answer — the pre-4.8 engine with an Equip on a destroyed trigger monster (task 4.8)', () => {
+    const r = detectEquipTrigger(preTask48(true));
+    expect(r.ok).toBe(false);
+    if (!r.ok)
+      expect(r.violation).toMatch(/TriggerActivation prompt .* has no answer the engine accepts/);
+  });
+
+  it('flags a trigger prompt that offers the Equip that left the field with the monster (task 4.8)', () => {
+    // The answers are accepted here (the fixed engine takes any answer to a dead trigger as "does not activate"), so
+    // only the "never a target" invariant can report it.
+    const r = detectEquipTrigger(preTask48(false));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.violation).toMatch(/left the field with .* but is a target of its/);
   });
 
   it('flags an uncontrolled exception', () => {

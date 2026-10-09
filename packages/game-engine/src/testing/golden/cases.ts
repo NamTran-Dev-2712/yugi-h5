@@ -153,6 +153,45 @@ export const GOLDEN_DEFS: Readonly<Record<string, CardDefinition>> = {
   ),
   /** Task 4.2c — Equip Spell: +500 ATK to one of your face-up monsters. */
   G_EQ_POWER: equipSpell('G_EQ_POWER'),
+  /** Task 4.8 — Equip Spell that goes on an OPPONENT's face-up monster: −600 ATK. */
+  G_EQ_WEAK: {
+    id: 'G_EQ_WEAK',
+    kind: 'Spell',
+    name: { vi: 'Golden G_EQ_WEAK', en: 'Golden G_EQ_WEAK' },
+    subType: 'Equip',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'Ignition' },
+        target: {
+          kind: 'Card',
+          zone: 'MonsterZone',
+          side: 'opponent',
+          count: 1,
+          filter: { kind: 'Monster' },
+        },
+        operations: [{ kind: 'Equip' }],
+      },
+      {
+        id: 'e2',
+        trigger: { kind: 'Continuous' },
+        operations: [{ kind: 'ModifyStat', stat: 'atk', amount: -600, equipped: true }],
+      },
+    ],
+  },
+  /** Task 4.8 — ATK 1500, OnDestroyed OPTIONAL: destroy 1 Spell/Trap the opponent controls. */
+  G_DES_KILL_ST: {
+    ...monster('G_DES_KILL_ST', 4, 1500, 1000),
+    category: 'Effect',
+    effects: [
+      {
+        id: 'e1',
+        trigger: { kind: 'OnDestroyed' },
+        target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+        operations: [{ kind: 'Destroy' }],
+      },
+    ],
+  } as CardDefinition,
   /** Task 4.2b — OnFlip mandatory: 400 damage to the opponent (ATK 1000 / DEF 1000). */
   G_FLIP_BURN: triggerMonster(
     'G_FLIP_BURN',
@@ -462,6 +501,20 @@ const STAY_DECK = Array.from(
 );
 
 const MIXED_DECK = Array.from({ length: 40 }, (_, i) => ['M1000', 'M1800', 'L5'][i % 3]!);
+
+/**
+ * Task 4.8 — an Equip Spell on a monster whose "when destroyed" trigger targets a Spell/Trap (seed `g-p7-1`). P0 hand:
+ * p0-25 / p0-19 / p0-37 M1800, p0-0 / p0-33 G_EQ_WEAK; P0 draws p0-28 M1800 (T3), p0-17 G_DRAW (T5). P1 hand: p1-12 /
+ * p1-2 G_DES_KILL_ST, three M1000.
+ */
+const EQUIP_TRIGGER_DECK_P0 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_EQ_WEAK', 'M1800', 'G_DRAW'][i % 3]!,
+);
+const EQUIP_TRIGGER_DECK_P1 = Array.from(
+  { length: 40 },
+  (_, i) => ['G_DES_KILL_ST', 'M1000'][i % 2]!,
+);
 
 const endPhase = (playerIndex: 0 | 1, times = 1): Action[] =>
   Array.from({ length: times }, () => ({ type: 'EndPhase', payload: { playerIndex } }));
@@ -1616,6 +1669,63 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
       fusionAnswer('fusion-3-19', ['p0-x0']),
       fusionAnswer('fusion-3-20', ['p0-25', 'p0-2']),
       ...endPhase(0, 4),
+    ],
+  },
+  {
+    name: 'p7-equip-leaves-with-destroyed-monster',
+    definitions: GOLDEN_DEFS,
+    start: {
+      type: 'StartDuel',
+      payload: {
+        matchId: 'golden',
+        seed: 'g-p7-1',
+        playerIds: ['alice', 'bob'],
+        deckLists: [EQUIP_TRIGGER_DECK_P0, EQUIP_TRIGGER_DECK_P1],
+      },
+    },
+    actions: [
+      // T1 (P0): Summon M1800 (p0-25).
+      ...endPhase(0, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 0, cardInstanceId: 'p0-25', zoneIndex: 0 } },
+      ...endPhase(0, 4),
+      // T2 (P1): Summon G_DES_KILL_ST (p1-12, ATK 1500).
+      ...endPhase(1, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-12', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T3 (P0): G_EQ_WEAK (p0-0) on p1-12 (now 900 ATK); M1800 destroys it (900 to P1). The Equip — P0's only
+      // Spell/Trap — follows the monster to the graveyard in that action, so the trigger has no target: NO prompt, and
+      // P0 simply ends the turn (before task 4.8: a prompt for P1 that refused every answer).
+      ...endPhase(0, 2),
+      activateBy(0, 'p0-0'),
+      ...endPhase(0, 1),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-25', targetInstanceId: 'p1-12' },
+      },
+      ...endPhase(0, 3),
+      // T4 (P1): Summon the second G_DES_KILL_ST (p1-2).
+      ...endPhase(1, 2),
+      { type: 'NormalSummon', payload: { playerIndex: 1, cardInstanceId: 'p1-2', zoneIndex: 0 } },
+      ...endPhase(1, 4),
+      // T5 (P0): Set G_DRAW (p0-17) in zone 2, G_EQ_WEAK (p0-33) on p1-2, M1800 destroys it. The trigger now asks P1,
+      // listing ONLY the Set card. Rejected: choosing the Equip that left. Then P1 chooses the Set card: destroyed.
+      ...endPhase(0, 2),
+      { type: 'SetSpellTrap', payload: { playerIndex: 0, cardInstanceId: 'p0-17', zoneIndex: 2 } },
+      activateBy(0, 'p0-33'),
+      ...endPhase(0, 1),
+      {
+        type: 'DeclareAttack',
+        payload: { playerIndex: 0, attackerInstanceId: 'p0-25', targetInstanceId: 'p1-2' },
+      },
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'trigger-5-35', cardInstanceIds: ['p0-33'] },
+      },
+      {
+        type: 'ResolvePendingPrompt',
+        payload: { playerIndex: 1, promptId: 'trigger-5-35', cardInstanceIds: ['p0-17'] },
+      },
+      ...endPhase(0, 3),
     ],
   },
 ];

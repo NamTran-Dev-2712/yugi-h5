@@ -9,6 +9,7 @@ import type { GameState } from './state/types.js';
 import {
   BATCH2_DECK_POOL,
   BATCH2_EXTRA_DECK_POOL,
+  EQUIP_TRIGGER_DECK_POOL,
   formatFuzzFailure,
   FUSION_DECK_POOL,
   FUSION_EXTRA_DECK_POOL,
@@ -19,7 +20,8 @@ import {
 /*
  * Property test: replays fuzz duels (fixed seeds; the seed is printed on failure) and at EVERY state checks that
  *  (a) every listed action is accepted by applyAction, (b) actions NOT listed — perturbed/mistyped variants of the
- *      listed ones plus junk — are rejected, (c) no duplicates, (d) a running duel always has a way forward.
+ *      listed ones plus junk — are rejected, (c) no duplicates, (d) a running duel always has a way forward,
+ *  (e) task 4.8: an open prompt always lists an answer for the prompted player (Surrender is no way out of a prompt).
  * Draw/StartDuel are excluded from (b): the engine accepts Draw, but it is server-internal and never listable.
  */
 
@@ -218,6 +220,8 @@ describe('getLegalActions — property (fuzzed duels)', () => {
       'legal-batch2',
       { deckPool: BATCH2_DECK_POOL, extraDeckPool: BATCH2_EXTRA_DECK_POOL },
     ],
+    // Task 4.8: and over duels where a trigger monster is destroyed with an opponent's Equip Spell on it.
+    ['Equip + trigger-monster pool', 'legal-equiptrig', { deckPool: EQUIP_TRIGGER_DECK_POOL }],
   ])(
     `agrees with applyAction on ${SEEDS} seeds × ${STEPS} steps (%s)`,
     async (_label, prefix, variant) => {
@@ -225,6 +229,7 @@ describe('getLegalActions — property (fuzzed duels)', () => {
       let listedTotal = 0;
       let negativesTotal = 0;
       let fusionPrompts = 0;
+      let promptStates = 0;
 
       for (let s = 0; s < SEEDS; s++) {
         await yieldToWorker();
@@ -274,13 +279,12 @@ describe('getLegalActions — property (fuzzed duels)', () => {
               }
             }
 
+            // Task 4.8: every open prompt (task 4.5 asked this of the Fusion prompts only) lists an answer.
             const asked = state.pendingPrompt;
-            if (
-              state.winnerIndex === null &&
-              asked &&
-              (asked.kind === 'SelectFusionMonster' || asked.kind === 'SelectFusionMaterials')
-            ) {
-              fusionPrompts++;
+            if (state.winnerIndex === null && asked) {
+              promptStates++;
+              if (asked.kind === 'SelectFusionMonster' || asked.kind === 'SelectFusionMaterials')
+                fusionPrompts++;
               if (!lists[asked.playerIndex].some((a) => a.type === 'ResolvePendingPrompt'))
                 return `seat ${asked.playerIndex}: no answer listed for the ${asked.kind} prompt`;
             }
@@ -307,10 +311,11 @@ describe('getLegalActions — property (fuzzed duels)', () => {
       }
 
       console.info(
-        `legal-actions property (${prefix}): ${statesChecked} states, ${listedTotal} listed, ${negativesTotal} negatives checked, ${fusionPrompts} Fusion prompt states`,
+        `legal-actions property (${prefix}): ${statesChecked} states, ${listedTotal} listed, ${negativesTotal} negatives checked, ${promptStates} prompt states (${fusionPrompts} Fusion)`,
       );
       expect(statesChecked).toBeGreaterThan(SEEDS * STEPS * 0.3);
       expect(negativesTotal).toBeGreaterThan(1000);
+      expect(promptStates).toBeGreaterThan(0);
       if (variant.extraDeckPool) expect(fusionPrompts).toBeGreaterThan(0);
       else expect(fusionPrompts).toBe(0);
     },

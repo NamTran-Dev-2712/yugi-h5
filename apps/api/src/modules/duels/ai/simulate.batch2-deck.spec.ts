@@ -108,6 +108,7 @@ describe('simulations with BATCH2_DEMO_DECK (task 4.7, real batch-2 cards)', () 
       seen,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(seen.promptsAnswered, 'trigger prompts the AI answered').toBeGreaterThan(0);
@@ -123,6 +124,7 @@ describe('simulations with BATCH2_DEMO_DECK (task 4.7, real batch-2 cards)', () 
       { ...counts, aiDecisions: seen.decisions, aiSpellTrapOnItsOwn: seen.spellTrapOnItsOwn },
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(counts.activations, 'effects the player activated').toBeGreaterThan(0);
@@ -142,6 +144,7 @@ describe('simulations with BATCH2_DEMO_DECK (task 4.7, real batch-2 cards)', () 
       counts,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(counts.activations).toBeGreaterThan(0);

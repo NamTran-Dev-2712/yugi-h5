@@ -1,0 +1,1645 @@
+{
+  "name": "p7-equip-leaves-with-destroyed-monster",
+  "steps": [
+    {
+      "action": {
+        "type": "StartDuel",
+        "payload": {
+          "matchId": "golden",
+          "seed": "g-p7-1",
+          "playerIds": ["alice", "bob"],
+          "deckLists": [
+            [
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK",
+              "M1800",
+              "G_DRAW",
+              "G_EQ_WEAK"
+            ],
+            [
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000",
+              "G_DES_KILL_ST",
+              "M1000"
+            ]
+          ]
+        }
+      },
+      "ok": true,
+      "version": 1,
+      "events": [
+        {
+          "type": "DuelStarted",
+          "matchId": "golden",
+          "turnPlayerIndex": 0
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-25",
+          "definitionId": "M1800"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-19",
+          "definitionId": "M1800"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-0",
+          "definitionId": "G_EQ_WEAK"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-37",
+          "definitionId": "M1800"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-33",
+          "definitionId": "G_EQ_WEAK"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-12",
+          "definitionId": "G_DES_KILL_ST"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-2",
+          "definitionId": "G_DES_KILL_ST"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-17",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-7",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-39",
+          "definitionId": "M1000"
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 2,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Draw",
+          "to": "Standby",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 3,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Standby",
+          "to": "Main1",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "NormalSummon",
+        "payload": {
+          "playerIndex": 0,
+          "cardInstanceId": "p0-25",
+          "zoneIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 4,
+      "events": [
+        {
+          "type": "NormalSummoned",
+          "playerIndex": 0,
+          "instanceId": "p0-25",
+          "definitionId": "M1800",
+          "zoneIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 5,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main1",
+          "to": "Battle",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 6,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Battle",
+          "to": "Main2",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 7,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main2",
+          "to": "End",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 8,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "End",
+          "to": "Draw",
+          "turnPlayerIndex": 1
+        },
+        {
+          "type": "TurnChanged",
+          "turnCount": 2,
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 9,
+      "events": [
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-16",
+          "definitionId": "G_DES_KILL_ST"
+        },
+        {
+          "type": "PhaseChanged",
+          "from": "Draw",
+          "to": "Standby",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 10,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Standby",
+          "to": "Main1",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "NormalSummon",
+        "payload": {
+          "playerIndex": 1,
+          "cardInstanceId": "p1-12",
+          "zoneIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 11,
+      "events": [
+        {
+          "type": "NormalSummoned",
+          "playerIndex": 1,
+          "instanceId": "p1-12",
+          "definitionId": "G_DES_KILL_ST",
+          "zoneIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 12,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main1",
+          "to": "Battle",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 13,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Battle",
+          "to": "Main2",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 14,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main2",
+          "to": "End",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 15,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "End",
+          "to": "Draw",
+          "turnPlayerIndex": 0
+        },
+        {
+          "type": "TurnChanged",
+          "turnCount": 3,
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 16,
+      "events": [
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-28",
+          "definitionId": "M1800"
+        },
+        {
+          "type": "PhaseChanged",
+          "from": "Draw",
+          "to": "Standby",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 17,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Standby",
+          "to": "Main1",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "ActivateEffect",
+        "payload": {
+          "playerIndex": 0,
+          "cardInstanceId": "p0-0",
+          "effectId": "e1"
+        }
+      },
+      "ok": true,
+      "version": 18,
+      "events": [
+        {
+          "type": "EffectActivated",
+          "playerIndex": 0,
+          "instanceId": "p0-0",
+          "definitionId": "G_EQ_WEAK",
+          "effectId": "e1"
+        },
+        {
+          "type": "ChainLinkAdded",
+          "linkId": "link-3-17",
+          "chainIndex": 1,
+          "playerIndex": 0,
+          "instanceId": "p0-0",
+          "definitionId": "G_EQ_WEAK",
+          "effectId": "e1",
+          "spellSpeed": 1,
+          "targetInstanceIds": ["p1-12"]
+        },
+        {
+          "type": "CardEquipped",
+          "playerIndex": 0,
+          "instanceId": "p0-0",
+          "definitionId": "G_EQ_WEAK",
+          "targetInstanceId": "p1-12"
+        },
+        {
+          "type": "EffectResolved",
+          "linkId": "link-3-17",
+          "playerIndex": 0,
+          "instanceId": "p0-0",
+          "definitionId": "G_EQ_WEAK",
+          "effectId": "e1"
+        },
+        {
+          "type": "ChainResolved",
+          "linkCount": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 19,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main1",
+          "to": "Battle",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "DeclareAttack",
+        "payload": {
+          "playerIndex": 0,
+          "attackerInstanceId": "p0-25",
+          "targetInstanceId": "p1-12"
+        }
+      },
+      "ok": true,
+      "version": 20,
+      "events": [
+        {
+          "type": "AttackDeclared",
+          "playerIndex": 0,
+          "attackerInstanceId": "p0-25",
+          "targetInstanceId": "p1-12"
+        },
+        {
+          "type": "MonsterDestroyed",
+          "ownerIndex": 1,
+          "instanceId": "p1-12",
+          "definitionId": "G_DES_KILL_ST",
+          "zoneIndex": 0
+        },
+        {
+          "type": "DamageDealt",
+          "playerIndex": 1,
+          "amount": 900
+        },
+        {
+          "type": "CardSentToGraveyard",
+          "ownerIndex": 0,
+          "instanceId": "p0-0",
+          "definitionId": "G_EQ_WEAK",
+          "from": "SpellTrapZone"
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 21,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Battle",
+          "to": "Main2",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 22,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main2",
+          "to": "End",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 23,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "End",
+          "to": "Draw",
+          "turnPlayerIndex": 1
+        },
+        {
+          "type": "TurnChanged",
+          "turnCount": 4,
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 24,
+      "events": [
+        {
+          "type": "CardDrawn",
+          "playerIndex": 1,
+          "instanceId": "p1-15",
+          "definitionId": "M1000"
+        },
+        {
+          "type": "PhaseChanged",
+          "from": "Draw",
+          "to": "Standby",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 25,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Standby",
+          "to": "Main1",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "NormalSummon",
+        "payload": {
+          "playerIndex": 1,
+          "cardInstanceId": "p1-2",
+          "zoneIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 26,
+      "events": [
+        {
+          "type": "NormalSummoned",
+          "playerIndex": 1,
+          "instanceId": "p1-2",
+          "definitionId": "G_DES_KILL_ST",
+          "zoneIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 27,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main1",
+          "to": "Battle",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 28,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Battle",
+          "to": "Main2",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 29,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main2",
+          "to": "End",
+          "turnPlayerIndex": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 1
+        }
+      },
+      "ok": true,
+      "version": 30,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "End",
+          "to": "Draw",
+          "turnPlayerIndex": 0
+        },
+        {
+          "type": "TurnChanged",
+          "turnCount": 5,
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 31,
+      "events": [
+        {
+          "type": "CardDrawn",
+          "playerIndex": 0,
+          "instanceId": "p0-17",
+          "definitionId": "G_DRAW"
+        },
+        {
+          "type": "PhaseChanged",
+          "from": "Draw",
+          "to": "Standby",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 32,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Standby",
+          "to": "Main1",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "SetSpellTrap",
+        "payload": {
+          "playerIndex": 0,
+          "cardInstanceId": "p0-17",
+          "zoneIndex": 2
+        }
+      },
+      "ok": true,
+      "version": 33,
+      "events": [
+        {
+          "type": "SpellTrapSet",
+          "playerIndex": 0,
+          "instanceId": "p0-17",
+          "zoneIndex": 2
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "ActivateEffect",
+        "payload": {
+          "playerIndex": 0,
+          "cardInstanceId": "p0-33",
+          "effectId": "e1"
+        }
+      },
+      "ok": true,
+      "version": 34,
+      "events": [
+        {
+          "type": "EffectActivated",
+          "playerIndex": 0,
+          "instanceId": "p0-33",
+          "definitionId": "G_EQ_WEAK",
+          "effectId": "e1"
+        },
+        {
+          "type": "ChainLinkAdded",
+          "linkId": "link-5-33",
+          "chainIndex": 1,
+          "playerIndex": 0,
+          "instanceId": "p0-33",
+          "definitionId": "G_EQ_WEAK",
+          "effectId": "e1",
+          "spellSpeed": 1,
+          "targetInstanceIds": ["p1-2"]
+        },
+        {
+          "type": "CardEquipped",
+          "playerIndex": 0,
+          "instanceId": "p0-33",
+          "definitionId": "G_EQ_WEAK",
+          "targetInstanceId": "p1-2"
+        },
+        {
+          "type": "EffectResolved",
+          "linkId": "link-5-33",
+          "playerIndex": 0,
+          "instanceId": "p0-33",
+          "definitionId": "G_EQ_WEAK",
+          "effectId": "e1"
+        },
+        {
+          "type": "ChainResolved",
+          "linkCount": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 35,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main1",
+          "to": "Battle",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "DeclareAttack",
+        "payload": {
+          "playerIndex": 0,
+          "attackerInstanceId": "p0-25",
+          "targetInstanceId": "p1-2"
+        }
+      },
+      "ok": true,
+      "version": 36,
+      "events": [
+        {
+          "type": "AttackDeclared",
+          "playerIndex": 0,
+          "attackerInstanceId": "p0-25",
+          "targetInstanceId": "p1-2"
+        },
+        {
+          "type": "MonsterDestroyed",
+          "ownerIndex": 1,
+          "instanceId": "p1-2",
+          "definitionId": "G_DES_KILL_ST",
+          "zoneIndex": 0
+        },
+        {
+          "type": "DamageDealt",
+          "playerIndex": 1,
+          "amount": 900
+        },
+        {
+          "type": "CardSentToGraveyard",
+          "ownerIndex": 0,
+          "instanceId": "p0-33",
+          "definitionId": "G_EQ_WEAK",
+          "from": "SpellTrapZone"
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "ResolvePendingPrompt",
+        "payload": {
+          "playerIndex": 1,
+          "promptId": "trigger-5-35",
+          "cardInstanceIds": ["p0-33"]
+        }
+      },
+      "ok": false,
+      "errorCode": "INVALID_TRIGGER_ANSWER"
+    },
+    {
+      "action": {
+        "type": "ResolvePendingPrompt",
+        "payload": {
+          "playerIndex": 1,
+          "promptId": "trigger-5-35",
+          "cardInstanceIds": ["p0-17"]
+        }
+      },
+      "ok": true,
+      "version": 37,
+      "events": [
+        {
+          "type": "EffectActivated",
+          "playerIndex": 1,
+          "instanceId": "p1-2",
+          "definitionId": "G_DES_KILL_ST",
+          "effectId": "e1"
+        },
+        {
+          "type": "ChainLinkAdded",
+          "linkId": "trigger-5-36-1",
+          "chainIndex": 1,
+          "playerIndex": 1,
+          "instanceId": "p1-2",
+          "definitionId": "G_DES_KILL_ST",
+          "effectId": "e1",
+          "spellSpeed": 1,
+          "targetInstanceIds": ["p0-17"]
+        },
+        {
+          "type": "SpellTrapDestroyed",
+          "ownerIndex": 0,
+          "instanceId": "p0-17",
+          "definitionId": "G_DRAW",
+          "zoneIndex": 2
+        },
+        {
+          "type": "EffectResolved",
+          "linkId": "trigger-5-36-1",
+          "playerIndex": 1,
+          "instanceId": "p1-2",
+          "definitionId": "G_DES_KILL_ST",
+          "effectId": "e1"
+        },
+        {
+          "type": "ChainResolved",
+          "linkCount": 1
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 38,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Battle",
+          "to": "Main2",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 39,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "Main2",
+          "to": "End",
+          "turnPlayerIndex": 0
+        }
+      ]
+    },
+    {
+      "action": {
+        "type": "EndPhase",
+        "payload": {
+          "playerIndex": 0
+        }
+      },
+      "ok": true,
+      "version": 40,
+      "events": [
+        {
+          "type": "PhaseChanged",
+          "from": "End",
+          "to": "Draw",
+          "turnPlayerIndex": 1
+        },
+        {
+          "type": "TurnChanged",
+          "turnCount": 6,
+          "turnPlayerIndex": 1
+        }
+      ]
+    }
+  ],
+  "finalState": {
+    "matchId": "golden",
+    "rng": {
+      "state": 3145955727
+    },
+    "ruleset": {
+      "startingLP": 8000,
+      "openingHandSize": 5,
+      "handLimit": 6,
+      "firstTurnDraw": false,
+      "firstTurnAttack": false,
+      "deckMin": 40,
+      "deckMax": 60,
+      "copyLimit": 3,
+      "extraDeckSize": 20,
+      "extraMonsterZones": 0,
+      "fieldSpellReplace": true,
+      "chainPrompt": "ask",
+      "turnTimerSec": null,
+      "afkLossThreshold": 3,
+      "allowSurrender": true,
+      "allowTrapActivationFromHand": false,
+      "trapSetTurnDelay": true
+    },
+    "turnCount": 6,
+    "turnPlayerIndex": 1,
+    "phase": "Draw",
+    "players": [
+      {
+        "playerId": "alice",
+        "lifePoints": 8000,
+        "board": {
+          "monsterZones": [
+            {
+              "instanceId": "p0-25",
+              "definitionId": "M1800",
+              "ownerIndex": 0,
+              "position": "Attack",
+              "summonedTurn": 1,
+              "attackedTurn": 5
+            },
+            null,
+            null,
+            null,
+            null
+          ],
+          "spellTrapZones": [null, null, null, null, null],
+          "fieldZone": null
+        },
+        "hand": [
+          {
+            "instanceId": "p0-19",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-37",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-28",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          }
+        ],
+        "deck": [
+          {
+            "instanceId": "p0-6",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-26",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-12",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-14",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-4",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-3",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-38",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-30",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-31",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-23",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-27",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-21",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-35",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-39",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-24",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-32",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-8",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-9",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-2",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-16",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-15",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-13",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-11",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-20",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-10",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-22",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-5",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-34",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-29",
+            "definitionId": "G_DRAW",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-7",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-36",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-18",
+            "definitionId": "G_EQ_WEAK",
+            "position": null,
+            "ownerIndex": 0
+          },
+          {
+            "instanceId": "p0-1",
+            "definitionId": "M1800",
+            "position": null,
+            "ownerIndex": 0
+          }
+        ],
+        "graveyard": [
+          {
+            "instanceId": "p0-0",
+            "definitionId": "G_EQ_WEAK",
+            "ownerIndex": 0,
+            "position": null
+          },
+          {
+            "instanceId": "p0-33",
+            "definitionId": "G_EQ_WEAK",
+            "ownerIndex": 0,
+            "position": null
+          },
+          {
+            "instanceId": "p0-17",
+            "definitionId": "G_DRAW",
+            "ownerIndex": 0,
+            "position": null
+          }
+        ],
+        "banished": [],
+        "extraDeck": [],
+        "hasNormalSummonedThisTurn": false
+      },
+      {
+        "playerId": "bob",
+        "lifePoints": 6200,
+        "board": {
+          "monsterZones": [null, null, null, null, null],
+          "spellTrapZones": [null, null, null, null, null],
+          "fieldZone": null
+        },
+        "hand": [
+          {
+            "instanceId": "p1-17",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-7",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-39",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-16",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-15",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          }
+        ],
+        "deck": [
+          {
+            "instanceId": "p1-20",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-1",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-26",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-37",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-29",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-34",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-4",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-10",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-6",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-21",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-32",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-30",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-25",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-22",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-36",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-33",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-13",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-24",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-9",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-5",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-31",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-18",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-38",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-3",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-23",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-19",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-8",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-0",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-28",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-11",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-14",
+            "definitionId": "G_DES_KILL_ST",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-27",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          },
+          {
+            "instanceId": "p1-35",
+            "definitionId": "M1000",
+            "position": null,
+            "ownerIndex": 1
+          }
+        ],
+        "graveyard": [
+          {
+            "instanceId": "p1-12",
+            "definitionId": "G_DES_KILL_ST",
+            "ownerIndex": 1,
+            "position": null,
+            "summonedTurn": 2
+          },
+          {
+            "instanceId": "p1-2",
+            "definitionId": "G_DES_KILL_ST",
+            "ownerIndex": 1,
+            "position": null,
+            "summonedTurn": 4
+          }
+        ],
+        "banished": [],
+        "extraDeck": [],
+        "hasNormalSummonedThisTurn": false
+      }
+    ],
+    "chainStack": [],
+    "chainWindow": null,
+    "pendingPrompt": null,
+    "winnerIndex": null,
+    "version": 40
+  }
+}

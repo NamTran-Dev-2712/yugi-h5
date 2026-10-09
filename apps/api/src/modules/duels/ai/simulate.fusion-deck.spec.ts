@@ -157,6 +157,7 @@ describe('simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards)', () 
       seen,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(seen.fusionSpellListed, 'decisions with the fusion Spell listed').toBe(0);
@@ -173,6 +174,7 @@ describe('simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards)', () 
       { ...counts, aiDecisions: seen.decisions, aiSpellTrapOnItsOwn: seen.spellTrapOnItsOwn },
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(counts.activations, 'fusion Spells activated against the AI').toBeGreaterThan(0);
@@ -194,6 +196,7 @@ describe('simulations with FUSION_DEMO_DECK (task 4.5b, real Fusion cards)', () 
       { ...counts, fusionPromptsAnswered: seen.fusionPromptsAnswered },
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(counts.activations, 'fusion Spells activated for the AI').toBeGreaterThan(0);

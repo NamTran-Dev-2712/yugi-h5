@@ -47,6 +47,11 @@ export interface SimResult {
   readonly rejected: number;
   readonly surrenders: number;
   readonly stuck: boolean;
+  /**
+   * Task 4.8: 1 when the game stopped at a prompt with no answer the engine accepts (the prompted seat could only
+   * surrender) — the dead end task 4.7 found. Such a game also counts as stuck.
+   */
+  readonly deadPrompts: number;
 }
 
 export function simulate(options: SimOptions): SimResult {
@@ -67,6 +72,7 @@ export function simulate(options: SimOptions): SimResult {
   let actions = 0;
   let rejected = 0;
   let surrenders = 0;
+  let deadPrompts = 0;
   while (state.winnerIndex === null && actions < maxActions) {
     // Same "who acts" as DuelManager: prompt, then chain priority, then the turn player.
     const seat =
@@ -74,6 +80,10 @@ export function simulate(options: SimOptions): SimResult {
       state.chainWindow?.priorityPlayer ??
       state.turnPlayerIndex;
     const legal = toPlayerActions(getLegalActions(state, seat, ctx));
+    if (state.pendingPrompt && !legal.some((a) => a.type === 'ResolvePendingPrompt')) {
+      deadPrompts++;
+      break;
+    }
     const action = options.policies[seat]({
       view: toStateView(state, seat, cards),
       legalActions: legal,
@@ -98,6 +108,7 @@ export function simulate(options: SimOptions): SimResult {
     rejected,
     surrenders,
     stuck: state.winnerIndex === null,
+    deadPrompts,
   };
 }
 
@@ -107,6 +118,8 @@ export interface SimSummary {
   readonly stuck: number;
   readonly rejected: number;
   readonly surrenders: number;
+  /** Task 4.8: games that stopped at a prompt nobody could answer. */
+  readonly deadPrompts: number;
   readonly meanTurns: number;
   readonly meanActions: number;
   /** Wins per seat (draws not counted). */
@@ -129,6 +142,7 @@ export function summarize(results: readonly SimResult[]): SimSummary {
     stuck: results.filter((r) => r.stuck).length,
     rejected: results.reduce((s, r) => s + r.rejected, 0),
     surrenders: results.reduce((s, r) => s + r.surrenders, 0),
+    deadPrompts: results.reduce((s, r) => s + r.deadPrompts, 0),
     meanTurns: results.reduce((s, r) => s + r.turns, 0) / n,
     meanActions: results.reduce((s, r) => s + r.actions, 0) / n,
     seatWins,

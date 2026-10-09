@@ -139,6 +139,7 @@ describe('AI vs AI with NEGATE_DEMO_DECK (task 4.4b, real Counter Trap / Negate 
       seen,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(seen.negateSetListed, 'decisions with a negating card Set listed').toBeGreaterThan(0);
@@ -155,6 +156,7 @@ describe('AI vs AI with NEGATE_DEMO_DECK (task 4.4b, real Counter Trap / Negate 
       seen,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(seen.windows, 'windows the AI held').toBeGreaterThan(0);
@@ -173,6 +175,7 @@ describe('AI vs AI with NEGATE_DEMO_DECK (task 4.4b, real Counter Trap / Negate 
       { ...counts, aiDecisions: seen.decisions, aiSpellTrapOnItsOwn: seen.spellTrapOnItsOwn },
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(counts.negations, 'negations played against the AI').toBeGreaterThan(0);

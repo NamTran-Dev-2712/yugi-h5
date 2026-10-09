@@ -14,7 +14,8 @@ import { hasLegalActivation } from './activate-effect.js';
 /**
  * Answer to a `TriggerActivation` prompt (task 3.5): `decline: true` (optional triggers only, no ids) or exactly
  * `count` target ids among the candidates (none when the effect has no Card target). The trigger is re-checked against
- * the current state; the remaining triggers then run, and priority is settled. `version` +1.
+ * the current state (task 4.8: one that can no longer activate is skipped, whatever the answer); the remaining triggers
+ * then run, and priority is settled. `version` +1.
  */
 export function resolveTriggerActivation(
   state: GameState,
@@ -34,13 +35,15 @@ export function resolveTriggerActivation(
   };
 
   const ready = readyTrigger(base, saved.trigger, ctx);
-  // The state did not change since the prompt opened, so this only guards a corrupted prompt.
-  if (ready === null) return bad('the trigger can no longer activate.');
 
   const chosen = action.payload.cardInstanceIds;
   const events: GameEvent[] = [];
   let current = base;
-  if (action.payload.decline === true) {
+  if (ready === null) {
+    // Task 4.8: the trigger can no longer activate (its card, its cost or its last target is gone). `readyTrigger`
+    // reads the board as it stands after the action, so the engine does not open such a prompt any more — but a prompt
+    // must never be a dead end: whatever the answer, the trigger simply does not activate and the rest goes on.
+  } else if (action.payload.decline === true) {
     if (!ready.optional) bad('a mandatory trigger cannot be declined.');
     if (chosen.length > 0) bad('declining takes no card ids.');
   } else {

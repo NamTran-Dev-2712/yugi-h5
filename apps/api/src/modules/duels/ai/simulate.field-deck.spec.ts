@@ -104,6 +104,7 @@ describe('AI vs AI with FIELD_DEMO_DECK (task 4.3b, real Field / Continuous card
       seen,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     // The situation the brief asks about really happened: the Field Zone Set and the activations were on offer.
@@ -124,6 +125,7 @@ describe('AI vs AI with FIELD_DEMO_DECK (task 4.3b, real Field / Continuous card
       seen,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(seen.ownFieldZoneUsed, 'decisions with a card in its Field Zone').toBeGreaterThan(0);

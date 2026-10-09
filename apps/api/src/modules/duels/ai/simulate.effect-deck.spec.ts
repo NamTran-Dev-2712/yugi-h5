@@ -75,6 +75,7 @@ describe('AI vs AI with EFFECT_DEMO_DECK (task 3.8, real sample cards)', () => {
       seen,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
   }, 600_000);
@@ -87,6 +88,7 @@ describe('AI vs AI with EFFECT_DEMO_DECK (task 3.8, real sample cards)', () => {
       seen,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected).toBe(0);
     expect(s.surrenders).toBe(0);
     expect(seen.windows, 'windows the AI held').toBeGreaterThan(0);

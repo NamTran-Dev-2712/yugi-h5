@@ -10,6 +10,7 @@ import { applyAction } from '../../apply-action.js';
 import { hasLegalActivation } from '../../actions/handlers/activate-effect.js';
 import { activeContinuousEffects, effectiveStats } from '../../effects/continuous.js';
 import { EngineError } from '../../errors.js';
+import { legalActionsWith } from '../../legal-actions.js';
 import { createRng, nextInt } from '../../rng/seeded-rng.js';
 import type { RngState } from '../../rng/seeded-rng.js';
 import type { CardInstance, GameState, Phase } from '../../state/types.js';
@@ -230,15 +231,38 @@ export const FUZZ_DEFS: Readonly<Record<string, CardDefinition>> = {
     trigger: { kind: 'OnSummon', mandatory: true },
     operations: [{ kind: 'Damage', amount: 200, target: 'opponent' }],
   }),
+  // Task 4.8 — "when destroyed: destroy 1 Spell/Trap the opponent controls" (optional / mandatory): with an Equip Spell
+  // of the opponent on it (EQW), the trigger that once listed that leaving Equip as a target. NOT in the default pool.
+  MDS: effectMonster('MDS', 4, 1500, 1000, {
+    trigger: { kind: 'OnDestroyed' },
+    target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
+  MDSM: effectMonster('MDSM', 4, 1400, 1000, {
+    trigger: { kind: 'OnDestroyed', mandatory: true },
+    target: { kind: 'Card', zone: 'SpellTrapZone', side: 'opponent', count: 1 },
+    operations: [{ kind: 'Destroy' }],
+  }),
   ...BATCH2_REAL,
 };
 /** Task 4.5 cards: played only by the Fusion runs, so the default pool — and every older seed's game — is unchanged. */
 const FUSION_ONLY: readonly string[] = ['FUS', 'FUD', 'FX1', 'FX2', 'FXS'];
 /** Task 4.7 cards: played only by the batch-2 runs (same reason). */
 const BATCH2_ONLY: readonly string[] = Object.keys(BATCH2_REAL);
+/** Task 4.8 cards: played only by the runs of their own pools (same reason). */
+const TASK48_ONLY: readonly string[] = ['MDS', 'MDSM'];
 const DECK_POOL = Object.keys(FUZZ_DEFS).filter(
-  (id) => !FUSION_ONLY.includes(id) && !BATCH2_ONLY.includes(id),
+  (id) => !FUSION_ONLY.includes(id) && !BATCH2_ONLY.includes(id) && !TASK48_ONLY.includes(id),
 );
+/**
+ * Task 4.8 — pool of the "Equip leaves with a destroyed trigger monster" runs (own seeds `equiptrig-<i>`): the two
+ * monsters above, the Equip Spell that goes on an OPPONENT's monster, attackers that beat them, and a few cards to Set
+ * (so the trigger sometimes has another Spell/Trap to choose).
+ */
+export const EQUIP_TRIGGER_DECK_POOL: readonly string[] = [
+  ...['MDS', 'MDS', 'MDS', 'MDSM', 'MDSM', 'M4', 'M4', 'M5'],
+  ...['EQW', 'EQW', 'EQW', 'EQW', 'EQW', 'TRB', 'SP'],
+];
 const isBatch2Fusion = (id: string): boolean => {
   const def = BATCH2_REAL[id];
   return def?.kind === 'Monster' && def.category === 'Fusion';
@@ -492,6 +516,12 @@ export interface FuzzStats {
   readonly fusionsWithoutEffect: number;
   readonly fusionTriggerLinks: number;
   readonly fusionPausesWithOwedTriggers: number;
+  /**
+   * Task 4.8 — states with an open prompt (each one was checked to have an answer the engine accepts), and monsters
+   * destroyed while carrying an Equip Spell whose own "when destroyed" trigger targets a Spell/Trap.
+   */
+  readonly promptStatesChecked: number;
+  readonly equipLeftWithTriggerMonster: number;
 }
 
 export type FuzzResult =
@@ -1361,6 +1391,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
   let fusionsWithoutEffect = 0;
   let fusionTriggerLinks = 0;
   let fusionPausesWithOwedTriggers = 0;
+  let promptStatesChecked = 0;
+  let equipLeftWithTriggerMonster = 0;
   /** Does the Summoned monster have a trigger that this kind of Summon fires (OnSummon; OnFlip for a Flip Summon)? */
   const hasSummonTrigger = (owed: { type: string; definitionId: string }): boolean =>
     (FUZZ_DEFS[owed.definitionId]?.effects ?? []).some(
@@ -1617,6 +1649,59 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       (asked.payload as { owedTriggers: readonly unknown[] }).owedTriggers.length > 0
     )
       fusionPausesWithOwedTriggers++;
+    // Task 4.8: an open prompt always has an answer the engine accepts — `Surrender` is no way out of a prompt. Asked
+    // of the engine under test (`apply`), by dry run, like every legal-action list.
+    if (asked && next.winnerIndex === null) {
+      promptStatesChecked++;
+      let answers: number;
+      try {
+        answers = legalActionsWith(apply, next, asked.playerIndex, ctx).filter(
+          (a) => a.type === 'ResolvePendingPrompt',
+        ).length;
+      } catch (error) {
+        return fail(
+          step,
+          `uncontrolled exception while listing the answers of the ${asked.kind} prompt: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
+        );
+      }
+      if (answers === 0)
+        return fail(
+          step,
+          `the ${asked.kind} prompt (${asked.promptId}) of player ${asked.playerIndex} has no answer the engine accepts`,
+        );
+    }
+    // Task 4.8: a monster destroyed while an Equip Spell was on it, whose own "when destroyed" trigger targets a
+    // Spell/Trap — the Equip leaves in that same action and is never one of the trigger's targets.
+    for (const e of result.events) {
+      if (e.type !== 'MonsterDestroyed') continue;
+      const targetsSpellTrap = (FUZZ_DEFS[e.definitionId]?.effects ?? []).some(
+        (x) =>
+          x.trigger.kind === 'OnDestroyed' &&
+          x.target?.kind === 'Card' &&
+          x.target.zone === 'SpellTrapZone',
+      );
+      const leaving = (state?.players ?? []).flatMap((p) =>
+        p.board.spellTrapZones.flatMap((c) =>
+          c?.equippedTo === e.instanceId ? [c.instanceId] : [],
+        ),
+      );
+      if (!targetsSpellTrap || leaving.length === 0) continue;
+      equipLeftWithTriggerMonster++;
+      const offered =
+        asked?.kind === 'TriggerActivation' && asked !== state?.pendingPrompt
+          ? (asked.payload as { candidateInstanceIds: readonly string[] }).candidateInstanceIds
+          : [];
+      const targeted = result.events.flatMap((x) =>
+        x.type === 'ChainLinkAdded' && x.instanceId === e.instanceId ? x.targetInstanceIds : [],
+      );
+      for (const id of leaving) {
+        if (offered.includes(id) || targeted.includes(id))
+          return fail(
+            step,
+            `Equip ${id} left the field with ${e.instanceId} but is a target of its "when destroyed" trigger`,
+          );
+      }
+    }
     const custom = options.onState?.(next, ctx, step);
     if (custom) return fail(step, custom);
     state = next;
@@ -1665,6 +1750,8 @@ export function runFuzz(options: FuzzOptions): FuzzResult {
       fusionsWithoutEffect,
       fusionTriggerLinks,
       fusionPausesWithOwedTriggers,
+      promptStatesChecked,
+      equipLeftWithTriggerMonster,
     },
   };
 }

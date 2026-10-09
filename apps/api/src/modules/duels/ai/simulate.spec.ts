@@ -40,6 +40,7 @@ describe('AI vs AI simulation', () => {
         `seat0Wins=${s.seatWins[0]} seat1Wins=${s.seatWins[1]} draws=${s.draws}`,
     );
     expect(s.stuck, 'games that never ended').toBe(0);
+    expect(s.deadPrompts, 'prompts nobody could answer').toBe(0);
     expect(s.rejected, 'actions the engine refused').toBe(0);
     expect(s.surrenders).toBe(0);
     expect(s.finished).toBe(s.games);

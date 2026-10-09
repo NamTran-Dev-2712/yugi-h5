@@ -171,6 +171,19 @@ function candidates(state: GameState, seat: Seat, ctx: ActionContext): Action[] 
 
 /** Actions `seat` may submit right now: each one is accepted by `applyAction(state, action, ctx)`. Pure; deterministic order. */
 export function getLegalActions(state: GameState, seat: Seat, ctx: ActionContext): Action[] {
+  return legalActionsWith(applyAction, state, seat, ctx);
+}
+
+/**
+ * `getLegalActions` over a given engine (task 4.8): the fuzz harness passes the engine under test, so "does this prompt
+ * have an answer?" is asked of that very engine. Everything else should call `getLegalActions`.
+ */
+export function legalActionsWith(
+  apply: (state: GameState, action: Action, ctx: ActionContext) => unknown,
+  state: GameState,
+  seat: Seat,
+  ctx: ActionContext,
+): Action[] {
   if (state.winnerIndex !== null) return [];
   const seen = new Set<string>();
   const legal: Action[] = [];
@@ -179,7 +192,7 @@ export function getLegalActions(state: GameState, seat: Seat, ctx: ActionContext
     if (seen.has(key)) continue;
     seen.add(key);
     try {
-      applyAction(state, candidate, ctx);
+      apply(state, candidate, ctx);
     } catch (error) {
       if (error instanceof EngineError) continue;
       throw error;
