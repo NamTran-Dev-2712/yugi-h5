@@ -26,6 +26,7 @@ import type { DuelMode, DuelSession, DuelStore } from './duel-store';
 import type { DuelMeta } from './duel-access';
 import { toStateView } from './state-view';
 import { ENGINE_ONLY_ACTIONS, toPlayerActions } from './wire-actions';
+import { wireRuleset, withoutEngineOnlyKeys } from './wire-ruleset';
 
 export interface CreateDuelConfig {
   readonly playerIds: readonly [string, string];
@@ -147,6 +148,8 @@ export class DuelManager {
     const duelId = this.newDuelId();
     const seed = config.seed ?? this.newSeed();
     const extraDeckLists = extraDecksFor(config);
+    // Task 4.8: engine-only ruleset keys never reach a duel (see `wire-ruleset.ts`).
+    const ruleset = wireRuleset(config.ruleset);
     const startAction: StartDuelAction = {
       type: 'StartDuel',
       payload: {
@@ -156,7 +159,7 @@ export class DuelManager {
         deckLists: config.deckLists,
         // Left out when nobody has an Extra Deck: the start action (kept for replays) is then the one it always was.
         ...(extraDeckLists ? { extraDeckLists } : {}),
-        ...(config.ruleset ? { ruleset: config.ruleset } : {}),
+        ...(ruleset ? { ruleset } : {}),
         ...(config.startingLP ? { startingLP: config.startingLP } : {}),
       },
     };
@@ -190,14 +193,20 @@ export class DuelManager {
    */
   async createDuelFromState(config: CreateDuelFromStateConfig): Promise<CreateDuelResult> {
     const duelId = config.state.matchId;
+    // Task 4.8: a scenario may name any ruleset key (its schema mirrors the ruleset schema); the engine-only ones are
+    // dropped here, the one place every loaded state passes through.
+    const state: GameState = {
+      ...config.state,
+      ruleset: withoutEngineOnlyKeys(config.state.ruleset),
+    };
     const loaded: DuelSession = {
       duelId,
       ...(config.mode !== undefined ? { mode: config.mode } : {}),
       ...(config.ownerId !== undefined ? { ownerId: config.ownerId } : {}),
       ...(config.aiSeat !== undefined ? { aiSeat: config.aiSeat } : {}),
       seed: config.seed,
-      initialState: config.state,
-      state: config.state,
+      initialState: state,
+      state,
       actionLog: [],
     };
     await this.store.save(loaded);

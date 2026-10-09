@@ -161,3 +161,20 @@
   và "từ chối khi còn ứng viên khác" của P7 (trước bản sửa vẫn từ chối được; chỉ payload liệt kê thừa lá Trang bị).
 - Lỗi biên dịch kiểu (oncePerTurn / allowMonsterEffectActivation / effectUsedTurns chưa có trong type) không hiện ở đây vì vitest không typecheck;
   tsc chỉ xanh lại ở commit 3/5.
+
+## apps/api — pnpm exec vitest run src/modules/duels/monster-effect-containment.spec.ts (engine đã có tính năng, DuelManager CHƯA gỡ khoá)
+   ✓ wireRuleset (task 4.8) > drops the engine-only keys and nothing else; returns undefined when nothing is left 3ms
+   ✓ the engine really has the feature (so the tests below would see it if it got through) > with the key on, the engine lists and accepts the monster effect of this very scenario 13ms
+   × createDuel never passes the key on (task 4.8) > the stored state, the recorded start action and both views have no such key; other overrides stay 27ms
+     → expected true to be false // Object.is equality
+   × createDuel never passes the key on (task 4.8) > a Summoned monster with an Ignition effect: nothing listed, the action is refused, the state is untouched 19ms
+     → expected [ { type: 'ActivateEffect', …(1) } ] to deeply equal []
+   ✓ a Sandbox scenario that asks for the key does not get it (task 4.8) > the scenario schema accepts the key (it mirrors the ruleset schema) — the manager is what stops it 1ms
+   × a Sandbox scenario that asks for the key does not get it (task 4.8) > two seats: no key in the state or the views, no monster effect listed, the action is refused 15ms
+     → expected '{"duelId":"duel-1","mode":"solo-debug…' not to contain 'allowMonsterEffectActivation'
+   × a Sandbox scenario that asks for the key does not get it (task 4.8) > solo-vs-ai, the AI controls the monster and moves first: it never activates it 15ms
+     → expected '{"startingLP":8000,"openingHandSize":…' not to contain 'allowMonsterEffectActivation'
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  4 failed | 3 passed (7)
+- 4 đỏ / 7: không có containment thì khoá đi vào state, vào view, và ActivateEffect của quái được liệt kê cho client.

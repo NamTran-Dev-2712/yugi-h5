@@ -1,0 +1,23 @@
+KILLED    [rules:KILL fuzz:KILL golden:KILL]  P7: readyTrigger reads the board BEFORE the orphan Equip leaves (the fix reverted)
+KILLED    [rules:KILL fuzz:KILL golden: -  ]  P7: a prompt whose trigger is dead refuses every answer again
+KILLED    [rules:KILL fuzz:KILL golden:KILL api:KILL]  P7: both reverted — the engine as it was before task 4.8
+KILLED    [rules:KILL fuzz: -   golden: -   api:KILL]  flag: a monster on the field is found whatever the ruleset says
+KILLED    [rules:KILL fuzz: -   golden: -  ]  flag: any truthy-looking value switches it on (explicit false included)
+KILLED    [rules:KILL fuzz:KILL golden: -  ]  a face-down monster may activate its effect
+KILLED    [rules:KILL fuzz:KILL golden: -  ]  a monster may activate on the opponent's turn (inside a reaction window)
+KILLED    [rules:KILL fuzz:KILL golden:KILL]  a monster may activate outside a Main Phase
+KILLED    [rules:KILL fuzz:KILL golden:KILL]  a monster activates its Quick effect instead of its Ignition effect
+KILLED    [rules:KILL fuzz:KILL golden:KILL]  oncePerTurn is never checked
+KILLED    [rules:KILL fuzz:KILL golden:KILL]  oncePerTurn never resets (any earlier use blocks, whatever the turn)
+KILLED    [rules:KILL fuzz: -   golden:KILL]  oncePerTurn applies to every effect of a monster (the data flag is ignored)
+KILLED    [rules:KILL fuzz:KILL golden:KILL]  no turn stamp is written at activation (a negated or resolved use does not count)
+KILLED    [rules:KILL fuzz:KILL golden:KILL]  the turn stamp carries the wrong turn
+KILLED    [rules:KILL fuzz: -   golden: -  ]  the turn stamp lands on every monster of the player (counted per name / per side, not per copy)
+KILLED    [rules:KILL fuzz: -   golden:KILL]  a monster's effect is activated without paying its cost
+KILLED    [rules:KILL fuzz:KILL golden: -  ]  a monster may be Tributed for its own effect
+KILLED    [rules:KILL fuzz: -   golden: -  ]  monsters on the field are not activation candidates (never listed, auto-pass ignores them)
+KILLED    [rules:KILL fuzz: -   golden: -  ]  monsters are listed BEFORE the Spells / Traps (the order of older legal-action lists changes)
+KILLED    [api:KILL]  API: createDuel passes the engine-only ruleset key on
+KILLED    [api:KILL]  API: a Sandbox state keeps the engine-only ruleset key
+
+21/21 valid mutants killed by a behaviour test (rules / fuzz / API spec); 21/21 killed by any test; 0 invalid (do not compile); 0 missing patterns

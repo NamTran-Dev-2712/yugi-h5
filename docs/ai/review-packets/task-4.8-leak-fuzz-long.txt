@@ -1,0 +1,13 @@
+# Task 4.8 — long leak fuzz of the API gate, every variant (2026-10-09)
+## FUZZ_SEEDS=60 FUZZ_STEPS=300 vitest run src/modules/duels/event-visibility.fuzz.spec.ts
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (60 seeds × 300 steps) > covered the batch-2 cards on the wire (task 4.7; own stats, own seeds)
+  steps: 12883,
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (60 seeds × 300 steps) > covered Fusion on the wire (task 4.5b)
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (60 seeds × 300 steps) > covered Counter Trap / Negate on the wire (task 4.4b)
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (60 seeds × 300 steps) > covered the Field Zone and the staying cards (task 4.3b)
+stdout | src/modules/duels/event-visibility.fuzz.spec.ts > fuzz gate: no hidden definitionId over the wire with Spell/Trap (60 seeds × 300 steps) > covered every task 3.2 / chain event, prompts, windows and refused attempts
+  steps: 59475,
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ Test Files  1 passed (1)
+      Tests  275 passed (275)
+   Duration  2213.21s (transform 837ms, setup 0ms, collect 2.68s, tests 2209.95s, environment 0ms, prepare 148ms)

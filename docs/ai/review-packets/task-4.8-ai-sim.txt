@@ -1,0 +1,23 @@
+# Task 4.8 — AI simulations, every demo deck + the Equip / trigger deck, 20 games per kind (2026-10-09)
+## AI_SIM_GAMES=20 vitest run src/modules/duels/ai/simulate (every spec asserts stuck = 0, rejected = 0 and deadPrompts = 0)
+[player vs player, Equip + trigger deck] games=20 finished=20 meanTurns=14.3 { promptAnswers: 42, activations: 128 }
+[AI vs AI negate deck] games=20 finished=20 meanTurns=13.8 {
+[AI vs AI negate deck, sets first] games=20 finished=20 meanTurns=13.3 {
+[AI vs AI field deck] games=20 finished=20 meanTurns=16.8 {
+[player vs AI, Equip + trigger deck] games=20 finished=20 meanTurns=11.7 { promptAnswers: 22, activations: 4, aiPromptAnswers: 4 }
+[AI vs AI chain] games=20 finished=20 meanTurns=28.1 seat0Wins=8 seat1Wins=12 draws=0 {
+[negator vs AI, negate deck] games=20 finished=20 meanTurns=14.6 {
+[AI vs AI field deck, sets first] games=20 finished=20 meanTurns=18.3 {
+[AI vs AI] games=20 meanTurns=26.1 meanActions=199.8 seat0Wins=9 seat1Wins=11 draws=0
+[AI vs AI fusion deck] games=20 finished=20 meanTurns=39.8 {
+[AI vs random] games=20 aiWins=17 randomWins=3 winRate=85.0% meanTurns=24.9 stuck=0 rejected=0
+[AI vs AI effect deck] games=20 finished=20 meanTurns=45.5 {
+[AI vs AI batch-2 deck] games=20 finished=20 meanTurns=42.9 {
+[fuser vs AI, fusion deck] games=20 finished=20 meanTurns=28.1 {
+[player vs AI, batch-2 deck] games=20 finished=20 meanTurns=27.2 {
+[AI with Extra Deck, fusion pushed] games=20 finished=20 meanTurns=21.5 { activations: 23, fusionPromptsAnswered: 46 }
+[player vs player, batch-2 deck] games=20 finished=20 meanTurns=27.4 { promptAnswers: 137, activations: 211, sets: 161 }
+[AI vs AI effect deck, sets first] games=20 finished=20 meanTurns=57.2 {
+ Test Files  8 passed (8)
+      Tests  19 passed (19)
+   Duration  543.41s (transform 6.18s, setup 0ms, collect 49.52s, tests 2057.70s, environment 3ms, prepare 8.70s)

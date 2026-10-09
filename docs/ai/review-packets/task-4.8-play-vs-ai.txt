@@ -1,0 +1,55 @@
+# Task 4.8 — tools/play-vs-ai.ts over the real HTTP API (2026-10-09), one run per deck
+
+## DECK=default
+
+human actions 36, AI actions 42 over 5 responses, winner 1, turns 10
+47/47 checks passed
+exit code: 0
+
+## DECK=effect
+
+human actions 36, AI actions 32 over 6 responses, winner 1, turns 8
+50/50 checks passed
+exit code: 0
+
+## DECK=batch1
+
+human actions 62, AI actions 41 over 6 responses, winner 0, turns 13
+74/74 checks passed
+exit code: 0
+
+## DECK=mech
+
+human actions 102, AI actions 75 over 11 responses, winner 0, turns 21
+116/116 checks passed
+exit code: 0
+
+## DECK=field
+69/71 checks passed
+  FAIL a Field Spell was Set over HTTP (FieldSpellSet) {"chainLinks":3,"humanWindows":2,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":53,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":44,"setSpellActivated":3,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+  FAIL my Set Field Spell was face-down in the Field Zone, then a Field Spell was face-up {"chainLinks":3,"humanWindows":2,"humanTriggerPrompts":0,"aiChainActs":0,"effAtk":53,"flipSummons":0,"specialSummons":0,"equips":0,"equippedToOnWire":0,"fieldSets":0,"fieldSetWithDefinitionId":0,"fieldReplaced":0,"fieldDestroyed":0,"faceUpField":0,"myFaceDownField":0,"stayingFaceUp":44,"setSpellActivated":3,"aiPromptKinds":0,"linksNegated":0,"attacksNegated":0,"summonsNegated":0,"attackNegatedWithDefinitionId":0,"aiSpellTrapMoves":0}
+exit code: 0
+
+## DECK=negate
+64/64 checks passed
+   negate totals: {"duels":1,"windows":1,"attacksNegated":0,"summonsNegated":1}
+66/66 checks passed (all duels)
+exit code: 0
+
+## DECK=fusion
+113/113 checks passed
+   fusion totals: {"duels":2,"summons":1,"materials":2,"monsterPrompts":1,"materialPrompts":1}
+115/115 checks passed (all duels)
+exit code: 0
+
+## DECK=batch2
+75/75 checks passed
+   batch2 totals: {"duels":1,"chainLinks":4,"effAtk":60,"specialSummons":1,"equips":2,"flipSummons":0,"triggerPrompts":1,"aiSets":0,"aiActivations":0}
+79/79 checks passed (all duels)
+exit code: 0
+
+## Ghi chú DECK=field (đo thêm 7 lần, 2026-10-09)
+Lần chạy ở trên: 69/71. Chạy lại 7 lần: 4 lần đạt hết (73/73, 80/80, 67/67, 62/62), 3 lần thiếu ĐÚNG 2 kiểm tra độ phủ
+"a Field Spell was Set over HTTP" và "my Set Field Spell was face-down ... then face-up" (ván chia không cho người chơi của công cụ Úp lá Môi trường).
+Không lần nào trượt kiểm tra rò thông tin hay kiểm tra hành vi máy. Phụ thuộc ván chia (server tự chọn seed), cùng kiểu với DECK=negate ở task 4.7.
+CHƯA đối chiếu với commit trước task 4.8; lập luận: cờ tắt thì engine cho đúng kết quả cũ (370 dấu vân tay fuzz giống hệt), nên phân bố này không do task 4.8.
